@@ -1,0 +1,39 @@
+----------------------------------------------------------------------------
+                 perfkit - performance recording toolkit
+----------------------------------------------------------------------------
+
+  I.    Introduction
+ II.    Installation and Running
+III.    Contributing
+
+----------------------------------------------------------------------------
+  I.    Introduction
+----------------------------------------------------------------------------
+
+Perfkit is a performance recording toolkit for developers and system
+administrators.  It can be used for both profiling systems software and
+applications as well as monitoring servers and remote devices.
+
+----------------------------------------------------------------------------
+ II.    Installation
+----------------------------------------------------------------------------
+
+Perfkit is packaged in the standard format for most GNU/Linux-based software.
+Use the standard `./configure', `make', `make install' to build and install
+Perfkit.
+
+Perfkit contains a runtime daemon that manages profiling and systems
+monitoring.  It can be run using `perfkit-daemon'.
+
+In the near future, a GUI will be provided to manage Perfkit recording
+sessions.
+
+----------------------------------------------------------------------------
+III.	Contributing
+----------------------------------------------------------------------------
+
+Perfkit is actively looking for contributors to help improve the codebase
+and add collection data sources.
+
+Perfkit was brought to you by Christian Hergert and Shapor Naghibzadeh.
+
