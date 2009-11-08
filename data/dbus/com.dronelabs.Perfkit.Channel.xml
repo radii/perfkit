@@ -14,5 +14,8 @@
     <method name="Start">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_start"/>
     </method>
+    <method name="Stop">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_stop"/>
+    </method>
   </interface>
 </node>

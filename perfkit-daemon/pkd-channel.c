@@ -562,6 +562,49 @@ pkd_channel_start (PkdChannel  *channel,
 	return result;
 }
 
+/**
+ * pkd_channel_stop:
+ * @channel: A #PkdChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * Stops the #PkdChannel recording process.  If there was an error, then
+ * %FALSE is returned and @error is set.
+ *
+ * Return value: %TRUE on success
+ */
+gboolean
+pkd_channel_stop (PkdChannel  *channel,
+                  GError     **error)
+{
+	PkdChannelPrivate *priv;
+	gboolean           result = FALSE;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+
+	priv = channel->priv;
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
+	switch (priv->state) {
+	case STATE_STARTED:
+	case STATE_PAUSED: {
+		priv->state = STATE_STOPPED;
+		/* TODO: Stop Execution Hooks */
+		result = TRUE;
+		break;
+	}
+	default:
+		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
+		             "Channel must be in started or paused state to stop");
+		result = FALSE;
+		break;
+	}
+
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return result;
+}
+
 GQuark
 pkd_channel_error_quark (void)
 {
