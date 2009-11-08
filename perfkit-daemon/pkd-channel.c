@@ -649,6 +649,52 @@ pkd_channel_pause (PkdChannel  *channel,
 	return result;
 }
 
+/**
+ * pkd_channel_unpause:
+ * @channel: A #PkdChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * Unpauses the #PkdChannel<!-- -->'s recording process.  If the channel is not
+ * currently paused, then %FALSE is returned and @error is set.
+ *
+ * Once unpaused, recording samples will continue to be emitted on their
+ * configured frequency.
+ *
+ * See pkd_channel_pause() to pause a #PkdChannel.
+ *
+ * Return value: %TRUE on success
+ */
+gboolean
+pkd_channel_unpause (PkdChannel  *channel,
+                     GError     **error)
+{
+	PkdChannelPrivate *priv;
+	gboolean           result = FALSE;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+
+	priv = channel->priv;
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
+	switch (priv->state) {
+	case STATE_PAUSED: {
+		priv->state = STATE_STARTED;
+		/* TODO: Unpause Execution Hooks */
+		result = TRUE;
+		break;
+	}
+	default:
+		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
+		             "The channel must be paused before unpausing");
+		result = FALSE;
+	}
+
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return result;
+}
+
 GQuark
 pkd_channel_error_quark (void)
 {

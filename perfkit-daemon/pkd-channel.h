@@ -76,6 +76,7 @@ void         pkd_channel_set_env     (PkdChannel *channel, const gchar **env);
 gboolean     pkd_channel_start       (PkdChannel *channel, GError      **error);
 gboolean     pkd_channel_stop        (PkdChannel *channel, GError      **error);
 gboolean     pkd_channel_pause       (PkdChannel *channel, GError      **error);
+gboolean     pkd_channel_unpause     (PkdChannel *channel, GError      **error);
 
 G_END_DECLS
 

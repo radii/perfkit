@@ -20,5 +20,8 @@
     <method name="Pause">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_pause"/>
     </method>
+    <method name="Unpause">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_unpause"/>
+    </method>
   </interface>
 </node>
