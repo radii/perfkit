@@ -36,12 +36,15 @@ G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 struct _PkdChannelPrivate
 {
 	GStaticRWLock   rw_lock;
+	gint            id;
 	gchar          *dir;
 	gchar         **args;
 	GPid            pid;
 	gchar          *target;
 	gchar         **env;
 };
+
+static gint channel_seq = 0;
 
 static void
 pkd_channel_finalize (GObject *object)
@@ -65,19 +68,7 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
 	                                             PKD_TYPE_CHANNEL,
 	                                             PkdChannelPrivate);
-}
-
-/**
- * pkd_channel_new:
- *
- * Creates a new instance of #PkdChannel.
- *
- * Return value: the newly created #PkdChannel instance.
- */
-PkdChannel*
-pkd_channel_new (void)
-{
-	return g_object_new (PKD_TYPE_CHANNEL, NULL);
+	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
 }
 
 /**
@@ -339,3 +330,18 @@ pkd_channel_set_env (PkdChannel* channel,
 	g_object_notify (G_OBJECT (channel), "env");
 }
 
+/**
+ * pkd_channel_get_id:
+ * @channel: A #PkdChannel
+ *
+ * Retrieves the unique identifier of the #PkdChannel.  The id is only unique
+ * to the running instance of the program.  Id's will be reused at next startup.
+ *
+ * Return value: the channel's identifier
+ */
+gint
+pkd_channel_get_id (PkdChannel *channel)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), 0);
+	return channel->priv->id;
+}

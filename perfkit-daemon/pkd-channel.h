@@ -49,7 +49,7 @@ struct _PkdChannelClass
 };
 
 GType        pkd_channel_get_type    (void) G_GNUC_CONST;
-PkdChannel * pkd_channel_new         (void);
+gint         pkd_channel_get_id      (PkdChannel *channel);
 gchar *      pkd_channel_get_dir     (PkdChannel *channel);
 void         pkd_channel_set_dir     (PkdChannel *channel, const gchar *dir);
 gchar **     pkd_channel_get_args    (PkdChannel *channel);
