@@ -9,5 +9,10 @@
     <property name="Target" type="s" access="readwrite" />
     <property name="Env" type="as" access="readwrite" />
     <property name="Pid" type="u" access="readwrite" />
+
+    <!-- Methods -->
+    <method name="Start">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_start"/>
+    </method>
   </interface>
 </node>

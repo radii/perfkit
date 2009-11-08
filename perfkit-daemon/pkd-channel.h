@@ -30,6 +30,18 @@ G_BEGIN_DECLS
 #define PKD_IS_CHANNEL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_CHANNEL))
 #define PKD_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_CHANNEL))
 #define PKD_CHANNEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_CHANNEL, PkdChannelClass))
+#define PKD_CHANNEL_ERROR           (pkd_channel_error_quark ())
+
+/**
+ * PkdChannelError:
+ * @PKD_CHANNEL_ERROR_INVALID: The channel is in an invalid state.
+ *
+ * #PkdChannelError error enumeration.
+ */
+typedef enum
+{
+	PKD_CHANNEL_ERROR_INVALID,
+} PkdChannelError;
 
 typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
@@ -49,17 +61,19 @@ struct _PkdChannelClass
 };
 
 GType        pkd_channel_get_type    (void) G_GNUC_CONST;
+GQuark       pkd_channel_error_quark (void) G_GNUC_CONST;
 gint         pkd_channel_get_id      (PkdChannel *channel);
 gchar *      pkd_channel_get_dir     (PkdChannel *channel);
-void         pkd_channel_set_dir     (PkdChannel *channel, const gchar *dir);
+void         pkd_channel_set_dir     (PkdChannel *channel, const gchar  *dir);
 gchar **     pkd_channel_get_args    (PkdChannel *channel);
 void         pkd_channel_set_args    (PkdChannel *channel, const gchar **args);
 GPid         pkd_channel_get_pid     (PkdChannel *channel);
 void         pkd_channel_set_pid     (PkdChannel *channel, GPid pid);
 gchar *      pkd_channel_get_target  (PkdChannel *channel);
-void         pkd_channel_set_target  (PkdChannel *channel, const gchar *target);
+void         pkd_channel_set_target  (PkdChannel *channel, const gchar  *target);
 gchar **     pkd_channel_get_env     (PkdChannel *channel);
 void         pkd_channel_set_env     (PkdChannel *channel, const gchar **env);
+gboolean     pkd_channel_start       (PkdChannel *channel, GError      **error);
 
 G_END_DECLS
 

@@ -45,10 +45,28 @@ enum
 	PROP_DIR,
 };
 
+enum
+{
+	STATE_READY,    /* Channel has not been started, and can still be
+	                 * configured.
+					 */
+	STATE_STARTED,  /* Once started, this channel will create aggregate samples
+	                 * according to the recording frequency settings..
+					 */
+	STATE_STOPPED,  /* Once stopped, this channel is completed and no further
+	                 * processing can continue.
+					 */
+	STATE_PAUSED,   /* Channel was started, then paused.  This is the only
+	                 * non-initial state that can progress to STATE_STARTED.
+					 */
+	STATE_LAST
+};
+
 struct _PkdChannelPrivate
 {
 	GStaticRWLock   rw_lock;
 	gint            id;
+	gint            state;
 	gchar          *dir;
 	gchar         **args;
 	GPid            pid;
@@ -212,6 +230,8 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
 	                                             PKD_TYPE_CHANNEL,
 	                                             PkdChannelPrivate);
+
+	channel->priv->state = STATE_READY;
 
 	/* generate unique identifier */
 	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
@@ -497,4 +517,53 @@ pkd_channel_get_id (PkdChannel *channel)
 {
 	g_return_val_if_fail (PKD_IS_CHANNEL (channel), 0);
 	return channel->priv->id;
+}
+
+/**
+ * pkd_channel_start:
+ * @channel: A #PkdChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * Attempts to start a #PkdChannel<!-- -->'s recording process.  If the channel
+ * cannot be started, %FALSE is returned and @error is set.
+ *
+ * Return value: %TRUE on success
+ */
+gboolean
+pkd_channel_start (PkdChannel  *channel,
+                   GError     **error)
+{
+	PkdChannelPrivate *priv;
+	gboolean           result = FALSE;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+
+	priv = channel->priv;
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
+	switch (priv->state) {
+	case STATE_READY:
+	case STATE_PAUSED: {
+		priv->state = STATE_STARTED;
+		/* TODO: Process Execution Hooks */
+		result = TRUE;
+		break;
+	}
+	default:
+		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
+		             "Channel must be in ready or paused state to start");
+		result = FALSE;
+		break;
+	}
+
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return result;
+}
+
+GQuark
+pkd_channel_error_quark (void)
+{
+	return g_quark_from_static_string ("pkd-channel-error-quark");
 }
