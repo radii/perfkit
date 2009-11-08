@@ -21,6 +21,8 @@
 #endif
 
 #include "pkd-channel.h"
+#include "pkd-channel-dbus.h"
+#include "pkd-runtime.h"
 
 /**
  * SECTION:pkd-channel
@@ -32,6 +34,16 @@
  */
 
 G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
+
+enum
+{
+	PROP_0,
+	PROP_TARGET,
+	PROP_PID,
+	PROP_ENV,
+	PROP_ARGS,
+	PROP_DIR,
+};
 
 struct _PkdChannelPrivate
 {
@@ -53,22 +65,163 @@ pkd_channel_finalize (GObject *object)
 }
 
 static void
+pkd_channel_set_property (GObject      *object,
+                          guint         prop_id,
+						  const GValue *value,
+						  GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_TARGET:
+		pkd_channel_set_target (PKD_CHANNEL (object),
+		                        g_value_get_string (value));
+		break;
+	case PROP_PID:
+		pkd_channel_set_pid (PKD_CHANNEL (object),
+		                     (GPid)g_value_get_uint (value));
+		break;
+	case PROP_ENV:
+		pkd_channel_set_env (PKD_CHANNEL (object),
+		                     g_value_get_boxed (value));
+		break;
+	case PROP_ARGS:
+		pkd_channel_set_args (PKD_CHANNEL (object),
+		                      g_value_get_boxed (value));
+		break;
+	case PROP_DIR:
+		pkd_channel_set_dir (PKD_CHANNEL (object),
+		                     g_value_get_string (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+pkd_channel_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_TARGET:
+		g_value_take_string (value, pkd_channel_get_target (PKD_CHANNEL (object)));
+		break;
+	case PROP_PID:
+		g_value_set_uint (value, pkd_channel_get_pid (PKD_CHANNEL (object)));
+		break;
+	case PROP_ENV:
+		g_value_set_boxed (value, pkd_channel_get_env (PKD_CHANNEL (object)));
+		break;
+	case PROP_ARGS:
+		g_value_set_boxed (value, pkd_channel_get_args (PKD_CHANNEL (object)));
+		break;
+	case PROP_DIR:
+		g_value_take_string (value, pkd_channel_get_dir (PKD_CHANNEL (object)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
 pkd_channel_class_init (PkdChannelClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
+	object_class->set_property = pkd_channel_set_property;
+	object_class->get_property = pkd_channel_get_property;
 	object_class->finalize = pkd_channel_finalize;
 	g_type_class_add_private (object_class, sizeof (PkdChannelPrivate));
+
+	/**
+	 * PkdChannel:target:
+	 *
+	 * The "target" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_TARGET,
+	                                 g_param_spec_string ("target",
+	                                                      "target",
+	                                                      "Target executable",
+	                                                      NULL,
+	                                                      G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:dir:
+	 *
+	 * The "dir" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_DIR,
+	                                 g_param_spec_string ("dir",
+	                                                      "dir",
+	                                                      "Target working directory",
+	                                                      NULL,
+	                                                      G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:pid:
+	 *
+	 * The "pid" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_PID,
+	                                 g_param_spec_uint ("pid",
+	                                                    "pid",
+	                                                    "Target process id",
+	                                                    0,
+	                                                    G_MAXINT,
+	                                                    0,
+	                                                    G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:env:
+	 *
+	 * The "env" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_ENV,
+	                                 g_param_spec_boxed ("env",
+	                                                     "env",
+	                                                     "Environment variables",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:args:
+	 *
+	 * The "args" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_ARGS,
+									 g_param_spec_boxed ("args",
+	                                                     "args",
+	                                                     "Target arguments",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
+
+	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL, &dbus_glib_pkd_channel_object_info);
 }
 
 static void
 pkd_channel_init (PkdChannel *channel)
 {
+	gchar *path;
+
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
 	                                             PKD_TYPE_CHANNEL,
 	                                             PkdChannelPrivate);
+
+	/* generate unique identifier */
 	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
+
+	/* register the channel on the DBUS */
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
+	                        channel->priv->id);
+	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
+	                                     path, G_OBJECT (channel));
+	g_free (path);
 }
 
 /**
