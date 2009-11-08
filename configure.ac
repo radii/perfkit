@@ -74,6 +74,7 @@ AC_OUTPUT([
 	doc/Makefile
 	doc/reference/Makefile
 	tests/Makefile
+	plugins/Makefile
 
 	doc/reference/perfkit-daemon/Makefile
 	doc/reference/perfkit-daemon/version.xml

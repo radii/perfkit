@@ -1,5 +1,5 @@
 NULL = 
-SUBDIRS = data perfkit-daemon tests doc
+SUBDIRS = data perfkit-daemon plugins tests doc
 ACLOCAL_AMFLAGS = -I build/m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-maintainer-flags --enable-gtk-doc
 
