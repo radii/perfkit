@@ -149,7 +149,7 @@ pkd_channels_error_quark (void)
 static gboolean
 pkd_channels_add_dbus (PkdChannels  *channels,
                        gchar       **path,
-					   GError      **error)
+                       GError      **error)
 {
 	PkdChannelsPrivate *priv;
 	PkdChannel         *channel;
@@ -169,7 +169,7 @@ pkd_channels_add_dbus (PkdChannels  *channels,
 static gboolean
 pkd_channels_remove_dbus (PkdChannels  *channels,
                           gchar        *path,
-					      GError      **error)
+                          GError      **error)
 {
 	PkdChannelsPrivate *priv;
 	PkdChannel         *channel;
