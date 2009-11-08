@@ -41,6 +41,8 @@ dnl ************************************************************************
 PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.16
                                    gthread-2.0 >= 2.16
                                    dbus-glib-1 >= 0.80])
+PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.16
+				   dbus-glib-1 >= 0.80])
 
 
 dnl ************************************************************************
@@ -75,6 +77,7 @@ AC_OUTPUT([
 	doc/reference/Makefile
 	tests/Makefile
 	plugins/Makefile
+	tools/Makefile
 
 	doc/reference/perfkit-daemon/Makefile
 	doc/reference/perfkit-daemon/version.xml
