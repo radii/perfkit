@@ -1,4 +1,5 @@
 #include "pkd-channels.h"
+#include "pkd-runtime.h"
 
 static void
 test_PkdChannels_add (void)
@@ -31,6 +32,8 @@ main (gint   argc,
 {
 	g_type_init ();
 	g_test_init (&argc, &argv, NULL);
+
+	pkd_runtime_initialize (TRUE);
 
 	g_test_add_func ("/PkdChannels/add", test_PkdChannels_add);
 	g_test_add_func ("/PkdChannels/remove", test_PkdChannels_remove);
