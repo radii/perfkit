@@ -1,0 +1,3 @@
+libperfkit-daemon.la
+perfkit-daemon
+pkd-version.h

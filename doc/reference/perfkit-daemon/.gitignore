@@ -1,0 +1,7 @@
+version.xml
+html
+xml
+tmpl
+perfkit-daemon.*
+*.stamp
+*.txt

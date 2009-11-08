@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<node>
+  <interface name="com.dronelabs.Perfkit.Channel">
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel"/>
+
+    <!-- Properties -->
+    <property name="Dir" type="s" access="readwrite" />
+    <property name="Args" type="as" access="readwrite" />
+    <property name="Target" type="s" access="readwrite" />
+    <property name="Env" type="as" access="readwrite" />
+
+    <!-- Methods -->
+    <method name="Unpause">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_unpause_dbus"/>
+    </method>
+    <method name="Pause">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_pause_dbus"/>
+    </method>
+    <method name="In">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_in_dbus"/>
+    </method>
+    <method name="Stop">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_stop_dbus"/>
+    </method>
+    <method name="Out">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_out_dbus"/>
+    </method>
+    <method name="Start">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_start_dbus"/>
+    </method>
+  </interface>
+</node>
