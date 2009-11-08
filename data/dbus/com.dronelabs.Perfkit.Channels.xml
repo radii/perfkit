@@ -2,5 +2,15 @@
 <node>
   <interface name="com.dronelabs.Perfkit.Channels">
     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channels"/>
+
+    <!-- Methods -->
+    <method name="Add">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channels_add_dbus"/>
+      <arg name="path" type="o" direction="out" />
+    </method>
+    <method name="Remove">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channels_remove_dbus"/>
+      <arg name="path" type="o" direction="in"/>
+    </method>
   </interface>
 </node>
