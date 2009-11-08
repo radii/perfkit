@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.V2Y02U:1) */
+/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.ZA4T2U:1) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
                                                             GValue       *return_value,
                                                             guint         n_param_values,
@@ -106,13 +106,14 @@ G_END_DECLS
 static const DBusGMethodInfo dbus_glib_pkd_channel_methods[] = {
   { (GCallback) pkd_channel_start, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 0 },
   { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 39 },
+  { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 77 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_channel_object_info = {
   0,
   dbus_glib_pkd_channel_methods,
-  2,
-"com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0\0",
+  3,
+"com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0\0",
 "\0",
 "com.dronelabs.Perfkit.Channel\0Dir\0com.dronelabs.Perfkit.Channel\0Args\0com.dronelabs.Perfkit.Channel\0Target\0com.dronelabs.Perfkit.Channel\0Env\0com.dronelabs.Perfkit.Channel\0Pid\0\0"
 };

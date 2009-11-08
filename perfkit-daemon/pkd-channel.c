@@ -567,7 +567,7 @@ pkd_channel_start (PkdChannel  *channel,
  * @channel: A #PkdChannel
  * @error: A location for a #GError or %NULL
  *
- * Stops the #PkdChannel recording process.  If there was an error, then
+ * Stops the #PkdChannel<!-- -->'s recording process.  If there was an error, then
  * %FALSE is returned and @error is set.
  *
  * Return value: %TRUE on success
@@ -598,6 +598,50 @@ pkd_channel_stop (PkdChannel  *channel,
 		             "Channel must be in started or paused state to stop");
 		result = FALSE;
 		break;
+	}
+
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return result;
+}
+
+/**
+ * pkd_channel_pause:
+ * @channel: A #PkdChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * Pauses the #PkdChannel<!-- -->'s recording process.  If the channel is not
+ * currently started, then %FALSE is returned and @error is set.
+ *
+ * Once paused, no more samples will be emitted until after the channel has
+ * been started again with pkd_channel_unpause().
+ *
+ * Return value: %TRUE on success
+ */
+gboolean
+pkd_channel_pause (PkdChannel  *channel,
+                   GError     **error)
+{
+	PkdChannelPrivate *priv;
+	gboolean           result = FALSE;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+
+	priv = channel->priv;
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
+	switch (priv->state) {
+	case STATE_STARTED: {
+		priv->state = STATE_PAUSED;
+		/* TODO: Pause Execution Hooks */
+		result = TRUE;
+		break;
+	}
+	default:
+		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
+		             "The channel must be started before pausing");
+		result = FALSE;
 	}
 
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
