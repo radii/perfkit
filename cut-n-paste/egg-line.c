@@ -30,8 +30,15 @@ struct _EggLinePrivate
 	gboolean      quit;
 };
 
+enum
+{
+	SIGNAL_MISSING,
+	SIGNAL_LAST
+};
+
 G_DEFINE_TYPE (EggLine, egg_line, G_TYPE_OBJECT)
 
+static guint    signals [SIGNAL_LAST];
 static EggLine *current = NULL;
 
 static void
@@ -46,8 +53,25 @@ egg_line_class_init (EggLineClass *klass)
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	
 	object_class->finalize = egg_line_finalize;
+	g_type_class_add_private (object_class, sizeof (EggLinePrivate));
 
-	g_type_class_add_private (object_class, sizeof(EggLinePrivate));
+	/**
+	 * EggLine::missing:
+	 * @text: a string containing the entered text
+	 *
+	 * The "missing" signal.
+	 */
+	signals [SIGNAL_MISSING] =
+		g_signal_new ("missing",
+		              EGG_TYPE_LINE,
+		              G_SIGNAL_RUN_LAST,
+		              0,
+		              NULL,
+		              NULL,
+		              g_cclosure_marshal_VOID__STRING,
+		              G_TYPE_NONE,
+		              1,
+		              G_TYPE_STRING);
 }
 
 static void
@@ -317,6 +341,8 @@ egg_line_execute (EggLine     *line,
 finish:
 	if (command && command->callback)
 		command->callback (line, tmp);
+	else if (!command)
+		g_signal_emit (line, signals [SIGNAL_MISSING], 0, text);
 
 	g_strfreev (parts);
 }

@@ -29,6 +29,7 @@
 #include <egg-line.h>
 
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
+static void          missing_cmd  (EggLine *line, const gchar *text, gpointer user_data);
 
 static EggLineEntry entries[] =
 {
@@ -59,9 +60,18 @@ main (gint   argc,
 	line = egg_line_new ();
 	egg_line_set_prompt (line, "perfkit> ");
 	egg_line_set_entries (line, entries);
+	g_signal_connect (line, "missing", G_CALLBACK (missing_cmd), NULL);
 	egg_line_run (line);
 
 	return EXIT_SUCCESS;
+}
+
+static void
+missing_cmd (EggLine     *line,
+             const gchar *text,
+             gpointer     user_data)
+{
+	g_printerr ("Command not found: %s\n", text);
 }
 
 static EggLineEntry*
