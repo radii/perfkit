@@ -36,6 +36,11 @@ static void          missing_cmd  (EggLine *line, const gchar *text, gpointer us
 static void          ls_cb        (EggLine *line, gchar **args);
 static void          cd_cb        (EggLine *line, gchar **args);
 
+static GOptionEntry op_entries[] =
+{
+	{ NULL }
+};
+
 static EggLineEntry entries[] =
 {
 	{ "channel", channel_iter, NULL, "Manage perfkit data channels" },
@@ -62,8 +67,19 @@ main (gint   argc,
 	GError         *error   = NULL;
 	EggLine        *line;
 
+	/* parse command line arguments */
+	context = g_option_context_new ("- interactive perfkit shell");
+	g_option_context_add_main_entries (context, op_entries, GETTEXT_PACKAGE);
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		return EXIT_FAILURE;
+	}
+
+	/* initialize gobject */
 	g_type_init ();
-	
+
+	/* run the readline loop */
 	line = egg_line_new ();
 	egg_line_set_prompt (line, "perfkit> ");
 	egg_line_set_entries (line, entries);
