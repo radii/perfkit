@@ -1,4 +1,4 @@
-bin_PROGRAMS = 
+bin_PROGRAMS = perfkit-shell
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\" \
@@ -8,11 +8,19 @@ AM_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"PerfkitTools\" \
 	-DGETTEXT_PACKAGE=\"PerfkitTools\" \
 	-DLOCALEDIR=\""$(localedir)"\" \
+	-I$(top_srcdir)/cut-n-paste \
+	-I$(top_srcdir) \
 	$(PERFKIT_TOOLS_CFLAGS) \
 	$(NULL)
 
 AM_LDFLAGS = \
 	$(PERFKIT_TOOLS_LIBS) \
+	-lreadline \
+	$(NULL)
+
+perfkit_shell_SOURCES = \
+	perfkit-shell.c \
+	$(top_srcdir)/cut-n-paste/egg-line.c \
 	$(NULL)
 
 update-dbus:
