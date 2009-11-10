@@ -6,3 +6,6 @@ static gboolean pkd_channels_add_dbus (PkdChannels  *channels,
 static gboolean pkd_channels_remove_dbus (PkdChannels  *channels,
                                           gchar        *path,
                                           GError      **error);
+static gboolean pkd_channels_find_all_dbus (PkdChannels  *channels,
+                                            GPtrArray   **paths,
+                                            GError      **error);

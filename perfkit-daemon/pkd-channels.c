@@ -140,6 +140,39 @@ pkd_channels_remove (PkdChannels *channels,
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 }
 
+/**
+ * pkd_channels_find_all:
+ * @channels: A #PkdChannels
+ *
+ * Retrieves all of the 
+ *
+ * Return value: a newly created #GList containing #PkdChannel<!-- -->'s.  The
+ *   list should be freed by decrementing each item in the list with
+ *   g_object_unref() and then g_list_free().
+ */
+GList*
+pkd_channels_find_all (PkdChannels *channels)
+{
+	PkdChannelsPrivate *priv;
+	GHashTableIter      iter;
+	GList              *list = NULL;
+	gpointer            key, value;
+
+	g_return_val_if_fail (PKD_IS_CHANNELS (channels), NULL);
+
+	priv = channels->priv;
+
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
+
+	g_hash_table_iter_init (&iter, priv->channels);
+	while (g_hash_table_iter_next (&iter, &key, &value))
+		list = g_list_prepend (list, g_object_ref (value));
+
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
+
+	return list;
+}
+
 GQuark
 pkd_channels_error_quark (void)
 {
@@ -199,6 +232,31 @@ pkd_channels_remove_dbus (PkdChannels  *channels,
 		pkd_channels_remove (channels, channel);
 		g_object_unref (channel);
 	}
+
+	return TRUE;
+}
+
+static gboolean
+pkd_channels_find_all_dbus (PkdChannels  *channels,
+                            GPtrArray   **paths,
+                            GError      **error)
+{
+	GList *list, *tmp;
+
+	g_return_val_if_fail (PKD_IS_CHANNELS (channels), FALSE);
+	g_return_val_if_fail (paths != NULL && *paths == NULL, FALSE);
+
+	list = pkd_channels_find_all (channels);
+	*paths = g_ptr_array_sized_new (g_list_length (list));
+
+	for (tmp = list; tmp; tmp = tmp->next) {
+		g_ptr_array_add ((*paths),
+		                 g_strdup_printf (DBUS_PKD_CHANNELS_PREFIX "%d",
+		                                  pkd_channel_get_id (tmp->data)));
+	}
+
+	g_list_foreach (list, (GFunc)g_object_unref, NULL);
+	g_list_free (list);
 
 	return TRUE;
 }

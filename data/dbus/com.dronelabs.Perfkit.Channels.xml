@@ -12,5 +12,9 @@
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channels_remove_dbus"/>
       <arg name="path" type="o" direction="in"/>
     </method>
+    <method name="FindAll">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channels_find_all_dbus"/>
+      <arg name="paths" type="ao" direction="out"/>
+    </method>
   </interface>
 </node>

@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.MW242U:1) */
+/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.1H9C3U:1) */
 extern void dbus_glib_marshal_pkd_channels_BOOLEAN__BOXED_POINTER (GClosure     *closure,
                                                                    GValue       *return_value,
                                                                    guint         n_param_values,
@@ -100,7 +100,7 @@ dbus_glib_marshal_pkd_channels_BOOLEAN__BOXED_POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.MW242U:2) */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.1H9C3U:2) */
 extern void dbus_glib_marshal_pkd_channels_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                      GValue       *return_value,
                                                                      guint         n_param_values,
@@ -155,13 +155,14 @@ G_END_DECLS
 static const DBusGMethodInfo dbus_glib_pkd_channels_methods[] = {
   { (GCallback) pkd_channels_add_dbus, dbus_glib_marshal_pkd_channels_BOOLEAN__POINTER_POINTER, 0 },
   { (GCallback) pkd_channels_remove_dbus, dbus_glib_marshal_pkd_channels_BOOLEAN__BOXED_POINTER, 51 },
+  { (GCallback) pkd_channels_find_all_dbus, dbus_glib_marshal_pkd_channels_BOOLEAN__POINTER_POINTER, 101 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_channels_object_info = {
   0,
   dbus_glib_pkd_channels_methods,
-  2,
-"com.dronelabs.Perfkit.Channels\0Add\0S\0path\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Channels\0Remove\0S\0path\0I\0o\0\0\0",
+  3,
+"com.dronelabs.Perfkit.Channels\0Add\0S\0path\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Channels\0Remove\0S\0path\0I\0o\0\0com.dronelabs.Perfkit.Channels\0FindAll\0S\0paths\0O\0F\0N\0ao\0\0\0",
 "\0",
 "\0"
 };
