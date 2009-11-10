@@ -25,17 +25,24 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <glib.h>
 #include <glib-object.h>
+#include <glib/gstdio.h>
+
 #include <egg-line.h>
 
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
 static void          missing_cmd  (EggLine *line, const gchar *text, gpointer user_data);
+static void          ls_cb        (EggLine *line, gchar **args);
+static void          cd_cb        (EggLine *line, gchar **args);
 
 static EggLineEntry entries[] =
 {
 	{ "channel", channel_iter, NULL, "Manage perfkit data channels" },
 	{ "source", NULL, NULL, "Manage perfkit data sources" },
 	{ "help", NULL, NULL, "Get help on a command" },
+	{ "ls", NULL, ls_cb, "List the contents of the current directory" },
+	{ "cd", NULL, cd_cb, "Change the current directory" },
 	{ NULL }
 };
 
@@ -82,3 +89,54 @@ channel_iter (EggLine      *line,
 	return channel_entries;
 }
 
+static void
+ls_cb (EggLine  *line,
+       gchar   **args)
+{
+	gchar **cmd;
+	gchar  *output = NULL;
+	GError *error  = NULL;
+	gint    len, i, j;
+
+	len = g_strv_length (args);
+	cmd = g_malloc0 ((len + 2) * sizeof (gchar*));
+
+	cmd [0] = g_strdup ("ls");
+	for (i = 0, j = 1; i < len; i++)
+		if (args [i] && strlen (args [i]))
+			cmd [j++] = g_strdup (args [i]);
+
+	if (!g_spawn_sync (g_get_current_dir (),
+	                   cmd,
+	                   NULL,
+	                   G_SPAWN_SEARCH_PATH,
+	                   NULL,
+	                   NULL,
+	                   &output,
+	                   NULL,
+	                   NULL,
+	                   &error))
+	{
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		error = NULL;
+	}
+	else {
+		g_print ("%s", output);
+		g_free (output);
+	}
+
+	g_strfreev (cmd);
+}
+
+static void
+cd_cb (EggLine  *line,
+       gchar   **args)
+{
+	g_return_if_fail (args != NULL);
+
+	if (!args [0] || !strlen (args [0]))
+		g_chdir (g_get_home_dir ());
+	else
+		g_chdir (args [0]);
+}
