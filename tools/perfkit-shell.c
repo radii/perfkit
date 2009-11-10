@@ -31,15 +31,22 @@
 
 #include <egg-line.h>
 
+#include "pk-channel-dbus.h"
+#include "pk-channels-dbus.h"
+
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
-static void          missing_cmd  (EggLine *line, const gchar *text, gpointer user_data);
-static void          ls_cb        (EggLine *line, gchar **args);
-static void          cd_cb        (EggLine *line, gchar **args);
+static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
+static void ls_cb (EggLine *line, gchar **args);
+static void cd_cb (EggLine *line, gchar **args);
+static void channel_show_cb (EggLine *line, gchar **args);
 
 static GOptionEntry op_entries[] =
 {
 	{ NULL }
 };
+
+static DBusGProxy      *channels  = NULL;
+static DBusGConnection *dbus_conn = NULL;
 
 static EggLineEntry entries[] =
 {
@@ -53,7 +60,7 @@ static EggLineEntry entries[] =
 
 static EggLineEntry channel_entries[] =
 {
-	{ "show", NULL, NULL, "Show perfkit data channels" },
+	{ "show", NULL, channel_show_cb, "Show perfkit data channels" },
 	{ "add", NULL, NULL, "Add a new perfkit data channel" },
 	{ "remove", NULL, NULL, "Remove an existing perfkit data channel" },
 	{ NULL }
@@ -66,6 +73,7 @@ main (gint   argc,
 	GOptionContext *context;
 	GError         *error   = NULL;
 	EggLine        *line;
+	gboolean        session = TRUE;
 
 	/* parse command line arguments */
 	context = g_option_context_new ("- interactive perfkit shell");
@@ -78,6 +86,24 @@ main (gint   argc,
 
 	/* initialize gobject */
 	g_type_init ();
+
+	/* connect to the DBUS */
+	if (!(dbus_conn = dbus_g_bus_get (session ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error))) {
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		return EXIT_FAILURE;
+	}
+
+	/* retrieve the proxy to the Channels service */
+	if (!(channels = dbus_g_proxy_new_for_name (
+					dbus_conn,
+					"com.dronelabs.Perfkit",
+					"/com/dronelabs/Perfkit/Channels",
+					"com.dronelabs.Perfkit.Channels")))
+	{
+		g_printerr ("Error connecting to perfkit channels service!\n");
+		return EXIT_SUCCESS;
+	}
 
 	/* run the readline loop */
 	line = egg_line_new ();
@@ -155,4 +181,49 @@ cd_cb (EggLine  *line,
 		g_chdir (g_get_home_dir ());
 	else
 		g_chdir (args [0]);
+}
+
+static void
+pk_channel_print (gchar    *path,
+                  gpointer  user_data)
+{
+	DBusGProxy  *channel;
+	gchar       *target = NULL;
+
+	g_print ("%s\n", path);
+
+	if (!(channel = dbus_g_proxy_new_for_name (dbus_conn,
+	                                           "com.dronelabs.Perfkit",
+	                                           path,
+	                                           "com.dronelabs.Perfkit.Channel")))
+	{
+		g_printerr ("Error: Could not retrieve channel %s\n", path);
+		return;
+	}
+
+	com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL);
+
+	g_print ("  Target: %s\n", target);
+
+	g_object_unref (channel);
+	g_free (target);
+}
+
+static void
+channel_show_cb (EggLine  *line,
+                 gchar   **args)
+{
+	GPtrArray *paths = NULL;
+	GError    *error = NULL;
+
+	g_return_if_fail (args != NULL);
+
+	if (!com_dronelabs_Perfkit_Channels_find_all (channels, &paths, &error)) {
+		g_printerr ("Error: %s\n", error->message);
+		g_error_free (error);
+		return;
+	}
+
+	g_ptr_array_foreach (paths, (GFunc)pk_channel_print, NULL);
+	g_ptr_array_unref (paths);
 }

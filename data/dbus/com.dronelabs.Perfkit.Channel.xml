@@ -10,6 +10,15 @@
     <property name="Env" type="as" access="readwrite" />
     <property name="Pid" type="u" access="readwrite" />
 
+    <method name="GetTarget">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_target_dbus"/>
+      <arg name="target" type="s" direction="out"/>
+    </method>
+    <method name="GetArgs">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_args_dbus"/>
+      <arg name="args" type="as" direction="out"/>
+    </method>
+
     <!-- Methods -->
     <method name="Start">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_start"/>

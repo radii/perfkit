@@ -21,6 +21,7 @@
 #endif
 
 #include "pkd-channel.h"
+#include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
 #include "pkd-runtime.h"
 
@@ -232,6 +233,7 @@ pkd_channel_init (PkdChannel *channel)
 	                                             PkdChannelPrivate);
 
 	channel->priv->state = STATE_READY;
+	channel->priv->args = g_malloc0 (sizeof (gchar*));
 
 	/* generate unique identifier */
 	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
@@ -699,4 +701,24 @@ GQuark
 pkd_channel_error_quark (void)
 {
 	return g_quark_from_static_string ("pkd-channel-error-quark");
+}
+
+static gboolean
+pkd_channel_get_target_dbus (PkdChannel  *channel,
+                             gchar      **path,
+                             GError     **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+	*path = pkd_channel_get_target (channel);
+}
+
+static gboolean
+pkd_channel_get_args_dbus (PkdChannel   *channel,
+                           gchar      ***args,
+                           GError      **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (args != NULL, FALSE);
+	*args = pkd_channel_get_args (channel);
 }
