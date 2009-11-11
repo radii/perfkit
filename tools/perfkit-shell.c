@@ -20,6 +20,7 @@
 #include <config.h>
 #endif
 
+#include <errno.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,8 @@ static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
 static void ls_cb (EggLine *line, gchar **args);
 static void cd_cb (EggLine *line, gchar **args);
 static void channel_show_cb (EggLine *line, gchar **args);
+static void channel_add_cb (EggLine *line, gchar **args);
+static void channel_remove_cb (EggLine *line, gchar **args);
 
 static GOptionEntry op_entries[] =
 {
@@ -64,8 +67,8 @@ static EggLineEntry entries[] =
 static EggLineEntry channel_entries[] =
 {
 	{ "show", NULL, channel_show_cb, "Show perfkit data channels" },
-	{ "add", NULL, NULL, "Add a new perfkit data channel" },
-	{ "remove", NULL, NULL, "Remove an existing perfkit data channel" },
+	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel" },
+	{ "remove", NULL, channel_remove_cb, "Remove an existing perfkit data channel" },
 	{ NULL }
 };
 
@@ -201,7 +204,7 @@ ls_cb (EggLine  *line,
 	                   NULL,
 	                   &error))
 	{
-		g_printerr ("%s\n", error->message);
+		REPORT_ERROR (error);
 		g_error_free (error);
 		error = NULL;
 	}
@@ -226,8 +229,7 @@ cd_cb (EggLine  *line,
 }
 
 static void
-pk_channel_print (gchar    *path,
-                  gpointer  user_data)
+pk_channel_print (gchar    *path)
 {
 	DBusGProxy  *channel;
 	gchar       *target = NULL;
@@ -239,7 +241,8 @@ pk_channel_print (gchar    *path,
 	                                           path,
 	                                           "com.dronelabs.Perfkit.Channel")))
 	{
-		g_printerr ("Error: Could not retrieve channel %s\n", path);
+		/* XXX: Essentially this is just a race condition. */
+		g_print ("  Deleted.\n");
 		return;
 	}
 
@@ -261,11 +264,69 @@ channel_show_cb (EggLine  *line,
 	g_return_if_fail (args != NULL);
 
 	if (!com_dronelabs_Perfkit_Channels_find_all (channels, &paths, &error)) {
-		g_printerr ("Error: %s\n", error->message);
+		REPORT_ERROR (error);
 		g_error_free (error);
 		return;
 	}
 
 	g_ptr_array_foreach (paths, (GFunc)pk_channel_print, NULL);
 	g_ptr_array_unref (paths);
+}
+
+static void
+channel_add_cb (EggLine  *line,
+                gchar   **args)
+{
+	GError *error = NULL;
+	gchar  *path  = NULL;
+
+	g_return_if_fail (args != NULL);
+
+	if (!com_dronelabs_Perfkit_Channels_add (channels, &path, &error)) {
+		REPORT_ERROR (error);
+		g_error_free (error);
+		return;
+	}
+
+	pk_channel_print (path);
+	g_free (path);
+}
+
+static void
+channel_remove_cb (EggLine  *line,
+                   gchar   **args)
+{
+	GError *error = NULL;
+	gchar  *path  = NULL;
+	gint    id    = 0;
+
+	g_return_if_fail (args != NULL);
+
+	if (g_strv_length (args) < 1)
+		goto usage;
+	else if (!strlen (*args))
+		goto usage;
+
+	errno = 0;
+	id = atoi (*args);
+	if (errno != 0)
+		goto usage;
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
+	g_print ("Removing channel %d.\n", id);
+
+	if (!com_dronelabs_Perfkit_Channels_remove (channels, path, &error)) {
+		REPORT_ERROR (error);
+		g_error_free (error);
+		goto cleanup;
+	}
+
+cleanup:
+	g_free (path);
+	g_print ("\n");
+
+	return;
+
+usage:
+	report_usage ("channel remove <id>");
 }
