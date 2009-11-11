@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <readline/readline.h>
 
 #include <glib.h>
 #include <glib-object.h>
@@ -74,6 +75,9 @@ main (gint   argc,
 	GError         *error   = NULL;
 	EggLine        *line;
 	gboolean        session = TRUE;
+
+	/* TODO: This doesn't actually seem to work */
+	rl_catch_signals = 1;
 
 	/* parse command line arguments */
 	context = g_option_context_new ("- interactive perfkit shell");
