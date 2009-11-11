@@ -35,6 +35,8 @@
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
 
+#define REPORT_ERROR(e) report_error (e, G_STRFUNC, __LINE__);
+
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
 static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
 static void ls_cb (EggLine *line, gchar **args);
@@ -117,6 +119,42 @@ main (gint   argc,
 	egg_line_run (line);
 
 	return EXIT_SUCCESS;
+}
+
+static void
+report_error (GError       *error,
+              const gchar  *func,
+              gint          line)
+{
+	time_t    t;
+	struct tm tt;
+
+	g_return_if_fail (error != NULL);
+
+	t = time (NULL);
+	tt = *localtime (&t);
+
+	g_printerr ("Error Report.....: \n" /* TODO: Add custom message */
+	            "  Date and Time..: %s" /* XXX: asctime includes \n */
+	            "  Domain.........: %d\n"
+	            "  Code...........: %d\n"
+	            "  Message........: %s\n"
+	            "  File...........: %s\n"
+	            "  Method.........: %s\n"
+	            "  Line...........: %d\n",
+	            asctime (&tt),
+	            error->domain,
+	            error->code,
+	            error->message,
+	            __FILE__,
+	            func,
+	            line);
+}
+
+static void
+report_usage (const gchar *message)
+{
+	g_printerr ("usage:  %s\n\n", message);
 }
 
 static void
