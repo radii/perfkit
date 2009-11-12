@@ -38,10 +38,17 @@ typedef struct _EggLineClass    EggLineClass;
 typedef struct _EggLinePrivate  EggLinePrivate;
 typedef struct _EggLineEntry    EggLineEntry;
 
+typedef enum
+{
+	EGG_LINE_OK,
+	EGG_LINE_BAD_ARGS,
+	EGG_LINE_FAILURE,
+} EggLineStatus;
+
 typedef EggLineEntry* (*EggLineGenerator) (EggLine      *line,
                                            const gchar  *text,
                                            gchar       **end);
-typedef void          (*EggLineCallback)  (EggLine      *line,
+typedef EggLineStatus (*EggLineCallback)  (EggLine      *line,
                                            gchar       **args);
 
 struct _EggLine
@@ -59,10 +66,11 @@ struct _EggLineClass
 
 struct _EggLineEntry
 {
-	gchar            *name;
-	EggLineGenerator  generator;
-	EggLineCallback   callback;
-	gchar            *help;
+	gchar             *name;
+	EggLineGenerator   generator;
+	EggLineCallback    callback;
+	gchar             *help;
+	gchar             *usage;
 };
 
 GType    egg_line_get_type    (void) G_GNUC_CONST;

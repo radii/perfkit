@@ -339,10 +339,18 @@ egg_line_execute (EggLine     *line,
 	}
 
 finish:
-	if (command && command->callback)
-		command->callback (line, tmp);
-	else if (!command)
+	if (command && command->callback) {
+		if (EGG_LINE_BAD_ARGS == command->callback (line, tmp)) {
+			if (command->usage)
+				g_printerr ("usage: %s\n", command->usage);
+		}
+	}
+	else if (command && command->help) {
+		g_printerr ("usage: %s\n", command->usage);
+	}
+	else if (!command) {
 		g_signal_emit (line, signals [SIGNAL_MISSING], 0, text);
+	}
 
 	g_strfreev (parts);
 }
