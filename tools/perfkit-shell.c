@@ -40,11 +40,11 @@
 
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
 static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
-static void ls_cb (EggLine *line, gchar **args);
-static void cd_cb (EggLine *line, gchar **args);
-static void channel_show_cb (EggLine *line, gchar **args);
-static void channel_add_cb (EggLine *line, gchar **args);
-static void channel_remove_cb (EggLine *line, gchar **args);
+static EggLineStatus ls_cb (EggLine *line, gchar **args);
+static EggLineStatus cd_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_show_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_add_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_remove_cb (EggLine *line, gchar **args);
 
 static GOptionEntry op_entries[] =
 {
@@ -56,11 +56,21 @@ static DBusGConnection *dbus_conn = NULL;
 
 static EggLineEntry entries[] =
 {
-	{ "channel", channel_iter, NULL, "Manage perfkit data channels" },
-	{ "source", NULL, NULL, "Manage perfkit data sources" },
-	{ "help", NULL, NULL, "Get help on a command" },
-	{ "ls", NULL, ls_cb, "List the contents of the current directory" },
-	{ "cd", NULL, cd_cb, "Change the current directory" },
+	{ "channel", channel_iter, NULL,
+	  "Manage perfkit data channels",
+	  "channel [add|remove|show]" },
+	{ "source", NULL, NULL,
+	  "Manage perfkit data sources",
+	  "source [add|remove|show]" },
+	{ "help", NULL, NULL,
+	  "Get help on a command",
+	  "help <command>" },
+	{ "ls", NULL, ls_cb,
+	  "List the contents of the current directory",
+	  "ls [OPTIONS] <directory>" },
+	{ "cd", NULL, cd_cb,
+	  "Change the current directory",
+	  "cd <directory>" },
 	{ NULL }
 };
 
@@ -68,7 +78,9 @@ static EggLineEntry channel_entries[] =
 {
 	{ "show", NULL, channel_show_cb, "Show perfkit data channels" },
 	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel" },
-	{ "remove", NULL, channel_remove_cb, "Remove an existing perfkit data channel" },
+	{ "remove", NULL, channel_remove_cb,
+	  "Remove an existing perfkit data channel",
+	  "channel remove <channel-id>" },
 	{ NULL }
 };
 
@@ -176,7 +188,7 @@ channel_iter (EggLine      *line,
 	return channel_entries;
 }
 
-static void
+static EggLineStatus
 ls_cb (EggLine  *line,
        gchar   **args)
 {
@@ -214,18 +226,22 @@ ls_cb (EggLine  *line,
 	}
 
 	g_strfreev (cmd);
+
+	return EGG_LINE_OK;
 }
 
-static void
+static EggLineStatus
 cd_cb (EggLine  *line,
        gchar   **args)
 {
-	g_return_if_fail (args != NULL);
+	g_return_val_if_fail (args != NULL, EGG_LINE_FAILURE);
 
 	if (!args [0] || !strlen (args [0]))
 		g_chdir (g_get_home_dir ());
 	else
 		g_chdir (args [0]);
+
+	return EGG_LINE_OK;
 }
 
 static void
@@ -254,45 +270,49 @@ pk_channel_print (gchar    *path)
 	g_free (target);
 }
 
-static void
+static EggLineStatus
 channel_show_cb (EggLine  *line,
                  gchar   **args)
 {
 	GPtrArray *paths = NULL;
 	GError    *error = NULL;
 
-	g_return_if_fail (args != NULL);
+	g_return_val_if_fail (args != NULL, EGG_LINE_FAILURE);
 
 	if (!com_dronelabs_Perfkit_Channels_find_all (channels, &paths, &error)) {
 		REPORT_ERROR (error);
 		g_error_free (error);
-		return;
+		return EGG_LINE_OK;
 	}
 
 	g_ptr_array_foreach (paths, (GFunc)pk_channel_print, NULL);
 	g_ptr_array_unref (paths);
+
+	return EGG_LINE_OK;
 }
 
-static void
+static EggLineStatus
 channel_add_cb (EggLine  *line,
                 gchar   **args)
 {
 	GError *error = NULL;
 	gchar  *path  = NULL;
 
-	g_return_if_fail (args != NULL);
+	g_return_val_if_fail (args != NULL, EGG_LINE_FAILURE);
 
 	if (!com_dronelabs_Perfkit_Channels_add (channels, &path, &error)) {
 		REPORT_ERROR (error);
 		g_error_free (error);
-		return;
+		return EGG_LINE_OK;
 	}
 
 	pk_channel_print (path);
 	g_free (path);
+
+	return EGG_LINE_OK;
 }
 
-static void
+static EggLineStatus
 channel_remove_cb (EggLine  *line,
                    gchar   **args)
 {
@@ -300,17 +320,17 @@ channel_remove_cb (EggLine  *line,
 	gchar  *path  = NULL;
 	gint    id    = 0;
 
-	g_return_if_fail (args != NULL);
+	g_return_val_if_fail (args != NULL, EGG_LINE_FAILURE);
 
 	if (g_strv_length (args) < 1)
-		goto usage;
+		return EGG_LINE_BAD_ARGS;
 	else if (!strlen (*args))
-		goto usage;
+		return EGG_LINE_BAD_ARGS;
 
 	errno = 0;
 	id = atoi (*args);
 	if (errno != 0)
-		goto usage;
+		return EGG_LINE_BAD_ARGS;
 
 	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
 	g_print ("Removing channel %d.\n", id);
@@ -325,8 +345,5 @@ cleanup:
 	g_free (path);
 	g_print ("\n");
 
-	return;
-
-usage:
-	report_usage ("channel remove <id>");
+	return EGG_LINE_OK;
 }
