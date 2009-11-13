@@ -711,6 +711,7 @@ pkd_channel_get_target_dbus (PkdChannel  *channel,
 	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
 	g_return_val_if_fail (path != NULL, FALSE);
 	*path = pkd_channel_get_target (channel);
+	return TRUE;
 }
 
 static gboolean
@@ -721,4 +722,5 @@ pkd_channel_get_args_dbus (PkdChannel   *channel,
 	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
 	g_return_val_if_fail (args != NULL, FALSE);
 	*args = pkd_channel_get_args (channel);
+	return TRUE;
 }
