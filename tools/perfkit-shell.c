@@ -364,7 +364,6 @@ channel_remove_cb (EggLine  *line,
 		return EGG_LINE_BAD_ARGS;
 
 	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
-	g_print ("Removing channel %d.\n", id);
 
 	if (!com_dronelabs_Perfkit_Channels_remove (channels, path, &error)) {
 		REPORT_ERROR (error);
@@ -372,9 +371,10 @@ channel_remove_cb (EggLine  *line,
 		goto cleanup;
 	}
 
+	g_print ("Channel %d removed.\n", id);
+
 cleanup:
 	g_free (path);
-	g_print ("\n");
 
 	return EGG_LINE_OK;
 }
