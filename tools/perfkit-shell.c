@@ -46,8 +46,11 @@ static EggLineStatus channel_show_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_add_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_remove_cb (EggLine *line, gchar **args);
 
+static gboolean use_system = FALSE;
+
 static GOptionEntry op_entries[] =
 {
+	{ "system", 's', 0, G_OPTION_ARG_NONE, &use_system, "", NULL },
 	{ NULL }
 };
 
@@ -91,7 +94,7 @@ main (gint   argc,
 	GOptionContext *context;
 	GError         *error   = NULL;
 	EggLine        *line;
-	gboolean        session = TRUE;
+	gint            bus;
 
 	/* TODO: This doesn't actually seem to work */
 	rl_catch_signals = 1;
@@ -109,7 +112,8 @@ main (gint   argc,
 	g_type_init ();
 
 	/* connect to the DBUS */
-	if (!(dbus_conn = dbus_g_bus_get (session ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error))) {
+	bus = use_system ? DBUS_BUS_SYSTEM : DBUS_BUS_SESSION;
+	if (!(dbus_conn = dbus_g_bus_get (bus, &error))) {
 		g_printerr ("%s\n", error->message);
 		g_error_free (error);
 		return EXIT_FAILURE;
