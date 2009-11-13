@@ -43,6 +43,7 @@ static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
 static EggLineStatus ls_cb (EggLine *line, gchar **args);
 static EggLineStatus cd_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_show_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_list_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_add_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_remove_cb (EggLine *line, gchar **args);
 
@@ -79,6 +80,7 @@ static EggLineEntry entries[] =
 
 static EggLineEntry channel_entries[] =
 {
+	{ "list", NULL, channel_list_cb, "List perfkit data channels" },
 	{ "show", NULL, channel_show_cb, "Show perfkit data channels" },
 	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel" },
 	{ "remove", NULL, channel_remove_cb,
@@ -249,39 +251,64 @@ cd_cb (EggLine  *line,
 }
 
 static void
-pk_channel_print (gchar    *path)
+pk_channel_print (const gchar *lpath)
 {
 	DBusGProxy  *channel;
 	gchar       *target = NULL;
+	gchar       *path;
 
-	g_print ("%s\n", path);
+	if (!lpath || strlen (lpath) == 0)
+		return;
+
+	path = g_strdup (lpath);
+	g_strstrip (path);
 
 	if (!(channel = dbus_g_proxy_new_for_name (dbus_conn,
 	                                           "com.dronelabs.Perfkit",
 	                                           path,
 	                                           "com.dronelabs.Perfkit.Channel")))
 	{
-		/* XXX: Essentially this is just a race condition. */
-		g_print ("  Deleted.\n");
-		return;
+		goto cleanup;
 	}
 
-	com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL);
+	if (!com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL))
+		goto cleanup;
 
+	g_print ("%s\n", path);
 	g_print ("  Target: %s\n", target);
 
+cleanup:
 	g_object_unref (channel);
 	g_free (target);
+	g_free (path);
 }
 
 static EggLineStatus
 channel_show_cb (EggLine  *line,
                  gchar   **args)
 {
-	GPtrArray *paths = NULL;
-	GError    *error = NULL;
+	gchar *path;
+	gint   i;
 
-	g_return_val_if_fail (args != NULL, EGG_LINE_FAILURE);
+	if (!args || !*args || strlen (*args) == 0)
+		return channel_list_cb (line, args);
+
+	for (i = 0; i < g_strv_length (args); i++) {
+		path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%s",
+		                        args [i]);
+		pk_channel_print (path);
+		g_free (path);
+	}
+
+	return EGG_LINE_OK;
+}
+
+static EggLineStatus
+channel_list_cb (EggLine  *line,
+                 gchar   **args)
+{
+	GError    *error = NULL;
+	GPtrArray *paths = NULL;
 
 	if (!com_dronelabs_Perfkit_Channels_find_all (channels, &paths, &error)) {
 		REPORT_ERROR (error);
