@@ -35,6 +35,7 @@
 
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
+#include <perfkit-daemon/pkd-version.h>
 
 #define REPORT_ERROR(e) report_error (e, G_STRFUNC, __LINE__);
 
@@ -46,6 +47,7 @@ static EggLineStatus channel_show_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_list_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_add_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_remove_cb (EggLine *line, gchar **args);
+static EggLineStatus version_cb (EggLine *line, gchar **args);
 
 static gboolean use_system = FALSE;
 
@@ -75,6 +77,7 @@ static EggLineEntry entries[] =
 	{ "cd", NULL, cd_cb,
 	  "Change the current directory",
 	  "cd <directory>" },
+	{ "version", NULL, version_cb, "Show the perfkit-shell version", NULL },
 	{ NULL }
 };
 
@@ -377,4 +380,11 @@ cleanup:
 	g_free (path);
 
 	return EGG_LINE_OK;
+}
+
+static EggLineStatus
+version_cb (EggLine  *line,
+            gchar   **args)
+{
+	g_print ("%s\n", PKD_VERSION_S);
 }
