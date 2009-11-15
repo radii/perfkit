@@ -12,9 +12,6 @@ m4_define([lt_current], [m4_eval(100 * perfkit_minor_version +
            perfkit_micro_version - perfkit_interface_age)])
 m4_define([lt_revision], [perfkit_interface_age])
 m4_define([lt_age], [m4_eval(perfkit_binary_age - perfkit_interface_age)])
-PERFKIT_MAJOR_VERSION=perfkit_major_version
-PERFKIT_MINOR_VERSION=perfkit_minor_version
-PERFKIT_MICRO_VERSION=perfkit_micro_version
 
 
 dnl ************************************************************************
@@ -30,9 +27,16 @@ AC_PROG_CC
 AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
-AC_SUBST(PERFKIT_MAJOR_VERSION)
-AC_SUBST(PERFKIT_MAJOR_VERSION)
-AC_SUBST(PERFKIT_MAJOR_VERSION)
+PKD_MAJOR_VERSION=perfkit_major_version
+PKD_MINOR_VERSION=perfkit_minor_version
+PKD_MICRO_VERSION=perfkit_micro_version
+PKD_API_VERSION=1.0
+PKD_VERSION=perfkit_version
+AC_SUBST(PKD_MAJOR_VERSION)
+AC_SUBST(PKD_MINOR_VERSION)
+AC_SUBST(PKD_MICRO_VERSION)
+AC_SUBST(PKD_API_VERSION)
+AC_SUBST(PKD_VERSION)
 
 
 dnl ************************************************************************
