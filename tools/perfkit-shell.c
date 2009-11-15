@@ -158,16 +158,16 @@ report_error (GError       *error,
 	t = time (NULL);
 	tt = *localtime (&t);
 
-	g_printerr ("Error Report.....: \n" /* TODO: Add custom message */
+	g_printerr ("ERROR REPORT\n"
 	            "  Date and Time..: %s" /* XXX: asctime includes \n */
-	            "  Domain.........: %d\n"
+	            "  Domain.........: %s\n"
 	            "  Code...........: %d\n"
 	            "  Message........: %s\n"
 	            "  File...........: %s\n"
 	            "  Method.........: %s\n"
 	            "  Line...........: %d\n",
 	            asctime (&tt),
-	            error->domain,
+	            g_quark_to_string (error->domain),
 	            error->code,
 	            error->message,
 	            __FILE__,
