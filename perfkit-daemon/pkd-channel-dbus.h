@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.YVL62U:1) */
+/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.TXK52U:1) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
                                                             GValue       *return_value,
                                                             guint         n_param_values,
@@ -98,7 +98,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.YVL62U:2) */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.TXK52U:2) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                     GValue       *return_value,
                                                                     guint         n_param_values,
@@ -153,17 +153,20 @@ G_END_DECLS
 static const DBusGMethodInfo dbus_glib_pkd_channel_methods[] = {
   { (GCallback) pkd_channel_get_target_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER, 0 },
   { (GCallback) pkd_channel_get_args_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER, 58 },
-  { (GCallback) pkd_channel_start, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 112 },
-  { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 151 },
-  { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 189 },
-  { (GCallback) pkd_channel_unpause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 228 },
+  { (GCallback) pkd_channel_get_pid_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER, 113 },
+  { (GCallback) pkd_channel_get_env_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER, 165 },
+  { (GCallback) pkd_channel_get_dir_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER, 218 },
+  { (GCallback) pkd_channel_start, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 270 },
+  { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 309 },
+  { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 347 },
+  { (GCallback) pkd_channel_unpause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 386 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_channel_object_info = {
   0,
   dbus_glib_pkd_channel_methods,
-  6,
-"com.dronelabs.Perfkit.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0GetArgs\0S\0args\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0\0",
+  9,
+"com.dronelabs.Perfkit.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0GetArgs\0S\0args\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0GetPid\0S\0pid\0O\0F\0N\0u\0\0com.dronelabs.Perfkit.Channel\0GetEnv\0S\0env\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0GetDir\0S\0dir\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0\0",
 "\0",
 "com.dronelabs.Perfkit.Channel\0Dir\0com.dronelabs.Perfkit.Channel\0Args\0com.dronelabs.Perfkit.Channel\0Target\0com.dronelabs.Perfkit.Channel\0Env\0com.dronelabs.Perfkit.Channel\0Pid\0\0"
 };

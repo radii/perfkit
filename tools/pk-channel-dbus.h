@@ -64,43 +64,6 @@ static
 inline
 #endif
 gboolean
-com_dronelabs_Perfkit_Channel_set_target (DBusGProxy *proxy, const char * IN_target, GError **error)
-
-{
-  return dbus_g_proxy_call (proxy, "SetTarget", error, G_TYPE_STRING, IN_target, G_TYPE_INVALID, G_TYPE_INVALID);
-}
-
-typedef void (*com_dronelabs_Perfkit_Channel_set_target_reply) (DBusGProxy *proxy, GError *error, gpointer userdata);
-
-static void
-com_dronelabs_Perfkit_Channel_set_target_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
-{
-  DBusGAsyncData *data = (DBusGAsyncData*) user_data;
-  GError *error = NULL;
-  dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_INVALID);
-  (*(com_dronelabs_Perfkit_Channel_set_target_reply)data->cb) (proxy, error, data->userdata);
-  return;
-}
-
-static
-#ifdef G_HAVE_INLINE
-inline
-#endif
-DBusGProxyCall*
-com_dronelabs_Perfkit_Channel_set_target_async (DBusGProxy *proxy, const char * IN_target, com_dronelabs_Perfkit_Channel_set_target_reply callback, gpointer userdata)
-
-{
-  DBusGAsyncData *stuff;
-  stuff = g_slice_new (DBusGAsyncData);
-  stuff->cb = G_CALLBACK (callback);
-  stuff->userdata = userdata;
-  return dbus_g_proxy_begin_call (proxy, "SetTarget", com_dronelabs_Perfkit_Channel_set_target_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_STRING, IN_target, G_TYPE_INVALID);
-}
-static
-#ifdef G_HAVE_INLINE
-inline
-#endif
-gboolean
 com_dronelabs_Perfkit_Channel_get_args (DBusGProxy *proxy, char *** OUT_args, GError **error)
 
 {
@@ -133,6 +96,120 @@ com_dronelabs_Perfkit_Channel_get_args_async (DBusGProxy *proxy, com_dronelabs_P
   stuff->cb = G_CALLBACK (callback);
   stuff->userdata = userdata;
   return dbus_g_proxy_begin_call (proxy, "GetArgs", com_dronelabs_Perfkit_Channel_get_args_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
+}
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+gboolean
+com_dronelabs_Perfkit_Channel_get_pid (DBusGProxy *proxy, guint* OUT_pid, GError **error)
+
+{
+  return dbus_g_proxy_call (proxy, "GetPid", error, G_TYPE_INVALID, G_TYPE_UINT, OUT_pid, G_TYPE_INVALID);
+}
+
+typedef void (*com_dronelabs_Perfkit_Channel_get_pid_reply) (DBusGProxy *proxy, guint OUT_pid, GError *error, gpointer userdata);
+
+static void
+com_dronelabs_Perfkit_Channel_get_pid_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+{
+  DBusGAsyncData *data = (DBusGAsyncData*) user_data;
+  GError *error = NULL;
+  guint OUT_pid;
+  dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_UINT, &OUT_pid, G_TYPE_INVALID);
+  (*(com_dronelabs_Perfkit_Channel_get_pid_reply)data->cb) (proxy, OUT_pid, error, data->userdata);
+  return;
+}
+
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+DBusGProxyCall*
+com_dronelabs_Perfkit_Channel_get_pid_async (DBusGProxy *proxy, com_dronelabs_Perfkit_Channel_get_pid_reply callback, gpointer userdata)
+
+{
+  DBusGAsyncData *stuff;
+  stuff = g_slice_new (DBusGAsyncData);
+  stuff->cb = G_CALLBACK (callback);
+  stuff->userdata = userdata;
+  return dbus_g_proxy_begin_call (proxy, "GetPid", com_dronelabs_Perfkit_Channel_get_pid_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
+}
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+gboolean
+com_dronelabs_Perfkit_Channel_get_env (DBusGProxy *proxy, char *** OUT_env, GError **error)
+
+{
+  return dbus_g_proxy_call (proxy, "GetEnv", error, G_TYPE_INVALID, G_TYPE_STRV, OUT_env, G_TYPE_INVALID);
+}
+
+typedef void (*com_dronelabs_Perfkit_Channel_get_env_reply) (DBusGProxy *proxy, char * *OUT_env, GError *error, gpointer userdata);
+
+static void
+com_dronelabs_Perfkit_Channel_get_env_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+{
+  DBusGAsyncData *data = (DBusGAsyncData*) user_data;
+  GError *error = NULL;
+  char ** OUT_env;
+  dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_STRV, &OUT_env, G_TYPE_INVALID);
+  (*(com_dronelabs_Perfkit_Channel_get_env_reply)data->cb) (proxy, OUT_env, error, data->userdata);
+  return;
+}
+
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+DBusGProxyCall*
+com_dronelabs_Perfkit_Channel_get_env_async (DBusGProxy *proxy, com_dronelabs_Perfkit_Channel_get_env_reply callback, gpointer userdata)
+
+{
+  DBusGAsyncData *stuff;
+  stuff = g_slice_new (DBusGAsyncData);
+  stuff->cb = G_CALLBACK (callback);
+  stuff->userdata = userdata;
+  return dbus_g_proxy_begin_call (proxy, "GetEnv", com_dronelabs_Perfkit_Channel_get_env_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
+}
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+gboolean
+com_dronelabs_Perfkit_Channel_get_dir (DBusGProxy *proxy, char ** OUT_dir, GError **error)
+
+{
+  return dbus_g_proxy_call (proxy, "GetDir", error, G_TYPE_INVALID, G_TYPE_STRING, OUT_dir, G_TYPE_INVALID);
+}
+
+typedef void (*com_dronelabs_Perfkit_Channel_get_dir_reply) (DBusGProxy *proxy, char * OUT_dir, GError *error, gpointer userdata);
+
+static void
+com_dronelabs_Perfkit_Channel_get_dir_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+{
+  DBusGAsyncData *data = (DBusGAsyncData*) user_data;
+  GError *error = NULL;
+  char * OUT_dir;
+  dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_STRING, &OUT_dir, G_TYPE_INVALID);
+  (*(com_dronelabs_Perfkit_Channel_get_dir_reply)data->cb) (proxy, OUT_dir, error, data->userdata);
+  return;
+}
+
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+DBusGProxyCall*
+com_dronelabs_Perfkit_Channel_get_dir_async (DBusGProxy *proxy, com_dronelabs_Perfkit_Channel_get_dir_reply callback, gpointer userdata)
+
+{
+  DBusGAsyncData *stuff;
+  stuff = g_slice_new (DBusGAsyncData);
+  stuff->cb = G_CALLBACK (callback);
+  stuff->userdata = userdata;
+  return dbus_g_proxy_begin_call (proxy, "GetDir", com_dronelabs_Perfkit_Channel_get_dir_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
 }
 static
 #ifdef G_HAVE_INLINE

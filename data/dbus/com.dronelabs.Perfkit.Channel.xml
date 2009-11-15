@@ -18,6 +18,18 @@
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_args_dbus"/>
       <arg name="args" type="as" direction="out"/>
     </method>
+    <method name="GetPid">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_pid_dbus"/>
+      <arg name="pid" type="u" direction="out"/>
+    </method>
+    <method name="GetEnv">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_env_dbus"/>
+      <arg name="env" type="as" direction="out"/>
+    </method>
+    <method name="GetDir">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_dir_dbus"/>
+      <arg name="dir" type="s" direction="out"/>
+    </method>
 
     <!-- Methods -->
     <method name="Start">

@@ -711,6 +711,7 @@ pkd_channel_get_target_dbus (PkdChannel  *channel,
 	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
 	g_return_val_if_fail (path != NULL, FALSE);
 	*path = pkd_channel_get_target (channel);
+	/* FIXME: Leaks */
 	return TRUE;
 }
 
@@ -722,5 +723,41 @@ pkd_channel_get_args_dbus (PkdChannel   *channel,
 	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
 	g_return_val_if_fail (args != NULL, FALSE);
 	*args = pkd_channel_get_args (channel);
+	/* FIXME: Leaks */
+	return TRUE;
+}
+
+static gboolean
+pkd_channel_get_pid_dbus (PkdChannel  *channel,
+                          guint       *pid,
+                          GError     **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (pid != NULL, FALSE);
+	*pid = (guint)pkd_channel_get_pid (channel);
+	return TRUE;
+}
+
+static gboolean
+pkd_channel_get_dir_dbus (PkdChannel  *channel,
+                          gchar      **dir,
+                          GError     **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (dir != NULL, FALSE);
+	*dir = pkd_channel_get_dir (channel);
+	/* FIXME: Leaks */
+	return TRUE;
+}
+
+static gboolean
+pkd_channel_get_env_dbus (PkdChannel   *channel,
+                          gchar      ***env,
+                          GError      **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (env != NULL, FALSE);
+	*env = pkd_channel_get_env (channel);
+	/* FIXME: Leaks */
 	return TRUE;
 }

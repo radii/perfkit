@@ -47,6 +47,8 @@ static EggLineStatus channel_show_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_list_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_add_cb (EggLine *line, gchar **args);
 static EggLineStatus channel_remove_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_set_cb (EggLine *line, gchar **args);
+static EggLineStatus channel_get_cb (EggLine *line, gchar **args);
 static EggLineStatus version_cb (EggLine *line, gchar **args);
 
 static gboolean use_system = FALSE;
@@ -64,7 +66,7 @@ static EggLineEntry entries[] =
 {
 	{ "channel", channel_iter, NULL,
 	  "Manage perfkit data channels",
-	  "channel [add|remove|show]" },
+	  "channel [add|remove|show|set|get]" },
 	{ "source", NULL, NULL,
 	  "Manage perfkit data sources",
 	  "source [add|remove|show]" },
@@ -83,12 +85,18 @@ static EggLineEntry entries[] =
 
 static EggLineEntry channel_entries[] =
 {
-	{ "list", NULL, channel_list_cb, "List perfkit data channels" },
-	{ "show", NULL, channel_show_cb, "Show perfkit data channels" },
-	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel" },
+	{ "list", NULL, channel_list_cb, "List perfkit data channels", NULL },
+	{ "show", NULL, channel_show_cb, "Show perfkit data channels", NULL },
+	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel", NULL },
 	{ "remove", NULL, channel_remove_cb,
 	  "Remove an existing perfkit data channel",
 	  "channel remove <channel-id>" },
+	{ "set", NULL, channel_set_cb,
+	  "Set a data channel setting",
+	  "channel set <channel-id> [target|args|env|dir|pid] [setting]" },
+	{ "get", NULL, channel_get_cb,
+	  "Get a data channel setting",
+	  "channel get <channel-id> [target|args|env|dir|pid]" },
 	{ NULL }
 };
 
@@ -257,8 +265,14 @@ static void
 pk_channel_print (const gchar *lpath)
 {
 	DBusGProxy  *channel;
-	gchar       *target = NULL;
-	gchar       *path;
+	gchar       *target = NULL,
+	            *dir    = NULL,
+	           **env    = NULL,
+	           **args   = NULL,
+	            *path,
+	            *tmp;
+	gint         pid    = 0,
+	             i;
 
 	if (!lpath || strlen (lpath) == 0)
 		return;
@@ -270,20 +284,41 @@ pk_channel_print (const gchar *lpath)
 	                                           "com.dronelabs.Perfkit",
 	                                           path,
 	                                           "com.dronelabs.Perfkit.Channel")))
+		goto cleanup;
+
+	if (!com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL) ||
+	    !com_dronelabs_Perfkit_Channel_get_dir    (channel, &dir,    NULL) ||
+	    !com_dronelabs_Perfkit_Channel_get_env    (channel, &env,    NULL) ||
+	    !com_dronelabs_Perfkit_Channel_get_args   (channel, &args,   NULL) ||
+	    !com_dronelabs_Perfkit_Channel_get_pid    (channel, &pid,    NULL))
 	{
+		tmp = g_strrstr (path, "/");
+		if (tmp)
+			tmp++;
+		g_printerr ("Channel \"%s\" not found.\n", tmp);
 		goto cleanup;
 	}
 
-	if (!com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL))
-		goto cleanup;
-
 	g_print ("%s\n", path);
 	g_print ("  Target: %s\n", target);
+	g_print ("  Args..:");
+	for (i = 0; args && args [i]; i++)
+		g_print (" %s", args [i]);
+	g_print ("\n");
+	g_print ("  Pid...: %d\n", pid);
+	g_print ("  Dir...: %s\n", dir);
+	g_print ("  Env...:");
+	for (i = 0; env && env [i]; i++)
+		g_print (" %s", env [i]);
+	g_print ("\n");
 
 cleanup:
 	g_object_unref (channel);
 	g_free (target);
 	g_free (path);
+	g_free (dir);
+	g_strfreev (args);
+	g_strfreev (env);
 }
 
 static EggLineStatus
@@ -378,6 +413,133 @@ channel_remove_cb (EggLine  *line,
 
 cleanup:
 	g_free (path);
+
+	return EGG_LINE_OK;
+}
+
+static EggLineStatus
+channel_get_cb (EggLine  *line,
+                gchar   **args)
+{
+	gint         id     = 0,
+		         len,
+	             i,
+		         v_int  = 0;
+	gchar       *v_str  = NULL,
+	           **v_strv = NULL,
+	            *path;
+	DBusGProxy  *channel;
+	GError      *error  = NULL;
+
+	if (!args || ((len = g_strv_length (args)) < 2))
+		return EGG_LINE_BAD_ARGS;
+
+	errno = 0;
+	id = strtol (args [0], NULL, 10);
+	if (errno != 0)
+		return EGG_LINE_BAD_ARGS;
+
+	if (!args [1] || strlen (args [1]) == 0)
+		return EGG_LINE_BAD_ARGS;
+
+	if (!g_str_equal ("target", args [1]) &&
+	    !g_str_equal ("args", args [1]) &&
+	    !g_str_equal ("env", args [1]) &&
+	    !g_str_equal ("dir", args [1]) &&
+	    !g_str_equal ("pid", args [1]))
+		return EGG_LINE_BAD_ARGS;
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
+	channel = dbus_g_proxy_new_for_name (dbus_conn,
+	                                     "com.dronelabs.Perfkit",
+	                                     path,
+	                                     "com.dronelabs.Perfkit.Channel");
+
+#define PRINT_SHELL_STR(s) G_STMT_START { \
+	gchar *tmp = g_strescape ((s), NULL); \
+	g_print ("\"%s\"\n", tmp); \
+	g_free (tmp); \
+} G_STMT_END
+
+	if (g_str_equal ("target", args [1])) {
+	    if (com_dronelabs_Perfkit_Channel_get_target (channel, &v_str, &error)) {
+	    	PRINT_SHELL_STR (v_str);
+	    	g_free (v_str);
+		}
+		else {
+			REPORT_ERROR (error);
+			g_error_free (error);
+		}
+	}
+	else if (g_str_equal ("pid", args [1])) {
+		if (com_dronelabs_Perfkit_Channel_get_pid (channel, &v_int, &error)) {
+			g_print ("%d\n", v_int);
+		}
+		else {
+			REPORT_ERROR (error);
+			g_error_free (error);
+		}
+	}
+	else if (g_str_equal ("args", args [1])) {
+		if (com_dronelabs_Perfkit_Channel_get_args (channel, &v_strv, &error)) {
+			for (i = 0; v_strv [i]; i++)
+				g_print ("%s\n", v_strv [i]);
+			g_strfreev (v_strv);
+		}
+		else {
+			REPORT_ERROR (error);
+			g_error_free (error);
+		}
+	}
+	else if (g_str_equal ("env", args [1])) {
+		if (com_dronelabs_Perfkit_Channel_get_env (channel, &v_strv, &error)) {
+			for (i = 0; v_strv [i]; i++)
+				PRINT_SHELL_STR (v_strv [i]);
+			g_strfreev (v_strv);
+		}
+		else {
+			REPORT_ERROR (error);
+			g_error_free (error);
+		}
+	}
+	else if (g_str_equal ("dir", args [1])) {
+		if (com_dronelabs_Perfkit_Channel_get_dir (channel, &v_str, &error)) {
+			PRINT_SHELL_STR (v_strv [i]);
+	    	g_free (v_str);
+		}
+		else {
+			REPORT_ERROR (error);
+			g_error_free (error);
+		}
+	}
+
+	g_object_unref (channel);
+	g_free (path);
+
+	return EGG_LINE_OK;
+}
+
+static EggLineStatus
+channel_set_cb (EggLine  *line,
+                gchar   **args)
+{
+	gint id;
+
+	if (!args || (g_strv_length (args) < 3))
+		return EGG_LINE_BAD_ARGS;
+
+	errno = 0;
+	id = strtol (args [0], NULL, 10);
+	if (errno != 0)
+		return EGG_LINE_BAD_ARGS;
+
+	if (!g_str_equal ("target", args [1]) &&
+	    !g_str_equal ("args", args [1]) &&
+	    !g_str_equal ("env", args [1]) &&
+	    !g_str_equal ("dir", args [1]) &&
+	    !g_str_equal ("pid", args [1]))
+		return EGG_LINE_BAD_ARGS;
+
 
 	return EGG_LINE_OK;
 }
