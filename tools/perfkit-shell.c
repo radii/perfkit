@@ -289,30 +289,37 @@ pk_channel_print (const gchar *lpath)
 	                                           "com.dronelabs.Perfkit.Channel")))
 		goto cleanup;
 
+	tmp = g_strrstr (path, "/");
+	if (tmp)
+		tmp++;
+
 	if (!com_dronelabs_Perfkit_Channel_get_target (channel, &target, NULL) ||
 	    !com_dronelabs_Perfkit_Channel_get_dir    (channel, &dir,    NULL) ||
 	    !com_dronelabs_Perfkit_Channel_get_env    (channel, &env,    NULL) ||
 	    !com_dronelabs_Perfkit_Channel_get_args   (channel, &args,   NULL) ||
 	    !com_dronelabs_Perfkit_Channel_get_pid    (channel, &pid,    NULL))
 	{
-		tmp = g_strrstr (path, "/");
-		if (tmp)
-			tmp++;
 		g_printerr ("Channel \"%s\" not found.\n", tmp);
 		goto cleanup;
 	}
 
-	g_print ("%s\n", path);
-	g_print ("  Target: %s\n", target);
-	g_print ("  Args..:");
-	for (i = 0; args && args [i]; i++)
-		g_print (" %s", args [i]);
+	g_print ("Channel #%s\n", tmp);
+	g_print ("    Target: %s\n", (target && strlen (target)) ? target : "\"\"");
+	g_print ("    Args..:");
+	if (!args || g_strv_length (args) == 0)
+		g_print (" \"\"");
+	else
+		for (i = 0; args && args [i]; i++)
+			g_print (" %s", args [i]);
 	g_print ("\n");
-	g_print ("  Pid...: %d\n", pid);
-	g_print ("  Dir...: %s\n", dir);
-	g_print ("  Env...:");
-	for (i = 0; env && env [i]; i++)
-		g_print (" %s", env [i]);
+	g_print ("    Pid...: %d\n", pid);
+	g_print ("    Dir...: %s\n", (dir && strlen (dir)) ? dir : "\"\"");
+	g_print ("    Env...:");
+	if (!env || g_strv_length (env) == 0)
+		g_print (" \"\"");
+	else
+		for (i = 0; env && env [i]; i++)
+			g_print (" %s", env [i]);
 	g_print ("\n");
 
 cleanup:
