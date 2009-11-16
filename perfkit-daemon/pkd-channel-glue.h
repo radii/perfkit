@@ -1,5 +1,10 @@
-static gboolean pkd_channel_get_target_dbus (PkdChannel *channel, gchar **path, GError **error);
+static gboolean pkd_channel_get_target_dbus (PkdChannel *channel, gchar **target, GError **error);
+static gboolean pkd_channel_set_target_dbus (PkdChannel *channel, gchar *target, GError **error);
 static gboolean pkd_channel_get_args_dbus (PkdChannel *channel, gchar ***args, GError **error);
+static gboolean pkd_channel_set_args_dbus (PkdChannel *channel, gchar **args, GError **error);
 static gboolean pkd_channel_get_env_dbus (PkdChannel *channel, gchar ***env, GError **error);
+static gboolean pkd_channel_set_env_dbus (PkdChannel *channel, gchar **env, GError **error);
 static gboolean pkd_channel_get_dir_dbus (PkdChannel *channel, gchar **dir, GError **error);
+static gboolean pkd_channel_set_dir_dbus (PkdChannel *channel, gchar *dir, GError **error);
 static gboolean pkd_channel_get_pid_dbus (PkdChannel *channel, guint *pid, GError **error);
+static gboolean pkd_channel_set_pid_dbus (PkdChannel *channel, guint pid, GError **error);

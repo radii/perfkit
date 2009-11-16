@@ -37,7 +37,10 @@
 #include "pk-channels-dbus.h"
 #include <perfkit-daemon/pkd-version.h>
 
-#define REPORT_ERROR(e) report_error (e, G_STRFUNC, __LINE__);
+#define REPORT_ERROR(e)     report_error (e, G_STRFUNC, __LINE__);
+#define PK_CHANNEL_FORMAT   "/com/dronelabs/Perfkit/Channels/%d"
+#define PK_CHANNEL_FORMAT_S "/com/dronelabs/Perfkit/Channels/%s"
+#define PK_CHANNEL_PREFIX   "/com/dronelabs/Perfkit/Channels/"
 
 static EggLineEntry* channel_iter (EggLine *line, const gchar *text, gchar **end);
 static void missing_cmd (EggLine *line, const gchar *text, gpointer user_data);
@@ -332,8 +335,7 @@ channel_show_cb (EggLine  *line,
 		return channel_list_cb (line, args);
 
 	for (i = 0; i < g_strv_length (args); i++) {
-		path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%s",
-		                        args [i]);
+		path = g_strdup_printf (PK_CHANNEL_FORMAT_S, args [i]);
 		pk_channel_print (path);
 		g_free (path);
 	}
@@ -401,7 +403,7 @@ channel_remove_cb (EggLine  *line,
 	if (errno != 0)
 		return EGG_LINE_BAD_ARGS;
 
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
+	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
 
 	if (!com_dronelabs_Perfkit_Channels_remove (channels, path, &error)) {
 		REPORT_ERROR (error);
@@ -449,7 +451,7 @@ channel_get_cb (EggLine  *line,
 	    !g_str_equal ("pid", args [1]))
 		return EGG_LINE_BAD_ARGS;
 
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d", id);
+	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
 	channel = dbus_g_proxy_new_for_name (dbus_conn,
 	                                     "com.dronelabs.Perfkit",
 	                                     path,
@@ -457,7 +459,7 @@ channel_get_cb (EggLine  *line,
 
 #define PRINT_SHELL_STR(s) G_STMT_START { \
 	gchar *tmp = g_strescape ((s), NULL); \
-	g_print ("\"%s\"\n", tmp); \
+	g_print ("%s\n", tmp); \
 	g_free (tmp); \
 } G_STMT_END
 
@@ -483,7 +485,8 @@ channel_get_cb (EggLine  *line,
 	else if (g_str_equal ("args", args [1])) {
 		if (com_dronelabs_Perfkit_Channel_get_args (channel, &v_strv, &error)) {
 			for (i = 0; v_strv [i]; i++)
-				g_print ("%s\n", v_strv [i]);
+				g_print ("%s ", v_strv [i]);
+			g_print ("\n");
 			g_strfreev (v_strv);
 		}
 		else {
@@ -494,7 +497,8 @@ channel_get_cb (EggLine  *line,
 	else if (g_str_equal ("env", args [1])) {
 		if (com_dronelabs_Perfkit_Channel_get_env (channel, &v_strv, &error)) {
 			for (i = 0; v_strv [i]; i++)
-				PRINT_SHELL_STR (v_strv [i]);
+				g_print ("%s ", v_strv [i]);
+			g_print ("\n");
 			g_strfreev (v_strv);
 		}
 		else {
@@ -504,7 +508,7 @@ channel_get_cb (EggLine  *line,
 	}
 	else if (g_str_equal ("dir", args [1])) {
 		if (com_dronelabs_Perfkit_Channel_get_dir (channel, &v_str, &error)) {
-			PRINT_SHELL_STR (v_strv [i]);
+			PRINT_SHELL_STR (v_str);
 	    	g_free (v_str);
 		}
 		else {
@@ -523,7 +527,12 @@ static EggLineStatus
 channel_set_cb (EggLine  *line,
                 gchar   **args)
 {
-	gint id;
+	EggLineStatus  result = EGG_LINE_OK;
+	gint           id     = 0;
+	DBusGProxy    *channel;
+	gchar         *path;
+	GError        *error  = NULL;
+	GPid           pid    = (GPid)0;
 
 	if (!args || (g_strv_length (args) < 3))
 		return EGG_LINE_BAD_ARGS;
@@ -540,8 +549,60 @@ channel_set_cb (EggLine  *line,
 	    !g_str_equal ("pid", args [1]))
 		return EGG_LINE_BAD_ARGS;
 
+	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
+	channel = dbus_g_proxy_new_for_name (dbus_conn,
+	                                     "com.dronelabs.Perfkit",
+	                                     path,
+	                                     "com.dronelabs.Perfkit.Channel");
+	g_free (path);
 
-	return EGG_LINE_OK;
+	if (g_str_equal ("target", args [1])) {
+		if (!com_dronelabs_Perfkit_Channel_set_target (channel, args [2], &error)) {
+			REPORT_ERROR (error);
+			g_error_free (error);
+			result = EGG_LINE_FAILURE;
+		}
+	}
+	else if (g_str_equal ("args", args [1])) {
+		if (!com_dronelabs_Perfkit_Channel_set_args (channel, (const gchar**)&args [2], &error)) {
+			REPORT_ERROR (error);
+			g_error_free (error);
+			result = EGG_LINE_FAILURE;
+		}
+	}
+	else if (g_str_equal ("env", args [1])) {
+		if (!com_dronelabs_Perfkit_Channel_set_env (channel, (const gchar**)&args [2], &error)) {
+			REPORT_ERROR (error);
+			g_error_free (error);
+			result = EGG_LINE_FAILURE;
+		}
+	}
+	else if (g_str_equal ("dir", args [1])) {
+		if (!com_dronelabs_Perfkit_Channel_set_dir (channel, args [2], &error)) {
+			REPORT_ERROR (error);
+			g_error_free (error);
+			result = EGG_LINE_FAILURE;
+		}
+	}
+	else if (g_str_equal ("pid", args [1])) {
+		errno = 0;
+		pid = strtol (args [2], NULL, 10);
+		if (errno != 0) {
+			result = EGG_LINE_FAILURE;
+			goto cleanup;
+		}
+		if (!com_dronelabs_Perfkit_Channel_set_pid (channel, pid, &error)) {
+			REPORT_ERROR (error);
+			g_error_free (error);
+			result = EGG_LINE_FAILURE;
+		}
+	}
+	else g_warn_if_reached ();
+
+cleanup:
+	g_object_unref (channel);
+
+	return result;
 }
 
 static EggLineStatus

@@ -14,21 +14,41 @@
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_target_dbus"/>
       <arg name="target" type="s" direction="out"/>
     </method>
+    <method name="SetTarget">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_target_dbus"/>
+      <arg name="target" type="s" direction="in"/>
+    </method>
     <method name="GetArgs">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_args_dbus"/>
       <arg name="args" type="as" direction="out"/>
+    </method>
+    <method name="SetArgs">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_args_dbus"/>
+      <arg name="args" type="as" direction="in"/>
     </method>
     <method name="GetPid">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_pid_dbus"/>
       <arg name="pid" type="u" direction="out"/>
     </method>
+    <method name="SetPid">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_pid_dbus"/>
+      <arg name="pid" type="u" direction="in"/>
+    </method>
     <method name="GetEnv">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_env_dbus"/>
       <arg name="env" type="as" direction="out"/>
     </method>
+    <method name="SetEnv">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_env_dbus"/>
+      <arg name="env" type="as" direction="in"/>
+    </method>
     <method name="GetDir">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_dir_dbus"/>
       <arg name="dir" type="s" direction="out"/>
+    </method>
+    <method name="SetDir">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_dir_dbus"/>
+      <arg name="dir" type="s" direction="in"/>
     </method>
 
     <!-- Methods -->
