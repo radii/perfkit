@@ -441,13 +441,11 @@ channel_remove_cb (EggLine  *line,
 	gchar         *path   = NULL;
 	gint           id     = 0;
 
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-	else if (!strlen (argv [0]))
+	if (argc < 1 || !strlen (argv [0]))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	errno = 0;
-	id = strtol (argv [1], NULL, 10);
+	id = strtol (argv [0], NULL, 10);
 	if (errno != 0)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
