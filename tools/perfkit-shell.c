@@ -668,7 +668,10 @@ help_cb (EggLine  *line,
 	EggLineEntry  *entry;
 	gchar         *path;
 
-	path = g_strjoinv (" ", &argv [1]);
+	if (argc < 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	path = g_strjoinv (" ", argv);
 	entry = egg_line_resolve (line, path, NULL, NULL);
 	g_free (path);
 
