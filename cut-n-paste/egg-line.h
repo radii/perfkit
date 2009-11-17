@@ -40,16 +40,18 @@ typedef struct _EggLineEntry    EggLineEntry;
 
 typedef enum
 {
-	EGG_LINE_OK,
-	EGG_LINE_BAD_ARGS,
-	EGG_LINE_FAILURE,
+	EGG_LINE_STATUS_OK,
+	EGG_LINE_STATUS_BAD_ARGS,
+	EGG_LINE_STATUS_FAILURE,
 } EggLineStatus;
 
-typedef EggLineEntry* (*EggLineGenerator) (EggLine      *line,
-                                           const gchar  *text,
-                                           gchar       **end);
-typedef EggLineStatus (*EggLineCallback)  (EggLine      *line,
-                                           gchar       **args);
+typedef EggLineEntry* (*EggLineGenerator) (EggLine   *line,
+                                           gint      *argc,
+                                           gchar   ***argv);
+typedef EggLineStatus (*EggLineCallback)  (EggLine  *line,
+                                           gint      argc,
+                                           gchar   **argv,
+                                           GError  **error);
 
 struct _EggLine
 {
@@ -73,17 +75,24 @@ struct _EggLineEntry
 	gchar             *usage;
 };
 
-GType    egg_line_get_type    (void) G_GNUC_CONST;
-EggLine* egg_line_new         (void);
-void     egg_line_execute     (EggLine            *line,
-                               const gchar        *text);
-void     egg_line_run         (EggLine            *line);
-void     egg_line_set_entries (EggLine            *line,
-                               EggLineEntry       *entries);
-void     egg_line_set_prompt  (EggLine            *line,
-                               const gchar        *prompt);
-void     egg_line_show_help   (EggLine            *line,
-                               const EggLineEntry *entries);
+GType         egg_line_get_type    (void) G_GNUC_CONST;
+EggLine*      egg_line_new         (void);
+EggLineEntry* egg_line_resolve     (EggLine              *line,
+                                    const gchar          *text,
+                                    gint                 *argc,
+                                    gchar              ***argv);
+void          egg_line_execute     (EggLine              *line,
+                                    const gchar          *text);
+void          egg_line_run         (EggLine              *line);
+void          egg_line_quit        (EggLine              *line);
+void          egg_line_set_entries (EggLine              *line,
+                                    const EggLineEntry   *entries);
+void          egg_line_set_prompt  (EggLine              *line,
+                                    const gchar          *prompt);
+void          egg_line_show_help   (EggLine              *line,
+                                    const EggLineEntry   *entries);
+void          egg_line_show_usage  (EggLine              *line,
+                                    const EggLineEntry   *entry);
 
 G_END_DECLS
 

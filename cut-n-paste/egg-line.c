@@ -30,6 +30,11 @@ struct _EggLinePrivate
 	gboolean      quit;
 };
 
+static EggLineEntry empty[] =
+{
+	{ NULL }
+};
+
 enum
 {
 	SIGNAL_MISSING,
@@ -84,90 +89,53 @@ egg_line_init (EggLine *line)
 	line->priv->prompt = g_strdup ("> ");
 }
 
-static EggLineEntry *last_entries = NULL;
-
-static gchar*
-get_last_word (void)
-{
-	struct readline_state state;
-	gboolean in_space = FALSE;
-	gchar *buf, *end, *word;
-
-	rl_save_state (&state);
-
-	buf = state.buffer + strlen (state.buffer);
-
-	while (buf > state.buffer && !in_space) {
-		if (whitespace (*buf))
-			in_space = TRUE;
-		buf--;
-	}
-
-	end = buf;
-
-	while (buf > state.buffer && !whitespace (*buf))
-		buf--;
-
-	if (!in_space)
-		return g_strdup ("");
-
-	word = g_malloc0 (end - buf + 2);
-	memcpy (word, buf, end - buf + 1);
-	g_strstrip (word);
-
-	rl_restore_state (&state);
-
-	return word;
-}
-
 static gchar*
 egg_line_generator (const gchar *text,
                     gint         state)
 {
-	EggLineEntry *entries;
-	static gint   list_index,
-	              len,
-	              i;
-	gchar        *name,
-	             *last_word;
+	EggLineEntry  *entry;
+	static gint    list_index,
+	               len   = 0,
+	               argc  = 0;
+	gchar         *name,
+	              *tmp,
+	             **argv  = NULL,
+	             **largv = NULL;
 
-	if (!current || !current->priv->entries)
+	if (!current || !text || !current->priv->entries)
 		return NULL;
 
-	entries = last_entries ? last_entries : current->priv->entries;
+	entry = egg_line_resolve (current, rl_line_buffer, &argc, &argv);
+	largv = argv;
 
-	if (!state) {
+	if (entry) {
+		if (entry->generator)
+			entry = entry->generator (current, &argc, &argv);
+		else
+			entry = empty;
+	}
+	else {
+		entry = current->priv->entries;
+	}
+
+	if (argv && argv [0])
+		tmp = g_strdup (argv [0]);
+	else
+		tmp = g_strdup ("");
+
+	g_strfreev (largv);
+
+	if (!state)
 		list_index = 0;
-		len = strlen (text);
-	}
 
-	last_word = get_last_word ();
+	len = strlen (tmp);
 
-	if (last_entries && entries && last_word) {
-		for (i = 0; entries [i].name; i++) {
-			if (g_str_equal (entries [i].name, last_word)) {
-				if (entries [i].generator)
-					entries = entries [i].generator (current, text, NULL);
-				else
-					entries = NULL;
-				break;
-			}
-		}
-	}
-	else if (strlen (last_word)) {
-		entries = NULL;
-	}
-
-	g_free (last_word);
-
-	while (entries && NULL != (name = entries [list_index].name)) {
+	while (NULL != (name = entry [list_index].name)) {
 		list_index++;
-		if (g_ascii_strncasecmp (name, text, len) == 0) {
+		if ((g_ascii_strncasecmp (name, tmp, len) == 0)) {
 			return g_strdup (name);
 		}
 	}
-
-	last_entries = entries;
 
 	return NULL;
 }
@@ -177,17 +145,7 @@ egg_line_completion (const gchar *text,
                      gint         start,
                      gint         end)
 {
-	gchar **matches = NULL;
-
-	if (start == 0)
-		last_entries = NULL;
-
-	matches = rl_completion_matches (text, egg_line_generator);
-
-	if (!last_entries)
-		return NULL;
-
-	return matches;
+	return rl_completion_matches (text, egg_line_generator);
 }
 
 /**
@@ -262,11 +220,11 @@ egg_line_run (EggLine *line)
  * during runtime.
  */
 void
-egg_line_set_entries (EggLine      *line,
-                      EggLineEntry *entries)
+egg_line_set_entries (EggLine            *line,
+                      const EggLineEntry *entries)
 {
 	g_return_if_fail (EGG_IS_LINE (line));
-	line->priv->entries = entries;
+	line->priv->entries = (EggLineEntry*) entries;
 }
 
 /**
@@ -304,53 +262,129 @@ void
 egg_line_execute (EggLine     *line,
                   const gchar *text)
 {
-	EggLinePrivate  *priv;
-	EggLineEntry    *entries,
-					*command = NULL;
-	gchar          **parts,
-				   **tmp;
-	gint             i;
-	gboolean         found;
+	EggLineStatus   result;
+	EggLineEntry   *entry;
+	GError         *error = NULL;
+	gchar         **argv  = NULL;
+	gint            argc  = 0;
 
 	g_return_if_fail (EGG_IS_LINE (line));
 	g_return_if_fail (text != NULL);
 
-	priv = line->priv;
-	entries = priv->entries;
-	tmp = parts = g_strsplit_set (text, " \t", -1);
+	entry = egg_line_resolve (line, text, &argc, &argv);
 
-	for (tmp = parts; *tmp && strlen (*tmp); tmp++) {
-		found = FALSE;
-
-		for (i = 0; entries && entries [i].name; i++) {
-			if (g_str_equal (entries [i].name, *tmp)) {
-				found = TRUE;
-				command = &entries [i];
-				if (entries [i].generator)
-					entries = entries [i].generator (line, "", NULL);
-				else
-					entries = NULL;
-				break;
-			}
-		}
-
-		if (!found)
-			goto finish;
-	}
-
-finish:
-	if (command && command->callback) {
-		if (EGG_LINE_BAD_ARGS == command->callback (line, tmp)) {
-			if (command->usage)
-				g_printerr ("usage: %s\n", command->usage);
+	if (entry && entry->callback) {
+		result = entry->callback (line, argc, argv, &error);
+		switch (result) {
+		case EGG_LINE_STATUS_OK:
+			break;
+		case EGG_LINE_STATUS_BAD_ARGS:
+			egg_line_show_usage (line, entry);
+			break;
+		case EGG_LINE_STATUS_FAILURE:
+			g_printerr ("EGG_LINE_ERROR: %s\n", error->message);
+			g_error_free (error);
+			break;
+		default:
+			break;
 		}
 	}
-	else if (command && command->help) {
-		g_printerr ("usage: %s\n", command->usage);
+	else if (entry && entry->usage) {
+		egg_line_show_usage (line, entry);
 	}
-	else if (!command) {
+	else {
 		g_signal_emit (line, signals [SIGNAL_MISSING], 0, text);
 	}
 
-	g_strfreev (parts);
+	g_strfreev (argv);
+}
+
+/**
+ * egg_line_resolve:
+ * @line: An #EggLine
+ * @text: command text
+ *
+ * Resolves a command and arguments for @text.
+ *
+ * Return value: the instance of #EggLineEntry.  This value should not be
+ *   modified or freed.
+ */
+EggLineEntry*
+egg_line_resolve (EggLine       *line,
+                  const gchar   *text,
+                  gint          *argc,
+                  gchar       ***argv)
+{
+	EggLineEntry  *entry  = NULL,
+	              *tmp,
+	              *result = NULL;
+	gchar        **largv  = NULL,
+	             **origv  = NULL;
+	gint           largc  = 0,
+	               i;
+	GError        *error  = NULL;
+
+	g_return_val_if_fail (EGG_IS_LINE (line), NULL);
+	g_return_val_if_fail (text != NULL, NULL);
+
+	if (argc)
+		*argc = 0;
+
+	if (argv)
+		*argv = NULL;
+
+	if (strlen (text) == 0)
+		return NULL;
+
+	if (!g_shell_parse_argv (text, &largc, &largv, &error)) {
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		return NULL;
+	}
+
+	entry = line->priv->entries;
+	origv = largv;
+
+	for (i = 0; largv [0] && entry [i].name;) {
+		if (g_str_equal (largv [0], entry [i].name)) {
+			if (entry [i].generator) {
+				tmp = entry [i].generator (line, &largc, &largv);
+			}
+
+			result = &entry [i];
+			entry = tmp ? tmp : empty;
+
+			i = 0;
+			largv = &largv [1];
+			largc--;
+		}
+		else i++;
+	}
+
+	if (argv)
+		*argv = largv ? g_strdupv (largv) : NULL;
+
+	if (argc)
+		*argc = largc;
+
+	g_strfreev (origv);
+
+	return result;
+}
+
+/**
+ * egg_line_show_usage:
+ * @line: An #EggLine
+ * @entry: An #EggLineEntry
+ *
+ * Shows command usage for @entry.
+ */
+void
+egg_line_show_usage (EggLine            *line,
+                     const EggLineEntry *entry)
+{
+	g_return_if_fail (EGG_IS_LINE (line));
+	g_return_if_fail (entry != NULL);
+
+	g_print ("usage: %s\n", entry->usage ? entry->usage : "");
 }
