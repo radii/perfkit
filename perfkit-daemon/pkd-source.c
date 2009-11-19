@@ -38,6 +38,12 @@ struct _PkdSourcePrivate
 	gpointer dummy;
 };
 
+static gboolean
+noop_needs_spawn (PkdSource *source)
+{
+	return FALSE;
+}
+
 static void
 pkd_source_finalize (GObject *object)
 {
@@ -51,8 +57,9 @@ pkd_source_class_init (PkdSourceClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_source_finalize;
-
 	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
+
+	klass->needs_spawn = noop_needs_spawn;
 }
 
 static void
@@ -76,3 +83,44 @@ pkd_source_new (void)
 	return g_object_new (PKD_TYPE_SOURCE, NULL);
 }
 
+/**
+ * pkd_source_needs_spawn:
+ * @source: A #PkdSource
+ *
+ * Checks to see if the source needs to spawn the child process to function
+ * correctly.
+ *
+ * Return value: TRUE if the source is required to spawn the child process
+ */
+gboolean
+pkd_source_needs_spawn (PkdSource *source)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
+	PKD_SOURCE_GET_CLASS (source)->needs_spawn (source);
+}
+
+/**
+ * pkd_source_spawn:
+ * @source: A #PkdSource
+ *
+ * Spawns the target executable if needed.
+ *
+ * Return value: %TRUE if the child is spawned.
+ */
+gboolean
+pkd_source_spawn (PkdSource  *source,
+                  GError    **error)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
+	/* TODO */
+	return FALSE;
+}
+
+gboolean
+pkd_source_start (PkdSource  *source,
+                  GError    **error)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
+	/* TODO */
+	return TRUE;
+}

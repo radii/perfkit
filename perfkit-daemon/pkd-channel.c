@@ -24,6 +24,7 @@
 #include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
 #include "pkd-runtime.h"
+#include "pkd-source.h"
 
 /**
  * SECTION:pkd-channel
@@ -33,6 +34,9 @@
  * #PkdChannel represents a way to get data samples from a system.  It can
  * contain multiple #PkdSource<!-- -->'s.
  */
+
+static gboolean do_start (PkdChannel *channel, GError **error);
+static gboolean do_stop  (PkdChannel *channel, GError **error);
 
 G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
@@ -66,13 +70,15 @@ enum
 struct _PkdChannelPrivate
 {
 	GStaticRWLock   rw_lock;
-	gint            id;
-	gint            state;
-	gchar          *dir;
-	gchar         **args;
-	GPid            pid;
-	gchar          *target;
-	gchar         **env;
+	gint            id;        /* Unique ID of the channel */
+	gint            state;     /* Current State of the channel */
+	gchar          *dir;       /* Working directory for child process */
+	gchar         **args;      /* GStrv of arguments for target */
+	GPid            pid;       /* PID to attach to or PID of child process */
+	gchar          *target;    /* Path to executable to spawn if needed */
+	gchar         **env;       /* GStrv of KEY=VALUE environment vars */
+	GList          *sources;   /* The list of attached data sources */
+	gboolean        spawned;   /* If we are responsible for the child process */
 };
 
 static gint channel_seq = 0;
@@ -237,6 +243,7 @@ pkd_channel_init (PkdChannel *channel)
 
 	/* generate unique identifier */
 	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
+	channel->priv->dir = g_strdup ("/");
 
 	/* register the channel on the DBUS */
 	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
@@ -548,8 +555,10 @@ pkd_channel_start (PkdChannel  *channel,
 	case STATE_READY:
 	case STATE_PAUSED: {
 		priv->state = STATE_STARTED;
-		/* TODO: Process Execution Hooks */
-		result = TRUE;
+		if (!(result = do_start (channel, error))) {
+			priv->state = STATE_STOPPED;
+			result = FALSE;
+		}
 		break;
 	}
 	default:
@@ -810,4 +819,77 @@ pkd_channel_set_env_dbus (PkdChannel  *channel,
 	g_return_val_if_fail (env != NULL, FALSE);
 	pkd_channel_set_env (channel, (const gchar**)env);
 	return TRUE;
+}
+
+static gboolean
+do_spawn (PkdChannel  *channel,
+          GError     **error)
+{
+	PkdChannelPrivate  *priv;
+	gboolean            result;
+	gchar             **argv;
+	gint                argc,
+	                    i;
+
+	priv = channel->priv;
+
+	/* command target + args + NULL seminole */
+	argc = g_strv_length (priv->args) + 2;
+	argv = g_malloc0 (sizeof (gchar*) * argc);
+
+	argv [0] = g_strdup (priv->target);
+	for (i = 1; i < argc - 1; i++)
+		argv [i] = g_strdup (priv->args [i - 1]);
+
+	result = g_spawn_async (priv->dir,
+	                        argv,
+	                        priv->env,
+	                        0,
+	                        NULL,
+	                        NULL,
+	                        &priv->pid,
+	                        error);
+
+	g_strfreev (argv);
+
+	return result;
+}
+
+static gboolean
+do_start (PkdChannel  *channel,
+          GError     **error)
+{
+	PkdChannelPrivate *priv;
+	GList             *list;
+	PkdSource         *spawn = NULL;
+	gboolean           spawned = TRUE;
+
+	priv = channel->priv;
+
+	if (!priv->pid) {
+		for (list = priv->sources; list; list = list->next) {
+			if (pkd_source_needs_spawn (list->data)) {
+				spawn = list->data;
+				break;
+			}
+		}
+
+		if (spawn)
+			spawned = pkd_source_spawn (spawn, error);
+		else
+			spawned = do_spawn (channel, error);
+
+		priv->spawned = TRUE;
+	}
+
+	for (list = priv->sources; list; list = list->next) {
+		if (!pkd_source_start (list->data, error)) {
+			/* TODO: Handle failed data source */
+			g_printerr ("%s\n", (*error)->message);
+			g_error_free (*error);
+			*error = NULL;
+		}
+	}
+
+	return spawned;
 }

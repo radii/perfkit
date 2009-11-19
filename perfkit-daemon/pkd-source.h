@@ -46,10 +46,23 @@ struct _PkdSource
 struct _PkdSourceClass
 {
 	GObjectClass parent_class;
+
+	gboolean (*needs_spawn) (PkdSource  *source);
+	gboolean (*spawn)       (PkdSource  *source,
+	                         GError    **error);
+	gboolean (*start)       (PkdSource  *source,
+	                         GError    **error);
+	void     (*stop)        (PkdSource  *source);
 };
 
-GType       pkd_source_get_type (void) G_GNUC_CONST;
-PkdSource * pkd_source_new      (void);
+GType       pkd_source_get_type    (void) G_GNUC_CONST;
+PkdSource * pkd_source_new         (void);
+gboolean    pkd_source_needs_spawn (PkdSource  *source);
+gboolean    pkd_source_spawn       (PkdSource  *source,
+                                    GError    **error);
+gboolean    pkd_source_start       (PkdSource  *source,
+                                    GError    **error);
+void        pkd_source_stop        (PkdSource  *source);
 
 G_END_DECLS
 
