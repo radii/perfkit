@@ -372,6 +372,11 @@ pk_channel_printv (gchar **paths)
 
 	g_return_if_fail (paths != NULL);
 
+	if (!paths [0]) {
+		g_print ("No channels found.\n");
+		return;
+	}
+
 	for (i = 0; paths [i]; i++) {
 		id_str = g_strrstr (paths [i], "/");
 		if (id_str)
