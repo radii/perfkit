@@ -97,8 +97,8 @@ egg_line_generator (const gchar *text,
 	static gint    list_index,
 	               len   = 0,
 	               argc  = 0;
-	gchar         *name,
-	              *tmp,
+	const gchar   *name;
+	gchar         *tmp,
 	             **argv  = NULL,
 	             **largv = NULL;
 
@@ -156,7 +156,7 @@ egg_line_completion (const gchar *text,
  * Return value: the newly created #EggLine instance.
  */
 EggLine*
-egg_line_new ()
+egg_line_new (void)
 {
 	return g_object_new (EGG_TYPE_LINE, NULL);
 }
@@ -316,7 +316,7 @@ egg_line_resolve (EggLine       *line,
                   gchar       ***argv)
 {
 	EggLineEntry  *entry  = NULL,
-	              *tmp,
+	              *tmp    = NULL,
 	              *result = NULL;
 	gchar        **largv  = NULL,
 	             **origv  = NULL;

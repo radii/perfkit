@@ -68,11 +68,11 @@ struct _EggLineClass
 
 struct _EggLineEntry
 {
-	gchar             *name;
+	const gchar       *name;
 	EggLineGenerator   generator;
 	EggLineCallback    callback;
-	gchar             *help;
-	gchar             *usage;
+	const gchar       *help;
+	const gchar       *usage;
 };
 
 GType         egg_line_get_type    (void) G_GNUC_CONST;
