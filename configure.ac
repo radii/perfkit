@@ -52,7 +52,9 @@ PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.16
 dnl ************************************************************************
 dnl Additional Headers
 dnl ************************************************************************
-AC_CHECK_HEADERS([readline/readline.h readline/history.h])
+AC_CHECK_HEADERS([readline/readline.h readline/history.h],
+		 [],
+		 [AC_MSG_ERROR([Readline headers were not found.])])
 
 
 dnl ************************************************************************
