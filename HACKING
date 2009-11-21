@@ -1,0 +1,42 @@
+----------------------------------------------------------------------------
+                              Hacking Perfkit
+----------------------------------------------------------------------------
+
+TODO
+
+----------------------------------------------------------------------------
+                                 Roadmap
+----------------------------------------------------------------------------
+
+Milestone I.
+============
+
+ * Spawning a new process with arguments.
+ * Ability for data sources to alter environment variables prior to process
+   spawning.
+ * Data sources for:
+   - System Memory
+   - System CPU
+   - GLib Memory Allocations
+ * Ability to set sampling frequencies.
+ * Console shell to manipulate commands and monitor on the fly.
+ * Start on user interface using Gtk with plugins using Ethos.
+
+Milestone II.
+=============
+
+ * Export input/output stream for spawned processes over DBUS.
+ * Data sources for:
+   - Power consumption
+   - Network traffic
+   - Gtk/Gdk events
+ * API Review.
+ * Security Review.
+ * Python bindings.
+
+Milestone III.
+==============
+
+ * Start stablizing API.
+ * Start implementing security.
+
