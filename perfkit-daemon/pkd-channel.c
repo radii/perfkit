@@ -20,6 +20,9 @@
 #include "config.h"
 #endif
 
+#include <sys/types.h>
+#include <signal.h>
+
 #include "pkd-channel.h"
 #include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
@@ -600,7 +603,7 @@ pkd_channel_stop (PkdChannel  *channel,
 	case STATE_STARTED:
 	case STATE_PAUSED: {
 		priv->state = STATE_STOPPED;
-		/* TODO: Stop Execution Hooks */
+		do_stop (channel, NULL); /* TODO: Error handling */
 		result = TRUE;
 		break;
 	}
@@ -892,4 +895,27 @@ do_start (PkdChannel  *channel,
 	}
 
 	return spawned;
+}
+
+static gboolean
+do_stop (PkdChannel  *channel,
+         GError     **error)
+{
+	PkdChannelPrivate *priv;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+
+	priv = channel->priv;
+
+	/* Kill the process that we created if it was spawned by the channel.
+	 * If the process was started by a channel, it is it's responsibility to
+	 * stop the process when it is stopped.
+	 */
+
+	if (priv->pid && priv->spawned) {
+		g_message ("Killing process %d", priv->pid);
+		kill (priv->pid, SIGTERM);
+	}
+
+	return TRUE;
 }
