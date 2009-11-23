@@ -33,11 +33,6 @@
 
 G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
 
-struct _PkdSourcePrivate
-{
-	gpointer dummy;
-};
-
 static gboolean
 noop_needs_spawn (PkdSource *source)
 {
@@ -57,7 +52,6 @@ pkd_source_class_init (PkdSourceClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_source_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
 
 	klass->needs_spawn = noop_needs_spawn;
 }
@@ -65,7 +59,7 @@ pkd_source_class_init (PkdSourceClass *klass)
 static void
 pkd_source_init (PkdSource *source)
 {
-	source->priv = G_TYPE_INSTANCE_GET_PRIVATE ((source),
+	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
 	                                            PKD_TYPE_SOURCE,
 	                                            PkdSourcePrivate);
 }
@@ -112,15 +106,35 @@ pkd_source_spawn (PkdSource  *source,
                   GError    **error)
 {
 	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
-	/* TODO */
-	return FALSE;
+	return PKD_SOURCE_GET_CLASS (source)->spawn (source, error);
 }
 
+/**
+ * pkd_source_start:
+ * @source: A #PkdSource
+ * @error: a location for a #GError
+ *
+ * Starts the data source recording samples.
+ *
+ * Return value: %TRUE on success
+ */
 gboolean
 pkd_source_start (PkdSource  *source,
                   GError    **error)
 {
 	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
-	/* TODO */
-	return TRUE;
+	return PKD_SOURCE_GET_CLASS (source)->start (source, error);
+}
+
+/**
+ * pkd_source_stop:
+ * @source: A #PkdSource
+ *
+ * Stops the data source from recording samples.
+ */
+void
+pkd_source_stop (PkdSource *source)
+{
+	g_return_if_fail (PKD_IS_SOURCE (source));
+	PKD_SOURCE_GET_CLASS (source)->stop (source);
 }

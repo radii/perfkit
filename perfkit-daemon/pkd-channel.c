@@ -39,7 +39,7 @@
  */
 
 static gboolean do_start (PkdChannel *channel, GError **error);
-static gboolean do_stop  (PkdChannel *channel, GError **error);
+static void     do_stop  (PkdChannel *channel);
 
 G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
@@ -603,7 +603,7 @@ pkd_channel_stop (PkdChannel  *channel,
 	case STATE_STARTED:
 	case STATE_PAUSED: {
 		priv->state = STATE_STOPPED;
-		do_stop (channel, NULL); /* TODO: Error handling */
+		do_stop (channel);
 		result = TRUE;
 		break;
 	}
@@ -897,13 +897,13 @@ do_start (PkdChannel  *channel,
 	return spawned;
 }
 
-static gboolean
-do_stop (PkdChannel  *channel,
-         GError     **error)
+static void
+do_stop (PkdChannel *channel)
 {
 	PkdChannelPrivate *priv;
+	GList             *iter;
 
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_if_fail (PKD_IS_CHANNEL (channel));
 
 	priv = channel->priv;
 
@@ -912,10 +912,9 @@ do_stop (PkdChannel  *channel,
 	 * stop the process when it is stopped.
 	 */
 
-	if (priv->pid && priv->spawned) {
-		g_message ("Killing process %d", priv->pid);
-		kill (priv->pid, SIGTERM);
-	}
+	for (iter = priv->sources; iter; iter = iter->next)
+		pkd_source_stop (iter->data);
 
-	return TRUE;
+	if (priv->pid && priv->spawned)
+		kill (priv->pid, SIGTERM);
 }
