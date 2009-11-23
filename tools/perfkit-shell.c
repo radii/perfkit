@@ -153,17 +153,17 @@ static EggLineEntry channel_entries[] =
 	  "Get a data channel setting",
 	  "channel get <channel-id> [target|args|env|dir|pid]" },
 	{ "start", NULL, channel_start_cb,
-	  "channel start <channel-id>",
-	  "Start recording a data channel" },
+	  "Start recording a data channel",
+	  "channel start <channel-id>" },
 	{ "stop", NULL, channel_stop_cb,
 	  "channel stop <channel-id>",
 	  "Stop recording a data channel" },
 	{ "pause", NULL, channel_pause_cb,
-	  "channel pause <channel-id>",
-	  "Pause recording of a data channel" },
+	  "Pause recording of a data channel",
+	  "channel pause <channel-id>" },
 	{ "unpause", NULL, channel_unpause_cb,
-	  "channel unpause <channel-id>",
-	  "Continue recording from a paused data channel" },
+	  "Continue recording from a paused data channel",
+	  "channel unpause <channel-id>" },
 	{ NULL }
 };
 
