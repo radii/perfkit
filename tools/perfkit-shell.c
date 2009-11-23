@@ -56,6 +56,8 @@ static EggLineStatus version_cb        (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus help_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_start_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_stop_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 
 static gboolean use_system = FALSE;
@@ -77,13 +79,17 @@ static EggLineEntry entries[] =
 	  "Manage perfkit data channels\n"
 	  "\n"
 	  "Commands:\n"
-	  "  add    - Add a new data channel\n"
-	  "  remove - Remove an existing data channel\n"
-	  "  show   - Display information on a data channel\n"
-	  "  set    - Set a data channel setting\n"
-	  "  get    - Get a data channel setting\n"
+	  "  add     - Add a new data channel\n"
+	  "  remove  - Remove an existing data channel\n"
+	  "  show    - Display information on a data channel\n"
+	  "  set     - Set a data channel setting\n"
+	  "  get     - Get a data channel setting\n"
+	  "  start   - Start recording a data channel\n"
+	  "  stop    - Stop recording a data channel\n"
+	  "  pause   - Pause recording of a data channel\n"
+	  "  unpause - Unpause a paused data channel\n"
 	  "\n",
-	  "channel [add|remove|show|set|get]" },
+	  "channel [add|remove|show|set|get|start|stop|pause|unpause]" },
 	{ "source",
 	  NULL,
 	  NULL,
@@ -152,6 +158,12 @@ static EggLineEntry channel_entries[] =
 	{ "stop", NULL, channel_stop_cb,
 	  "channel stop <channel-id>",
 	  "Stop recording a data channel" },
+	{ "pause", NULL, channel_pause_cb,
+	  "channel pause <channel-id>",
+	  "Pause recording of a data channel" },
+	{ "unpause", NULL, channel_unpause_cb,
+	  "channel unpause <channel-id>",
+	  "Continue recording from a paused data channel" },
 	{ NULL }
 };
 
@@ -819,6 +831,24 @@ channel_stop_cb (EggLine  *line,
                   gint     argc,
                   gchar  **argv,
                   GError **error)
+{
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+channel_pause_cb (EggLine   *line,
+                  gint       argc,
+                  gchar    **argv,
+                  GError   **error)
+{
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+channel_unpause_cb (EggLine  *line,
+                    gint     argc,
+                    gchar  **argv,
+                    GError **error)
 {
 	return EGG_LINE_STATUS_OK;
 }
