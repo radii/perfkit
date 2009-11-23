@@ -220,6 +220,19 @@ main (gint   argc,
 	return EXIT_SUCCESS;
 }
 
+static gboolean
+parse_int (const gchar *str,
+           gint        *v_int)
+{
+	gchar *endptr = NULL;
+
+	errno = 0;
+	*v_int = strtol (str, &endptr, 0);
+	if (endptr == str || errno != 0)
+		return FALSE;
+	return TRUE;
+}
+
 static void
 report_error (GError       *error,
               const gchar  *func,
@@ -401,13 +414,19 @@ pk_channel_printv (gchar **paths)
 		                                   "com.dronelabs.Perfkit.Channel");
 		tmps = NULL;
 		cache = g_slice_new0 (PkChannelCache);
-		com_dronelabs_Perfkit_Channel_get_pid (proxy, (guint*)&cache->pid, NULL);
+		if (!com_dronelabs_Perfkit_Channel_get_pid (proxy, (guint*)&cache->pid, NULL))
+			continue;
 		com_dronelabs_Perfkit_Channel_get_target (proxy, &tmps, NULL);
 		com_dronelabs_Perfkit_Channel_get_args (proxy, &tmp, NULL);
-		cache->args = g_strjoinv (" ", tmp);
+		if (!tmp)
+			cache->args = g_strdup ("");
+		else
+			cache->args = g_strjoinv (" ", tmp);
 		g_strfreev (tmp);
 		tmp = NULL;
 		cache->id = strtol (id_str, NULL, 10);
+		if (!tmps)
+			tmps = g_strdup ("");
 		cache->target = g_strdup (tmps);
 		g_free (tmps);
 		tmps = NULL;
@@ -470,15 +489,20 @@ channel_show_cb (EggLine  *line,
                  GError  **error)
 {
 	gchar *path;
-	gint   i;
+	gint   id = 0, i;
 
-	if (argc == 0 || strlen (argv [0]) == 0)
+	if (argc < 1)
 		return channel_list_cb (line, argc, argv, error);
 
 	for (i = 0; i < argc; i++) {
-		path = g_strdup_printf (PK_CHANNEL_FORMAT_S, argv [i]);
-		pk_channel_print (path);
-		g_free (path);
+		if (parse_int (argv [i], &id)) {
+			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
+			pk_channel_print (path);
+			g_free (path);
+		}
+		else {
+			g_printerr ("Channel \"%s\" could not be found.\n", argv [i]);
+		}
 	}
 
 	return EGG_LINE_STATUS_OK;
@@ -539,9 +563,7 @@ channel_remove_cb (EggLine  *line,
 	if (argc < 1 || !strlen (argv [0]))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	errno = 0;
-	id = strtol (argv [0], NULL, 10);
-	if (errno != 0)
+	if (!parse_int (argv [0], &id))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
@@ -578,9 +600,7 @@ channel_get_cb (EggLine  *line,
 	if (argc < 2)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	errno = 0;
-	id = strtol (argv [0], NULL, 10);
-	if (errno != 0)
+	if (!parse_int (argv [0], &id))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	if (!argv [1] || strlen (argv [1]) == 0)
@@ -680,9 +700,7 @@ channel_set_cb (EggLine  *line,
 	if (argc < 3)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	errno = 0;
-	id = strtol (argv [0], NULL, 10);
-	if (errno != 0)
+	if (!parse_int (argv [0], &id))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	if (!g_str_equal ("target", argv [1]) &&
@@ -724,9 +742,7 @@ channel_set_cb (EggLine  *line,
 		}
 	}
 	else if (g_str_equal ("pid", argv [1])) {
-		errno = 0;
-		pid = strtol (argv [2], NULL, 10);
-		if (errno != 0) {
+		if (!parse_int (argv [2], &pid)) {
 			result = EGG_LINE_STATUS_FAILURE;
 			goto cleanup;
 		}
@@ -795,16 +811,14 @@ channel_start_cb (EggLine   *line,
                   GError   **error)
 {
 	DBusGProxy *channel;
-	gint        id, i;
+	gint        id = 0, i;
 	gchar      *path;
 
 	if (argc < 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	for (i = 0; i < argc; i++) {
-		errno = 0;
-		id = strtol (argv [i], NULL, 10);
-		if (!errno) {
+		if (parse_int (argv [i], &id)) {
 			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
 			channel = dbus_g_proxy_new_for_name (dbus_conn,
 			                                     "com.dronelabs.Perfkit",
@@ -820,6 +834,9 @@ channel_start_cb (EggLine   *line,
 			}
 			g_object_unref (channel);
 			g_free (path);
+		}
+		else {
+			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
 		}
 	}
 
