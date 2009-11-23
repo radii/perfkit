@@ -138,3 +138,31 @@ pkd_source_stop (PkdSource *source)
 	g_return_if_fail (PKD_IS_SOURCE (source));
 	PKD_SOURCE_GET_CLASS (source)->stop (source);
 }
+
+/**
+ * pkd_source_pause:
+ * @source: A #PkdSource
+ *
+ * Pauses a #PkdSource, preventing new data samples from being created.
+ */
+void
+pkd_source_pause (PkdSource *source)
+{
+	g_return_if_fail (PKD_IS_SOURCE (source));
+	if (PKD_SOURCE_GET_CLASS (source)->pause)
+		PKD_SOURCE_GET_CLASS (source)->pause (source);
+}
+
+/**
+ * pkd_source_unpause:
+ * @source: A #PkdSource
+ *
+ * Unpauses a #PkdSource, allowing new data samples to be created.
+ */
+void
+pkd_source_unpause (PkdSource *source)
+{
+	g_return_if_fail (PKD_IS_SOURCE (source));
+	if (PKD_SOURCE_GET_CLASS (source)->unpause)
+		PKD_SOURCE_GET_CLASS (source)->unpause (source);
+}

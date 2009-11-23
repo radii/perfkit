@@ -53,6 +53,8 @@ struct _PkdSourceClass
 	gboolean (*start)       (PkdSource  *source,
 	                         GError    **error);
 	void     (*stop)        (PkdSource  *source);
+	void     (*pause)       (PkdSource  *source);
+	void     (*unpause)     (PkdSource  *source);
 };
 
 GType       pkd_source_get_type    (void) G_GNUC_CONST;
@@ -63,6 +65,8 @@ gboolean    pkd_source_spawn       (PkdSource  *source,
 gboolean    pkd_source_start       (PkdSource  *source,
                                     GError    **error);
 void        pkd_source_stop        (PkdSource  *source);
+void        pkd_source_pause       (PkdSource  *source);
+void        pkd_source_unpause     (PkdSource  *source);
 
 G_END_DECLS
 
