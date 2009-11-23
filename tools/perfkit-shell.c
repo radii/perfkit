@@ -413,11 +413,11 @@ pk_channel_printv (gchar **paths)
 	if (args_len < 8)
 		args_len = 8;
 
-	print_columns ("ID", 4, "Pid", 4, "Target", target_len, "Args", args_len, NULL);
+	print_columns ("ID", 4, "Pid", 5, "Target", target_len, "Args", args_len, NULL);
 
 	for (iter = list; iter; iter = iter->next) {
 		cache = iter->data;
-		g_print ("| %- 4d | %- 4d | %s", cache->id, cache->pid, cache->target);
+		g_print ("| %- 4d | %-5d | %s", cache->id, cache->pid, cache->target);
 		for (i = strlen (cache->target); i < target_len; i++)
 			g_print (" ");
 		g_print (" | %s", cache->args);
@@ -431,7 +431,7 @@ pk_channel_printv (gchar **paths)
 
 	g_list_free (list);
 
-	g_print ("+------+------+");
+	g_print ("+------+-------+");
 	for (i = -2; i < target_len; i++)
 		g_print ("-");
 	g_print ("+");
@@ -782,6 +782,35 @@ channel_start_cb (EggLine   *line,
                   gchar    **argv,
                   GError   **error)
 {
+	DBusGProxy *channel;
+	gint        id, i;
+	gchar      *path;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	for (i = 0; i < argc; i++) {
+		errno = 0;
+		id = strtol (argv [i], NULL, 10);
+		if (!errno) {
+			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
+			channel = dbus_g_proxy_new_for_name (dbus_conn,
+			                                     "com.dronelabs.Perfkit",
+			                                     path,
+			                                     "com.dronelabs.Perfkit.Channel");
+			if (!com_dronelabs_Perfkit_Channel_start (channel, error)) {
+				REPORT_ERROR (*error);
+				g_error_free (*error);
+				*error = NULL; /* XXX: Propagate error? */
+			}
+			else {
+				g_print ("Channel %d started.\n", id);
+			}
+			g_object_unref (channel);
+			g_free (path);
+		}
+	}
+
 	return EGG_LINE_STATUS_OK;
 }
 
