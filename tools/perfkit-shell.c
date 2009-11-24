@@ -30,6 +30,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include <egg-line.h>
 
@@ -43,6 +44,7 @@
 #define PK_CHANNEL_PREFIX   "/com/dronelabs/Perfkit/Channels/"
 
 static void          missing_cmd       (EggLine *line, const gchar *text, gpointer user_data);
+static void          execute_file      (EggLine *line, const gchar *filename);
 static EggLineEntry* channel_iter      (EggLine *line, gint *argc, gchar ***argv);
 static EggLineStatus ls_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus cd_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
@@ -171,10 +173,10 @@ gint
 main (gint   argc,
       gchar *argv[])
 {
-	GOptionContext *context;
-	GError         *error   = NULL;
-	EggLine        *line;
-	gint            bus;
+	GOptionContext   *context;
+	GError           *error   = NULL;
+	EggLine          *line;
+	gint              bus, i;
 
 	/* TODO: This doesn't actually seem to work */
 	rl_catch_signals = 1;
@@ -215,9 +217,65 @@ main (gint   argc,
 	egg_line_set_prompt (line, "perfkit> ");
 	egg_line_set_entries (line, entries);
 	g_signal_connect (line, "missing", G_CALLBACK (missing_cmd), NULL);
-	egg_line_run (line);
+
+	/* If any filenames were specified run them and exit */
+	if (argc > 1) {
+		for (i = 1; i < argc; i++) {
+			if (g_file_test (argv [i], G_FILE_TEST_IS_REGULAR))
+				execute_file (line, argv [i]);
+			else
+				g_printerr ("Invalid file \"%s\".\n", argv [i]);
+		}
+	}
+	else {
+		egg_line_run (line);
+	}
 
 	return EXIT_SUCCESS;
+}
+
+static void
+execute_file (EggLine     *line,
+              const gchar *filename)
+{
+	GFile            *file;
+	GInputStream     *stream;
+	GDataInputStream *reader;
+	gchar            *str;
+	GError           *error = NULL;
+
+	file = g_file_new_for_path (filename);
+
+	if (!(stream = (GInputStream*)g_file_read (file, NULL, &error))) {
+		g_printerr ("Error reading \"%s\": %s\n",
+		            filename, error->message);
+		g_error_free (error);
+		error = NULL;
+	}
+	else {
+		reader = g_data_input_stream_new (stream);
+		while (NULL != (str = g_data_input_stream_read_line (reader,
+		                                                     NULL,
+		                                                     NULL,
+		                                                     &error)))
+		{
+			g_print ("perfkit> %s\n", str);
+			egg_line_execute (line, str);
+			g_free (str);
+		}
+
+		if (error) {
+			g_printerr ("Error reading \"%s\": %s\n",
+			            filename, error->message);
+			g_error_free (error);
+			error = NULL;
+		}
+
+		g_object_unref (reader);
+		g_object_unref (stream);
+	}
+
+	g_object_unref (file);
 }
 
 static gboolean
