@@ -59,6 +59,7 @@ struct _PkdSourceClass
 
 GType       pkd_source_get_type    (void) G_GNUC_CONST;
 PkdSource * pkd_source_new         (void);
+gint        pkd_source_get_id      (PkdSource  *source);
 gboolean    pkd_source_needs_spawn (PkdSource  *source);
 gboolean    pkd_source_spawn       (PkdSource  *source,
                                     GError    **error);

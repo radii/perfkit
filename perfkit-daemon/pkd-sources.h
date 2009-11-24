@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pkd-source.h"
+
 G_BEGIN_DECLS
 
 #define PKD_TYPE_SOURCES            (pkd_sources_get_type ())
@@ -30,6 +32,18 @@ G_BEGIN_DECLS
 #define PKD_IS_SOURCES(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_SOURCES))
 #define PKD_IS_SOURCES_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_SOURCES))
 #define PKD_SOURCES_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_SOURCES, PkdSourcesClass))
+#define PKD_SOURCES_ERROR           (pkd_sources_error_quark ())
+
+/**
+ * PkdChannelsError:
+ * @PKD_SOURCES_ERROR_INVALID_TYPE: The source type is invalid
+ *
+ * #PkdSourcesError error enumeration.
+ */
+typedef enum
+{
+	PKD_SOURCES_ERROR_INVALID_TYPE,
+} PkdSourcesError;
 
 typedef struct _PkdSources        PkdSources;
 typedef struct _PkdSourcesClass   PkdSourcesClass;
@@ -48,7 +62,12 @@ struct _PkdSourcesClass
 	GObjectClass parent_class;
 };
 
-GType pkd_sources_get_type (void) G_GNUC_CONST;
+GQuark     pkd_sources_error_quark (void) G_GNUC_CONST;
+GType      pkd_sources_get_type    (void) G_GNUC_CONST;
+GList*     pkd_sources_find_all    (void);
+PkdSource* pkd_sources_add         (PkdSources  *sources,
+                                    GType        type,
+                                    GError     **error);
 
 G_END_DECLS
 

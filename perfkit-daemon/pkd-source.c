@@ -33,6 +33,11 @@
 
 G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
 
+struct _PkdSourcePrivate
+{
+	gint id;
+};
+
 static gboolean
 noop_needs_spawn (PkdSource *source)
 {
@@ -52,6 +57,7 @@ pkd_source_class_init (PkdSourceClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_source_finalize;
+	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
 
 	klass->needs_spawn = noop_needs_spawn;
 }
@@ -75,6 +81,21 @@ PkdSource*
 pkd_source_new (void)
 {
 	return g_object_new (PKD_TYPE_SOURCE, NULL);
+}
+
+/**
+ * pkd_source_get_id:
+ * @source: A #PkdSource
+ *
+ * Retrieves the identifier of a data source.
+ *
+ * Return value: the source identifier.
+ */
+gint
+pkd_source_get_id (PkdSource *source)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE (source), -1);
+	return source->priv->id;
 }
 
 /**

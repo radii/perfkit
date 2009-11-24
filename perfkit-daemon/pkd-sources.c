@@ -21,6 +21,7 @@
 #endif
 
 #include "pkd-sources.h"
+#include "pkd-sources-glue.h"
 #include "pkd-sources-dbus.h"
 
 /**
@@ -36,7 +37,8 @@ G_DEFINE_TYPE (PkdSources, pkd_sources, G_TYPE_OBJECT)
 
 struct _PkdSourcesPrivate
 {
-	gpointer dummy;
+	GStaticRWLock  rw_lock;
+	GList         *sources;
 };
 
 static void
@@ -60,21 +62,64 @@ pkd_sources_class_init (PkdSourcesClass *klass)
 static void
 pkd_sources_init (PkdSources *sources)
 {
-	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE ((sources),
+	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE (sources,
 	                                             PKD_TYPE_SOURCES,
 	                                             PkdSourcesPrivate);
 }
 
-/**
- * pkd_sources_new:
- *
- * Creates a new instance of #PkdSources.
- *
- * Return value: the newly created #PkdSources instance.
- */
-PkdSources*
-pkd_sources_new (void)
+GQuark
+pkd_sources_error_quark (void)
 {
-	return g_object_new (PKD_TYPE_SOURCES, NULL);
+	return g_quark_from_static_string ("pkd-sources-error-quark");
 }
 
+PkdSource*
+pkd_sources_add (PkdSources  *sources,
+                 GType        type,
+                 GError     **error)
+{
+	PkdSourcesPrivate *priv;
+	PkdSource         *source;
+
+	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
+
+	priv = sources->priv;
+
+	if (!g_type_is_a (type, PKD_TYPE_SOURCE)) {
+		g_set_error (error, PKD_SOURCES_ERROR, PKD_SOURCES_ERROR_INVALID_TYPE,
+		             "\"%s\" is not a valid PkdSource",
+		             g_type_name (type));
+		return FALSE;
+	}
+
+	source = g_object_new (type, NULL);
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+	priv->sources = g_list_prepend (priv->sources, source);
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return source;
+}
+
+static gboolean
+pkd_sources_add_dbus (PkdSources   *sources,
+                      const gchar  *type,
+                      gchar       **path,
+                      GError      **error)
+{
+	PkdSource *source;
+	GType      g_type;
+
+	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
+	g_return_val_if_fail (type != NULL, FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	g_type = g_type_from_name (type);
+	if (!(source = pkd_sources_add (sources, g_type, error)))
+		return FALSE;
+
+	*path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
+	                         pkd_source_get_id (source));
+
+	return TRUE;
+}
