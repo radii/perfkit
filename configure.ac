@@ -44,7 +44,8 @@ dnl Check for Required Modules
 dnl ************************************************************************
 PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.16
                                    gthread-2.0 >= 2.16
-                                   dbus-glib-1 >= 0.80])
+                                   dbus-glib-1 >= 0.80
+                                   ethos-1.0   >= 0.2.2])
 PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.16
 				   dbus-glib-1 >= 0.80
 				   gio-2.0     >= 2.20])

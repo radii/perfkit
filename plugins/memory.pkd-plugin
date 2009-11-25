@@ -1,0 +1,7 @@
+[Pkd Plugin]
+Name=Memory
+Module=memory
+IAge=1
+Description=Extract Memory Information from the System
+Authors=Christian Hergert
+Copyright=GPL-3

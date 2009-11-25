@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <ethos/ethos.h>
 
 #include "pkd-channels.h"
 #include "pkd-paths.h"
@@ -44,6 +45,7 @@ static GList           *services      = NULL;
 static GHashTable      *services_hash = NULL;
 static gboolean         started       = FALSE;
 static DBusGConnection *dbus_conn     = NULL;
+static EthosManager    *manager       = NULL;
 
 G_LOCK_DEFINE (services);
 
@@ -57,7 +59,8 @@ G_LOCK_DEFINE (services);
 void
 pkd_runtime_initialize (gboolean use_session_bus)
 {
-	GError *error = NULL;
+	static gchar *plugin_dirs[2];
+	GError       *error = NULL;
 
 	g_return_if_fail (started == FALSE);
 
@@ -75,13 +78,28 @@ pkd_runtime_initialize (gboolean use_session_bus)
 	                           "com.dronelabs.Perfkit",
 	                           DBUS_NAME_FLAG_DO_NOT_QUEUE,
 	                           NULL) == DBUS_REQUEST_NAME_REPLY_EXISTS) {
-		g_printerr ("Existing instance of perfkit-daemon was found. Exiting gracefully.\n");
+		g_printerr ("Existing instance of perfkit-daemon was found. "
+		            "Exiting gracefully.\n");
+		g_error_free (error);
 		exit (EXIT_SUCCESS);
 	}
 
-  /* register core services */
-  pkd_runtime_add_service ("Channels", g_object_new (PKD_TYPE_CHANNELS, NULL));
-  pkd_runtime_add_service ("Sources", g_object_new (PKD_TYPE_SOURCES, NULL));
+	/* register core services */
+	pkd_runtime_add_service ("Channels", g_object_new (PKD_TYPE_CHANNELS, NULL));
+	pkd_runtime_add_service ("Sources", g_object_new (PKD_TYPE_SOURCES, NULL));
+
+	/* register plugins */
+	if (g_getenv ("PERFKIT_PLUGIN_DIR"))
+		plugin_dirs [0] = (gchar*)g_getenv ("PERFKIT_PLUGIN_DIR");
+	else
+		plugin_dirs [0] = (gchar*)PACKAGE_LIB_DIR  G_DIR_SEPARATOR_S
+		                  "perfkit-daemon" G_DIR_SEPARATOR_S
+		                  "plugins";
+	plugin_dirs [1] = NULL;
+	manager = ethos_manager_new ();
+	ethos_manager_set_app_name (manager, "Pkd");
+	ethos_manager_set_plugin_dirs (manager, plugin_dirs);
+	ethos_manager_initialize (manager);
 
 	started = TRUE;
 }
