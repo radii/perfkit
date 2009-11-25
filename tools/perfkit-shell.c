@@ -262,6 +262,13 @@ execute_file (EggLine     *line,
 		                                                     NULL,
 		                                                     &error)))
 		{
+			/* ignore blank and comment lines */
+			if (strlen (g_strstrip (str)) == 0)
+				continue;
+			else if (g_str_has_prefix (str, "#"))
+				continue;
+
+			/* execute the command */
 			g_print ("perfkit> %s\n", str);
 			egg_line_execute (line, str);
 			g_free (str);

@@ -1,5 +1,12 @@
+# Add a new channel
 channel add
+
+# Configure the channel (assume its 0)
 channel set 0 target /bin/nc
 channel set 0 args -l -p10000
+
+# Start the channel (spawns procses)
 channel start 0
+
+# Stop the channel (kills process)
 channel stop 0
