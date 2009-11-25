@@ -1,5 +1,4 @@
-
-/* pkd-log.h
+/* pkd-log.c
  * 
  * Copyright (C) 2009 Christian Hergert
  * 
@@ -37,8 +36,8 @@ pkd_log_func (const gchar    *log_domain,
 	time_t     t;
 	struct tm  tt;
 	gchar      ftime[32],
-			   hostname[64],
-			  *buffer;
+	           hostname[64],
+	          *buffer;
 	GPid       pid;
 
 	if (!channel && !do_stdout)
