@@ -26,6 +26,7 @@
 #include "pkd-channel.h"
 #include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
+#include "pkd-log.h"
 #include "pkd-runtime.h"
 #include "pkd-source.h"
 
@@ -830,7 +831,8 @@ do_spawn (PkdChannel  *channel,
 {
 	PkdChannelPrivate  *priv;
 	gboolean            result;
-	gchar             **argv;
+	gchar             **argv,
+	                   *args;
 	gint                argc,
 	                    i;
 
@@ -844,6 +846,14 @@ do_spawn (PkdChannel  *channel,
 	for (i = 1; i < argc - 1; i++)
 		argv [i] = g_strdup (priv->args [i - 1]);
 
+	/* log the creation of the process */
+	args = g_strjoinv (" ", argv);
+	g_message ("Spawning process \"%s %s\"", argv [0], args);
+	g_free (args);
+
+	/* spawn the process. in the future we may want to add stdin/stdout
+	 * redirection so that it may be proxied over DBUS.
+	 */
 	result = g_spawn_async (priv->dir,
 	                        argv,
 	                        priv->env,

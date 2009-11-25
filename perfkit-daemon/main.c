@@ -26,14 +26,21 @@
 #include <glib/gthread.h>
 #include <glib/gi18n.h>
 
+#include "pkd-log.h"
 #include "pkd-paths.h"
 #include "pkd-runtime.h"
 
-static gboolean use_system_bus = FALSE;
+static gboolean  use_system_bus = FALSE;
+static gboolean  use_stdout     = FALSE;
+static gchar    *log_file       = NULL;
 
 static GOptionEntry entries[] = {
 	{ "system", 0, 0, G_OPTION_ARG_NONE, &use_system_bus,
 	  "Use the system D-BUS", NULL },
+	{ "stdout", 0, 0, G_OPTION_ARG_NONE, &use_stdout,
+	  "Log to standard output", NULL },
+	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &log_file,
+	  "Log to FILE", "FILE" },
 	{ NULL }
 };
 
@@ -62,6 +69,7 @@ main (gint   argc,
 	/* initialize libraries */
 	g_type_init ();
 	g_thread_init (NULL);
+	pkd_log_init (use_stdout, log_file);
 
 	/* initialize runtime and block on main loop */
 	pkd_runtime_initialize (!use_system_bus);
