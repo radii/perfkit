@@ -1,0 +1,5 @@
+channel add
+channel set 0 target /bin/nc
+channel set 0 args -l -p10000
+channel start 0
+channel stop 0
