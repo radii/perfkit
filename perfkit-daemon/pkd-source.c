@@ -111,7 +111,7 @@ gboolean
 pkd_source_needs_spawn (PkdSource *source)
 {
 	g_return_val_if_fail (PKD_IS_SOURCE (source), FALSE);
-	PKD_SOURCE_GET_CLASS (source)->needs_spawn (source);
+	return PKD_SOURCE_GET_CLASS (source)->needs_spawn (source);
 }
 
 /**

@@ -44,7 +44,7 @@ pkd_paths_get_data_dir (void)
 
 	if (G_UNLIKELY (!data_dir)) {
 #ifndef G_OS_WIN32
-		gchar *root = (gchar*)g_getenv ("PKD_DATA_PATH");
+		const gchar *root = g_getenv ("PKD_DATA_PATH");
 		if (!root)
 			root = PACKAGE_DATA_DIR;
 		data_dir = g_build_filename (root, "perfkit-daemon", NULL);

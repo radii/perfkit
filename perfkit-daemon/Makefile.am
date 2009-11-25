@@ -1,6 +1,12 @@
 bin_PROGRAMS = perfkit-daemon
 noinst_LTLIBRARIES = libperfkit-daemon.la
 
+WARNINGS = -Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
+-Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
+-Winline -Wformat-nonliteral -Wformat-security -Wswitch-enum -Wswitch-default \
+-Winit-self -Wmissing-include-dirs -Wundef -Waggregate-return \
+-Wmissing-format-attribute -Wnested-externs
+
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
@@ -9,6 +15,7 @@ AM_CPPFLAGS = \
 	-DGETTEXT_PACKAGE=\""perfkit-daemon"\" \
 	-DHAVE_CONFIG_H \
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\" \
+	$(WARNINGS) \
 	$(PERFKIT_DAEMON_CFLAGS) \
 	$(NULL)
 
