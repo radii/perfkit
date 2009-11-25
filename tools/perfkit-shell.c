@@ -956,6 +956,36 @@ channel_pause_cb (EggLine   *line,
                   gchar    **argv,
                   GError   **error)
 {
+	DBusGProxy *channel;
+	gint        id = 0, i;
+	gchar      *path;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	for (i = 0; i < argc; i++) {
+		if (parse_int (argv [i], &id)) {
+			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
+			channel = dbus_g_proxy_new_for_name (dbus_conn,
+			                                     "com.dronelabs.Perfkit",
+			                                     path,
+			                                     "com.dronelabs.Perfkit.Channel");
+			if (!com_dronelabs_Perfkit_Channel_pause (channel, error)) {
+				REPORT_ERROR (*error);
+				g_error_free (*error);
+				*error = NULL; /* XXX: Propagate? */
+			}
+			else {
+				g_print ("Channel %d paused.\n", id);
+			}
+			g_object_unref (channel);
+			g_free (path);
+		}
+		else {
+			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
+		}
+	}
+
 	return EGG_LINE_STATUS_OK;
 }
 
@@ -965,6 +995,36 @@ channel_unpause_cb (EggLine  *line,
                     gchar  **argv,
                     GError **error)
 {
+	DBusGProxy *channel;
+	gint        id = 0, i;
+	gchar      *path;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	for (i = 0; i < argc; i++) {
+		if (parse_int (argv [i], &id)) {
+			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
+			channel = dbus_g_proxy_new_for_name (dbus_conn,
+			                                     "com.dronelabs.Perfkit",
+			                                     path,
+			                                     "com.dronelabs.Perfkit.Channel");
+			if (!com_dronelabs_Perfkit_Channel_unpause (channel, error)) {
+				REPORT_ERROR (*error);
+				g_error_free (*error);
+				*error = NULL; /* XXX: Propagate? */
+			}
+			else {
+				g_print ("Channel %d unpaused.\n", id);
+			}
+			g_object_unref (channel);
+			g_free (path);
+		}
+		else {
+			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
+		}
+	}
+
 	return EGG_LINE_STATUS_OK;
 }
 
