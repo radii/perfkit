@@ -61,6 +61,7 @@ static EggLineStatus channel_stop_cb   (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 
 static gboolean use_system = FALSE;
 
@@ -137,6 +138,8 @@ static EggLineEntry entries[] =
 	  quit_cb,
 	  "Quit the perfkit-shell",
 	  "quit" },
+	{ "load", NULL, load_cb, "Load a batch file\n",
+	  "load [filename..]" },
 	{ NULL }
 };
 
@@ -955,5 +958,19 @@ channel_unpause_cb (EggLine  *line,
                     gchar  **argv,
                     GError **error)
 {
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+load_cb (EggLine   *line,
+         gint       argc,
+         gchar    **argv,
+         GError   **error)
+{
+	gint i;
+
+	for (i = 0; i < argc; i++)
+		execute_file (line, argv [i]);
+
 	return EGG_LINE_STATUS_OK;
 }
