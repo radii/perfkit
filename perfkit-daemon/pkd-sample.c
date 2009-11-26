@@ -33,7 +33,8 @@
 
 struct _PkdSample
 {
-	volatile gint ref_count;
+	volatile gint  ref_count;
+	GArray        *data;
 };
 
 static void
@@ -61,6 +62,28 @@ pkd_sample_new (void)
 
 	sample = g_slice_new0 (PkdSample);
 	sample->ref_count = 1;
+	sample->data = g_array_new (TRUE, TRUE, sizeof (gchar));
+
+	return sample;
+}
+
+/**
+ * pkd_sample_sized_new:
+ * @n_bytes: the number of bytes to allocate
+ *
+ * Creates a new instance of #PkdSample.  The buffer is initialized to
+ * the number of bytes specified by @n_bytes.
+ *
+ * Return value: the newly created #PkdSample instance.
+ */
+PkdSample*
+pkd_sample_sized_new (gsize n_bytes)
+{
+	PkdSample *sample;
+
+	sample = g_slice_new0 (PkdSample);
+	sample->ref_count = 1;
+	sample->data = g_array_sized_new (TRUE, TRUE, sizeof (gchar), n_bytes);
 
 	return sample;
 }
@@ -117,4 +140,50 @@ pkd_sample_get_type (void)
 	}
 
 	return gtype;
+}
+
+/**
+ * pkd_sample_write_int:
+ * @sample: A #PkdSample
+ * @v_int: the integer to write
+ *
+ * Writes @v_int to the buffer.
+ */
+void
+pkd_sample_write_int (PkdSample *sample,
+                      gint       v_int)
+{
+	g_return_if_fail (sample != NULL);
+	g_array_append_vals (sample->data, &v_int, sizeof (gint));
+}
+
+/**
+ * pkd_sample_write_char:
+ * @sample: A #PkdSample
+ * @v_char: a #gchar
+ *
+ * Writes a single byte onto the sample buffer.
+ */
+void
+pkd_sample_write_char (PkdSample *sample,
+                       gchar      v_char)
+{
+	g_return_if_fail (sample != NULL);
+	g_array_append_val (sample->data, v_char);
+}
+
+/**
+ * pkd_sample_get_buffer:
+ * @sample: A #PkdSample
+ *
+ * Retrieves the internal data buffer for @sample.  If the buffer is to be
+ * stored somewhere, it should be referenced with g_array_ref().
+ *
+ * Return value: a #GArray containing the buffer.
+ */
+GArray*
+pkd_sample_get_buffer (PkdSample *sample)
+{
+	g_return_val_if_fail (sample != NULL, NULL);
+	return sample->data;
 }

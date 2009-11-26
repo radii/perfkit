@@ -25,10 +25,16 @@ G_BEGIN_DECLS
 
 typedef struct _PkdSample PkdSample;
 
-GType        pkd_sample_get_type  (void) G_GNUC_CONST;
-PkdSample *  pkd_sample_new       (void);
-PkdSample *  pkd_sample_ref       (PkdSample *sample);
-void         pkd_sample_unref     (PkdSample *sample);
+GType        pkd_sample_get_type   (void) G_GNUC_CONST;
+PkdSample *  pkd_sample_new        (void);
+PkdSample *  pkd_sample_sized_new  (gsize      n_bytes);
+PkdSample *  pkd_sample_ref        (PkdSample *sample);
+void         pkd_sample_unref      (PkdSample *sample);
+void         pkd_sample_write_int  (PkdSample *sample,
+                                    gint       v_int);
+void         pkd_sample_write_char (PkdSample *sample,
+                                    gchar      v_char);
+GArray*      pkd_sample_get_buffer (PkdSample *sample);
 
 G_END_DECLS
 
