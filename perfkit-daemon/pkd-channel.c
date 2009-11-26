@@ -559,6 +559,7 @@ pkd_channel_start (PkdChannel  *channel,
 	switch (priv->state) {
 	case STATE_READY:
 	case STATE_PAUSED: {
+		g_message ("Starting channel %d", priv->id);
 		priv->state = STATE_STARTED;
 		if (!(result = do_start (channel, error))) {
 			priv->state = STATE_STOPPED;
@@ -605,6 +606,7 @@ pkd_channel_stop (PkdChannel  *channel,
 	case STATE_STARTED:
 	case STATE_PAUSED: {
 		priv->state = STATE_STOPPED;
+		g_message ("Stopping channel %d", priv->id);
 		do_stop (channel);
 		result = TRUE;
 		break;
@@ -649,6 +651,7 @@ pkd_channel_pause (PkdChannel  *channel,
 
 	switch (priv->state) {
 	case STATE_STARTED: {
+		g_message ("Pausing channel %d", priv->id);
 		priv->state = STATE_PAUSED;
 		/* TODO: Pause Execution Hooks */
 		result = TRUE;
@@ -695,6 +698,7 @@ pkd_channel_unpause (PkdChannel  *channel,
 
 	switch (priv->state) {
 	case STATE_PAUSED: {
+		g_message ("Unpausing channel %d", priv->id);
 		priv->state = STATE_STARTED;
 		/* TODO: Unpause Execution Hooks */
 		result = TRUE;
