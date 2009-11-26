@@ -65,6 +65,8 @@ update-dbus:
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_sources --output=pkd-sources-dbus.h \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_source --output=pkd-source-dbus.h \
+		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml
 
 test:
 	PERFKIT_PLUGIN_DIR=$(top_builddir)/plugins/.libs $(builddir)/perfkit-daemon --stdout

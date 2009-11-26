@@ -20,7 +20,11 @@
 #include "config.h"
 #endif
 
+#include <dbus/dbus-glib.h>
+
+#include "pkd-runtime.h"
 #include "pkd-source.h"
+#include "pkd-source-dbus.h"
 
 /**
  * SECTION:pkd-source
@@ -38,10 +42,34 @@ struct _PkdSourcePrivate
 	gint id;
 };
 
+static gint source_seq = 0;
+
 static gboolean
 noop_needs_spawn (PkdSource *source)
 {
 	return FALSE;
+}
+
+static gboolean
+noop_start (PkdSource  *source,
+            GError    **error)
+{
+	return TRUE;
+}
+
+static void
+noop_stop (PkdSource *source)
+{
+}
+
+static void
+noop_pause (PkdSource *source)
+{
+}
+
+static void
+noop_unpause (PkdSource *source)
+{
 }
 
 static void
@@ -60,14 +88,31 @@ pkd_source_class_init (PkdSourceClass *klass)
 	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
 
 	klass->needs_spawn = noop_needs_spawn;
+	klass->start = noop_start;
+	klass->stop = noop_stop;
+	klass->pause = noop_pause;
+	klass->unpause = noop_unpause;
+
+	dbus_g_object_type_install_info (PKD_TYPE_SOURCE, &dbus_glib_pkd_source_object_info);
 }
 
 static void
 pkd_source_init (PkdSource *source)
 {
+	gchar *path;
+
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
 	                                            PKD_TYPE_SOURCE,
 	                                            PkdSourcePrivate);
+
+	source->priv->id = g_atomic_int_exchange_and_add (&source_seq, 1);
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
+	                        source->priv->id);
+	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
+	                                     path,
+	                                     G_OBJECT (source));
+	g_free (path);
 }
 
 /**

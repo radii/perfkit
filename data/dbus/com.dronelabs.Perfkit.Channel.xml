@@ -64,5 +64,9 @@
     <method name="Unpause">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_unpause"/>
     </method>
+    <method name="AddSource">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_add_source_dbus"/>
+      <arg name="path" type="o" direction="in"/>
+    </method>
   </interface>
 </node>

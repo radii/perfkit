@@ -36,6 +36,7 @@
 
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
+#include "pk-sources-dbus.h"
 #include <perfkit-daemon/pkd-version.h>
 
 #define REPORT_ERROR(e)     report_error (e, G_STRFUNC, __LINE__);
@@ -46,6 +47,7 @@
 static void          missing_cmd       (EggLine *line, const gchar *text, gpointer user_data);
 static void          execute_file      (EggLine *line, const gchar *filename);
 static EggLineEntry* channel_iter      (EggLine *line, gint *argc, gchar ***argv);
+static EggLineEntry* source_iter       (EggLine *line, gint *argc, gchar ***argv);
 static EggLineStatus ls_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus cd_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_show_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
@@ -60,6 +62,7 @@ static EggLineStatus channel_start_cb  (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus channel_stop_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus source_add_cb     (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 
@@ -72,6 +75,7 @@ static GOptionEntry op_entries[] =
 };
 
 static DBusGProxy      *channels  = NULL;
+static DBusGProxy      *sources   = NULL;
 static DBusGConnection *dbus_conn = NULL;
 
 static EggLineEntry entries[] =
@@ -94,7 +98,7 @@ static EggLineEntry entries[] =
 	  "\n",
 	  "channel [add|remove|show|set|get|start|stop|pause|unpause]" },
 	{ "source",
-	  NULL,
+	  source_iter,
 	  NULL,
 	  "Manage perfkit data sources\n"
 	  "\n"
@@ -172,6 +176,14 @@ static EggLineEntry channel_entries[] =
 	{ NULL }
 };
 
+static EggLineEntry source_entries[] =
+{
+	{ "add", NULL, source_add_cb,
+	  "Add a new data source",
+	  "source add <source-type>" },
+	{ NULL }
+};
+
 gint
 main (gint   argc,
       gchar *argv[])
@@ -212,7 +224,18 @@ main (gint   argc,
 					"com.dronelabs.Perfkit.Channels")))
 	{
 		g_printerr ("Error connecting to perfkit channels service!\n");
-		return EXIT_SUCCESS;
+		return EXIT_FAILURE;
+	}
+
+	/* retrieve the proxy to the Sources service */
+	if (!(sources = dbus_g_proxy_new_for_name (
+					dbus_conn,
+					"com.dronelabs.Perfkit",
+					"/com/dronelabs/Perfkit/Sources",
+					"com.dronelabs.Perfkit.Sources")))
+	{
+		g_printerr ("Error connecting to perfkit sources service!\n");
+		return EXIT_FAILURE;
 	}
 
 	/* run the readline loop */
@@ -345,6 +368,14 @@ channel_iter (EggLine   *line,
               gchar   ***argv)
 {
 	return channel_entries;
+}
+
+static EggLineEntry*
+source_iter (EggLine   *line,
+             gint      *argc,
+             gchar   ***argv)
+{
+	return source_entries;
 }
 
 static EggLineStatus
@@ -1038,6 +1069,25 @@ load_cb (EggLine   *line,
 
 	for (i = 0; i < argc; i++)
 		execute_file (line, argv [i]);
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+source_add_cb (EggLine  *line,
+               gint      argc,
+               gchar   **argv,
+               GError  **error)
+{
+	gchar *path  = NULL;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	if (!com_dronelabs_Perfkit_Sources_add (sources, argv [0], &path, error))
+		return EGG_LINE_STATUS_FAILURE;
+
+	g_print ("Added \"%s\" data source.\n", argv [0]);
 
 	return EGG_LINE_STATUS_OK;
 }
