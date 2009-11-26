@@ -73,6 +73,16 @@ pkd_sources_error_quark (void)
 	return g_quark_from_static_string ("pkd-sources-error-quark");
 }
 
+/**
+ * pkd_sources_add:
+ * @sources: A #PkdSources
+ * @type: 
+ * @error: a location for a #GError or %NULL
+ *
+ * Create a new #PkdSource which can be attached to a #PkdChannel.
+ *
+ * Return value: The newly created #PkdSource or %NULL
+ */
 PkdSource*
 pkd_sources_add (PkdSources  *sources,
                  GType        type,
@@ -101,6 +111,12 @@ pkd_sources_add (PkdSources  *sources,
 	return source;
 }
 
+void
+pkd_sources_register (PkdSources *sources,
+                      GType       type)
+{
+}
+
 static gboolean
 pkd_sources_add_dbus (PkdSources   *sources,
                       const gchar  *type,
@@ -120,6 +136,26 @@ pkd_sources_add_dbus (PkdSources   *sources,
 
 	*path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
 	                         pkd_source_get_id (source));
+
+	return TRUE;
+}
+
+static gboolean
+pkd_sources_get_types_dbus (PkdSources   *sources,
+                            gchar      ***names,
+                            GError      **error)
+{
+	GType  *types = NULL;
+	guint   count = 0,
+	        i;
+
+	g_return_val_if_fail (names != NULL, FALSE);
+
+	types = g_type_children (PKD_TYPE_SOURCE, &count);
+	*names = g_malloc0 (sizeof (gchar*) * (count + 1));
+
+	for (i = 0; i < count; i++)
+		(*names) [i] = g_strdup (g_type_name (types [i]));
 
 	return TRUE;
 }

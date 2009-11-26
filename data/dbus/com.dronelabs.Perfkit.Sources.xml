@@ -9,5 +9,9 @@
       <arg name="type" type="s" direction="in"/>
       <arg name="path" type="o" direction="out"/>
     </method>
+    <method name="GetTypes">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_sources_get_types_dbus"/>
+      <arg name="type" type="as" direction="out"/>
+    </method>
   </interface>
 </node>

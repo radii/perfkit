@@ -68,6 +68,8 @@ GList*     pkd_sources_find_all    (void);
 PkdSource* pkd_sources_add         (PkdSources  *sources,
                                     GType        type,
                                     GError     **error);
+void       pkd_sources_register    (PkdSources  *sources,
+                                    GType        type);
 
 G_END_DECLS
 
