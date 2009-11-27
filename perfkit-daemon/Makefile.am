@@ -32,6 +32,7 @@ INST_H_FILES = \
 	pkd-paths.h \
 	pkd-source.h \
 	pkd-sources.h \
+	perfkit-daemon.h \
 	$(NULL)
 
 libperfkit_daemon_la_SOURCES = \
