@@ -80,7 +80,6 @@ pkd_runtime_initialize (gboolean use_session_bus)
 	                           NULL) == DBUS_REQUEST_NAME_REPLY_EXISTS) {
 		g_printerr ("Existing instance of perfkit-daemon was found. "
 		            "Exiting gracefully.\n");
-		g_error_free (error);
 		exit (EXIT_SUCCESS);
 	}
 
