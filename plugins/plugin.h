@@ -1,62 +1,39 @@
-#include <glib-object.h>
-#include <ethos/ethos.h>
-#include <perfkit-daemon/pkd-sources.h>
-#include <perfkit-daemon/pkd-runtime.h>
 #include <gmodule.h>
+#include <ethos/ethos.h>
+#include <perfkit-daemon/perfkit-daemon.h>
 
-#define SOURCE_PLUGIN(Name,name,NAME,TYPE) \
- \
-typedef struct _Name##Plugin		Name##Plugin; \
-typedef struct _Name##PluginClass	Name##PluginClass; \
-typedef struct _Name##PluginPrivate	Name##PluginPrivate; \
- \
-struct _Name##Plugin \
-{ \
-	EthosPlugin parent; \
- \
-	Name##PluginPrivate *priv; \
-}; \
- \
-struct _Name##PluginClass \
-{ \
-	EthosPluginClass parent_class; \
-}; \
- \
-G_DEFINE_TYPE (Name##Plugin, name##_plugin, ETHOS_TYPE_PLUGIN) \
- \
-static void \
-name##_plugin_finalize (GObject *object) \
-{ \
-	G_OBJECT_CLASS (name##_plugin_parent_class)->finalize (object); \
-} \
- \
-static void \
-name##_plugin_class_init (Name##PluginClass *klass) \
-{ \
-	GObjectClass *object_class; \
+#define PKD_SOURCE_SIMPLE_REGISTER(name,callback) \
 \
-	object_class = G_OBJECT_CLASS (klass); \
-	object_class->finalize = name##_plugin_finalize; \
+static PkdSource* \
+pkd_factory (const gchar *type_name, \
+             gpointer     user_data) \
+{ \
+	PkdSource *source; \
+\
+	source = pkd_source_simple_new (); \
+	pkd_source_simple_set_sample_func (PKD_SOURCE_SIMPLE (source), \
+	                                   (callback), NULL, NULL); \
+\
+	return source; \
 } \
- \
 static void \
-name##_plugin_init (Name##Plugin *plugin) \
+activate_plugin (EthosPlugin *plugin, \
+                 gpointer     user_data) \
 { \
 	PkdSources *sources; \
-\
+ 	g_debug ("REGISTER"); \
 	sources = PKD_SOURCES (pkd_runtime_get_service ("Sources")); \
-	pkd_sources_register (sources, (TYPE)); \
+	pkd_sources_register (sources, (name), pkd_factory, NULL); \
 } \
- \
-EthosPlugin* \
-name##_plugin_new (void) \
-{ \
-	return g_object_new (name##_plugin_get_type(), NULL); \
-} \
- \
+\
 G_MODULE_EXPORT EthosPlugin* \
 ethos_plugin_register (void) \
 { \
-	return name##_plugin_new (); \
-} \
+	EthosPlugin *plugin; \
+\
+ 	plugin = g_object_new (ETHOS_TYPE_PLUGIN, NULL); \
+ 	g_signal_connect (plugin, "activated", G_CALLBACK (activate_plugin), NULL); \
+\
+	return plugin; \
+}
 

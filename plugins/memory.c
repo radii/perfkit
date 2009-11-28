@@ -16,79 +16,92 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <perfkit-daemon/pkd-source.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "plugin.h"
 
-#define MEMORY_TYPE_SOURCE				(memory_source_get_type ())
-#define MEMORY_SOURCE(obj)				(G_TYPE_CHECK_INSTANCE_CAST ((obj), MEMORY_TYPE_SOURCE, MemorySource))
-#define MEMORY_SOURCE_CONST(obj)		(G_TYPE_CHECK_INSTANCE_CAST ((obj), MEMORY_TYPE_SOURCE, MemorySource const))
-#define MEMORY_SOURCE_CLASS(klass)		(G_TYPE_CHECK_CLASS_CAST ((klass), MEMORY_TYPE_SOURCE, MemorySourceClass))
-#define MEMORY_IS_SOURCE(obj)			(G_TYPE_CHECK_INSTANCE_TYPE ((obj), MEMORY_TYPE_SOURCE))
-#define MEMORY_IS_SOURCE_CLASS(klass)	(G_TYPE_CHECK_CLASS_TYPE ((klass), MEMORY_TYPE_SOURCE))
-#define MEMORY_SOURCE_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), MEMORY_TYPE_SOURCE, MemorySourceClass))
-
-typedef struct _MemorySource		MemorySource;
-typedef struct _MemorySourceClass	MemorySourceClass;
-typedef struct _MemorySourcePrivate	MemorySourcePrivate;
-
-struct _MemorySource
+typedef struct
 {
-	PkdSource parent;
-	
-	MemorySourcePrivate *priv;
-};
-
-struct _MemorySourceClass
-{
-	PkdSourceClass parent_class;
-};
-
-G_DEFINE_TYPE (MemorySource, memory_source, PKD_TYPE_SOURCE)
-
-struct _MemorySourcePrivate
-{
-	GPid pid;
-};
-
-static void
-memory_source_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (memory_source_parent_class)->finalize (object);
-}
+	gint size;
+	gint resident;
+	gint share;
+	gint text;
+	gint lib;
+	gint data;
+	gint dt;
+} proc_pid_statm;
 
 static gboolean
-memory_source_start (PkdSource  *source,
-                     GError    **error)
+proc_pid_statm_read (proc_pid_statm *pstat,
+                     GPid            pid)
 {
-	g_debug ("Start Sampling");
+	gint     fd;
+	gchar    path[64];
+	gchar    buffer[64];
+
+	memset (path, 0, sizeof (path));
+	snprintf (path, sizeof (path), "/proc/%d/statm", pid);
+
+	fd = open (path, O_RDONLY);
+	if (fd < 0)
+		return FALSE;
+
+	if (read (fd, buffer, sizeof (buffer) < 1)) {
+		close (fd);
+		return FALSE;
+	}
+
+	sscanf (buffer,
+	        "%d %d %d %d %d %d %d",
+	        &pstat->size,
+	        &pstat->resident,
+	        &pstat->share,
+	        &pstat->text,
+	        &pstat->lib,
+	        &pstat->data,
+	        &pstat->dt);
+
+	close (fd);
+
 	return TRUE;
 }
 
-static void
-memory_source_class_init (MemorySourceClass *klass)
+static PkdSample*
+memory_generate_sample (PkdSourceSimple  *source,
+                        gpointer          user_data,
+                        GError          **error)
 {
-	GObjectClass   *object_class;
-	PkdSourceClass *source_class;
+	PkdSample      *sample;
+	proc_pid_statm  info;
+	GPid            pid;
 
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = memory_source_finalize;
-	g_type_class_add_private (object_class, sizeof (MemorySourcePrivate));
+	pid = (GPid)GPOINTER_TO_INT (user_data);
 
-	source_class = PKD_SOURCE_CLASS (klass);
-	source_class->start = memory_source_start;
+	memset (&info, 0, sizeof (proc_pid_statm));
+	if (!proc_pid_statm_read (&info, pid))
+		return FALSE;
+
+	sample = pkd_sample_sized_new (24);
+
+	/* Header (Version, Pad x3) */
+	pkd_sample_write_char (sample, 0x01);
+	pkd_sample_write_char (sample, 0x00);
+	pkd_sample_write_char (sample, 0x00);
+	pkd_sample_write_char (sample, 0x00);
+
+	/* Sample data */
+	pkd_sample_write_int (sample, info.size);
+	pkd_sample_write_int (sample, info.resident);
+	pkd_sample_write_int (sample, info.share);
+	pkd_sample_write_int (sample, info.text);
+	pkd_sample_write_int (sample, info.data);
+
+	return sample;
 }
 
-static void
-memory_source_init (MemorySource *source)
-{
-	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
-	                                           MEMORY_TYPE_SOURCE,
-	                                           MemorySourcePrivate);
-}
-
-SOURCE_PLUGIN (Memory, memory, MEMORY, MEMORY_TYPE_SOURCE)
+PKD_SOURCE_SIMPLE_REGISTER ("memory", memory_generate_sample)
