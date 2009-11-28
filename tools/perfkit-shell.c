@@ -63,6 +63,7 @@ static EggLineStatus channel_stop_cb   (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus source_add_cb     (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus source_types_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 
@@ -181,6 +182,9 @@ static EggLineEntry source_entries[] =
 	{ "add", NULL, source_add_cb,
 	  "Add a new data source",
 	  "source add <source-type>" },
+	{ "types", NULL, source_types_cb,
+	  "List available data source types",
+	  "source types" },
 	{ NULL }
 };
 
@@ -1088,6 +1092,24 @@ source_add_cb (EggLine  *line,
 		return EGG_LINE_STATUS_FAILURE;
 
 	g_print ("Added \"%s\" data source.\n", argv [0]);
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+source_types_cb (EggLine  *line,
+                 gint      argc,
+                 gchar   **argv,
+                 GError  **error)
+{
+	gchar **types = NULL;
+	gint    i;
+
+	if (!com_dronelabs_Perfkit_Sources_get_types (sources, &types, error))
+		return EGG_LINE_STATUS_FAILURE;
+
+	for (i = 0; types [i]; i++)
+		g_print ("%s\n", types [i]);
 
 	return EGG_LINE_STATUS_OK;
 }
