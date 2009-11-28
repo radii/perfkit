@@ -29,6 +29,8 @@
 #include "pkd-paths.h"
 #include "pkd-runtime.h"
 #include "pkd-service.h"
+#include "pkd-source.h"
+#include "pkd-source-simple.h"
 #include "pkd-sources.h"
 
 /**
@@ -86,6 +88,13 @@ pkd_runtime_initialize (gboolean use_session_bus)
 	/* register core services */
 	pkd_runtime_add_service ("Channels", g_object_new (PKD_TYPE_CHANNELS, NULL));
 	pkd_runtime_add_service ("Sources", g_object_new (PKD_TYPE_SOURCES, NULL));
+
+	/* HACK:
+	 *   This hack is here to ensure that pkd-source-simple.o is linked
+	 *   into the resulting executable.  Due to it not being directly
+	 *   used, the linker thinks it can completely drop the .o file.
+	 */
+	(void)g_type_children (PKD_TYPE_SOURCE_SIMPLE, NULL);
 
 	/* register plugins */
 	if (g_getenv ("PERFKIT_PLUGIN_DIR"))
