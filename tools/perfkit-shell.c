@@ -1087,7 +1087,9 @@ source_add_cb (EggLine  *line,
                gchar   **argv,
                GError  **error)
 {
-	gchar *path  = NULL;
+	gint   id    = 0;
+	gchar *path  = NULL,
+	      *tmp;
 
 	if (argc < 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
@@ -1095,7 +1097,14 @@ source_add_cb (EggLine  *line,
 	if (!com_dronelabs_Perfkit_Sources_add (sources, argv [0], &path, error))
 		return EGG_LINE_STATUS_FAILURE;
 
-	g_print ("Added \"%s\" data source.\n", argv [0]);
+	tmp = g_strrstr (path, "/");
+	if (tmp) {
+		tmp++;
+		if (parse_int (tmp, &id))
+			g_print ("Added data source %d.\n", id);
+	}
+
+	g_free (path);
 
 	return EGG_LINE_STATUS_OK;
 }
