@@ -1,4 +1,5 @@
 LT_OBJDIR = .libs
+plugin_LTLIBRARIES = libmemory.la
 
 WARNINGS = -Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
 	-Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
@@ -6,26 +7,22 @@ WARNINGS = -Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
 	-Winit-self -Wmissing-include-dirs -Wundef -Waggregate-return \
 	-Wmissing-format-attribute -Wnested-externs
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir) \
 	$(PERFKIT_DAEMON_CFLAGS) \
 	$(WARNINGS) \
 	$(NULL)
 
-LDFLAGS = \
-	-avoid-version \
-	-module \
-	$(NULL)
+plugindir = $(libdir)/perfkit-daemon/plugins/
+plugin_DATA = $(PLUGIN_FILES)
+
+libmemory_la_SOURCES = memory.c
+libmemory_la_LDFALGS = -module -avoid-version
+libmemory_la_LIBADD = $(PERFKIT_DAEMON_LIBS)
 
 PLUGIN_FILES = \
 	$(builddir)/$(LT_OBJDIR)/memory.pkd-plugin \
 	$(NULL)
-
-plugindir = $(libdir)/perfkit-daemon/plugins/
-plugin_DATA = $(PLUGIN_FILES)
-plugin_LTLIBRARIES = libmemory.la
-
-libmemory_la_SOURCES = memory.c
 
 $(PLUGIN_FILES):
 	@mkdir -p $(builddir)/$(LT_OBJDIR)
