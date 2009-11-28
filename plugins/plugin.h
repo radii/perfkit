@@ -21,7 +21,6 @@ activate_plugin (EthosPlugin *plugin, \
                  gpointer     user_data) \
 { \
 	PkdSources *sources; \
- 	g_debug ("REGISTER"); \
 	sources = PKD_SOURCES (pkd_runtime_get_service ("Sources")); \
 	pkd_sources_register (sources, (name), pkd_factory, NULL); \
 } \
