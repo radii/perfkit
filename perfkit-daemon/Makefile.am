@@ -1,11 +1,14 @@
 bin_PROGRAMS = perfkit-daemon
 noinst_LTLIBRARIES = libperfkit-daemon.la
 
+headerdir = $(prefix)/include/perfkit-daemon-1.0/perfkit-daemon
+header_DATA = $(INST_H_FILES)
+
 WARNINGS = -Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
--Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
--Winline -Wformat-nonliteral -Wformat-security -Wswitch-enum -Wswitch-default \
--Winit-self -Wmissing-include-dirs -Wundef -Waggregate-return \
--Wmissing-format-attribute -Wnested-externs
+	-Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
+	-Winline -Wformat-nonliteral -Wformat-security -Wswitch-enum -Wswitch-default \
+	-Winit-self -Wmissing-include-dirs -Wundef -Waggregate-return \
+	-Wmissing-format-attribute -Wnested-externs
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\" \
@@ -19,14 +22,11 @@ AM_CPPFLAGS = \
 	$(PERFKIT_DAEMON_CFLAGS) \
 	$(NULL)
 
-AM_LDFLAGS = $(PERFKIT_DAEMON_LIBS)
-
 INST_H_FILES = \
 	pkd-version.h \
 	pkd-sample.h \
 	pkd-channel.h \
 	pkd-channels.h \
-	pkd-log.h \
 	pkd-service.h \
 	pkd-runtime.h \
 	pkd-paths.h \
@@ -36,8 +36,13 @@ INST_H_FILES = \
 	perfkit-daemon.h \
 	$(NULL)
 
+NOINST_H_FILES = \
+	pkd-log.h \
+	$(NULL)
+
 libperfkit_daemon_la_SOURCES = \
 	$(INST_H_FILES) \
+	$(NOINST_H_FILES) \
 	pkd-sample.c \
 	pkd-channel.c \
 	pkd-channels.c \
@@ -50,14 +55,16 @@ libperfkit_daemon_la_SOURCES = \
 	pkd-sources.c \
 	$(NULL)
 
-headerdir = $(prefix)/include/perfkit-daemon-1.0/perfkit-daemon
-header_DATA = $(INST_H_FILES)
+libperfkit_daemon_la_LIBADD = $(PERFKIT_DAEMON_LIBS)
+libperfkit_daemon_la_LDFLAGS = \
+	-export-dynamic \
+	-export-symbols-regex "^pkd_.*" \
+	$(NULL)
 
 perfkit_daemon_SOURCES = main.c
-perfkit_daemon_LDADD = libperfkit-daemon.la
+perfkit_daemon_LDADD = libperfkit-daemon.la $(PERFKIT_DAEMON_LIBS)
 perfkit_daemon_LDFLAGS = \
 	-export-dynamic \
-	-no-undefined \
 	-export-symbols-regex "^pkd_.*" \
 	$(NULL)
 
