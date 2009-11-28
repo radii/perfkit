@@ -153,8 +153,12 @@ void
 pkd_sample_write_int (PkdSample *sample,
                       gint       v_int)
 {
+	gint value;
+
 	g_return_if_fail (sample != NULL);
-	g_array_append_vals (sample->data, &v_int, sizeof (gint));
+
+	value = g_htonl (v_int);
+	g_array_append_vals (sample->data, &value, sizeof (gint));
 }
 
 /**
