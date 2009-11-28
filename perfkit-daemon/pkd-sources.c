@@ -39,7 +39,15 @@ struct _PkdSourcesPrivate
 {
 	GStaticRWLock  rw_lock;
 	GList         *sources;
+	GHashTable    *factories;
 };
+
+typedef struct
+{
+	const gchar          *factory;
+	PkdSourceFactoryFunc  factory_func;
+	gpointer              user_data;
+} Factory;
 
 static void
 pkd_sources_finalize (GObject *object)
@@ -65,6 +73,7 @@ pkd_sources_init (PkdSources *sources)
 	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE (sources,
 	                                             PKD_TYPE_SOURCES,
 	                                             PkdSourcesPrivate);
+	sources->priv->factories = g_hash_table_new (g_str_hash, g_str_equal);
 }
 
 GQuark
@@ -85,36 +94,70 @@ pkd_sources_error_quark (void)
  */
 PkdSource*
 pkd_sources_add (PkdSources  *sources,
-                 GType        type,
+                 const gchar *factory,
                  GError     **error)
 {
 	PkdSourcesPrivate *priv;
-	PkdSource         *source;
+	PkdSource         *source = NULL;
+	Factory           *f;
+	gboolean           result = FALSE;
 
 	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
 
 	priv = sources->priv;
 
-	if (!g_type_is_a (type, PKD_TYPE_SOURCE)) {
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
+	if (!(f = g_hash_table_lookup (priv->factories, factory))) {
 		g_set_error (error, PKD_SOURCES_ERROR, PKD_SOURCES_ERROR_INVALID_TYPE,
-		             "\"%s\" is not a valid PkdSource",
-		             g_type_name (type));
-		return FALSE;
+		             "\"%s\" is not a valid data source",
+		             factory);
+		goto unlock;
 	}
 
-	source = g_object_new (type, NULL);
+	if (!(source = f->factory_func (factory, f->user_data))) {
+		g_set_error (error, PKD_SOURCES_ERROR, PKD_SOURCES_ERROR_INVALID_TYPE,
+		             "Could not create data source \"%s\"",
+		             factory);
+		goto unlock;
+	}
 
-	g_static_rw_lock_writer_lock (&priv->rw_lock);
 	priv->sources = g_list_prepend (priv->sources, source);
+	result = TRUE;
+
+unlock:
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 
 	return source;
 }
 
 void
-pkd_sources_register (PkdSources *sources,
-                      GType       type)
+pkd_sources_register (PkdSources           *sources,
+                      const gchar          *factory,
+                      PkdSourceFactoryFunc  factory_func,
+                      gpointer              user_data)
 {
+	PkdSourcesPrivate *priv;
+	Factory           *f;
+	gchar             *key;
+
+	g_return_if_fail (PKD_IS_SOURCES (sources));
+
+	priv = sources->priv;
+
+	if (g_hash_table_lookup (priv->factories, factory)) {
+		g_warning ("Data source type \"%s\" already registered.\n",
+		           factory);
+		return;
+	}
+
+	key = g_strdup (factory);
+	f= g_slice_new0 (Factory);
+	f->factory = key;
+	f->factory_func = factory_func;
+	f->user_data = user_data;
+
+	g_hash_table_insert (priv->factories, key, f);
 }
 
 static gboolean
@@ -124,14 +167,12 @@ pkd_sources_add_dbus (PkdSources   *sources,
                       GError      **error)
 {
 	PkdSource *source;
-	GType      g_type;
 
 	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
 	g_return_val_if_fail (type != NULL, FALSE);
 	g_return_val_if_fail (path != NULL, FALSE);
 
-	g_type = g_type_from_name (type);
-	if (!(source = pkd_sources_add (sources, g_type, error)))
+	if (!(source = pkd_sources_add (sources, type, error)))
 		return FALSE;
 
 	*path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
@@ -145,17 +186,22 @@ pkd_sources_get_types_dbus (PkdSources   *sources,
                             gchar      ***names,
                             GError      **error)
 {
-	GType  *types = NULL;
-	guint   count = 0,
-	        i;
+	PkdSourcesPrivate *priv;
+	GHashTableIter     iter;
+	gchar             *key;
+	gint               count,
+					   i = 0;
 
 	g_return_val_if_fail (names != NULL, FALSE);
 
-	types = g_type_children (PKD_TYPE_SOURCE, &count);
-	*names = g_malloc0 (sizeof (gchar*) * (count + 1));
+	priv = sources->priv;
 
-	for (i = 0; i < count; i++)
-		(*names) [i] = g_strdup (g_type_name (types [i]));
+	count = g_hash_table_size (priv->factories) + 1;
+	*names = g_malloc0 (count * sizeof (gchar*));
+
+	g_hash_table_iter_init (&iter, priv->factories);
+	while (g_hash_table_iter_next (&iter, (gpointer*)&key, NULL))
+		(*names) [i++] = g_strdup (key);
 
 	return TRUE;
 }

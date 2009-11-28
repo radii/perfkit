@@ -49,6 +49,9 @@ typedef struct _PkdSources        PkdSources;
 typedef struct _PkdSourcesClass   PkdSourcesClass;
 typedef struct _PkdSourcesPrivate PkdSourcesPrivate;
 
+typedef PkdSource* (*PkdSourceFactoryFunc) (const gchar *type_name,
+                                            gpointer     user_data);
+
 struct _PkdSources
 {
 	GObject parent;
@@ -65,11 +68,13 @@ struct _PkdSourcesClass
 GQuark     pkd_sources_error_quark (void) G_GNUC_CONST;
 GType      pkd_sources_get_type    (void) G_GNUC_CONST;
 GList*     pkd_sources_find_all    (void);
-PkdSource* pkd_sources_add         (PkdSources  *sources,
-                                    GType        type,
-                                    GError     **error);
-void       pkd_sources_register    (PkdSources  *sources,
-                                    GType        type);
+PkdSource* pkd_sources_add         (PkdSources            *sources,
+                                    const gchar           *factory,
+                                    GError               **error);
+void       pkd_sources_register    (PkdSources            *sources,
+                                    const gchar           *factory,
+                                    PkdSourceFactoryFunc   factory_func,
+                                    gpointer               user_data);
 
 G_END_DECLS
 
