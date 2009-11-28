@@ -6,7 +6,7 @@ channel set 0 target /bin/nc
 channel set 0 args -l -p10000
 
 # Create a memory instrument
-source add MemorySource
+source add memory
 
 # Start the channel (spawns procses)
 channel start 0
