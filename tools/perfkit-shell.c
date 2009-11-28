@@ -104,8 +104,12 @@ static EggLineEntry entries[] =
 	  "Manage perfkit data sources\n"
 	  "\n"
 	  "Commands:\n"
+	  "  add - Add a new data source\n"
+	  "  remove - Remove an existing data source\n"
+	  "  show - Show an existing data source\n"
+	  "  types - List data source types\n"
 	  "\n",
-	  "source [add|remove|show]" },
+	  "source [add|remove|show|types]" },
 	{ "help",
 	  NULL,
 	  help_cb,
