@@ -23,5 +23,6 @@
 #include "pkd-runtime.h"
 #include "pkd-sample.h"
 #include "pkd-source.h"
+#include "pkd-source-simple.h"
 #include "pkd-sources.h"
 #include "pkd-version.h"

@@ -31,6 +31,7 @@ INST_H_FILES = \
 	pkd-runtime.h \
 	pkd-paths.h \
 	pkd-source.h \
+	pkd-source-simple.h \
 	pkd-sources.h \
 	perfkit-daemon.h \
 	$(NULL)
@@ -45,6 +46,7 @@ libperfkit_daemon_la_SOURCES = \
 	pkd-runtime.c \
 	pkd-paths.c \
 	pkd-source.c \
+	pkd-source-simple.c \
 	pkd-sources.c \
 	$(NULL)
 
