@@ -23,6 +23,8 @@
 
 G_BEGIN_DECLS
 
+#define PKD_TYPE_SAMPLE (pkd_sample_get_type())
+
 typedef struct _PkdSample PkdSample;
 
 GType        pkd_sample_get_type   (void) G_GNUC_CONST;
@@ -34,7 +36,7 @@ void         pkd_sample_write_int  (PkdSample *sample,
                                     gint       v_int);
 void         pkd_sample_write_char (PkdSample *sample,
                                     gchar      v_char);
-GArray*      pkd_sample_get_buffer (PkdSample *sample);
+GArray*      pkd_sample_get_array  (PkdSample *sample);
 
 G_END_DECLS
 

@@ -178,16 +178,16 @@ pkd_sample_write_char (PkdSample *sample,
 }
 
 /**
- * pkd_sample_get_buffer:
+ * pkd_sample_get_array:
  * @sample: A #PkdSample
  *
- * Retrieves the internal data buffer for @sample.  If the buffer is to be
+ * Retrieves the internal data buffer for @sample.  If the array is to be
  * stored somewhere, it should be referenced with g_array_ref().
  *
  * Return value: a #GArray containing the buffer.
  */
 GArray*
-pkd_sample_get_buffer (PkdSample *sample)
+pkd_sample_get_array (PkdSample *sample)
 {
 	g_return_val_if_fail (sample != NULL, NULL);
 	return sample->data;
