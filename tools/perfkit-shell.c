@@ -66,6 +66,7 @@ static EggLineStatus source_add_cb     (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus source_types_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus sleep_cb          (EggLine *line, gint  argc, gchar  **argv, GError **error);
 
 static gboolean use_system = FALSE;
 
@@ -149,6 +150,8 @@ static EggLineEntry entries[] =
 	  "quit" },
 	{ "load", NULL, load_cb, "Load a batch file\n",
 	  "load [filename..]" },
+	{ "sleep", NULL, sleep_cb, "Sleep for a given number of seconds\n",
+	  "sleep N_SECONDS" },
 	{ NULL }
 };
 
@@ -1123,6 +1126,26 @@ source_types_cb (EggLine  *line,
 
 	for (i = 0; types [i]; i++)
 		g_print ("%s\n", types [i]);
+
+	return EGG_LINE_STATUS_OK;
+}
+static EggLineStatus
+
+static EggLineStatus
+sleep_cb  (EggLine  *line,
+           gint      argc,
+           gchar   **argv,
+           GError  **error)
+{
+	gint i = 0;
+
+	if (argc != 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	if (!parse_int (argv [0], &i))
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	g_usleep (G_USEC_PER_SEC * i);
 
 	return EGG_LINE_STATUS_OK;
 }
