@@ -30,6 +30,7 @@
 #include "pkd-log.h"
 #include "pkd-runtime.h"
 #include "pkd-source.h"
+#include "pkd-sample.h"
 
 /**
  * SECTION:pkd-channel
@@ -53,6 +54,12 @@ enum
 	PROP_ENV,
 	PROP_ARGS,
 	PROP_DIR,
+};
+
+enum
+{
+	SAMPLE_READY,
+	SIGNAL_LAST
 };
 
 enum
@@ -86,7 +93,8 @@ struct _PkdChannelPrivate
 	GPtrArray      *sources;   /* Array of PkdSource's */
 };
 
-static gint channel_seq = 0;
+static guint signals[SIGNAL_LAST] = {0,};
+static gint  channel_seq          = 0;
 
 static void
 pkd_channel_finalize (GObject *object)
@@ -230,6 +238,24 @@ pkd_channel_class_init (PkdChannelClass *klass)
 	                                                     "Target arguments",
 	                                                     G_TYPE_STRV,
 	                                                     G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel::sample-ready:
+	 * @channel: A #PkdChannel
+	 * @sample: A #PkdSample
+	 *
+	 * The "sample-ready" signal.
+	 */
+	signals [SAMPLE_READY] = g_signal_new ("sample-ready",
+	                                       PKD_TYPE_CHANNEL,
+	                                       G_SIGNAL_RUN_FIRST,
+	                                       0,
+	                                       NULL,
+	                                       NULL,
+	                                       g_cclosure_marshal_VOID__BOXED,
+	                                       G_TYPE_NONE,
+	                                       1,
+	                                       PKD_TYPE_SAMPLE);
 
 	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL, &dbus_glib_pkd_channel_object_info);
 }
@@ -964,4 +990,8 @@ pkd_channel_deliver (PkdChannel *channel,
                      PkdSample  *sample)
 {
 	g_debug ("%s", __func__);
+	g_signal_emit (channel,
+	               signals [SAMPLE_READY],
+	               0,
+	               sample);
 }
