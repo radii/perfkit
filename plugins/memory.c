@@ -76,15 +76,21 @@ memory_generate_sample (PkdSourceSimple  *source,
                         gpointer          user_data,
                         GError          **error)
 {
+	PkdChannel     *channel;
 	PkdSample      *sample;
 	proc_pid_statm  info;
 	GPid            pid;
 
-	pid = (GPid)GPOINTER_TO_INT (user_data);
+	if (!(channel = pkd_source_get_channel (PKD_SOURCE (source))))
+		return NULL;
+
+	if (0 == (pid = pkd_channel_get_pid (channel)))
+		g_warning ("Monitoring the init process.  You may have forgotten "
+		           "to set a process id.");
 
 	memset (&info, 0, sizeof (proc_pid_statm));
 	if (!proc_pid_statm_read (&info, pid))
-		return FALSE;
+		return NULL;
 
 	sample = pkd_sample_sized_new (24);
 
