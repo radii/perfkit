@@ -16,16 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "pkd-source-simple.h"
+
+G_DEFINE_TYPE (PkdSourceSimple, pkd_source_simple, PKD_TYPE_SOURCE)
 
 struct _PkdSourceSimplePrivate
 {
 	PkdSourceSimpleSampleFunc  sample_func;
 	GDestroyNotify             destroy;
 	gpointer                   user_data;
-};
 
-G_DEFINE_TYPE (PkdSourceSimple, pkd_source_simple, PKD_TYPE_SOURCE)
+	GMutex                    *mutex;
+	GCond                     *cond;
+	gboolean                   stopped;
+	gboolean                   paused;
+	gulong                     freq;
+};
 
 static void
 pkd_source_simple_finalize (GObject *object)
@@ -33,14 +43,112 @@ pkd_source_simple_finalize (GObject *object)
 	G_OBJECT_CLASS (pkd_source_simple_parent_class)->finalize (object);
 }
 
+static gpointer
+thread_func (gpointer user_data)
+{
+	PkdSourceSimple        *simple;
+	PkdSourceSimplePrivate *priv;
+	PkdSample              *sample;
+	GError                 *error = NULL;
+	GTimeVal                timeout;
+
+	simple = user_data;
+	priv = simple->priv;
+
+next_sample:
+	if (g_atomic_int_get (&priv->stopped))
+		return NULL;
+
+	/* calculate the time of our subsequent sample so we redruce drift */
+	g_get_current_time (&timeout);
+	g_time_val_add (&timeout, priv->freq);
+
+	/* execute our sampling */
+	sample = priv->sample_func (user_data, priv->user_data, &error);
+
+	g_debug ("Got a sample: %p", sample);
+
+	if (error) {
+		/* TODO: What should we do upon error */
+		g_error_free (error);
+		error = NULL;
+	}
+
+	if (g_atomic_int_get (&priv->stopped))
+		return NULL;
+
+	/* We need to sleep until our next sampling.  We will sleep indefinitely
+	 * if we are paused.  Upon unpausing, we will get a signal on our condition
+	 * to continue.  If we are not paused, we will sleep until our next
+	 * sample timeout.
+	 */
+
+	g_mutex_lock (priv->mutex);
+	if (priv->paused)
+		g_cond_wait (priv->cond, priv->mutex);
+	else
+		g_cond_timed_wait (priv->cond, priv->mutex, &timeout);
+	g_mutex_unlock (priv->mutex);
+
+	goto next_sample;
+}
+
+static gboolean
+pkd_source_simple_real_start (PkdSource  *source,
+                              GError    **error)
+{
+	PkdSourceSimplePrivate *priv;
+
+	g_return_val_if_fail (PKD_IS_SOURCE_SIMPLE (source), FALSE);
+
+	priv = PKD_SOURCE_SIMPLE (source)->priv;
+
+	if (!priv->sample_func) {
+		g_warning ("No sample method installed to start on source %d",
+		           pkd_source_get_id (source));
+		return FALSE;
+	}
+
+	/* TODO: Make sure not started/paused */
+
+	if (!g_thread_create (thread_func, source, FALSE, error))
+		return FALSE;
+
+	return TRUE;
+}
+
+static void
+pkd_source_simple_real_stop (PkdSource *source)
+{
+	PkdSourceSimplePrivate *priv;
+
+	g_return_if_fail (PKD_IS_SOURCE_SIMPLE (source));
+
+	priv = PKD_SOURCE_SIMPLE (source)->priv;
+
+	g_debug ("Stopping simple source %p", source);
+
+	g_mutex_lock (priv->mutex);
+	priv->stopped = TRUE;
+	g_cond_signal (priv->cond);
+	g_mutex_unlock (priv->mutex);
+
+	g_debug ("notified");
+}
+
 static void
 pkd_source_simple_class_init (PkdSourceSimpleClass *klass)
 {
-	GObjectClass *object_class;
+	GObjectClass   *object_class;
+	PkdSourceClass *source_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_source_simple_finalize;
 	g_type_class_add_private (object_class, sizeof (PkdSourceSimplePrivate));
+
+	source_class = PKD_SOURCE_CLASS (klass);
+	source_class->start = pkd_source_simple_real_start;
+	source_class->stop = pkd_source_simple_real_stop;
 }
 
 static void
@@ -49,6 +157,12 @@ pkd_source_simple_init (PkdSourceSimple *source)
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
 	                                            PKD_TYPE_SOURCE_SIMPLE,
 	                                            PkdSourceSimplePrivate);
+
+	source->priv->mutex = g_mutex_new ();
+	source->priv->cond = g_cond_new ();
+
+	/* FIXME: */
+	source->priv->freq = G_USEC_PER_SEC * 2;
 }
 
 /**
