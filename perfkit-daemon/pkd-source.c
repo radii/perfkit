@@ -22,8 +22,10 @@
 
 #include <dbus/dbus-glib.h>
 
+#include "pkd-channel-priv.h"
 #include "pkd-runtime.h"
 #include "pkd-source.h"
+#include "pkd-source-glue.h"
 #include "pkd-source-dbus.h"
 
 /**
@@ -39,7 +41,8 @@ G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
 
 struct _PkdSourcePrivate
 {
-	gint id;
+	gint         id;
+	PkdChannel *channel;
 };
 
 static gint source_seq = 0;
@@ -231,4 +234,87 @@ pkd_source_unpause (PkdSource *source)
 	g_return_if_fail (PKD_IS_SOURCE (source));
 	if (PKD_SOURCE_GET_CLASS (source)->unpause)
 		PKD_SOURCE_GET_CLASS (source)->unpause (source);
+}
+
+/**
+ * pkd_source_set_channel:
+ * @source: A #PkdSource
+ * @channel: A #PkdChannel
+ *
+ * Sets the channel for the source to deliver samples to.  This may only
+ * be called once and subsequent calls will result in an error being
+ * printed to the error console.
+ */
+void
+pkd_source_set_channel (PkdSource  *source,
+                        PkdChannel *channel)
+{
+	PkdSourcePrivate *priv;
+
+	g_return_if_fail (PKD_IS_SOURCE (source));
+	g_return_if_fail (PKD_IS_CHANNEL (channel));
+
+	priv = source->priv;
+
+	if (priv->channel) {
+		g_warning ("Cannot set channel multiple times");
+		return;
+	}
+
+	priv->channel = g_object_ref (channel);
+	pkd_channel_add_source (channel, source);
+}
+
+/**
+ * pkd_channel_get_channel:
+ * @source: A #PkdSource
+ *
+ * Retrieves the channel in which the source delivers samples.
+ *
+ * Return value: A #PkdChannel or %NULL.
+ */
+PkdChannel*
+pkd_source_get_channel (PkdSource *source)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE (source), NULL);
+	return source->priv->channel;
+}
+
+static gboolean
+pkd_source_get_channel_dbus (PkdSource  *source,
+                             gchar     **path,
+                             GError    **error)
+{
+	PkdSourcePrivate *priv;
+
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	priv = source->priv;
+
+	if (!priv->channel)
+		*path = g_strdup ("");
+	else
+		*path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
+		                         pkd_channel_get_id (priv->channel));
+
+	return TRUE;
+}
+
+static gboolean
+pkd_source_set_channel_dbus (PkdSource    *source,
+                             const gchar  *path,
+                             GError      **error)
+{
+	PkdChannel *channel;
+
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	channel = PKD_CHANNEL (dbus_g_connection_lookup_g_object (pkd_runtime_get_connection (), path));
+
+	if (!channel)
+		return FALSE;
+
+	pkd_source_set_channel (source, channel);
+
+	return TRUE;
 }

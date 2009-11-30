@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pkd-channel.h"
+
 G_BEGIN_DECLS
 
 #define PKD_TYPE_SOURCE            (pkd_source_get_type ())
@@ -58,8 +60,11 @@ struct _PkdSourceClass
 };
 
 GType       pkd_source_get_type    (void) G_GNUC_CONST;
-PkdSource * pkd_source_new         (void);
+PkdSource*  pkd_source_new         (void);
 gint        pkd_source_get_id      (PkdSource  *source);
+PkdChannel* pkd_source_get_channel (PkdSource  *source);
+void        pkd_source_set_channel (PkdSource  *source,
+                                    PkdChannel *channel);
 gboolean    pkd_source_needs_spawn (PkdSource  *source);
 gboolean    pkd_source_spawn       (PkdSource  *source,
                                     GError    **error);
