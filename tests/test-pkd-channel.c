@@ -95,6 +95,8 @@ main (gint   argc,
 	g_type_init ();
 	g_test_init (&argc, &argv, NULL);
 
+	g_setenv ("PERFKIT_PLUGIN_DIR", g_get_current_dir (), FALSE);
+
 	pkd_runtime_initialize (TRUE);
 
 	g_test_add_func ("/PkdChannel/target", test_PkdChannel_target);
