@@ -199,7 +199,7 @@ static EggLineEntry source_entries[] =
 	  "source types" },
 	{ "attach", NULL, source_attach_cb,
 	  "Attach a channel to a source",
-	  "source attach 0 1" },
+	  "source attach <source-id> <channel-id>" },
 	{ NULL }
 };
 
