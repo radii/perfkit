@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.MFFT3U:1) */
+/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.F1Y63U:1) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER (GClosure     *closure,
                                                                   GValue       *return_value,
                                                                   guint         n_param_values,
@@ -100,7 +100,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:UINT,POINTER (/tmp/dbus-binding-tool-c-marshallers.MFFT3U:2) */
+/* BOOLEAN:UINT,POINTER (/tmp/dbus-binding-tool-c-marshallers.F1Y63U:2) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__UINT_POINTER (GClosure     *closure,
                                                                  GValue       *return_value,
                                                                  guint         n_param_values,
@@ -147,7 +147,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__UINT_POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.MFFT3U:3) */
+/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.F1Y63U:3) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
                                                             GValue       *return_value,
                                                             guint         n_param_values,
@@ -192,7 +192,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.MFFT3U:4) */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.F1Y63U:4) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                     GValue       *return_value,
                                                                     guint         n_param_values,
@@ -239,7 +239,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER_POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.MFFT3U:5) */
+/* BOOLEAN:STRING,POINTER (/tmp/dbus-binding-tool-c-marshallers.F1Y63U:5) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__STRING_POINTER (GClosure     *closure,
                                                                    GValue       *return_value,
                                                                    guint         n_param_values,
@@ -306,14 +306,13 @@ static const DBusGMethodInfo dbus_glib_pkd_channel_methods[] = {
   { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 559 },
   { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 597 },
   { (GCallback) pkd_channel_unpause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 636 },
-  { (GCallback) pkd_channel_add_source_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER, 677 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_channel_object_info = {
   0,
   dbus_glib_pkd_channel_methods,
-  15,
-"com.dronelabs.Perfkit.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0SetTarget\0S\0target\0I\0s\0\0com.dronelabs.Perfkit.Channel\0GetArgs\0S\0args\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0SetArgs\0S\0args\0I\0as\0\0com.dronelabs.Perfkit.Channel\0GetPid\0S\0pid\0O\0F\0N\0u\0\0com.dronelabs.Perfkit.Channel\0SetPid\0S\0pid\0I\0u\0\0com.dronelabs.Perfkit.Channel\0GetEnv\0S\0env\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0SetEnv\0S\0env\0I\0as\0\0com.dronelabs.Perfkit.Channel\0GetDir\0S\0dir\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0SetDir\0S\0dir\0I\0s\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0com.dronelabs.Perfkit.Channel\0AddSource\0S\0path\0I\0o\0\0\0",
+  14,
+"com.dronelabs.Perfkit.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0SetTarget\0S\0target\0I\0s\0\0com.dronelabs.Perfkit.Channel\0GetArgs\0S\0args\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0SetArgs\0S\0args\0I\0as\0\0com.dronelabs.Perfkit.Channel\0GetPid\0S\0pid\0O\0F\0N\0u\0\0com.dronelabs.Perfkit.Channel\0SetPid\0S\0pid\0I\0u\0\0com.dronelabs.Perfkit.Channel\0GetEnv\0S\0env\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0SetEnv\0S\0env\0I\0as\0\0com.dronelabs.Perfkit.Channel\0GetDir\0S\0dir\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0SetDir\0S\0dir\0I\0s\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0\0",
 "\0",
 "com.dronelabs.Perfkit.Channel\0Dir\0com.dronelabs.Perfkit.Channel\0Args\0com.dronelabs.Perfkit.Channel\0Target\0com.dronelabs.Perfkit.Channel\0Env\0com.dronelabs.Perfkit.Channel\0Pid\0\0"
 };

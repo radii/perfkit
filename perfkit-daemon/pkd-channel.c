@@ -24,6 +24,7 @@
 #include <signal.h>
 
 #include "pkd-channel.h"
+#include "pkd-channel-priv.h"
 #include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
 #include "pkd-log.h"
@@ -955,27 +956,4 @@ do_stop (PkdChannel *channel)
 
 	if (priv->pid && priv->spawned)
 		kill (priv->pid, SIGTERM);
-}
-
-static gboolean
-pkd_channel_add_source_dbus (PkdChannel   *channel,
-                             const gchar  *path,
-                             GError      **error)
-{
-	PkdSource *source;
-
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-
-	source = PKD_SOURCE (
-			dbus_g_connection_lookup_g_object (
-				pkd_runtime_get_connection (),
-				path));
-
-	if (!source)
-		return FALSE;
-
-	pkd_channel_add_source (channel, source);
-
-	return TRUE;
 }

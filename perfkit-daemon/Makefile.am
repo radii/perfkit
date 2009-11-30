@@ -38,6 +38,7 @@ INST_H_FILES = \
 
 NOINST_H_FILES = \
 	pkd-log.h \
+	pkd-channel-priv.h \
 	$(NULL)
 
 libperfkit_daemon_la_SOURCES = \

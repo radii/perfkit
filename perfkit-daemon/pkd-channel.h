@@ -21,8 +21,6 @@
 
 #include <glib-object.h>
 
-#include "pkd-source.h"
-
 G_BEGIN_DECLS
 
 #define PKD_TYPE_CHANNEL            (pkd_channel_get_type ())
@@ -79,7 +77,6 @@ gboolean     pkd_channel_start       (PkdChannel *channel, GError      **error);
 gboolean     pkd_channel_stop        (PkdChannel *channel, GError      **error);
 gboolean     pkd_channel_pause       (PkdChannel *channel, GError      **error);
 gboolean     pkd_channel_unpause     (PkdChannel *channel, GError      **error);
-void         pkd_channel_add_source  (PkdChannel *channel, PkdSource    *source);
 
 G_END_DECLS
 
