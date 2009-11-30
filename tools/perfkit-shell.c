@@ -36,7 +36,9 @@
 
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
+#include "pk-source-dbus.h"
 #include "pk-sources-dbus.h"
+
 #include <perfkit-daemon/pkd-version.h>
 
 #define REPORT_ERROR(e)     report_error (e, G_STRFUNC, __LINE__);
@@ -64,6 +66,7 @@ static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv
 static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus source_add_cb     (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus source_types_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
+static EggLineStatus source_attach_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
 static EggLineStatus sleep_cb          (EggLine *line, gint  argc, gchar  **argv, GError **error);
@@ -105,12 +108,14 @@ static EggLineEntry entries[] =
 	  "Manage perfkit data sources\n"
 	  "\n"
 	  "Commands:\n"
-	  "  add - Add a new data source\n"
+	  "  add    - Add a new data source\n"
+	  "  attach - Attach a data source to a channel\n"
 	  "  remove - Remove an existing data source\n"
-	  "  show - Show an existing data source\n"
-	  "  types - List data source types\n"
+	  "  list   - List all data sources\n"
+	  "  show   - Show an existing data source\n"
+	  "  types  - List data source types\n"
 	  "\n",
-	  "source [add|remove|show|types]" },
+	  "source [add|remove|list|show|attach|types]" },
 	{ "help",
 	  NULL,
 	  help_cb,
@@ -192,6 +197,9 @@ static EggLineEntry source_entries[] =
 	{ "types", NULL, source_types_cb,
 	  "List available data source types",
 	  "source types" },
+	{ "attach", NULL, source_attach_cb,
+	  "Attach a channel to a source",
+	  "source attach 0 1" },
 	{ NULL }
 };
 
@@ -1129,7 +1137,55 @@ source_types_cb (EggLine  *line,
 
 	return EGG_LINE_STATUS_OK;
 }
+
+static DBusGProxy*
+get_source (gint id)
+{
+	DBusGProxy *proxy;
+	gchar  *path;
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d", id);
+	proxy = dbus_g_proxy_new_for_name (dbus_conn,
+	                                   "com.dronelabs.Perfkit",
+	                                   path,
+	                                   "com.dronelabs.Perfkit.Source");
+	g_free (path);
+
+	return proxy;
+}
+
 static EggLineStatus
+source_attach_cb  (EggLine  *line,
+                   gint      argc,
+                   gchar   **argv,
+                   GError  **error)
+{
+	DBusGProxy *source;
+	gint sid = 0, cid = 0;
+	gchar *path;
+
+	if (argc != 2)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	if (!parse_int (argv [0], &sid) ||
+	    !parse_int (argv [1], &cid))
+	    return EGG_LINE_STATUS_BAD_ARGS;
+
+	source = get_source (sid);
+	path = g_strdup_printf (PK_CHANNEL_FORMAT, cid);
+
+	if (!com_dronelabs_Perfkit_Source_set_channel (source, path, error)) {
+		g_free (path);
+		return EGG_LINE_STATUS_FAILURE;
+	}
+	else {
+		g_print ("Attached channel %d to source %d.\n", cid, sid);
+	}
+
+	g_free (path);
+
+	return EGG_LINE_STATUS_OK;
+}
 
 static EggLineStatus
 sleep_cb  (EggLine  *line,
