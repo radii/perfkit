@@ -21,11 +21,15 @@
 
 #include "pkd-channel.h"
 #include "pkd-source.h"
+#include "pkd-sample.h"
 
 G_BEGIN_DECLS
 
 void pkd_channel_add_source (PkdChannel *channel,
                              PkdSource  *source);
+void pkd_channel_deliver    (PkdChannel *channel,
+                             PkdSource  *source,
+                             PkdSample  *sample);
 
 G_END_DECLS
 

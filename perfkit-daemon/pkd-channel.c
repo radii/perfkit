@@ -957,3 +957,11 @@ do_stop (PkdChannel *channel)
 	if (priv->pid && priv->spawned)
 		kill (priv->pid, SIGTERM);
 }
+
+void
+pkd_channel_deliver (PkdChannel *channel,
+                     PkdSource  *source,
+                     PkdSample  *sample)
+{
+	g_debug ("%s", __func__);
+}

@@ -45,6 +45,7 @@ pkd_sample_destroy (PkdSample *sample)
 static void
 pkd_sample_free (PkdSample *sample)
 {
+	g_array_unref (sample->data);
 	g_slice_free (PkdSample, sample);
 }
 

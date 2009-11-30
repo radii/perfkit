@@ -21,6 +21,7 @@
 #endif
 
 #include "pkd-source-simple.h"
+#include "pkd-channel-priv.h"
 
 G_DEFINE_TYPE (PkdSourceSimple, pkd_source_simple, PKD_TYPE_SOURCE)
 
@@ -48,12 +49,14 @@ thread_func (gpointer user_data)
 {
 	PkdSourceSimple        *simple;
 	PkdSourceSimplePrivate *priv;
+	PkdChannel             *channel;
 	PkdSample              *sample;
 	GError                 *error = NULL;
 	GTimeVal                timeout;
 
 	simple = user_data;
 	priv = simple->priv;
+	channel = pkd_source_get_channel (PKD_SOURCE (simple));
 
 next_sample:
 	if (g_atomic_int_get (&priv->stopped))
@@ -64,9 +67,10 @@ next_sample:
 	g_time_val_add (&timeout, priv->freq);
 
 	/* execute our sampling */
-	sample = priv->sample_func (user_data, priv->user_data, &error);
-
-	g_debug ("Got a sample: %p", sample);
+	if (NULL != (sample = priv->sample_func (user_data, priv->user_data, &error))) {
+		pkd_channel_deliver (channel, user_data, sample);
+		pkd_sample_unref (sample);
+	}
 
 	if (error) {
 		/* TODO: What should we do upon error */
@@ -126,14 +130,10 @@ pkd_source_simple_real_stop (PkdSource *source)
 
 	priv = PKD_SOURCE_SIMPLE (source)->priv;
 
-	g_debug ("Stopping simple source %p", source);
-
 	g_mutex_lock (priv->mutex);
 	priv->stopped = TRUE;
 	g_cond_signal (priv->cond);
 	g_mutex_unlock (priv->mutex);
-
-	g_debug ("notified");
 }
 
 static void
