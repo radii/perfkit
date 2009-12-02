@@ -32,21 +32,34 @@ PKD_MINOR_VERSION=perfkit_minor_version
 PKD_MICRO_VERSION=perfkit_micro_version
 PKD_API_VERSION=1.0
 PKD_VERSION=perfkit_version
+PK_MAJOR_VERSION=perfkit_major_version
+PK_MINOR_VERSION=perfkit_minor_version
+PK_MICRO_VERSION=perfkit_micro_version
+PK_API_VERSION=1.0
+PK_VERSION=perfkit_version
 AC_SUBST(PKD_MAJOR_VERSION)
 AC_SUBST(PKD_MINOR_VERSION)
 AC_SUBST(PKD_MICRO_VERSION)
 AC_SUBST(PKD_API_VERSION)
 AC_SUBST(PKD_VERSION)
+AC_SUBST(PK_MAJOR_VERSION)
+AC_SUBST(PK_MINOR_VERSION)
+AC_SUBST(PK_MICRO_VERSION)
+AC_SUBST(PK_API_VERSION)
+AC_SUBST(PK_VERSION)
 
 
 dnl ************************************************************************
 dnl Check for Required Modules
 dnl ************************************************************************
-PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.16
-                                   gthread-2.0 >= 2.16
+PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.20
+                                   gthread-2.0 >= 2.20
                                    dbus-glib-1 >= 0.80
                                    ethos-1.0   >= 0.2.2])
-PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.16
+PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.20
+				   dbus-glib-1 >= 0.80
+				   gio-2.0     >= 2.20])
+PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0 >= 2.20
 				   dbus-glib-1 >= 0.80
 				   gio-2.0     >= 2.20])
 
@@ -97,6 +110,11 @@ AC_OUTPUT([
 	doc/reference/perfkit-daemon/version.xml
 	perfkit-daemon/Makefile
 	perfkit-daemon/pkd-version.h
+
+	doc/reference/perfkit/Makefile
+	doc/reference/perfkit/version.xml
+	perfkit/Makefile
+	perfkit/pk-version.h
 ])
 
 echo ""
