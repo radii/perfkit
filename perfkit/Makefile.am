@@ -16,16 +16,19 @@ BUILD_SOURCES = pk-version.h
 INST_H_FILES = \
 	$(BUILD_SOURCES) \
 	perfkit.h \
+	pk-channels.h \
 	pk-connection.h \
 	$(NULL)
 
 NOINST_H_FILES = \
 	pk-connection-dbus.h \
+	pk-channels-priv.h \
 	$(NULL)
 
 libperfkit_1_0_la_SOURCES = \
 	$(INST_H_FILES) \
 	$(NOINST_H_FILES) \
+	pk-channels.c \
 	pk-connection.c \
 	pk-connection-dbus.c \
 	$(NULL)

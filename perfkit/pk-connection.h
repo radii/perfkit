@@ -21,6 +21,8 @@
 
 #include <gio/gio.h>
 
+#include "pk-channels.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_CONNECTION            (pk_connection_get_type ())
@@ -101,6 +103,7 @@ void          pk_connection_disconnect_async   (PkConnection         *connection
                                                 gpointer              user_data);
 void          pk_connection_disconnect_finish  (PkConnection         *connection,
                                                 GAsyncResult         *result);
+PkChannels*   pk_connection_get_channels       (PkConnection         *connection);
 
 G_END_DECLS
 

@@ -22,10 +22,17 @@
 
 #include <glib/gi18n.h>
 
+#include "pk-channels.h"
+#include "pk-channels-priv.h"
 #include "pk-connection.h"
 #include "pk-connection-dbus.h"
 
 G_DEFINE_TYPE (PkConnection, pk_connection, G_TYPE_OBJECT)
+
+struct _PkConnectionPrivate
+{
+	PkChannels *channels;
+};
 
 static void
 pk_connection_finalize (GObject *object)
@@ -40,11 +47,16 @@ pk_connection_class_init (PkConnectionClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_connection_finalize;
+	g_type_class_add_private (object_class, sizeof (PkConnectionPrivate));
 }
 
 static void
 pk_connection_init (PkConnection *connection)
 {
+	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE (connection,
+	                                                PK_TYPE_CONNECTION,
+	                                                PkConnectionPrivate);
+	connection->priv->channels = pk_channels_new (connection);
 }
 
 /**
@@ -175,4 +187,18 @@ GQuark
 pk_connection_error_quark (void)
 {
 	return g_quark_from_static_string ("pk-connection-error-quark");
+}
+
+/**
+ * pk_connection_get_channels:
+ * @connection: 
+ *
+ * 
+ *
+ * Return value: 
+ */
+PkChannels*
+pk_connection_get_channels (PkConnection *connection)
+{
+	return connection->priv->channels;
 }
