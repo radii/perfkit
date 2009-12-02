@@ -56,7 +56,10 @@ pk_connection_init (PkConnection *connection)
 	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE (connection,
 	                                                PK_TYPE_CONNECTION,
 	                                                PkConnectionPrivate);
+
 	connection->priv->channels = pk_channels_new (connection);
+	g_object_add_weak_pointer (G_OBJECT (connection->priv->channels),
+	                           (gpointer*)&connection->priv->channels);
 }
 
 /**
