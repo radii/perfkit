@@ -87,7 +87,10 @@ generate_support_data (const gchar *filename)
 	GIOChannel *channel;
 	GError     *error = NULL;
 
-	if (!(channel = g_io_channel_new_file (filename, "w", &error))) {
+	if (g_str_equal (filename, "-")) {
+		channel = g_io_channel_unix_new (0);
+	}
+	else if (!(channel = g_io_channel_new_file (filename, "w", &error))) {
 		g_printerr ("%s\n", error->message);
 		g_error_free (error);
 		return EXIT_FAILURE;
