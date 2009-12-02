@@ -67,3 +67,18 @@ pk_channel_new (PkConnection *connection,
 
 	return channel;
 }
+
+/**
+ * pk_channel_get_id:
+ * @channel: 
+ *
+ * 
+ *
+ * Return value: 
+ */
+gint
+pk_channel_get_id (PkChannel *channel)
+{
+	g_return_val_if_fail (channel != NULL, -1);
+	return channel->priv->channel_id;
+}

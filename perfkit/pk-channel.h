@@ -49,6 +49,7 @@ struct _PkChannelClass
 };
 
 GType pk_channel_get_type (void) G_GNUC_CONST;
+gint  pk_channel_get_id   (PkChannel *channel);
 
 G_END_DECLS
 
