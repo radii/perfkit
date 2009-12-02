@@ -50,6 +50,8 @@ CFILE_GLOB=$(top_srcdir)/perfkit/pk*.c
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
 IGNORE_HFILES=							\
 	perfkit.h						\
+	pk-channels-priv.h					\
+	pk-connection-dbus.h					\
 	$(NULL)
 
 EXTRA_HFILES=
