@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pk-channel.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_CHANNELS            (pk_channels_get_type ())
@@ -48,7 +50,10 @@ struct _PkChannelsClass
 	GObjectClass parent_class;
 };
 
-GType pk_channels_get_type (void) G_GNUC_CONST;
+GType      pk_channels_get_type (void) G_GNUC_CONST;
+GList*     pk_channels_find_all (PkChannels *channels);
+PkChannel* pk_channels_get      (PkChannels *channels,
+                                 gint        channel_id);
 
 G_END_DECLS
 

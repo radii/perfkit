@@ -16,8 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-channel-priv.h"
 #include "pk-channels.h"
 #include "pk-connection.h"
+#include "pk-connection-priv.h"
 
 G_DEFINE_TYPE (PkChannels, pk_channels, G_TYPE_OBJECT)
 
@@ -59,4 +61,60 @@ pk_channels_new (PkConnection *connection)
 	channels->priv->connection = connection;
 
 	return channels;
+}
+
+/**
+ * pk_channels_find_all:
+ * @channels: 
+ *
+ * 
+ *
+ * Return value:
+ */
+GList*
+pk_channels_find_all (PkChannels *channels)
+{
+	PkChannelsPrivate *priv;
+	gint              *channel_ids,
+	                   n_channels = 0,
+	                   i;
+	GList             *list = NULL;
+	PkChannel         *channel;
+
+	g_return_val_if_fail (PK_IS_CHANNELS (channels), NULL);
+
+	priv = channels->priv;
+
+	if (!pk_connection_channels_find_all (priv->connection,
+	                                      &channel_ids,
+	                                      &n_channels,
+	                                      NULL))
+	    return NULL;
+
+	for (i = 0; i < n_channels; i++) {
+		channel = pk_channels_get (channels, channel_ids [i]);
+		list = g_list_prepend (list, channel);
+	}
+
+	list = g_list_reverse (list);
+	g_free (channel_ids);
+
+	return list;
+}
+
+/**
+ * pk_channels_get:
+ * @channels: 
+ * @channel_id: 
+ *
+ * 
+ *
+ * Return value: 
+ */
+PkChannel*
+pk_channels_get (PkChannels *channels,
+                 gint        channel_id)
+{
+	g_return_val_if_fail (PK_IS_CHANNELS (channels), NULL);
+	return pk_channel_new (channels->priv->connection, channel_id);
 }

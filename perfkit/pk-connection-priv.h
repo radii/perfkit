@@ -1,4 +1,4 @@
-/* perfkit.h
+/* pk-connection-priv.h
  *
  * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
  *
@@ -16,12 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PERFKIT_H__
-#define __PERFKIT_H__
+#ifndef __PK_CONNECTION_PRIV_H__
+#define __PK_CONNECTION_PRIV_H__
 
-#include "pk-channel.h"
-#include "pk-channels.h"
+#include <glib-object.h>
+
 #include "pk-connection.h"
-#include "pk-version.h"
 
-#endif /* __PERFKIT_H__ */
+G_BEGIN_DECLS
+
+gboolean      pk_connection_channels_find_all  (PkConnection         *connection,
+                                                gint                **channel_ids,
+                                                gint                 *n_channels,
+                                                GError              **error);
+
+G_END_DECLS
+
+#endif /* __PK_CONNECTION_PRIV_H__ */

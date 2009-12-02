@@ -77,12 +77,16 @@ struct _PkConnectionClass
 	void     (*disconnect_finish)        (PkConnection         *connection,
 	                                      GAsyncResult         *result);
 
+	gboolean (*channels_find_all)        (PkConnection         *connection,
+	                                      gint                **channel_ids,
+	                                      gint                 *n_channels);
 	void     (*channels_find_all_async)  (PkConnection         *connection,
 	                                      GAsyncReadyCallback   callback,
 	                                      gpointer              user_data);
 	gboolean (*channels_find_all_finish) (PkConnection         *connection,
 	                                      GAsyncResult         *result,
-	                                      GPtrArray           **channels,
+	                                      gint                **channel_ids,
+	                                      gint                 *n_channels,
 	                                      GError              **error);
 };
 

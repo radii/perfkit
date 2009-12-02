@@ -205,3 +205,20 @@ pk_connection_get_channels (PkConnection *connection)
 {
 	return connection->priv->channels;
 }
+
+/**
+ * pk_connection_channels_find_all:
+ * @connection: 
+ *
+ * 
+ *
+ * Return value: 
+ */
+gboolean
+pk_connection_channels_find_all (PkConnection  *connection,
+                                 gint         **channel_ids,
+                                 gint          *n_channels)
+{
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channels_find_all (connection, channel_ids, n_channels);
+}

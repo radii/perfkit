@@ -16,18 +16,21 @@ BUILD_SOURCES = pk-version.h
 INST_H_FILES = \
 	$(BUILD_SOURCES) \
 	perfkit.h \
+	pk-channel.h \
 	pk-channels.h \
 	pk-connection.h \
 	$(NULL)
 
 NOINST_H_FILES = \
 	pk-connection-dbus.h \
+	pk-channel-priv.h \
 	pk-channels-priv.h \
 	$(NULL)
 
 libperfkit_1_0_la_SOURCES = \
 	$(INST_H_FILES) \
 	$(NOINST_H_FILES) \
+	pk-channel.c \
 	pk-channels.c \
 	pk-connection.c \
 	pk-connection-dbus.c \
@@ -46,3 +49,8 @@ libperfkit_1_0_la_CPPFLAGS = \
 	$(NULL)
 
 DISTCLEANFILES = $(BUILD_SOURCES)
+
+update-dbus:
+	dbus-binding-tool --mode=glib-client --prefix=pk_channels \
+		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml \
+		--output=pk-channels-dbus.h

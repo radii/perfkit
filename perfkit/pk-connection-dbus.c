@@ -20,10 +20,14 @@
 #include "config.h"
 #endif
 
+#include "errno.h"
+#include "stdlib.h"
+
 #include <dbus/dbus-glib.h>
 #include <glib/gi18n.h>
 
 #include "pk-connection-dbus.h"
+#include "pk-channels-dbus.h"
 
 G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
 
@@ -41,6 +45,9 @@ static void     pk_connection_dbus_real_disconnect_async  (PkConnection         
                                                            gpointer              user_data);
 static void     pk_connection_dbus_real_disconnect_finish (PkConnection         *connection,
                                                            GAsyncResult         *result);
+static gboolean pk_connection_dbus_real_channels_find_all (PkConnection         *connection,
+                                                           gint                **channel_ids,
+                                                           gint                 *n_channels);
 
 struct _PkConnectionDBusPrivate
 {
@@ -73,6 +80,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->disconnect = pk_connection_dbus_real_disconnect;
 	conn_class->disconnect_async = pk_connection_dbus_real_disconnect_async;
 	conn_class->disconnect_finish = pk_connection_dbus_real_disconnect_finish;
+	conn_class->channels_find_all = pk_connection_dbus_real_channels_find_all;
 }
 
 static void
@@ -210,7 +218,43 @@ pk_connection_dbus_real_disconnect_finish (PkConnection *connection,
 {
 	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
 	g_return_if_fail (g_simple_async_result_is_valid (result,
-	                                                      G_OBJECT (connection),
-	                                                      pk_connection_dbus_real_disconnect_async));
+	                                                  G_OBJECT (connection),
+	                                                  pk_connection_dbus_real_disconnect_async));
 	pk_connection_dbus_real_disconnect (connection);
+}
+
+static gboolean
+pk_connection_dbus_real_channels_find_all (PkConnection  *connection,
+                                           gint         **channel_ids,
+                                           gint          *n_channels)
+{
+	PkConnectionDBusPrivate  *priv;
+	GPtrArray                *paths = NULL;
+	gboolean                  result;
+	gint                      i, id;
+	gchar                    *str;
+
+	g_return_val_if_fail (channel_ids != NULL, FALSE);
+	g_return_val_if_fail (n_channels != NULL, FALSE);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	result = com_dronelabs_Perfkit_Channels_find_all (priv->channels, &paths, NULL);
+	*n_channels = 0;
+
+	if (result) {
+		*channel_ids = g_malloc0 (sizeof (gint) * paths->len);
+		for (i = 0; i < paths->len; i++) {
+			str = g_strrstr (g_ptr_array_index (paths, i), "/");
+			if (str) {
+				str++;
+				errno = 0;
+				id = strtol (str, NULL, 0);
+				if (errno == 0)
+					(*channel_ids) [(*n_channels)++] = id;
+			}
+		}
+	}
+
+	return result;
 }
