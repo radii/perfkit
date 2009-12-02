@@ -33,6 +33,7 @@ perfkit_shell_SOURCES = \
 perfkit_support_SOURCES = \
 	perfkit-support.c \
 	$(NULL)
+perfkit_support_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
 
 update-dbus:
 	dbus-binding-tool --mode=glib-client --prefix=pk_channels \
