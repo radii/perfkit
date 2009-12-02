@@ -239,6 +239,11 @@ pk_connection_dbus_real_channels_find_all (PkConnection  *connection,
 
 	priv = PK_CONNECTION_DBUS (connection)->priv;
 
+	if (!priv->channels) {
+		g_warning (_("Connection not open.  Open connection first."));
+		return FALSE;
+	}
+
 	result = com_dronelabs_Perfkit_Channels_find_all (priv->channels, &paths, NULL);
 	*n_channels = 0;
 
