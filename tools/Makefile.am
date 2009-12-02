@@ -1,4 +1,4 @@
-bin_PROGRAMS = perfkit-shell
+bin_PROGRAMS = perfkit-shell perfkit-support
 
 WARNINGS = -Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
 -Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
@@ -28,6 +28,10 @@ AM_LDFLAGS = \
 perfkit_shell_SOURCES = \
 	perfkit-shell.c \
 	$(top_srcdir)/cut-n-paste/egg-line.c \
+	$(NULL)
+
+perfkit_support_SOURCES = \
+	perfkit-support.c \
 	$(NULL)
 
 update-dbus:

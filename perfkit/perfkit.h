@@ -19,6 +19,8 @@
 #ifndef __PERFKIT_H__
 #define __PERFKIT_H__
 
+#include <glib-object.h>
+
 #include "pk-channel.h"
 #include "pk-channels.h"
 #include "pk-connection.h"
