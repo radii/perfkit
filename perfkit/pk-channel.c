@@ -62,8 +62,7 @@ pk_channel_new (PkConnection *connection,
 
 	channel = g_object_new (PK_TYPE_CHANNEL, NULL);
 	channel->priv->channel_id = channel_id;
-	g_object_add_weak_pointer (G_OBJECT (connection),
-	                           (gpointer*)&channel->priv->connection);
+	channel->priv->connection = g_object_ref (connection);
 
 	return channel;
 }
