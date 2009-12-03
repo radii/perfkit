@@ -5,11 +5,11 @@ header_DATA = $(INST_H_FILES)
 
 WARNINGS = \
 	-Wall -Werror -Wold-style-definition -Wdeclaration-after-statement \
-	-Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align -Wwrite-strings \
-	-Winline -Wformat-nonliteral -Wformat-security -Wswitch-enum -Wswitch-default \
-	-Winit-self -Wmissing-include-dirs -Wundef -Waggregate-return \
-	-Wmissing-format-attribute -Wnested-externs
-
+	-Wredundant-decls -Wmissing-noreturn -Wshadow -Wcast-align  \
+	-Wwrite-strings -Winline -Wformat-nonliteral -Wformat-security \
+	-Wswitch-enum -Wswitch-default -Winit-self -Wmissing-include-dirs \
+	-Wundef -Waggregate-return -Wmissing-format-attribute \
+	-Wnested-externs
 
 BUILD_SOURCES = pk-version.h
 
