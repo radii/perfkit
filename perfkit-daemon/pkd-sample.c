@@ -40,12 +40,12 @@ struct _PkdSample
 static void
 pkd_sample_destroy (PkdSample *sample)
 {
+	g_array_unref (sample->data);
 }
 
 static void
 pkd_sample_free (PkdSample *sample)
 {
-	g_array_unref (sample->data);
 	g_slice_free (PkdSample, sample);
 }
 
@@ -55,6 +55,8 @@ pkd_sample_free (PkdSample *sample)
  * Creates a new instance of #PkdSample.
  *
  * Return value: the newly created #PkdSample instance.
+ *
+ * Side effects: None
  */
 PkdSample*
 pkd_sample_new (void)
@@ -76,6 +78,8 @@ pkd_sample_new (void)
  * the number of bytes specified by @n_bytes.
  *
  * Return value: the newly created #PkdSample instance.
+ *
+ * Side effects: None
  */
 PkdSample*
 pkd_sample_sized_new (gsize n_bytes)
@@ -96,6 +100,8 @@ pkd_sample_sized_new (gsize n_bytes)
  * Atomically increments the reference count of @sample by one.
  *
  * Return value: the #PkdSample reference.
+ *
+ * Side effects: The reference count of @sample is incremented.
  */
 PkdSample*
 pkd_sample_ref (PkdSample *sample)
@@ -113,6 +119,9 @@ pkd_sample_ref (PkdSample *sample)
  *
  * Atomically decrements the reference count of @sample by one.
  * When the reference count reaches zero, the structure is destroyed and freed.
+ *
+ * Side effects: The ref count of @sample is decremented, and potentially the
+ *   instance is destroyed and freed.
  */
 void
 pkd_sample_unref (PkdSample *sample)
@@ -130,10 +139,9 @@ GType
 pkd_sample_get_type (void)
 {
 	static GType gtype = 0;
+	GType        init_gtype;
 
 	if (g_once_init_enter ((gsize*)&gtype)) {
-		GType init_gtype;
-
 		init_gtype = g_boxed_type_register_static ("PkdSample",
 		                                           (GBoxedCopyFunc)pkd_sample_ref,
 		                                           (GBoxedFreeFunc)pkd_sample_unref);
@@ -149,6 +157,8 @@ pkd_sample_get_type (void)
  * @v_int: the integer to write
  *
  * Writes @v_int to the buffer.
+ *
+ * Side effects: The buffer of @sample is appended with @v_int.
  */
 void
 pkd_sample_write_int (PkdSample *sample,
@@ -168,6 +178,8 @@ pkd_sample_write_int (PkdSample *sample,
  * @v_char: a #gchar
  *
  * Writes a single byte onto the sample buffer.
+ *
+ * Side effects: The buffer of @sample is appended with @v_char.
  */
 void
 pkd_sample_write_char (PkdSample *sample,
@@ -185,6 +197,8 @@ pkd_sample_write_char (PkdSample *sample,
  * stored somewhere, it should be referenced with g_array_ref().
  *
  * Return value: a #GArray containing the buffer.
+ *
+ * Side effects: None
  */
 GArray*
 pkd_sample_get_array (PkdSample *sample)
