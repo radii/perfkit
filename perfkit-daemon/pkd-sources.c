@@ -20,6 +20,9 @@
 #include "config.h"
 #endif
 
+#include <glib.h>
+#include <glib/gi18n.h>
+
 #include "pkd-sources.h"
 #include "pkd-sources-glue.h"
 #include "pkd-sources-dbus.h"
@@ -49,33 +52,6 @@ typedef struct
 	gpointer              user_data;
 } Factory;
 
-static void
-pkd_sources_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (pkd_sources_parent_class)->finalize (object);
-}
-
-static void
-pkd_sources_class_init (PkdSourcesClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkd_sources_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdSourcesPrivate));
-
-	dbus_g_object_type_install_info (PKD_TYPE_SOURCES, &dbus_glib_pkd_sources_object_info);
-}
-
-static void
-pkd_sources_init (PkdSources *sources)
-{
-	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE (sources,
-	                                             PKD_TYPE_SOURCES,
-	                                             PkdSourcesPrivate);
-	sources->priv->factories = g_hash_table_new (g_str_hash, g_str_equal);
-}
-
 GQuark
 pkd_sources_error_quark (void)
 {
@@ -85,17 +61,19 @@ pkd_sources_error_quark (void)
 /**
  * pkd_sources_add:
  * @sources: A #PkdSources
- * @type: 
+ * @factory: the factory name
  * @error: a location for a #GError or %NULL
  *
  * Create a new #PkdSource which can be attached to a #PkdChannel.
  *
  * Return value: The newly created #PkdSource or %NULL
+ *
+ * Side effects: The new #PkdSource instance is added to @sources.
  */
 PkdSource*
-pkd_sources_add (PkdSources  *sources,
-                 const gchar *factory,
-                 GError     **error)
+pkd_sources_add (PkdSources   *sources,
+                 const gchar  *factory,
+                 GError      **error)
 {
 	PkdSourcesPrivate *priv;
 	PkdSource         *source = NULL;
@@ -131,6 +109,18 @@ unlock:
 	return source;
 }
 
+/**
+ * pkd_sources_register:
+ * @sources: A #PkdSources
+ * @factory: The name of the factory
+ * @factory_func: A callback to create the factory instances
+ * @user_data: user data for @factory_func
+ *
+ * Registers a #PkdSourceFactoryFunc with the #PkdSources service.  @factory
+ * will be called when a new instance of the #PkdSource is needed.
+ *
+ * Side effects: None
+ */
 void
 pkd_sources_register (PkdSources           *sources,
                       const gchar          *factory,
@@ -146,7 +136,7 @@ pkd_sources_register (PkdSources           *sources,
 	priv = sources->priv;
 
 	if (g_hash_table_lookup (priv->factories, factory)) {
-		g_warning ("Data source type \"%s\" already registered.\n",
+		g_warning (_("Data source type \"%s\" already registered."),
 		           factory);
 		return;
 	}
@@ -159,6 +149,10 @@ pkd_sources_register (PkdSources           *sources,
 
 	g_hash_table_insert (priv->factories, key, f);
 }
+
+/**************************************************************************
+ *                           Private Methods                              *
+ **************************************************************************/
 
 static gboolean
 pkd_sources_add_dbus (PkdSources   *sources,
@@ -204,4 +198,35 @@ pkd_sources_get_types_dbus (PkdSources   *sources,
 		(*names) [i++] = g_strdup (key);
 
 	return TRUE;
+}
+
+/**************************************************************************
+ *                        GObject Class Methods                           *
+ **************************************************************************/
+
+static void
+pkd_sources_finalize (GObject *object)
+{
+	G_OBJECT_CLASS (pkd_sources_parent_class)->finalize (object);
+}
+
+static void
+pkd_sources_class_init (PkdSourcesClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pkd_sources_finalize;
+	g_type_class_add_private (object_class, sizeof (PkdSourcesPrivate));
+
+	dbus_g_object_type_install_info (PKD_TYPE_SOURCES, &dbus_glib_pkd_sources_object_info);
+}
+
+static void
+pkd_sources_init (PkdSources *sources)
+{
+	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE (sources,
+	                                             PKD_TYPE_SOURCES,
+	                                             PkdSourcesPrivate);
+	sources->priv->factories = g_hash_table_new (g_str_hash, g_str_equal);
 }

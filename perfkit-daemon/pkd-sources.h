@@ -49,6 +49,14 @@ typedef struct _PkdSources        PkdSources;
 typedef struct _PkdSourcesClass   PkdSourcesClass;
 typedef struct _PkdSourcesPrivate PkdSourcesPrivate;
 
+/**
+ * PkdSourceFactoryFunc:
+ * @type_name: The name of the source factory
+ * @user_data: user data for the factory
+ *
+ * Callback to create instances of #PkdSource when a source of the factory
+ * needs creating.
+ */
 typedef PkdSource* (*PkdSourceFactoryFunc) (const gchar *type_name,
                                             gpointer     user_data);
 
