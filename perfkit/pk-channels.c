@@ -65,11 +65,19 @@ pk_channels_new (PkConnection *connection)
 
 /**
  * pk_channels_find_all:
- * @channels: 
+ * @channels: A #PkChannels
  *
- * 
+ * Retrieves a list of #PkChannel instances representing the channels found
+ * on the remote system.
  *
- * Return value:
+ * The caller is the owner of the list and the individual #PkChannel instances.
+ *
+ * Return value: A #GList of #PkChannel<!-- -->'s that should be called by
+ *   unref'ing each instance and then freeing the list with g_list_free().
+ *   All instances can be freed using g_list_foreach() with
+ *   g_object_unref().
+ *
+ * Side effects: None
  */
 GList*
 pk_channels_find_all (PkChannels *channels)
@@ -104,12 +112,15 @@ pk_channels_find_all (PkChannels *channels)
 
 /**
  * pk_channels_get:
- * @channels: 
- * @channel_id: 
+ * @channels: A #PkChannels
+ * @channel_id: the id of the channel
  *
- * 
+ * Retrieves the proxy object for a #PkChannel on the remote system.
  *
- * Return value: 
+ * Return value: the #PkChannel instance or %NULL.  The #PkChannel should
+ *   be freed with g_object_unref().
+ *
+ * Side effects: None
  */
 PkChannel*
 pk_channels_get (PkChannels *channels,
