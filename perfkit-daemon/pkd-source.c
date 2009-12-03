@@ -47,83 +47,14 @@ struct _PkdSourcePrivate
 
 static gint source_seq = 0;
 
-static gboolean
-noop_needs_spawn (PkdSource *source)
-{
-	return FALSE;
-}
-
-static gboolean
-noop_start (PkdSource  *source,
-            GError    **error)
-{
-	return TRUE;
-}
-
-static void
-noop_stop (PkdSource *source)
-{
-}
-
-static void
-noop_pause (PkdSource *source)
-{
-}
-
-static void
-noop_unpause (PkdSource *source)
-{
-}
-
-static void
-pkd_source_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (pkd_source_parent_class)->finalize (object);
-}
-
-static void
-pkd_source_class_init (PkdSourceClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkd_source_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
-
-	klass->needs_spawn = noop_needs_spawn;
-	klass->start = noop_start;
-	klass->stop = noop_stop;
-	klass->pause = noop_pause;
-	klass->unpause = noop_unpause;
-
-	dbus_g_object_type_install_info (PKD_TYPE_SOURCE, &dbus_glib_pkd_source_object_info);
-}
-
-static void
-pkd_source_init (PkdSource *source)
-{
-	gchar *path;
-
-	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
-	                                            PKD_TYPE_SOURCE,
-	                                            PkdSourcePrivate);
-
-	source->priv->id = g_atomic_int_exchange_and_add (&source_seq, 1);
-
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
-	                        source->priv->id);
-	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
-	                                     path,
-	                                     G_OBJECT (source));
-	g_free (path);
-}
-
 /**
  * pkd_source_new:
  *
  * Creates a new instance of #PkdSource.
  *
  * Return value: the newly created #PkdSource instance.
+ *
+ * Side effects: None
  */
 PkdSource*
 pkd_source_new (void)
@@ -138,6 +69,8 @@ pkd_source_new (void)
  * Retrieves the identifier of a data source.
  *
  * Return value: the source identifier.
+ *
+ * Side effects: None
  */
 gint
 pkd_source_get_id (PkdSource *source)
@@ -153,7 +86,9 @@ pkd_source_get_id (PkdSource *source)
  * Checks to see if the source needs to spawn the child process to function
  * correctly.
  *
- * Return value: TRUE if the source is required to spawn the child process
+ * Return value: %TRUE if the source is required to spawn the child process.
+ *
+ * Side effects: None
  */
 gboolean
 pkd_source_needs_spawn (PkdSource *source)
@@ -169,6 +104,8 @@ pkd_source_needs_spawn (PkdSource *source)
  * Spawns the target executable if needed.
  *
  * Return value: %TRUE if the child is spawned.
+ *
+ * Side effects: None
  */
 gboolean
 pkd_source_spawn (PkdSource  *source,
@@ -186,6 +123,8 @@ pkd_source_spawn (PkdSource  *source,
  * Starts the data source recording samples.
  *
  * Return value: %TRUE on success
+ *
+ * Side effects: The sources state machine is altered.
  */
 gboolean
 pkd_source_start (PkdSource  *source,
@@ -200,6 +139,8 @@ pkd_source_start (PkdSource  *source,
  * @source: A #PkdSource
  *
  * Stops the data source from recording samples.
+ *
+ * Side effects: The sources state machine is altered.
  */
 void
 pkd_source_stop (PkdSource *source)
@@ -213,6 +154,8 @@ pkd_source_stop (PkdSource *source)
  * @source: A #PkdSource
  *
  * Pauses a #PkdSource, preventing new data samples from being created.
+ *
+ * Side effects: The sources state machine is altered.
  */
 void
 pkd_source_pause (PkdSource *source)
@@ -227,6 +170,8 @@ pkd_source_pause (PkdSource *source)
  * @source: A #PkdSource
  *
  * Unpauses a #PkdSource, allowing new data samples to be created.
+ *
+ * Side effects: The sources state machine is altered.
  */
 void
 pkd_source_unpause (PkdSource *source)
@@ -244,6 +189,8 @@ pkd_source_unpause (PkdSource *source)
  * Sets the channel for the source to deliver samples to.  This may only
  * be called once and subsequent calls will result in an error being
  * printed to the error console.
+ *
+ * Side effects: The sources channel is set.
  */
 void
 pkd_source_set_channel (PkdSource  *source,
@@ -272,6 +219,8 @@ pkd_source_set_channel (PkdSource  *source,
  * Retrieves the channel in which the source delivers samples.
  *
  * Return value: A #PkdChannel or %NULL.
+ *
+ * Side effects: None
  */
 PkdChannel*
 pkd_source_get_channel (PkdSource *source)
@@ -279,6 +228,10 @@ pkd_source_get_channel (PkdSource *source)
 	g_return_val_if_fail (PKD_IS_SOURCE (source), NULL);
 	return source->priv->channel;
 }
+
+/**************************************************************************
+ *                             Private Methods                            *
+ **************************************************************************/
 
 static gboolean
 pkd_source_get_channel_dbus (PkdSource  *source,
@@ -317,4 +270,79 @@ pkd_source_set_channel_dbus (PkdSource    *source,
 	pkd_source_set_channel (source, channel);
 
 	return TRUE;
+}
+
+/**************************************************************************
+ *                          GObject Class Methods                         *
+ **************************************************************************/
+
+static gboolean
+noop_needs_spawn (PkdSource *source)
+{
+	return FALSE;
+}
+
+static gboolean
+noop_start (PkdSource  *source,
+            GError    **error)
+{
+	return TRUE;
+}
+
+static void
+noop_stop (PkdSource *source)
+{
+}
+
+static void
+noop_pause (PkdSource *source)
+{
+}
+
+static void
+noop_unpause (PkdSource *source)
+{
+}
+
+static void
+pkd_source_finalize (GObject *object)
+{
+	G_OBJECT_CLASS (pkd_source_parent_class)->finalize (object);
+}
+
+static void
+pkd_source_init (PkdSource *source)
+{
+	gchar *path;
+
+	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
+	                                            PKD_TYPE_SOURCE,
+	                                            PkdSourcePrivate);
+
+	source->priv->id = g_atomic_int_exchange_and_add (&source_seq, 1);
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
+	                        source->priv->id);
+	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
+	                                     path,
+	                                     G_OBJECT (source));
+	g_free (path);
+}
+
+static void
+pkd_source_class_init (PkdSourceClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pkd_source_finalize;
+	g_type_class_add_private (object_class, sizeof (PkdSourcePrivate));
+
+	klass->needs_spawn = noop_needs_spawn;
+	klass->start       = noop_start;
+	klass->stop        = noop_stop;
+	klass->pause       = noop_pause;
+	klass->unpause     = noop_unpause;
+
+	dbus_g_object_type_install_info (PKD_TYPE_SOURCE, &dbus_glib_pkd_source_object_info);
 }
