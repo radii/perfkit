@@ -22,6 +22,19 @@
 #include "pk-connection.h"
 #include "pk-connection-priv.h"
 
+/**
+ * SECTION:pk-channel
+ * @title: PkChannel
+ * @short_description: Perfkit channel proxy
+ *
+ * The #PkChannel is a proxy for a remote channel within a Perfkit
+ * daemon.  It provides methods to manage the channel regardless of the
+ * protocol used to talk to the Perfkit daemon.
+ *
+ * You can get access to #PkChannel instances through the #PkChannels
+ * class.
+ */
+
 G_DEFINE_TYPE (PkChannel, pk_channel, G_TYPE_OBJECT)
 
 struct _PkChannelPrivate
