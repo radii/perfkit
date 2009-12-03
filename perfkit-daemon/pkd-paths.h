@@ -23,8 +23,8 @@
 
 G_BEGIN_DECLS
 
-G_CONST_RETURN gchar *  pkd_paths_get_data_dir    (void);
-G_CONST_RETURN gchar *  pkd_paths_get_locale_dir  (void);
+G_CONST_RETURN gchar*  pkd_paths_get_data_dir   (void);
+G_CONST_RETURN gchar*  pkd_paths_get_locale_dir (void);
 
 G_END_DECLS
 

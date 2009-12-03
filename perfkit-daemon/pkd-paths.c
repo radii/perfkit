@@ -27,6 +27,8 @@
  * @title: PkdPaths
  * @short_description: Runtime path helpers
  *
+ * This method provide access into the compile-time and run-time directories
+ * used for the perfkit daemon.
  */
 
 /**
@@ -43,19 +45,10 @@ pkd_paths_get_data_dir (void)
 	const gchar *data_dir = NULL;
 
 	if (G_UNLIKELY (!data_dir)) {
-#ifndef G_OS_WIN32
 		const gchar *root = g_getenv ("PKD_DATA_PATH");
 		if (!root)
 			root = PACKAGE_DATA_DIR;
 		data_dir = g_build_filename (root, "perfkit-daemon", NULL);
-#else
-		gchar *win32_dir;
-
-		win32_dir = g_win32_get_package_installation_directory_of_module (NULL);
-		data_dir = g_build_filename (win32_dir, "share", "perfkit-daemon", NULL);
-
-		g_free (win32_dir);
-#endif
 	}
 
 	return data_dir;
@@ -74,15 +67,7 @@ pkd_dirs_get_locale_dir (void)
 	static gchar *locale_dir = NULL;
 
 	if (!G_UNLIKELY (locale_dir)) {
-#ifndef G_OS_WIN32
 		locale_dir = g_build_filename (PACKAGE_DATA_DIR, "locale", NULL);
-#else
-		gchar *win32_dir;
-
-		win32_dir = g_win32_get_package_installation_directory_of_module (NULL);
-		locale_dir = g_build_filename (win32_dir, "share", "locale", NULL);
-		g_free (win32_dir);
-#endif
 	}
 
 	return locale_dir;
