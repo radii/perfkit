@@ -27,6 +27,19 @@
 #include "pk-connection.h"
 #include "pk-connection-dbus.h"
 
+/**
+ * SECTION:pk-connection
+ * @title: PkConnection
+ * @short_description: Perfkit connection protocol
+ *
+ * #PkConnection is an abstraction on the RPC interaction from a client to
+ * a Perfkit daemon.  This allows for multiple connection implementations
+ * which can be used based on the needs of the client.
+ *
+ * Currently, there is a DBUS #PkConnection implementation.  It can be used
+ * by providing the URI "dbus://" to pk_connection_new_for_uri().
+ */
+
 G_DEFINE_TYPE (PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
@@ -34,41 +47,17 @@ struct _PkConnectionPrivate
 	PkChannels *channels;
 };
 
-static void
-pk_connection_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (pk_connection_parent_class)->finalize (object);
-}
-
-static void
-pk_connection_class_init (PkConnectionClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pk_connection_finalize;
-	g_type_class_add_private (object_class, sizeof (PkConnectionPrivate));
-}
-
-static void
-pk_connection_init (PkConnection *connection)
-{
-	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE (connection,
-	                                                PK_TYPE_CONNECTION,
-	                                                PkConnectionPrivate);
-
-	connection->priv->channels = pk_channels_new (connection);
-	g_object_add_weak_pointer (G_OBJECT (connection->priv->channels),
-	                           (gpointer*)&connection->priv->channels);
-}
-
 /**
  * pk_connection_new_for_uri:
- * @uri: 
+ * @uri: a connection uri
  *
- * 
+ * Creates a new #PkConnection using the protocol required based on the
+ * @uri provided.  A @uri of "dbus://" will use the DBUS protocol
+ * implementation.
  *
- * Return value: 
+ * Return value: A #PkConnection or %NULL if the URI is invalid.
+ *
+ * Side effects: None
  */
 PkConnection*
 pk_connection_new_for_uri (const gchar *uri)
@@ -77,23 +66,24 @@ pk_connection_new_for_uri (const gchar *uri)
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	if (g_str_has_prefix (uri, "dbus://")) {
+	if (g_str_has_prefix (uri, "dbus://"))
 		connection = pk_connection_dbus_new ();
-	}
-	else {
+	else
 		g_warning (_("Unknown connection URI: %s"), uri);
-	}
 
 	return connection;
 }
 
 /**
  * pk_connection_connect_async:
- * @connection: 
- * @callback: 
- * @user_data: 
+ * @connection: A #PkConnection
+ * @callback: A #GAsyncReadyCallback
+ * @user_data: User data for @callback
  *
- * 
+ * Asynchronously connects to the Perfkit daemon.  See pk_connection_connect().
+ *
+ * Side effects: Alters the state of the #PkConnection based on the connection
+ *   success.
  */
 void
 pk_connection_connect_async (PkConnection        *connection,
@@ -106,13 +96,17 @@ pk_connection_connect_async (PkConnection        *connection,
 
 /**
  * pk_connection_connect_finish:
- * @connection:
- * @callback: 
- * @error: 
+ * @connection: A #PkConnection
+ * @result: The #GAsyncResult supplied to the async callback
+ * @error: A location for a #GError or %NULL
  *
+ * Completes an asynchronous request to connect to the Perfkit daemon.
+ * This should be called from the callback provided to
+ * pk_connection_connect_async().
  *
+ * Return value: %TRUE on success.  @error is set on failure.
  *
- * Return value: 
+ * Side effects: None
  */
 gboolean
 pk_connection_connect_finish (PkConnection  *connection,
@@ -125,11 +119,13 @@ pk_connection_connect_finish (PkConnection  *connection,
 
 /**
  * pk_connection_disconnect_async:
- * @connection: 
- * @callback: 
- * @user_data: 
+ * @connection: A #PkConnection
+ * @callback: A #GAsyncReadyCallback
+ * @user_data: User data for @callback
  *
- * 
+ * Asynchronously disconnects from the Perfkit daemon.
+ *
+ * Side effects: Alters the state of the connection to disconnected.
  */
 void
 pk_connection_disconnect_async (PkConnection        *connection,
@@ -142,13 +138,14 @@ pk_connection_disconnect_async (PkConnection        *connection,
 
 /**
  * pk_connection_disconnect_finish:
- * @connection:
- * @callback: 
- * @error: 
+ * @connection: A #PkConnection
+ * @result: A #GAsyncResult
  *
+ * Completes an asynchronous request to pk_connection_disconnect_async().
+ * This method should be called from the #GAsyncReadyCallback provided to
+ * pk_connection_disconnect_async().
  *
- *
- * Return value: 
+ * Side effects: None
  */
 void
 pk_connection_disconnect_finish (PkConnection  *connection,
@@ -160,12 +157,15 @@ pk_connection_disconnect_finish (PkConnection  *connection,
 
 /**
  * pk_connection_connect:
- * @connection:
- * @error: 
+ * @connection: A #PkConnection
+ * @error: A location for a #GError or %NULL
  *
- * 
+ * Synchronously connects to the Perfkit daemon.
  *
- * Return value: 
+ * Return value: %TRUE on success.  Upon failure @error is set.
+ *
+ * Side effects: The state of the connection is set to connected if the
+ *   connection was successful.
  */
 gboolean
 pk_connection_connect (PkConnection  *connection,
@@ -176,9 +176,11 @@ pk_connection_connect (PkConnection  *connection,
 
 /**
  * pk_connection_disconnect:
- * @connection: 
+ * @connection: A #PkConnection
  *
- * 
+ * Synchronously disconnects @connection from the Perfkit daemon.
+ *
+ * Side effects: The state of the connection is set to disconnected.
  */
 void
 pk_connection_disconnect (PkConnection *connection)
@@ -194,17 +196,25 @@ pk_connection_error_quark (void)
 
 /**
  * pk_connection_get_channels:
- * @connection: 
+ * @connection: A #PkConnection
  *
- * 
+ * Retrieves the proxy for the Perfkit channels service.  The channels
+ * service provides access to retrieving, adding, and removing Perfkit
+ * channels.
  *
- * Return value: 
+ * Return value: A #PkChannels instance.
+ *
+ * Side effects: None
  */
 PkChannels*
 pk_connection_get_channels (PkConnection *connection)
 {
 	return connection->priv->channels;
 }
+
+/**************************************************************************
+ *                          Private RPC Wrappers                          *
+ **************************************************************************/
 
 gboolean
 pk_connection_channels_find_all (PkConnection  *connection,
@@ -268,4 +278,36 @@ pk_connection_channel_get_state (PkConnection *connection,
 	g_return_val_if_fail (PK_IS_CONNECTION (connection), -1);
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channel_get_state (connection, channel_id);
+}
+
+/**************************************************************************
+ *                         GObject Class Methods                          *
+ **************************************************************************/
+
+static void
+pk_connection_finalize (GObject *object)
+{
+	G_OBJECT_CLASS (pk_connection_parent_class)->finalize (object);
+}
+
+static void
+pk_connection_class_init (PkConnectionClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pk_connection_finalize;
+	g_type_class_add_private (object_class, sizeof (PkConnectionPrivate));
+}
+
+static void
+pk_connection_init (PkConnection *connection)
+{
+	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE (connection,
+	                                                PK_TYPE_CONNECTION,
+	                                                PkConnectionPrivate);
+
+	connection->priv->channels = pk_channels_new (connection);
+	g_object_add_weak_pointer (G_OBJECT (connection->priv->channels),
+	                           (gpointer*)&connection->priv->channels);
 }
