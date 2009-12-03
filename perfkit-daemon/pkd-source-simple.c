@@ -20,6 +20,9 @@
 #include <config.h>
 #endif
 
+#include <glib.h>
+#include <glib/gi18n.h>
+
 #include "pkd-source-simple.h"
 #include "pkd-channel-priv.h"
 
@@ -37,6 +40,58 @@ struct _PkdSourceSimplePrivate
 	gboolean                   paused;
 	gulong                     freq;
 };
+
+/**
+ * pkd_source_simple_new:
+ *
+ * Creates a new simple source.  Use pkd_source_simple_set_sample_func() to
+ * set the callback to be called to generate a sample.
+ *
+ * Return value: the newly created #PkdSourceSimple.
+ *
+ * Side effects: None
+ */
+PkdSource*
+pkd_source_simple_new (void)
+{
+	return g_object_new (PKD_TYPE_SOURCE_SIMPLE, NULL);
+}
+
+/**
+ * pkd_source_simple_set_sample_func:
+ * @source: A #PkdSourceSimple
+ * @sample_func: A #PkdSourceSimpleSampleFunc
+ * @user_data: user data for @sample_func or %NULL
+ * @destroy: A #GDestroyNotify or %NULL
+ *
+ * Sets the sample func to generate samples when the source needs them.
+ *
+ * Side effects: Alters the sample callback, user_data, and destroy callback
+ *   of the #PkdSourceSimple.
+ */
+void
+pkd_source_simple_set_sample_func (PkdSourceSimple           *source,
+                                   PkdSourceSimpleSampleFunc  sample_func,
+                                   gpointer                   user_data,
+                                   GDestroyNotify             destroy)
+{
+	PkdSourceSimplePrivate *priv;
+
+	g_return_if_fail (PKD_IS_SOURCE_SIMPLE (source));
+
+	priv = source->priv;
+
+	if (priv->user_data && priv->destroy)
+		priv->destroy (priv->user_data);
+
+	priv->sample_func = sample_func;
+	priv->user_data = user_data;
+	priv->destroy = destroy;
+}
+
+/**************************************************************************
+ *                        GObject Class Methods                           *
+ **************************************************************************/
 
 static void
 pkd_source_simple_finalize (GObject *object)
@@ -108,7 +163,7 @@ pkd_source_simple_real_start (PkdSource  *source,
 	priv = PKD_SOURCE_SIMPLE (source)->priv;
 
 	if (!priv->sample_func) {
-		g_warning ("No sample method installed to start on source %d",
+		g_warning (_("No sample method installed to start on source %d"),
 		           pkd_source_get_id (source));
 		return FALSE;
 	}
@@ -142,13 +197,13 @@ pkd_source_simple_class_init (PkdSourceSimpleClass *klass)
 	GObjectClass   *object_class;
 	PkdSourceClass *source_class;
 
-	object_class = G_OBJECT_CLASS (klass);
+	object_class           = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_source_simple_finalize;
 	g_type_class_add_private (object_class, sizeof (PkdSourceSimplePrivate));
 
-	source_class = PKD_SOURCE_CLASS (klass);
+	source_class        = PKD_SOURCE_CLASS (klass);
 	source_class->start = pkd_source_simple_real_start;
-	source_class->stop = pkd_source_simple_real_stop;
+	source_class->stop  = pkd_source_simple_real_stop;
 }
 
 static void
@@ -163,47 +218,4 @@ pkd_source_simple_init (PkdSourceSimple *source)
 
 	/* FIXME: */
 	source->priv->freq = G_USEC_PER_SEC * 2;
-}
-
-/**
- * pkd_source_simple_new:
- *
- * Creates a new simple source.  Use pkd_source_simple_set_sample_func() to
- * set the callback to be called to generate a sample.
- *
- * Return value: the newly created #PkdSourceSimple.
- */
-PkdSource*
-pkd_source_simple_new (void)
-{
-	return g_object_new (PKD_TYPE_SOURCE_SIMPLE, NULL);
-}
-
-/**
- * pkd_source_simple_set_sample_func:
- * @source: A #PkdSourceSimple
- * @sample_func: A #PkdSourceSimpleSampleFunc
- * @user_data: user data for @sample_func or %NULL
- * @destroy: A #GDestroyNotify or %NULL
- *
- * Sets the sample func to generate samples when the source needs them.
- */
-void
-pkd_source_simple_set_sample_func (PkdSourceSimple           *source,
-                                   PkdSourceSimpleSampleFunc  sample_func,
-                                   gpointer                   user_data,
-                                   GDestroyNotify             destroy)
-{
-	PkdSourceSimplePrivate *priv;
-
-	g_return_if_fail (PKD_IS_SOURCE_SIMPLE (source));
-
-	priv = source->priv;
-
-	if (priv->user_data && priv->destroy)
-		priv->destroy (priv->user_data);
-
-	priv->sample_func = sample_func;
-	priv->user_data = user_data;
-	priv->destroy = destroy;
 }

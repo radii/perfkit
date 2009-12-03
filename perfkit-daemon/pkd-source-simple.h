@@ -24,13 +24,13 @@
 
 G_BEGIN_DECLS
 
-#define PKD_TYPE_SOURCE_SIMPLE              (pkd_source_simple_get_type ())
-#define PKD_SOURCE_SIMPLE(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimple))
-#define PKD_SOURCE_SIMPLE_CONST(obj)        (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimple const))
-#define PKD_SOURCE_SIMPLE_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass),  PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimpleClass))
-#define PKD_IS_SOURCE_SIMPLE(obj)           (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_SOURCE_SIMPLE))
-#define PKD_IS_SOURCE_SIMPLE_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_SOURCE_SIMPLE))
-#define PKD_SOURCE_SIMPLE_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimpleClass))
+#define PKD_TYPE_SOURCE_SIMPLE            (pkd_source_simple_get_type ())
+#define PKD_SOURCE_SIMPLE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimple))
+#define PKD_SOURCE_SIMPLE_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimple const))
+#define PKD_SOURCE_SIMPLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimpleClass))
+#define PKD_IS_SOURCE_SIMPLE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_SOURCE_SIMPLE))
+#define PKD_IS_SOURCE_SIMPLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_SOURCE_SIMPLE))
+#define PKD_SOURCE_SIMPLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_SOURCE_SIMPLE, PkdSourceSimpleClass))
 
 typedef struct _PkdSourceSimple        PkdSourceSimple;
 typedef struct _PkdSourceSimpleClass   PkdSourceSimpleClass;
