@@ -141,3 +141,30 @@ pk_channels_get (PkChannels *channels,
 	g_return_val_if_fail (PK_IS_CHANNELS (channels), NULL);
 	return pk_channel_new (channels->priv->connection, channel_id);
 }
+
+/**
+ * pk_channels_add:
+ * @channels: A #PkChannels
+ *
+ * Creates a new channel in the Perfkit daemon.  A proxy object for the
+ * channel is returned.
+ *
+ * Return value: the newly created instance of #PkChannel which should be
+ *   freed with g_object_unref().
+ *
+ * Side effects: None
+ */
+PkChannel*
+pk_channel_add (PkChannels *channels)
+{
+	gint channel_id = 0;
+
+	g_return_val_if_fail (PK_IS_CHANNELS (channels), NULL);
+
+	if (pk_connection_channels_add (channels->priv->connection,
+	                                &channel_id, NULL)) {
+		return pk_channel_new (channels->priv->connection, channel_id);
+	}
+
+	return NULL;
+}

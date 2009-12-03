@@ -199,6 +199,48 @@ pk_connection_dbus_real_disconnect_finish (PkConnection *connection,
 }
 
 static gboolean
+pk_connection_dbus_real_channels_add (PkConnection  *connection,
+                                      gint          *channel_id,
+                                      GError       **error)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gchar                   *path   = NULL;
+	gboolean                 result = FALSE;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), FALSE);
+	g_return_val_if_fail (channel_id != NULL, FALSE);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+	proxy = pk_channel_proxy_new (connection, *channel_id);
+
+	if (!(result = com_dronelabs_Perfkit_Channels_add (proxy, &path, error))) {
+		g_object_unref (proxy);
+		return FALSE;
+	}
+
+	if (g_str_has_prefix (path, "/com/dronelabs/Perfkit/Channels/")) {
+		path = g_strrstr (path, "/");
+		if (path)
+			path++;
+		errno = 0;
+		*channel_id = strtol (path, NULL, 0);
+		result = (errno == 0);
+	}
+
+	g_free (path);
+	g_object_unref (proxy);
+
+	if (!result) {
+		g_set_error (error, PK_CONNECTION_ERROR,
+		             PK_CONNECTION_ERROR_INVALID,
+		             _("Invalid object path returned from DBUS"));
+	}
+
+	return result;
+}
+
+static gboolean
 pk_connection_dbus_real_channels_find_all (PkConnection  *connection,
                                            gint         **channel_ids,
                                            gint          *n_channels)
@@ -380,6 +422,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->disconnect         = pk_connection_dbus_real_disconnect;
 	conn_class->disconnect_async   = pk_connection_dbus_real_disconnect_async;
 	conn_class->disconnect_finish  = pk_connection_dbus_real_disconnect_finish;
+	conn_class->channels_add       = pk_connection_dbus_real_channels_add;
 	conn_class->channels_find_all  = pk_connection_dbus_real_channels_find_all;
 	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;
 	conn_class->channel_get_args   = pk_connection_dbus_real_channel_get_args;

@@ -85,6 +85,9 @@ struct _PkConnectionClass
 	/*
 	 * Channels Service RPCs
 	 */
+	gboolean          (*channels_add)             (PkConnection         *connection,
+	                                               gint                 *channel_id,
+	                                               GError              **error);
 	gboolean          (*channels_find_all)        (PkConnection         *connection,
 	                                               gint                **channel_ids,
 	                                               gint                 *n_channels);

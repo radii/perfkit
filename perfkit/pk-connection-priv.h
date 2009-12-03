@@ -26,6 +26,9 @@
 
 G_BEGIN_DECLS
 
+gboolean       pk_connection_channels_add       (PkConnection         *connection,
+                                                 gint                 *channel_id,
+                                                 GError              **error);
 gboolean       pk_connection_channels_find_all  (PkConnection         *connection,
                                                  gint                **channel_ids,
                                                  gint                 *n_channels,

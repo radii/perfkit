@@ -217,11 +217,21 @@ pk_connection_get_channels (PkConnection *connection)
  **************************************************************************/
 
 gboolean
+pk_connection_channels_add (PkConnection  *connection,
+                            gint          *channel_id,
+                            GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channels_add (connection, channel_id, error);
+}
+
+gboolean
 pk_connection_channels_find_all (PkConnection  *connection,
                                  gint         **channel_ids,
                                  gint          *n_channels)
 {
-	g_return_val_if_fail (PK_IS_CONNECTION (connection), -1);
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channels_find_all (connection, channel_ids, n_channels);
 }

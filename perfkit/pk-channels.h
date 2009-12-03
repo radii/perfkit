@@ -54,6 +54,7 @@ GType      pk_channels_get_type (void) G_GNUC_CONST;
 GList*     pk_channels_find_all (PkChannels *channels);
 PkChannel* pk_channels_get      (PkChannels *channels,
                                  gint        channel_id);
+PkChannel* pk_channels_add      (PkChannels *channels);
 
 G_END_DECLS
 
