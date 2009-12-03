@@ -48,8 +48,9 @@ struct _PkChannelClass
 	GObjectClass parent_class;
 };
 
-GType pk_channel_get_type (void) G_GNUC_CONST;
-gint  pk_channel_get_id   (PkChannel *channel);
+GType  pk_channel_get_type   (void) G_GNUC_CONST;
+gint   pk_channel_get_id     (PkChannel *channel);
+gchar* pk_channel_get_target (PkChannel *channel);
 
 G_END_DECLS
 

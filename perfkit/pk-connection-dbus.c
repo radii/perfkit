@@ -26,8 +26,9 @@
 #include <dbus/dbus-glib.h>
 #include <glib/gi18n.h>
 
-#include "pk-connection-dbus.h"
+#include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
+#include "pk-connection-dbus.h"
 
 G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
 
@@ -48,6 +49,8 @@ static void     pk_connection_dbus_real_disconnect_finish (PkConnection         
 static gboolean pk_connection_dbus_real_channels_find_all (PkConnection         *connection,
                                                            gint                **channel_ids,
                                                            gint                 *n_channels);
+static gchar*   pk_connection_dbus_real_channel_get_target(PkConnection         *connection,
+                                                           gint                  channel_id);
 
 struct _PkConnectionDBusPrivate
 {
@@ -81,6 +84,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->disconnect_async = pk_connection_dbus_real_disconnect_async;
 	conn_class->disconnect_finish = pk_connection_dbus_real_disconnect_finish;
 	conn_class->channels_find_all = pk_connection_dbus_real_channels_find_all;
+	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;
 }
 
 static void
@@ -97,6 +101,27 @@ pk_connection_dbus_new (void)
 {
 	return g_object_new (PK_TYPE_CONNECTION_DBUS, NULL);
 }
+
+static DBusGProxy*
+pk_channel_proxy_new (PkConnection *connection,
+                      gint          channel_id)
+{
+	DBusGProxy      *proxy;
+	DBusGConnection *conn;
+	gchar           *path;
+
+	conn = PK_CONNECTION_DBUS (connection)->priv->dbus;
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
+	                        channel_id);
+	proxy = dbus_g_proxy_new_for_name (conn,
+	                                   "com.dronelabs.Perfkit",
+	                                   path,
+	                                   "com.dronelabs.Perfkit.Channel");
+	g_free (path);
+
+	return proxy;
+}
+                      
 
 static gboolean
 pk_connection_dbus_real_connect (PkConnection  *connection,
@@ -262,4 +287,23 @@ pk_connection_dbus_real_channels_find_all (PkConnection  *connection,
 	}
 
 	return result;
+}
+
+static gchar*
+pk_connection_dbus_real_channel_get_target (PkConnection *connection,
+                                            gint          channel_id)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gchar                   *target = NULL;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), NULL);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_get_target (proxy, &target, NULL);
+	g_object_unref (proxy);
+
+	return target;
 }

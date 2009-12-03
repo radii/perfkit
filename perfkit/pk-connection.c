@@ -206,19 +206,21 @@ pk_connection_get_channels (PkConnection *connection)
 	return connection->priv->channels;
 }
 
-/**
- * pk_connection_channels_find_all:
- * @connection: 
- *
- * 
- *
- * Return value: 
- */
 gboolean
 pk_connection_channels_find_all (PkConnection  *connection,
                                  gint         **channel_ids,
                                  gint          *n_channels)
 {
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), -1);
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channels_find_all (connection, channel_ids, n_channels);
+}
+
+gchar*
+pk_connection_channel_get_target (PkConnection *connection,
+                                  gint          channel_id)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_get_target (connection, channel_id);
 }

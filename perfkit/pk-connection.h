@@ -88,6 +88,9 @@ struct _PkConnectionClass
 	                                      gint                **channel_ids,
 	                                      gint                 *n_channels,
 	                                      GError              **error);
+
+	gchar*   (*channel_get_target)       (PkConnection         *connection,
+	                                      gint                  channel_id);
 };
 
 GType         pk_connection_get_type           (void) G_GNUC_CONST;

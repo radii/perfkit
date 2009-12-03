@@ -29,6 +29,8 @@ gboolean      pk_connection_channels_find_all  (PkConnection         *connection
                                                 gint                **channel_ids,
                                                 gint                 *n_channels,
                                                 GError              **error);
+gchar*        pk_connection_channel_get_target (PkConnection         *connection,
+                                                gint                  channel_id);
 
 G_END_DECLS
 
