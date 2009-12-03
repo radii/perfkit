@@ -31,6 +31,23 @@ G_BEGIN_DECLS
 #define PK_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PK_TYPE_CHANNEL))
 #define PK_CHANNEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PK_TYPE_CHANNEL, PkChannelClass))
 
+/**
+ * PkChannelState:
+ * @PK_CHANNEL_READY:
+ * @PK_CHANNEL_STARTED:
+ * @PK_CHANNEL_PAUSED:
+ * @PK_CHANNEL_STOPPED:
+ *
+ * The "PkChannelState" enumeration.
+ */
+typedef enum
+{
+	PK_CHANNEL_READY,
+	PK_CHANNEL_STARTED,
+	PK_CHANNEL_PAUSED,
+	PK_CHANNEL_STOPPED,
+} PkChannelState;
+
 typedef struct _PkChannel        PkChannel;
 typedef struct _PkChannelClass   PkChannelClass;
 typedef struct _PkChannelPrivate PkChannelPrivate;
@@ -48,13 +65,14 @@ struct _PkChannelClass
 	GObjectClass parent_class;
 };
 
-GType   pk_channel_get_type   (void) G_GNUC_CONST;
-gint    pk_channel_get_id     (PkChannel *channel);
-gchar*  pk_channel_get_target (PkChannel *channel);
-gchar** pk_channel_get_args   (PkChannel *channel);
-gchar*  pk_channel_get_dir    (PkChannel *channel);
-gchar** pk_channel_get_env    (PkChannel *channel);
-GPid    pk_channel_get_pid    (PkChannel *channel);
+GType          pk_channel_get_type   (void) G_GNUC_CONST;
+gint           pk_channel_get_id     (PkChannel *channel);
+gchar*         pk_channel_get_target (PkChannel *channel);
+gchar**        pk_channel_get_args   (PkChannel *channel);
+gchar*         pk_channel_get_dir    (PkChannel *channel);
+gchar**        pk_channel_get_env    (PkChannel *channel);
+GPid           pk_channel_get_pid    (PkChannel *channel);
+PkChannelState pk_channel_get_state  (PkChannel *channel);
 
 G_END_DECLS
 

@@ -59,6 +59,9 @@ static gchar**  pk_connection_dbus_real_channel_get_env   (PkConnection         
                                                            gint                  channel_id);
 static GPid     pk_connection_dbus_real_channel_get_pid   (PkConnection         *connection,
                                                            gint                  channel_id);
+static PkChannelState
+                pk_connection_dbus_real_channel_get_state (PkConnection         *connection,
+                                                           gint                  channel_id);
 
 struct _PkConnectionDBusPrivate
 {
@@ -97,6 +100,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_get_dir = pk_connection_dbus_real_channel_get_dir;
 	conn_class->channel_get_env = pk_connection_dbus_real_channel_get_env;
 	conn_class->channel_get_pid = pk_connection_dbus_real_channel_get_pid;
+	conn_class->channel_get_state = pk_connection_dbus_real_channel_get_state;
 }
 
 static void
@@ -394,4 +398,23 @@ pk_connection_dbus_real_channel_get_pid (PkConnection *connection,
 	g_object_unref (proxy);
 
 	return pid;
+}
+
+static PkChannelState
+pk_connection_dbus_real_channel_get_state (PkConnection *connection,
+                                           gint          channel_id)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	guint                    state = 0;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_get_state (proxy, (guint*)&state, NULL);
+	g_object_unref (proxy);
+
+	return state;
 }

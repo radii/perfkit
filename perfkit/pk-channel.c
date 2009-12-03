@@ -161,3 +161,19 @@ pk_channel_get_pid (PkChannel *channel)
 	return pk_connection_channel_get_pid (channel->priv->connection,
 	                                      channel->priv->channel_id);
 }
+
+/**
+ * pk_channel_get_state:
+ * @channel: 
+ *
+ * 
+ *
+ * Return value: 
+ */
+PkChannelState
+pk_channel_get_state (PkChannel *channel)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), -1);
+	return pk_connection_channel_get_state (channel->priv->connection,
+	                                        channel->priv->channel_id);
+}

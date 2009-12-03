@@ -21,6 +21,7 @@
 
 #include <gio/gio.h>
 
+#include "pk-channel.h"
 #include "pk-channels.h"
 
 G_BEGIN_DECLS
@@ -98,6 +99,9 @@ struct _PkConnectionClass
 	gchar**  (*channel_get_env)          (PkConnection         *connection,
 	                                      gint                  channel_id);
 	GPid     (*channel_get_pid)          (PkConnection         *connection,
+	                                      gint                  channel_id);
+	PkChannelState
+	         (*channel_get_state)        (PkConnection         *connection,
 	                                      gint                  channel_id);
 };
 
