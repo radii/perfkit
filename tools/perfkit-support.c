@@ -84,12 +84,13 @@ generate_system_info (GIOChannel *channel)
 static void
 generate_channels (GIOChannel *channel)
 {
-	PkConnection *conn;
-	PkChannels   *channels;
-	GList        *list,
-	             *iter;
-	GError       *error = NULL;
-	gchar        *tmp;
+	PkConnection  *conn;
+	PkChannels    *channels;
+	GList         *list,
+	              *iter;
+	GError        *error = NULL;
+	gchar         *tmp,
+	             **tmpv;
 
 	g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 
@@ -117,6 +118,12 @@ generate_channels (GIOChannel *channel)
 		tmp = pk_channel_get_target (iter->data);
 		write_kv (channel, "target", tmp);
 		g_free (tmp);
+
+		tmpv = pk_channel_get_args (iter->data);
+		tmp = g_strjoinv (" ", tmpv);
+		write_kv (channel, "args", tmp);
+		g_free (tmp);
+		g_strfreev (tmpv);
 
 		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
