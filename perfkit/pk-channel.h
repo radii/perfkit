@@ -54,6 +54,7 @@ gchar*  pk_channel_get_target (PkChannel *channel);
 gchar** pk_channel_get_args   (PkChannel *channel);
 gchar*  pk_channel_get_dir    (PkChannel *channel);
 gchar** pk_channel_get_env    (PkChannel *channel);
+GPid    pk_channel_get_pid    (PkChannel *channel);
 
 G_END_DECLS
 

@@ -145,3 +145,19 @@ pk_channel_get_env (PkChannel *channel)
 	return pk_connection_channel_get_env (channel->priv->connection,
 	                                      channel->priv->channel_id);
 }
+
+/**
+ * pk_channel_get_pid:
+ * @channel: 
+ *
+ * 
+ *
+ * Return value:
+ */
+GPid
+pk_channel_get_pid (PkChannel *channel)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), 0);
+	return pk_connection_channel_get_pid (channel->priv->connection,
+	                                      channel->priv->channel_id);
+}

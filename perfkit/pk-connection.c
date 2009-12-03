@@ -251,3 +251,12 @@ pk_connection_channel_get_env (PkConnection *connection,
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channel_get_env (connection, channel_id);
 }
+
+GPid
+pk_connection_channel_get_pid (PkConnection *connection,
+                               gint          channel_id)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), 0);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_get_pid (connection, channel_id);
+}
