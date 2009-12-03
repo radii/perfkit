@@ -57,6 +57,8 @@ G_LOCK_DEFINE (services);
  *
  * Initializes the runtime system.  If @use_session_bus is FALSE, then the
  * Sysetm DBUS will be used.
+ *
+ * Side effects: None
  */
 void
 pkd_runtime_initialize (gboolean use_session_bus)
@@ -117,6 +119,8 @@ pkd_runtime_initialize (gboolean use_session_bus)
  *
  * Starts the runtime system.  This method will block using a main loop for the
  * duration of applications life-time.
+ *
+ * Side effects: None
  */
 void
 pkd_runtime_run (void)
@@ -129,6 +133,8 @@ pkd_runtime_run (void)
  * pkd_runtime_quit:
  *
  * Stops the runtime system and gracefully shuts down the application.
+ *
+ * Side effects: None
  */
 void
 pkd_runtime_quit (void)
@@ -142,6 +148,8 @@ pkd_runtime_quit (void)
  *
  * Gracefully cleans up after the runtime.  This should be called in the
  * main thread after the runtim has quit.
+ *
+ * Side effects: None
  */
 void
 pkd_runtime_shutdown (void)
@@ -167,10 +175,12 @@ pkd_runtime_shutdown (void)
  *
  * Adds a new #PkdService to the runtime.  If the runtime system has been
  * started, the service will in-turn be started.
+ *
+ * Side effects: A reference is taken to @service.
  */
 void
 pkd_runtime_add_service (const gchar *name,
-                             PkdService *service)
+                         PkdService  *service)
 {
 	gboolean  needs_start = FALSE;
 	GError   *error       = NULL;
@@ -208,6 +218,8 @@ pkd_runtime_add_service (const gchar *name,
  *
  * Removes an existing #PkdService from the runtime.  If the runtime system
  * has already by started, the service will be stopped before-hand.
+ *
+ * Side effects: None
  */
 void
 pkd_runtime_remove_service (const gchar *name)
@@ -237,6 +249,8 @@ pkd_runtime_remove_service (const gchar *name)
  * Retrieves the #PkdService instance registered with the name @name.
  *
  * Return value: the #PkdService instance or %NULL.
+ *
+ * Side effects: None
  */
 PkdService*
 pkd_runtime_get_service (const gchar *name)
@@ -258,6 +272,8 @@ pkd_runtime_get_service (const gchar *name)
  * Retrieves the D-BUS connection for the application.
  *
  * Return value: the #DBusGConnection
+ *
+ * Side effects: None
  */
 DBusGConnection*
 pkd_runtime_get_connection (void)
