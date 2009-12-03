@@ -46,52 +46,16 @@ struct _PkdChannelsPrivate
 	GHashTable    *channels;
 };
 
-static void
-pkd_channels_finalize (GObject *object)
-{
-	PkdChannelsPrivate *priv;
-
-	priv = PKD_CHANNELS (object)->priv;
-
-	g_hash_table_destroy (priv->channels);
-	priv->channels = NULL;
-
-	G_OBJECT_CLASS (pkd_channels_parent_class)->finalize (object);
-}
-
-static void
-pkd_channels_class_init (PkdChannelsClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkd_channels_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdChannelsPrivate));
-
-	dbus_g_object_type_install_info (PKD_TYPE_CHANNELS, &dbus_glib_pkd_channels_object_info);
-}
-
-static void
-pkd_channels_init (PkdChannels *channels)
-{
-	channels->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channels),
-	                                              PKD_TYPE_CHANNELS,
-	                                              PkdChannelsPrivate);
-
-	g_static_rw_lock_init (&channels->priv->rw_lock);
-	channels->priv->channels = g_hash_table_new_full (g_int_hash, g_int_equal,
-	                                                  g_free, g_object_unref);
-}
-
 /**
  * pkd_channels_add:
  * @channels: A #PkdChannels
  *
- * Adds a new #PkdChannel.  The instance is exported onto the DBUS and
- * available remotely.
+ * Adds a new #PkdChannel.
  *
- * Return value: the newly created #PkdChannel instance which should be freed
- *   with g_object_unref().
+ * Return value: the newly created #PkdChannel instance.
+ *
+ * Side effects: The created channel is cached in the #PkdChannels instance
+ *   for future access.
  */
 PkdChannel*
 pkd_channels_add (PkdChannels *channels)
@@ -121,6 +85,9 @@ pkd_channels_add (PkdChannels *channels)
  *
  * Removes an existing #PkdChannel.  When the channel is freed, it will
  * automatically be removed from the DBUS.
+ *
+ * Side effects: Removes the #PkdChannel from the #PkdChannels channel
+ *   cache.
  */
 void
 pkd_channels_remove (PkdChannels *channels,
@@ -149,6 +116,8 @@ pkd_channels_remove (PkdChannels *channels,
  * Return value: a newly created #GList containing #PkdChannel<!-- -->'s.  The
  *   list should be freed by decrementing each item in the list with
  *   g_object_unref() and then g_list_free().
+ *
+ * Side effects: None
  */
 GList*
 pkd_channels_find_all (PkdChannels *channels)
@@ -178,6 +147,10 @@ pkd_channels_error_quark (void)
 {
 	return g_quark_from_static_string ("pkd-channels-error");
 }
+
+/**************************************************************************
+ *                         Private Methods                                *
+ **************************************************************************/
 
 static gboolean
 pkd_channels_add_dbus (PkdChannels  *channels,
@@ -259,4 +232,45 @@ pkd_channels_find_all_dbus (PkdChannels  *channels,
 	g_list_free (list);
 
 	return TRUE;
+}
+
+/**************************************************************************
+ *                         GObject Class Methods                          *
+ **************************************************************************/
+
+static void
+pkd_channels_finalize (GObject *object)
+{
+	PkdChannelsPrivate *priv;
+
+	priv = PKD_CHANNELS (object)->priv;
+
+	g_hash_table_destroy (priv->channels);
+	priv->channels = NULL;
+
+	G_OBJECT_CLASS (pkd_channels_parent_class)->finalize (object);
+}
+
+static void
+pkd_channels_class_init (PkdChannelsClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pkd_channels_finalize;
+	g_type_class_add_private (object_class, sizeof (PkdChannelsPrivate));
+
+	dbus_g_object_type_install_info (PKD_TYPE_CHANNELS, &dbus_glib_pkd_channels_object_info);
+}
+
+static void
+pkd_channels_init (PkdChannels *channels)
+{
+	channels->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channels),
+	                                              PKD_TYPE_CHANNELS,
+	                                              PkdChannelsPrivate);
+
+	g_static_rw_lock_init (&channels->priv->rw_lock);
+	channels->priv->channels = g_hash_table_new_full (g_int_hash, g_int_equal,
+	                                                  g_free, g_object_unref);
 }

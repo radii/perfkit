@@ -64,7 +64,7 @@ struct _PkdChannelsClass
 
 GType        pkd_channels_get_type    (void) G_GNUC_CONST;
 GQuark       pkd_channels_error_quark (void) G_GNUC_CONST;
-PkdChannel * pkd_channels_add         (PkdChannels *channels);
+PkdChannel*  pkd_channels_add         (PkdChannels *channels);
 void         pkd_channels_remove      (PkdChannels *channels,
                                        PkdChannel  *channel);
 GList*       pkd_channels_find_all    (PkdChannels *channels);
