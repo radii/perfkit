@@ -142,6 +142,11 @@ generate_channels (GIOChannel *channel)
 		g_io_channel_write_chars (channel, tmp, -1, NULL, NULL);
 		g_free (tmp);
 
+		tmp = g_strdup_printf ("state = %d\n",
+		                       (gint)pk_channel_get_state (iter->data));
+		g_io_channel_write_chars (channel, tmp, -1, NULL, NULL);
+		g_free (tmp);
+
 		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
 
