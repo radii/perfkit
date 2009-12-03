@@ -129,3 +129,19 @@ pk_channel_get_dir (PkChannel *channel)
 	return pk_connection_channel_get_dir (channel->priv->connection,
 	                                      channel->priv->channel_id);
 }
+
+/**
+ * pk_channel_get_env:
+ * @channel: 
+ *
+ * 
+ *
+ * Return value:
+ */
+gchar**
+pk_channel_get_env (PkChannel *channel)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
+	return pk_connection_channel_get_env (channel->priv->connection,
+	                                      channel->priv->channel_id);
+}
