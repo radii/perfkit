@@ -22,6 +22,7 @@
 #include <glib-object.h>
 
 #include "pk-connection.h"
+#include "pk-channel.h"
 
 G_BEGIN_DECLS
 
