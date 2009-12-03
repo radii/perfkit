@@ -36,11 +36,11 @@ static gchar    *log_file       = NULL;
 
 static GOptionEntry entries[] = {
 	{ "system", 0, 0, G_OPTION_ARG_NONE, &use_system_bus,
-	  "Use the system D-BUS", NULL },
+	  N_("Use the system D-BUS"), NULL },
 	{ "stdout", 0, 0, G_OPTION_ARG_NONE, &use_stdout,
-	  "Log to standard output", NULL },
+	  N_("Log to standard output"), NULL },
 	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &log_file,
-	  "Log to FILE", "FILE" },
+	  N_("Log to FILE"), "FILE" },
 	{ NULL }
 };
 
@@ -59,7 +59,7 @@ main (gint   argc,
 	textdomain (GETTEXT_PACKAGE);
 
 	/* parse command line arguments */
-	context = g_option_context_new ("- perfkit");
+	context = g_option_context_new (_("- performance monitoring daemon"));
 	g_option_context_add_main_entries (context, entries, GETTEXT_PACKAGE);
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_printerr ("%s\n", error->message);
