@@ -66,6 +66,8 @@ pkd_service_get_type (void)
  * returned.
  *
  * Return value: %TRUE on success.
+ *
+ * Side effects: The state machine of the service is altered.
  */
 gboolean
 pkd_service_start (PkdService  *service,
@@ -81,6 +83,8 @@ pkd_service_start (PkdService  *service,
  * @service: a #PkdService
  *
  * Stops the #PkdService.
+ *
+ * Side effects: The state machine of the service is altered.
  */
 void
 pkd_service_stop (PkdService *service)
@@ -94,10 +98,12 @@ pkd_service_stop (PkdService *service)
  * @service: a #PkdService
  * @error: a location for a #GError, or %NULL
  *
- * Stops the #PkdService.
+ * Initializes the #PkdService.
  *
  * Return value: %TRUE on success.  Upon failure, %FALSE is returned and
  *   @error is set.
+ *
+ * Side effects: Initial resources are allocated for the service.
  */
 gboolean
 pkd_service_initialize (PkdService  *service,
