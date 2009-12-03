@@ -137,6 +137,11 @@ generate_channels (GIOChannel *channel)
 		g_free (tmp);
 		g_strfreev (tmpv);
 
+		tmp = g_strdup_printf ("pid = %u\n",
+		                       (guint)pk_channel_get_pid (iter->data));
+		g_io_channel_write_chars (channel, tmp, -1, NULL, NULL);
+		g_free (tmp);
+
 		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
 
