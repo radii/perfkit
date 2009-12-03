@@ -33,6 +33,8 @@ gchar*        pk_connection_channel_get_target (PkConnection         *connection
                                                 gint                  channel_id);
 gchar**       pk_connection_channel_get_args   (PkConnection         *connection,
                                                 gint                  channel_id);
+gchar*        pk_connection_channel_get_dir    (PkConnection         *connection,
+                                                gint                  channel_id);
 
 G_END_DECLS
 

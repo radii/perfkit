@@ -52,6 +52,7 @@ GType   pk_channel_get_type   (void) G_GNUC_CONST;
 gint    pk_channel_get_id     (PkChannel *channel);
 gchar*  pk_channel_get_target (PkChannel *channel);
 gchar** pk_channel_get_args   (PkChannel *channel);
+gchar*  pk_channel_get_dir    (PkChannel *channel);
 
 G_END_DECLS
 
