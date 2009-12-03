@@ -23,6 +23,9 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#include <glib.h>
+#include <glib/gi18n.h>
+
 #include "pkd-channel.h"
 #include "pkd-channel-priv.h"
 #include "pkd-channel-glue.h"
@@ -37,8 +40,8 @@
  * @title: PkdChannel
  * @short_description: Perfkit data channels
  *
- * #PkdChannel represents a way to get data samples from a system.  It can
- * contain multiple #PkdSource<!-- -->'s.
+ * #PkdChannel is a funnel for multiple #PkdSource<!-- -->'s.  It allows for
+ * retrieving aggregated samples from sources.
  */
 
 static gboolean do_start (PkdChannel *channel, GError **error);
@@ -79,195 +82,6 @@ struct _PkdChannelPrivate
 static guint signals[SIGNAL_LAST] = {0,};
 static gint  channel_seq          = 0;
 
-static void
-pkd_channel_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (pkd_channel_parent_class)->finalize (object);
-}
-
-static void
-pkd_channel_set_property (GObject      *object,
-                          guint         prop_id,
-						  const GValue *value,
-						  GParamSpec   *pspec)
-{
-	switch (prop_id) {
-	case PROP_TARGET:
-		pkd_channel_set_target (PKD_CHANNEL (object),
-		                        g_value_get_string (value));
-		break;
-	case PROP_PID:
-		pkd_channel_set_pid (PKD_CHANNEL (object),
-		                     (GPid)g_value_get_uint (value));
-		break;
-	case PROP_ENV:
-		pkd_channel_set_env (PKD_CHANNEL (object),
-		                     g_value_get_boxed (value));
-		break;
-	case PROP_ARGS:
-		pkd_channel_set_args (PKD_CHANNEL (object),
-		                      g_value_get_boxed (value));
-		break;
-	case PROP_DIR:
-		pkd_channel_set_dir (PKD_CHANNEL (object),
-		                     g_value_get_string (value));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-	}
-}
-
-static void
-pkd_channel_get_property (GObject    *object,
-                          guint       prop_id,
-                          GValue     *value,
-                          GParamSpec *pspec)
-{
-	switch (prop_id) {
-	case PROP_TARGET:
-		g_value_take_string (value, pkd_channel_get_target (PKD_CHANNEL (object)));
-		break;
-	case PROP_PID:
-		g_value_set_uint (value, pkd_channel_get_pid (PKD_CHANNEL (object)));
-		break;
-	case PROP_ENV:
-		g_value_set_boxed (value, pkd_channel_get_env (PKD_CHANNEL (object)));
-		break;
-	case PROP_ARGS:
-		g_value_set_boxed (value, pkd_channel_get_args (PKD_CHANNEL (object)));
-		break;
-	case PROP_DIR:
-		g_value_take_string (value, pkd_channel_get_dir (PKD_CHANNEL (object)));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-	}
-}
-
-static void
-pkd_channel_class_init (PkdChannelClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->set_property = pkd_channel_set_property;
-	object_class->get_property = pkd_channel_get_property;
-	object_class->finalize = pkd_channel_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdChannelPrivate));
-
-	/**
-	 * PkdChannel:target:
-	 *
-	 * The "target" property.
-	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_TARGET,
-	                                 g_param_spec_string ("target",
-	                                                      "target",
-	                                                      "Target executable",
-	                                                      NULL,
-	                                                      G_PARAM_READWRITE));
-
-	/**
-	 * PkdChannel:dir:
-	 *
-	 * The "dir" property.
-	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_DIR,
-	                                 g_param_spec_string ("dir",
-	                                                      "dir",
-	                                                      "Target working directory",
-	                                                      NULL,
-	                                                      G_PARAM_READWRITE));
-
-	/**
-	 * PkdChannel:pid:
-	 *
-	 * The "pid" property.
-	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_PID,
-	                                 g_param_spec_uint ("pid",
-	                                                    "pid",
-	                                                    "Target process id",
-	                                                    0,
-	                                                    G_MAXINT,
-	                                                    0,
-	                                                    G_PARAM_READWRITE));
-
-	/**
-	 * PkdChannel:env:
-	 *
-	 * The "env" property.
-	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_ENV,
-	                                 g_param_spec_boxed ("env",
-	                                                     "env",
-	                                                     "Environment variables",
-	                                                     G_TYPE_STRV,
-	                                                     G_PARAM_READWRITE));
-
-	/**
-	 * PkdChannel:args:
-	 *
-	 * The "args" property.
-	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_ARGS,
-									 g_param_spec_boxed ("args",
-	                                                     "args",
-	                                                     "Target arguments",
-	                                                     G_TYPE_STRV,
-	                                                     G_PARAM_READWRITE));
-
-	/**
-	 * PkdChannel::sample-ready:
-	 * @channel: A #PkdChannel
-	 * @sample: A #PkdSample
-	 *
-	 * The "sample-ready" signal.
-	 */
-	signals [SAMPLE_READY] = g_signal_new ("sample-ready",
-	                                       PKD_TYPE_CHANNEL,
-	                                       G_SIGNAL_RUN_FIRST,
-	                                       0,
-	                                       NULL,
-	                                       NULL,
-	                                       g_cclosure_marshal_VOID__BOXED,
-	                                       G_TYPE_NONE,
-	                                       1,
-	                                       PKD_TYPE_SAMPLE);
-
-	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL, &dbus_glib_pkd_channel_object_info);
-}
-
-static void
-pkd_channel_init (PkdChannel *channel)
-{
-	gchar *path;
-
-	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
-	                                             PKD_TYPE_CHANNEL,
-	                                             PkdChannelPrivate);
-
-	channel->priv->state = PKD_CHANNEL_READY;
-	channel->priv->args = g_malloc0 (sizeof (gchar*));
-
-	/* generate unique identifier */
-	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
-	channel->priv->dir = g_strdup ("/");
-	channel->priv->sources = g_ptr_array_sized_new (16);
-
-	/* register the channel on the DBUS */
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
-	                        channel->priv->id);
-	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
-	                                     path, G_OBJECT (channel));
-	g_free (path);
-}
-
 /**
  * pkd_channel_get_dir:
  * @channel: A #PkdChannel
@@ -278,6 +92,8 @@ pkd_channel_init (PkdChannel *channel)
  * which you are responsible for freeing when you are done with g_free().
  *
  * Return value: a string which should be freed with g_free().
+ *
+ * Side effects: None
  */
 gchar *
 pkd_channel_get_dir (PkdChannel *channel)
@@ -302,6 +118,8 @@ pkd_channel_get_dir (PkdChannel *channel)
  * @dir: A string or %NULL
  *
  * Sets the "dir" property.
+ *
+ * Side effects: Sets the directory property of the channel.
  */
 void
 pkd_channel_set_dir (PkdChannel  *channel,
@@ -332,6 +150,8 @@ pkd_channel_set_dir (PkdChannel  *channel,
  * g_strfreev().
  *
  * Return value: a string array which should be freed with g_strfreev().
+ *
+ * Side effects: None
  */
 gchar **
 pkd_channel_get_args (PkdChannel *channel)
@@ -356,6 +176,8 @@ pkd_channel_get_args (PkdChannel *channel)
  * @args: A string array or %NULL
  *
  * Sets the "args" property.
+ *
+ * Side effects: Alters the arguments of the #PkChannel.
  */
 void
 pkd_channel_set_args (PkdChannel   *channel,
@@ -384,6 +206,8 @@ pkd_channel_set_args (PkdChannel   *channel,
  * Retreives the "pid" property.
  *
  * Return value: a GPid
+ *
+ * Side effects: None
  */
 GPid
 pkd_channel_get_pid (PkdChannel *channel)
@@ -398,6 +222,9 @@ pkd_channel_get_pid (PkdChannel *channel)
  * @pid: A #GPid
  *
  * Sets the "pid" property.
+ *
+ * Side effects: Alters the pid of the channel.  No side effects will occur
+ *   if the process was spawned.
  */
 void
 pkd_channel_set_pid (PkdChannel *channel,
@@ -410,7 +237,8 @@ pkd_channel_set_pid (PkdChannel *channel,
 	priv = channel->priv;
 
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
-	priv->pid = pid;
+	if (!priv->spawned)
+		priv->pid = pid;
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 
 	g_object_notify (G_OBJECT (channel), "pid");
@@ -428,6 +256,8 @@ pkd_channel_set_pid (PkdChannel *channel,
  * which you are responsible for freeing when you are done with g_free().
  *
  * Return value: a string which should be freed with g_free().
+ *
+ * Side effects: None
  */
 gchar *
 pkd_channel_get_target (PkdChannel* channel)
@@ -452,6 +282,9 @@ pkd_channel_get_target (PkdChannel* channel)
  * @target: A string or %NULL
  *
  * Sets the "target" property.
+ *
+ * Side effects: Alters the target of the #PkChannel.  No side effects will
+ *   occur if the process has already been spawned.
  */
 void
 pkd_channel_set_target (PkdChannel  *channel,
@@ -465,7 +298,8 @@ pkd_channel_set_target (PkdChannel  *channel,
 	priv = channel->priv;
 
 	target_copy = priv->target;
-	priv->target = g_strdup (target);
+	if (!priv->spawned)
+		priv->target = g_strdup (target);
 	g_free (target_copy);
 
 	g_object_notify (G_OBJECT (channel), "target");
@@ -482,6 +316,8 @@ pkd_channel_set_target (PkdChannel  *channel,
  * g_strfreev().
  *
  * Return value: a string array which should be freed with g_strfreev().
+ *
+ * Side effects: None
  */
 gchar **
 pkd_channel_get_env (PkdChannel* channel)
@@ -506,24 +342,29 @@ pkd_channel_get_env (PkdChannel* channel)
  * @env: A string array or %NULL
  *
  * Sets the "env" property.
+ *
+ * Side effects: Alters the environment of #PkChannel.  No side effects will
+ *   occur if the target has been spawned.
  */
 void
 pkd_channel_set_env (PkdChannel* channel,
                      const gchar ** env)
 {
-	PkdChannelPrivate *priv;
-	gchar **env_copy;
+	PkdChannelPrivate  *priv;
+	gchar             **env_copy = NULL;
 
 	g_return_if_fail (PKD_IS_CHANNEL (channel));
 
 	priv = channel->priv;
 
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
-	env_copy = priv->env;
-	priv->env = g_strdupv ((gchar**)env);
+	if (!priv->spawned) {
+		env_copy = priv->env;
+		priv->env = g_strdupv ((gchar**)env);
+	}
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
-	g_strfreev (env_copy);
 
+	g_strfreev (env_copy);
 	g_object_notify (G_OBJECT (channel), "env");
 }
 
@@ -535,6 +376,8 @@ pkd_channel_set_env (PkdChannel* channel,
  * to the running instance of the program.  Id's will be reused at next startup.
  *
  * Return value: the channel's identifier
+ *
+ * Side effects: None
  */
 gint
 pkd_channel_get_id (PkdChannel *channel)
@@ -552,6 +395,9 @@ pkd_channel_get_id (PkdChannel *channel)
  * cannot be started, %FALSE is returned and @error is set.
  *
  * Return value: %TRUE on success
+ *
+ * Side effects: Alters the state machine of the channel if the channel is in
+ *   the READY state.
  */
 gboolean
 pkd_channel_start (PkdChannel  *channel,
@@ -567,9 +413,8 @@ pkd_channel_start (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
-	case PKD_CHANNEL_READY:
-	case PKD_CHANNEL_PAUSED: {
-		g_message ("Starting channel %d", priv->id);
+	case PKD_CHANNEL_READY: {
+		g_message (_("Starting channel %d"), priv->id);
 		priv->state = PKD_CHANNEL_STARTED;
 		if (!(result = do_start (channel, error))) {
 			priv->state = PKD_CHANNEL_STOPPED;
@@ -579,7 +424,7 @@ pkd_channel_start (PkdChannel  *channel,
 	}
 	default:
 		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
-		             "Channel must be in ready or paused state to start");
+		             _("Channel must be in ready or paused state to start"));
 		result = FALSE;
 		break;
 	}
@@ -594,10 +439,13 @@ pkd_channel_start (PkdChannel  *channel,
  * @channel: A #PkdChannel
  * @error: A location for a #GError or %NULL
  *
- * Stops the #PkdChannel<!-- -->'s recording process.  If there was an error, then
- * %FALSE is returned and @error is set.
+ * Stops the #PkdChannel<!-- -->'s recording process.  If there was an error,
+ * then %FALSE is returned and @error is set.
  *
  * Return value: %TRUE on success
+ *
+ * Side effects: Alters the state machine of the channel if the channel is in
+ *   the READY, STARTED, or PAUSED state.
  */
 gboolean
 pkd_channel_stop (PkdChannel  *channel,
@@ -613,17 +461,18 @@ pkd_channel_stop (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
+	case PKD_CHANNEL_READY:
 	case PKD_CHANNEL_STARTED:
 	case PKD_CHANNEL_PAUSED: {
 		priv->state = PKD_CHANNEL_STOPPED;
-		g_message ("Stopping channel %d", priv->id);
+		g_message (_("Stopping channel %d"), priv->id);
 		do_stop (channel);
 		result = TRUE;
 		break;
 	}
 	default:
 		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
-		             "Channel must be in started or paused state to stop");
+		             _("Channel must be in started or paused state to stop"));
 		result = FALSE;
 		break;
 	}
@@ -645,6 +494,9 @@ pkd_channel_stop (PkdChannel  *channel,
  * been started again with pkd_channel_unpause().
  *
  * Return value: %TRUE on success
+ *
+ * Side effects: Alters the state machine of the channel if the channel is in
+ *   the STARTED state.
  */
 gboolean
 pkd_channel_pause (PkdChannel  *channel,
@@ -661,7 +513,7 @@ pkd_channel_pause (PkdChannel  *channel,
 
 	switch (priv->state) {
 	case PKD_CHANNEL_STARTED: {
-		g_message ("Pausing channel %d", priv->id);
+		g_message (_("Pausing channel %d"), priv->id);
 		priv->state = PKD_CHANNEL_PAUSED;
 		/* TODO: Pause Execution Hooks */
 		result = TRUE;
@@ -669,7 +521,7 @@ pkd_channel_pause (PkdChannel  *channel,
 	}
 	default:
 		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
-		             "The channel must be started before pausing");
+		             _("The channel must be started before pausing"));
 		result = FALSE;
 	}
 
@@ -692,6 +544,9 @@ pkd_channel_pause (PkdChannel  *channel,
  * See pkd_channel_pause() to pause a #PkdChannel.
  *
  * Return value: %TRUE on success
+ *
+ * Side effects: ALters the state machine of the channel if the channel is in
+ *   the PAUSED state.
  */
 gboolean
 pkd_channel_unpause (PkdChannel  *channel,
@@ -725,11 +580,33 @@ pkd_channel_unpause (PkdChannel  *channel,
 	return result;
 }
 
+/**
+ * pkd_channel_get_state:
+ * @channel: A #PkdChannel
+ *
+ * Retrieves the current state of the #PkdChannel as a #PkdChannelState
+ * enumeration.
+ *
+ * Return value: the current state of the channel
+ *
+ * Side effects: None
+ */
+PkdChannelState
+pkd_channel_get_state (PkdChannel *channel)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), -1);
+	return g_atomic_int_get (&channel->priv->state);
+}
+
 GQuark
 pkd_channel_error_quark (void)
 {
 	return g_quark_from_static_string ("pkd-channel-error-quark");
 }
+
+/**************************************************************************
+ *                          Protected Methods                             *
+ **************************************************************************/
 
 void
 pkd_channel_add_source (PkdChannel *channel,
@@ -990,18 +867,196 @@ pkd_channel_deliver (PkdChannel *channel,
 	               sample);
 }
 
-/**
- * pkd_channel_get_state:
- * @channel: A #PkdChannel
- *
- * Retrieves the current state of the #PkdChannel as a #PkdChannelState
- * enumeration.
- *
- * Return value: the current state of the channel
- */
-PkdChannelState
-pkd_channel_get_state (PkdChannel *channel)
+/**************************************************************************
+ *                        Private GObject Methods                         *
+ **************************************************************************/
+
+static void
+pkd_channel_finalize (GObject *object)
 {
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), -1);
-	return g_atomic_int_get (&channel->priv->state);
+	G_OBJECT_CLASS (pkd_channel_parent_class)->finalize (object);
+}
+
+static void
+pkd_channel_set_property (GObject      *object,
+                          guint         prop_id,
+						  const GValue *value,
+						  GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_TARGET:
+		pkd_channel_set_target (PKD_CHANNEL (object),
+		                        g_value_get_string (value));
+		break;
+	case PROP_PID:
+		pkd_channel_set_pid (PKD_CHANNEL (object),
+		                     (GPid)g_value_get_uint (value));
+		break;
+	case PROP_ENV:
+		pkd_channel_set_env (PKD_CHANNEL (object),
+		                     g_value_get_boxed (value));
+		break;
+	case PROP_ARGS:
+		pkd_channel_set_args (PKD_CHANNEL (object),
+		                      g_value_get_boxed (value));
+		break;
+	case PROP_DIR:
+		pkd_channel_set_dir (PKD_CHANNEL (object),
+		                     g_value_get_string (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+pkd_channel_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_TARGET:
+		g_value_take_string (value, pkd_channel_get_target (PKD_CHANNEL (object)));
+		break;
+	case PROP_PID:
+		g_value_set_uint (value, pkd_channel_get_pid (PKD_CHANNEL (object)));
+		break;
+	case PROP_ENV:
+		g_value_set_boxed (value, pkd_channel_get_env (PKD_CHANNEL (object)));
+		break;
+	case PROP_ARGS:
+		g_value_set_boxed (value, pkd_channel_get_args (PKD_CHANNEL (object)));
+		break;
+	case PROP_DIR:
+		g_value_take_string (value, pkd_channel_get_dir (PKD_CHANNEL (object)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+pkd_channel_class_init (PkdChannelClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class               = G_OBJECT_CLASS (klass);
+	object_class->set_property = pkd_channel_set_property;
+	object_class->get_property = pkd_channel_get_property;
+	object_class->finalize     = pkd_channel_finalize;
+	g_type_class_add_private (object_class, sizeof (PkdChannelPrivate));
+
+	/**
+	 * PkdChannel:target:
+	 *
+	 * The "target" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_TARGET,
+	                                 g_param_spec_string ("target",
+	                                                      "target",
+	                                                      "Target executable",
+	                                                      NULL,
+	                                                      G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:dir:
+	 *
+	 * The "dir" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_DIR,
+	                                 g_param_spec_string ("dir",
+	                                                      "dir",
+	                                                      "Target working directory",
+	                                                      NULL,
+	                                                      G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:pid:
+	 *
+	 * The "pid" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_PID,
+	                                 g_param_spec_uint ("pid",
+	                                                    "pid",
+	                                                    "Target process id",
+	                                                    0,
+	                                                    G_MAXINT,
+	                                                    0,
+	                                                    G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:env:
+	 *
+	 * The "env" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_ENV,
+	                                 g_param_spec_boxed ("env",
+	                                                     "env",
+	                                                     "Environment variables",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel:args:
+	 *
+	 * The "args" property.
+	 */
+	g_object_class_install_property (object_class,
+	                                 PROP_ARGS,
+									 g_param_spec_boxed ("args",
+	                                                     "args",
+	                                                     "Target arguments",
+	                                                     G_TYPE_STRV,
+	                                                     G_PARAM_READWRITE));
+
+	/**
+	 * PkdChannel::sample-ready:
+	 * @channel: A #PkdChannel
+	 * @sample: A #PkdSample
+	 *
+	 * The "sample-ready" signal.
+	 */
+	signals [SAMPLE_READY] = g_signal_new ("sample-ready",
+	                                       PKD_TYPE_CHANNEL,
+	                                       G_SIGNAL_RUN_FIRST,
+	                                       0,
+	                                       NULL,
+	                                       NULL,
+	                                       g_cclosure_marshal_VOID__BOXED,
+	                                       G_TYPE_NONE,
+	                                       1,
+	                                       PKD_TYPE_SAMPLE);
+
+	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL,
+	                                 &dbus_glib_pkd_channel_object_info);
+}
+
+static void
+pkd_channel_init (PkdChannel *channel)
+{
+	gchar *path;
+
+	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
+	                                             PKD_TYPE_CHANNEL,
+	                                             PkdChannelPrivate);
+
+	channel->priv->state = PKD_CHANNEL_READY;
+	channel->priv->args = g_malloc0 (sizeof (gchar*));
+
+	/* generate unique identifier */
+	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
+	channel->priv->dir = g_strdup ("/");
+	channel->priv->sources = g_ptr_array_sized_new (16);
+
+	/* register the channel on the DBUS */
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
+	                        channel->priv->id);
+	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
+	                                     path, G_OBJECT (channel));
+	g_free (path);
 }
