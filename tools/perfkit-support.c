@@ -113,7 +113,12 @@ generate_channels (GIOChannel *channel)
 		                       pk_channel_get_id (iter->data));
 		g_io_channel_write_chars (channel, tmp, -1, NULL, NULL);
 		g_free (tmp);
-		tmp = NULL;
+
+		tmp = pk_channel_get_target (iter->data);
+		write_kv (channel, "target", tmp);
+		g_free (tmp);
+
+		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
 
 	g_list_foreach (list, (GFunc)g_object_unref, NULL);
