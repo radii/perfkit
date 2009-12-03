@@ -125,6 +125,10 @@ generate_channels (GIOChannel *channel)
 		g_free (tmp);
 		g_strfreev (tmpv);
 
+		tmp = pk_channel_get_dir (iter->data);
+		write_kv (channel, "dir", tmp);
+		g_free (tmp);
+
 		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
 
