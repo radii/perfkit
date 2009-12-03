@@ -43,6 +43,23 @@ typedef enum
 	PKD_CHANNEL_ERROR_INVALID,
 } PkdChannelError;
 
+/**
+ * PkdChannelState:
+ * @PKD_CHANNEL_READY:
+ * @PKD_CHANNEL_STARTED:
+ * @PKD_CHANNEL_PAUSED:
+ * @PKD_CHANNEL_STOPPED:
+ *
+ * The "PkdChannelState" enumeration.
+ */
+typedef enum
+{
+	PKD_CHANNEL_READY,
+	PKD_CHANNEL_STARTED,
+	PKD_CHANNEL_PAUSED,
+	PKD_CHANNEL_STOPPED,
+} PkdChannelState;
+
 typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
 typedef struct _PkdChannelPrivate PkdChannelPrivate;
@@ -60,23 +77,24 @@ struct _PkdChannelClass
 	GObjectClass parent_class;
 };
 
-GType        pkd_channel_get_type    (void) G_GNUC_CONST;
-GQuark       pkd_channel_error_quark (void) G_GNUC_CONST;
-gint         pkd_channel_get_id      (PkdChannel *channel);
-gchar *      pkd_channel_get_dir     (PkdChannel *channel);
-void         pkd_channel_set_dir     (PkdChannel *channel, const gchar  *dir);
-gchar **     pkd_channel_get_args    (PkdChannel *channel);
-void         pkd_channel_set_args    (PkdChannel *channel, const gchar **args);
-GPid         pkd_channel_get_pid     (PkdChannel *channel);
-void         pkd_channel_set_pid     (PkdChannel *channel, GPid pid);
-gchar *      pkd_channel_get_target  (PkdChannel *channel);
-void         pkd_channel_set_target  (PkdChannel *channel, const gchar  *target);
-gchar **     pkd_channel_get_env     (PkdChannel *channel);
-void         pkd_channel_set_env     (PkdChannel *channel, const gchar **env);
-gboolean     pkd_channel_start       (PkdChannel *channel, GError      **error);
-gboolean     pkd_channel_stop        (PkdChannel *channel, GError      **error);
-gboolean     pkd_channel_pause       (PkdChannel *channel, GError      **error);
-gboolean     pkd_channel_unpause     (PkdChannel *channel, GError      **error);
+GType           pkd_channel_get_type    (void) G_GNUC_CONST;
+GQuark          pkd_channel_error_quark (void) G_GNUC_CONST;
+gint            pkd_channel_get_id      (PkdChannel *channel);
+gchar*          pkd_channel_get_dir     (PkdChannel *channel);
+void            pkd_channel_set_dir     (PkdChannel *channel, const gchar  *dir);
+gchar**         pkd_channel_get_args    (PkdChannel *channel);
+void            pkd_channel_set_args    (PkdChannel *channel, const gchar **args);
+GPid            pkd_channel_get_pid     (PkdChannel *channel);
+void            pkd_channel_set_pid     (PkdChannel *channel, GPid pid);
+gchar*          pkd_channel_get_target  (PkdChannel *channel);
+void            pkd_channel_set_target  (PkdChannel *channel, const gchar  *target);
+gchar**         pkd_channel_get_env     (PkdChannel *channel);
+void            pkd_channel_set_env     (PkdChannel *channel, const gchar **env);
+gboolean        pkd_channel_start       (PkdChannel *channel, GError      **error);
+gboolean        pkd_channel_stop        (PkdChannel *channel, GError      **error);
+gboolean        pkd_channel_pause       (PkdChannel *channel, GError      **error);
+gboolean        pkd_channel_unpause     (PkdChannel *channel, GError      **error);
+PkdChannelState pkd_channel_get_state   (PkdChannel *channel);
 
 G_END_DECLS
 

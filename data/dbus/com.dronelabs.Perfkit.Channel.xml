@@ -64,5 +64,9 @@
     <method name="Unpause">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_unpause"/>
     </method>
+    <method name="GetState">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_state_dbus"/>
+      <arg name="state" type="u" direction="out"/>
+    </method>
   </interface>
 </node>

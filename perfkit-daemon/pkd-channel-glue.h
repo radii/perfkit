@@ -8,3 +8,4 @@ static gboolean pkd_channel_get_dir_dbus (PkdChannel *channel, gchar **dir, GErr
 static gboolean pkd_channel_set_dir_dbus (PkdChannel *channel, gchar *dir, GError **error);
 static gboolean pkd_channel_get_pid_dbus (PkdChannel *channel, guint *pid, GError **error);
 static gboolean pkd_channel_set_pid_dbus (PkdChannel *channel, guint pid, GError **error);
+static gboolean pkd_channel_get_state_dbus (PkdChannel *channel, guint *v_uint, GError **error);

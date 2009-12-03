@@ -62,23 +62,6 @@ enum
 	SIGNAL_LAST
 };
 
-enum
-{
-	STATE_READY,    /* Channel has not been started, and can still be
-	                 * configured.
-					 */
-	STATE_STARTED,  /* Once started, this channel will create aggregate samples
-	                 * according to the recording frequency settings..
-					 */
-	STATE_STOPPED,  /* Once stopped, this channel is completed and no further
-	                 * processing can continue.
-					 */
-	STATE_PAUSED,   /* Channel was started, then paused.  This is the only
-	                 * non-initial state that can progress to STATE_STARTED.
-					 */
-	STATE_LAST
-};
-
 struct _PkdChannelPrivate
 {
 	GStaticRWLock   rw_lock;
@@ -269,7 +252,7 @@ pkd_channel_init (PkdChannel *channel)
 	                                             PKD_TYPE_CHANNEL,
 	                                             PkdChannelPrivate);
 
-	channel->priv->state = STATE_READY;
+	channel->priv->state = PKD_CHANNEL_READY;
 	channel->priv->args = g_malloc0 (sizeof (gchar*));
 
 	/* generate unique identifier */
@@ -584,12 +567,12 @@ pkd_channel_start (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
-	case STATE_READY:
-	case STATE_PAUSED: {
+	case PKD_CHANNEL_READY:
+	case PKD_CHANNEL_PAUSED: {
 		g_message ("Starting channel %d", priv->id);
-		priv->state = STATE_STARTED;
+		priv->state = PKD_CHANNEL_STARTED;
 		if (!(result = do_start (channel, error))) {
-			priv->state = STATE_STOPPED;
+			priv->state = PKD_CHANNEL_STOPPED;
 			result = FALSE;
 		}
 		break;
@@ -630,9 +613,9 @@ pkd_channel_stop (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
-	case STATE_STARTED:
-	case STATE_PAUSED: {
-		priv->state = STATE_STOPPED;
+	case PKD_CHANNEL_STARTED:
+	case PKD_CHANNEL_PAUSED: {
+		priv->state = PKD_CHANNEL_STOPPED;
 		g_message ("Stopping channel %d", priv->id);
 		do_stop (channel);
 		result = TRUE;
@@ -677,9 +660,9 @@ pkd_channel_pause (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
-	case STATE_STARTED: {
+	case PKD_CHANNEL_STARTED: {
 		g_message ("Pausing channel %d", priv->id);
-		priv->state = STATE_PAUSED;
+		priv->state = PKD_CHANNEL_PAUSED;
 		/* TODO: Pause Execution Hooks */
 		result = TRUE;
 		break;
@@ -724,9 +707,9 @@ pkd_channel_unpause (PkdChannel  *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
 	switch (priv->state) {
-	case STATE_PAUSED: {
+	case PKD_CHANNEL_PAUSED: {
 		g_message ("Unpausing channel %d", priv->id);
-		priv->state = STATE_STARTED;
+		priv->state = PKD_CHANNEL_STARTED;
 		/* TODO: Unpause Execution Hooks */
 		result = TRUE;
 		break;
@@ -874,6 +857,17 @@ pkd_channel_set_env_dbus (PkdChannel  *channel,
 }
 
 static gboolean
+pkd_channel_get_state_dbus (PkdChannel  *channel,
+                            guint       *v_uint,
+                            GError     **error)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (v_uint != NULL, FALSE);
+	*v_uint = pkd_channel_get_state (channel);
+	return TRUE;
+}
+
+static gboolean
 do_spawn (PkdChannel  *channel,
           GError     **error)
 {
@@ -994,4 +988,20 @@ pkd_channel_deliver (PkdChannel *channel,
 	               signals [SAMPLE_READY],
 	               0,
 	               sample);
+}
+
+/**
+ * pkd_channel_get_state:
+ * @channel: A #PkdChannel
+ *
+ * Retrieves the current state of the #PkdChannel as a #PkdChannelState
+ * enumeration.
+ *
+ * Return value: the current state of the channel
+ */
+PkdChannelState
+pkd_channel_get_state (PkdChannel *channel)
+{
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), -1);
+	return g_atomic_int_get (&channel->priv->state);
 }
