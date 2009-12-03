@@ -62,52 +62,70 @@ struct _PkConnectionClass
 {
 	GObjectClass parent_class;
 
-	gboolean (*connect)                  (PkConnection         *connection,
-	                                      GError              **error);
-	void     (*connect_async)            (PkConnection         *connection,
-	                                      GAsyncReadyCallback   callback,
-	                                      gpointer              user_data);
-	gboolean (*connect_finish)           (PkConnection         *connection,
-	                                      GAsyncResult         *result,
-	                                      GError              **error);
+	gboolean          (*connect)                  (PkConnection         *connection,
+	                                               GError              **error);
 
-	void     (*disconnect)               (PkConnection         *connection);
-	void     (*disconnect_async)         (PkConnection         *connection,
-	                                      GAsyncReadyCallback   callback,
-	                                      gpointer              user_data);
-	void     (*disconnect_finish)        (PkConnection         *connection,
-	                                      GAsyncResult         *result);
+	/*
+	 * Daemon Connection Implementation
+	 */
+	void              (*connect_async)            (PkConnection         *connection,
+	                                               GAsyncReadyCallback   callback,
+	                                               gpointer              user_data);
+	gboolean          (*connect_finish)           (PkConnection         *connection,
+	                                               GAsyncResult         *result,
+	                                               GError              **error);
 
-	gboolean (*channels_find_all)        (PkConnection         *connection,
-	                                      gint                **channel_ids,
-	                                      gint                 *n_channels);
-	void     (*channels_find_all_async)  (PkConnection         *connection,
-	                                      GAsyncReadyCallback   callback,
-	                                      gpointer              user_data);
-	gboolean (*channels_find_all_finish) (PkConnection         *connection,
-	                                      GAsyncResult         *result,
-	                                      gint                **channel_ids,
-	                                      gint                 *n_channels,
-	                                      GError              **error);
+	void              (*disconnect)               (PkConnection         *connection);
+	void              (*disconnect_async)         (PkConnection         *connection,
+	                                               GAsyncReadyCallback   callback,
+	                                               gpointer              user_data);
+	void              (*disconnect_finish)        (PkConnection         *connection,
+	                                               GAsyncResult         *result);
 
-	gchar*   (*channel_get_target)       (PkConnection         *connection,
-	                                      gint                  channel_id);
-	gchar**  (*channel_get_args)         (PkConnection         *connection,
-	                                      gint                  channel_id);
-	gchar*   (*channel_get_dir)          (PkConnection         *connection,
-	                                      gint                  channel_id);
-	gchar**  (*channel_get_env)          (PkConnection         *connection,
-	                                      gint                  channel_id);
-	GPid     (*channel_get_pid)          (PkConnection         *connection,
-	                                      gint                  channel_id);
-	PkChannelState
-	         (*channel_get_state)        (PkConnection         *connection,
-	                                      gint                  channel_id);
+	/*
+	 * Channels Service RPCs
+	 */
+	gboolean          (*channels_find_all)        (PkConnection         *connection,
+	                                               gint                **channel_ids,
+	                                               gint                 *n_channels);
+	void              (*channels_find_all_async)  (PkConnection         *connection,
+	                                               GAsyncReadyCallback   callback,
+	                                               gpointer              user_data);
+	gboolean          (*channels_find_all_finish) (PkConnection         *connection,
+	                                               GAsyncResult         *result,
+	                                               gint                **channel_ids,
+	                                               gint                 *n_channels,
+	                                               GError              **error);
+
+	/*
+	 * Channel RPCs
+	 */
+	gchar*            (*channel_get_target)       (PkConnection         *connection,
+	                                               gint                  channel_id);
+	gchar**           (*channel_get_args)         (PkConnection         *connection,
+	                                               gint                  channel_id);
+	gchar*            (*channel_get_dir)          (PkConnection         *connection,
+	                                               gint                  channel_id);
+	gchar**           (*channel_get_env)          (PkConnection         *connection,
+	                                               gint                  channel_id);
+	GPid              (*channel_get_pid)          (PkConnection         *connection,
+	                                               gint                  channel_id);
+	PkChannelState    (*channel_get_state)        (PkConnection         *connection,
+	                                               gint                  channel_id);
+
+	/*
+	 * Future Expansion
+	 */
+	gpointer          reserved [64];
 };
 
 GType         pk_connection_get_type           (void) G_GNUC_CONST;
 GQuark        pk_connection_error_quark        (void) G_GNUC_CONST;
 PkConnection* pk_connection_new_for_uri        (const gchar          *uri);
+
+/*
+ * Daemon Connection
+ */
 gboolean      pk_connection_connect            (PkConnection         *connection,
                                                 GError              **error);
 void          pk_connection_connect_async      (PkConnection         *connection,
@@ -122,6 +140,10 @@ void          pk_connection_disconnect_async   (PkConnection         *connection
                                                 gpointer              user_data);
 void          pk_connection_disconnect_finish  (PkConnection         *connection,
                                                 GAsyncResult         *result);
+
+/*
+ * Channels Service RPCs
+ */
 PkChannels*   pk_connection_get_channels       (PkConnection         *connection);
 
 G_END_DECLS
