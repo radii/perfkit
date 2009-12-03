@@ -51,6 +51,8 @@ static gboolean pk_connection_dbus_real_channels_find_all (PkConnection         
                                                            gint                 *n_channels);
 static gchar*   pk_connection_dbus_real_channel_get_target(PkConnection         *connection,
                                                            gint                  channel_id);
+static gchar**  pk_connection_dbus_real_channel_get_args  (PkConnection         *connection,
+                                                           gint                  channel_id);
 
 struct _PkConnectionDBusPrivate
 {
@@ -85,6 +87,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->disconnect_finish = pk_connection_dbus_real_disconnect_finish;
 	conn_class->channels_find_all = pk_connection_dbus_real_channels_find_all;
 	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;
+	conn_class->channel_get_args = pk_connection_dbus_real_channel_get_args;
 }
 
 static void
@@ -306,4 +309,23 @@ pk_connection_dbus_real_channel_get_target (PkConnection *connection,
 	g_object_unref (proxy);
 
 	return target;
+}
+
+static gchar**
+pk_connection_dbus_real_channel_get_args (PkConnection *connection,
+                                          gint          channel_id)
+{
+	PkConnectionDBusPrivate  *priv;
+	DBusGProxy               *proxy;
+	gchar                   **args = NULL;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), NULL);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_get_args (proxy, &args, NULL);
+	g_object_unref (proxy);
+
+	return args;
 }

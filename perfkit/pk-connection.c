@@ -224,3 +224,12 @@ pk_connection_channel_get_target (PkConnection *connection,
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channel_get_target (connection, channel_id);
 }
+
+gchar**
+pk_connection_channel_get_args (PkConnection *connection,
+                                gint          channel_id)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_get_args (connection, channel_id);
+}

@@ -97,3 +97,19 @@ pk_channel_get_target (PkChannel *channel)
 	return pk_connection_channel_get_target (channel->priv->connection,
 	                                         channel->priv->channel_id);
 }
+
+/**
+ * pk_channel_get_args:
+ * @channel: 
+ *
+ * 
+ *
+ * Return value:
+ */
+gchar**
+pk_channel_get_args (PkChannel *channel)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
+	return pk_connection_channel_get_args (channel->priv->connection,
+	                                       channel->priv->channel_id);
+}
