@@ -54,3 +54,6 @@ update-dbus:
 	dbus-binding-tool --mode=glib-client --prefix=pk_channels \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml \
 		--output=pk-channels-dbus.h
+	dbus-binding-tool --mode=glib-client --prefix=pk_channel \
+		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml \
+		--output=pk-channel-dbus.h
