@@ -21,6 +21,18 @@
 #include "pk-connection.h"
 #include "pk-connection-priv.h"
 
+/**
+ * SECTION:pk-channels
+ * @title: PkChannels
+ * @short_description: Perfkit channels service
+ *
+ * #PkChannels represents the channels service of a remove Perfkit daemon.
+ * It can be used to add, remove, and retrieve #PkChannel<!-- -->'s.
+ *
+ * A #PkChannels instance can be retrieved by calling
+ * pk_connection_get_channels() on a connected #PkConnection.
+ */
+
 G_DEFINE_TYPE (PkChannels, pk_channels, G_TYPE_OBJECT)
 
 struct _PkChannelsPrivate
