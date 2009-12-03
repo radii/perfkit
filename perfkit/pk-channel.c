@@ -69,11 +69,13 @@ pk_channel_new (PkConnection *connection,
 
 /**
  * pk_channel_get_id:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the identifier for the #PkChannel.
  *
- * Return value: 
+ * Return value: the channel identifier as an integer
+ *
+ * Side effects: None
  */
 gint
 pk_channel_get_id (PkChannel *channel)
@@ -84,11 +86,13 @@ pk_channel_get_id (PkChannel *channel)
 
 /**
  * pk_channel_get_target:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the target executable for the channel.
  *
- * Return value:
+ * Return value: the channel's target which should be freed with g_free().
+ *
+ * Side effects: None
  */
 gchar*
 pk_channel_get_target (PkChannel *channel)
@@ -100,11 +104,14 @@ pk_channel_get_target (PkChannel *channel)
 
 /**
  * pk_channel_get_args:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the arguments used for the target channel.
  *
- * Return value:
+ * Return value: a %NULL terminated #GStrv containing the arguments used for
+ *   the channel.  They should be freed using g_strfreev().
+ *
+ * Side effects: None
  */
 gchar**
 pk_channel_get_args (PkChannel *channel)
@@ -116,11 +123,14 @@ pk_channel_get_args (PkChannel *channel)
 
 /**
  * pk_channel_get_dir:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the working directory of the channel.
  *
- * Return value:
+ * Return value: the working directory as a string.  The string should
+ *   be freed with g_free().
+ *
+ * Side effects: None
  */
 gchar*
 pk_channel_get_dir (PkChannel *channel)
@@ -132,11 +142,14 @@ pk_channel_get_dir (PkChannel *channel)
 
 /**
  * pk_channel_get_env:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the environment variables of the #PkChannel.
  *
- * Return value:
+ * Return value: A #GStrv containing the environment variables in the format
+ *   KEY=VALUE.  It should be freed with g_strfreev().
+ *
+ * Side effects: None
  */
 gchar**
 pk_channel_get_env (PkChannel *channel)
@@ -148,11 +161,14 @@ pk_channel_get_env (PkChannel *channel)
 
 /**
  * pk_channel_get_pid:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the process id of the channel's target process.
  *
- * Return value:
+ * Return value: the #GPid of the target process or 0 if no process
+ *   has been spawned.
+ *
+ * Side effects: None
  */
 GPid
 pk_channel_get_pid (PkChannel *channel)
@@ -164,11 +180,13 @@ pk_channel_get_pid (PkChannel *channel)
 
 /**
  * pk_channel_get_state:
- * @channel: 
+ * @channel: A #PkChannel
  *
- * 
+ * Retrieves the state of the #PkChannel.
  *
- * Return value: 
+ * Return value: the #PkChannelState of the channel.
+ *
+ * Side effects: None
  */
 PkChannelState
 pk_channel_get_state (PkChannel *channel)
