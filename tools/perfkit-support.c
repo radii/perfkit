@@ -129,6 +129,14 @@ generate_channels (GIOChannel *channel)
 		write_kv (channel, "dir", tmp);
 		g_free (tmp);
 
+		tmpv = pk_channel_get_env (iter->data);
+		tmp = g_strjoinv ("', '", tmpv);
+		if (tmp && *tmp)
+			tmp = g_strdup_printf ("'%s'", tmp); /* Leak */
+		write_kv (channel, "env", tmp);
+		g_free (tmp);
+		g_strfreev (tmpv);
+
 		g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 	}
 
