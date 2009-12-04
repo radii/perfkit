@@ -454,6 +454,86 @@ pk_shell_cmd_channel_unpause (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+static EggLineStatus
+pk_shell_cmd_channel_set (EggLine  *line,
+                          gint      argc,
+                          gchar   **argv,
+                          GError  **error)
+{
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_get (EggLine  *line,
+                          gint      argc,
+                          gchar   **argv,
+                          GError  **error)
+{
+	PkChannel  *channel;
+	gint        channel_id = 0;
+	gchar      *tmp,
+	          **tmpv;
+
+	if (argc < 2)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	if (!pk_util_parse_int (argv [0], &channel_id))
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	if (!g_str_equal (argv [1], "target") &&
+	    !g_str_equal (argv [1], "args") &&
+	    !g_str_equal (argv [1], "env") &&
+	    !g_str_equal (argv [1], "pid") &&
+	    !g_str_equal (argv [1], "state"))
+	    return EGG_LINE_STATUS_BAD_ARGS;
+
+	channel = pk_channels_get (channels, channel_id);
+
+	if (g_str_equal (argv [1], "target")) {
+		g_print ("%s\n", pk_channel_get_target (channel));
+	}
+	else if (g_str_equal (argv [1], "args")) {
+		tmpv = pk_channel_get_args (channel);
+		tmp = g_strjoinv (" ", tmpv);
+		g_print ("%s\n", tmp);
+		g_strfreev (tmpv);
+		g_free (tmp);
+	}
+	else if (g_str_equal (argv [1], "env")) {
+		tmpv = pk_channel_get_env (channel);
+		tmp = g_strjoinv (" ", tmpv);
+		g_print ("%s\n", tmp);
+		g_strfreev (tmpv);
+		g_free (tmp);
+	}
+	else if (g_str_equal (argv [1], "pid")) {
+		g_print ("%u\n", pk_channel_get_pid (channel));
+	}
+	else if (g_str_equal (argv [1], "state")) {
+		switch (pk_channel_get_state (channel)) {
+		case PK_CHANNEL_READY:
+			g_print ("READY\n");
+			break;
+		case PK_CHANNEL_STOPPED:
+			g_print ("STOPPED\n");
+			break;
+		case PK_CHANNEL_PAUSED:
+			g_print ("PAUSED\n");
+			break;
+		case PK_CHANNEL_STARTED:
+			g_print ("STARTED\n");
+			break;
+		default:
+			g_warn_if_reached ();
+			break;
+		}
+	}
+
+	g_object_unref (channel);
+
+	return EGG_LINE_STATUS_OK;
+}
+
 static EggLineCommand channel_commands[] = {
 	{ "list", NULL, pk_shell_cmd_channel_list,
 	  N_("List perfkit channels"),
@@ -473,6 +553,12 @@ static EggLineCommand channel_commands[] = {
 	{ "unpause", NULL, pk_shell_cmd_channel_unpause,
 	  N_("Unpause the perfkit channel"),
 	  "channel unpause" },
+	{ "get", NULL, pk_shell_cmd_channel_get,
+	  N_("Retrieve channel properties"),
+	  "channel get [CHANNEL] [pid|target|args|env|state]" },
+	{ "set", NULL, pk_shell_cmd_channel_set,
+	  N_("Set channel properties"),
+	  "channel set [CHANNEL] [pid|target|args|env] [VALUE]" },
 	{ NULL }
 };
 
