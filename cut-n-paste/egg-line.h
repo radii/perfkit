@@ -36,7 +36,7 @@ G_BEGIN_DECLS
 typedef struct _EggLine         EggLine;
 typedef struct _EggLineClass    EggLineClass;
 typedef struct _EggLinePrivate  EggLinePrivate;
-typedef struct _EggLineEntry    EggLineEntry;
+typedef struct _EggLineCommand  EggLineCommand;
 
 typedef enum
 {
@@ -45,13 +45,13 @@ typedef enum
 	EGG_LINE_STATUS_FAILURE,
 } EggLineStatus;
 
-typedef EggLineEntry* (*EggLineGenerator) (EggLine   *line,
-                                           gint      *argc,
-                                           gchar   ***argv);
-typedef EggLineStatus (*EggLineCallback)  (EggLine  *line,
-                                           gint      argc,
-                                           gchar   **argv,
-                                           GError  **error);
+typedef EggLineCommand* (*EggLineGenerator) (EggLine   *line,
+                                             gint      *argc,
+                                             gchar   ***argv);
+typedef EggLineStatus   (*EggLineCallback)  (EggLine  *line,
+                                             gint      argc,
+                                             gchar   **argv,
+                                             GError  **error);
 
 struct _EggLine
 {
@@ -66,7 +66,7 @@ struct _EggLineClass
 	GObjectClass parent_class;
 };
 
-struct _EggLineEntry
+struct _EggLineCommand
 {
 	const gchar       *name;
 	EggLineGenerator   generator;
@@ -75,24 +75,26 @@ struct _EggLineEntry
 	const gchar       *usage;
 };
 
-GType         egg_line_get_type    (void) G_GNUC_CONST;
-EggLine*      egg_line_new         (void);
-EggLineEntry* egg_line_resolve     (EggLine              *line,
-                                    const gchar          *text,
-                                    gint                 *argc,
-                                    gchar              ***argv);
-void          egg_line_execute     (EggLine              *line,
-                                    const gchar          *text);
-void          egg_line_run         (EggLine              *line);
-void          egg_line_quit        (EggLine              *line);
-void          egg_line_set_entries (EggLine              *line,
-                                    const EggLineEntry   *entries);
-void          egg_line_set_prompt  (EggLine              *line,
-                                    const gchar          *prompt);
-void          egg_line_show_help   (EggLine              *line,
-                                    const EggLineEntry   *entries);
-void          egg_line_show_usage  (EggLine              *line,
-                                    const EggLineEntry   *entry);
+GType           egg_line_get_type     (void) G_GNUC_CONST;
+EggLine*        egg_line_new          (void);
+EggLineCommand* egg_line_resolve      (EggLine            *line,
+                                       const gchar          *text,
+                                       gint                 *argc,
+                                       gchar              ***argv);
+void            egg_line_execute      (EggLine              *line,
+                                       const gchar          *text);
+void            egg_line_execute_file (EggLine              *line,
+                                       const gchar          *filename);
+void            egg_line_run          (EggLine              *line);
+void            egg_line_quit         (EggLine              *line);
+void            egg_line_set_commands (EggLine              *line,
+                                       const EggLineCommand *entries);
+void            egg_line_set_prompt   (EggLine              *line,
+                                       const gchar          *prompt);
+void            egg_line_show_help    (EggLine              *line,
+                                       const EggLineCommand *entries);
+void            egg_line_show_usage   (EggLine              *line,
+                                       const EggLineCommand *entry);
 
 G_END_DECLS
 

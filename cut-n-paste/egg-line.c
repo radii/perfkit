@@ -18,6 +18,10 @@
  * 02110-1301 USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -25,13 +29,12 @@
 
 struct _EggLinePrivate
 {
-	EggLineEntry *entries;
-	gchar        *prompt;
-	gboolean      quit;
+	EggLineCommand *commands;
+	gchar          *prompt;
+	gboolean        quit;
 };
 
-static EggLineEntry empty[] =
-{
+static EggLineCommand empty[] = {
 	{ NULL }
 };
 
@@ -55,8 +58,9 @@ egg_line_finalize (GObject *object)
 static void
 egg_line_class_init (EggLineClass *klass)
 {
-	GObjectClass *object_class = G_OBJECT_CLASS (klass);
-	
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = egg_line_finalize;
 	g_type_class_add_private (object_class, sizeof (EggLinePrivate));
 
@@ -66,17 +70,16 @@ egg_line_class_init (EggLineClass *klass)
 	 *
 	 * The "missing" signal.
 	 */
-	signals [SIGNAL_MISSING] =
-		g_signal_new ("missing",
-		              EGG_TYPE_LINE,
-		              G_SIGNAL_RUN_LAST,
-		              0,
-		              NULL,
-		              NULL,
-		              g_cclosure_marshal_VOID__STRING,
-		              G_TYPE_NONE,
-		              1,
-		              G_TYPE_STRING);
+	signals [SIGNAL_MISSING] = g_signal_new ("missing",
+		                                     EGG_TYPE_LINE,
+		                                     G_SIGNAL_RUN_LAST,
+		                                     0,
+		                                     NULL,
+		                                     NULL,
+		                                     g_cclosure_marshal_VOID__STRING,
+		                                     G_TYPE_NONE,
+		                                     1,
+		                                     G_TYPE_STRING);
 }
 
 static void
@@ -93,29 +96,29 @@ static gchar*
 egg_line_generator (const gchar *text,
                     gint         state)
 {
-	EggLineEntry  *entry;
-	static gint    list_index,
-	               len   = 0,
-	               argc  = 0;
-	const gchar   *name;
-	gchar         *tmp,
-	             **argv  = NULL,
-	             **largv = NULL;
+	EggLineCommand  *command;
+	static gint      list_index,
+	                 len   = 0,
+	                 argc  = 0;
+	const gchar     *name;
+	gchar           *tmp,
+	               **argv  = NULL,
+	               **largv = NULL;
 
-	if (!current || !text || !current->priv->entries)
+	if (!current || !text || !current->priv->commands)
 		return NULL;
 
-	entry = egg_line_resolve (current, rl_line_buffer, &argc, &argv);
+	command = egg_line_resolve (current, rl_line_buffer, &argc, &argv);
 	largv = argv;
 
-	if (entry) {
-		if (entry->generator)
-			entry = entry->generator (current, &argc, &argv);
+	if (command) {
+		if (command->generator)
+			command = command->generator (current, &argc, &argv);
 		else
-			entry = empty;
+			command = empty;
 	}
 	else {
-		entry = current->priv->entries;
+		command = current->priv->commands;
 	}
 
 	if (argv && argv [0])
@@ -130,7 +133,7 @@ egg_line_generator (const gchar *text,
 
 	len = strlen (tmp);
 
-	while (NULL != (name = entry [list_index].name)) {
+	while (NULL != (name = command [list_index].name)) {
 		list_index++;
 		if ((g_ascii_strncasecmp (name, tmp, len) == 0)) {
 			return g_strdup (name);
@@ -212,19 +215,19 @@ egg_line_run (EggLine *line)
 }
 
 /**
- * egg_line_set_entries:
+ * egg_line_set_commands:
  * @line: A #EggLine
- * @entries: A %NULL terminated array of #EggLineEntry
+ * @entries: A %NULL terminated array of #EggLineCommand
  *
- * Sets the top-level set of #EggLineEntry<!-- -->'s to be completed
+ * Sets the top-level set of #EggLineCommand<!-- -->'s to be completed
  * during runtime.
  */
 void
-egg_line_set_entries (EggLine            *line,
-                      const EggLineEntry *entries)
+egg_line_set_commands (EggLine              *line,
+                       const EggLineCommand *entries)
 {
 	g_return_if_fail (EGG_IS_LINE (line));
-	line->priv->entries = (EggLineEntry*) entries;
+	line->priv->commands = (EggLineCommand*) entries;
 }
 
 /**
@@ -262,24 +265,24 @@ void
 egg_line_execute (EggLine     *line,
                   const gchar *text)
 {
-	EggLineStatus   result;
-	EggLineEntry   *entry;
-	GError         *error = NULL;
-	gchar         **argv  = NULL;
-	gint            argc  = 0;
+	EggLineStatus     result;
+	EggLineCommand   *command;
+	GError           *error = NULL;
+	gchar           **argv  = NULL;
+	gint              argc  = 0;
 
 	g_return_if_fail (EGG_IS_LINE (line));
 	g_return_if_fail (text != NULL);
 
-	entry = egg_line_resolve (line, text, &argc, &argv);
+	command = egg_line_resolve (line, text, &argc, &argv);
 
-	if (entry && entry->callback) {
-		result = entry->callback (line, argc, argv, &error);
+	if (command && command->callback) {
+		result = command->callback (line, argc, argv, &error);
 		switch (result) {
 		case EGG_LINE_STATUS_OK:
 			break;
 		case EGG_LINE_STATUS_BAD_ARGS:
-			egg_line_show_usage (line, entry);
+			egg_line_show_usage (line, command);
 			break;
 		case EGG_LINE_STATUS_FAILURE:
 			g_printerr ("EGG_LINE_ERROR: %s\n", error->message);
@@ -289,8 +292,8 @@ egg_line_execute (EggLine     *line,
 			break;
 		}
 	}
-	else if (entry && entry->usage) {
-		egg_line_show_usage (line, entry);
+	else if (command && command->usage) {
+		egg_line_show_usage (line, command);
 	}
 	else {
 		g_signal_emit (line, signals [SIGNAL_MISSING], 0, text);
@@ -300,29 +303,67 @@ egg_line_execute (EggLine     *line,
 }
 
 /**
+ * egg_line_execute_file:
+ * @line: An #EggLine
+ * @filename: a filename
+ *
+ * 
+ */
+void
+egg_line_execute_file (EggLine     *line,
+                       const gchar *filename)
+{
+	GIOChannel *channel;
+	GError     *error      = NULL;
+	gchar      *str_return = NULL;
+
+	g_return_if_fail (EGG_IS_LINE (line));
+
+	if (!(channel = g_io_channel_new_file (filename, "r", &error))) {
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		return;
+	}
+
+	while (G_IO_STATUS_NORMAL == g_io_channel_read_line (channel,
+	                                                     &str_return,
+	                                                     NULL,
+	                                                     NULL,
+	                                                     NULL)) {
+	    g_strstrip (str_return);
+
+	    if (!g_str_has_prefix (str_return, "#") && strlen (str_return))
+	    	egg_line_execute (line, str_return);
+	    g_free (str_return);
+	}
+
+	g_io_channel_unref (channel);
+}
+
+/**
  * egg_line_resolve:
  * @line: An #EggLine
  * @text: command text
  *
  * Resolves a command and arguments for @text.
  *
- * Return value: the instance of #EggLineEntry.  This value should not be
+ * Return value: the instance of #EggLineCommand.  This value should not be
  *   modified or freed.
  */
-EggLineEntry*
+EggLineCommand*
 egg_line_resolve (EggLine       *line,
                   const gchar   *text,
                   gint          *argc,
                   gchar       ***argv)
 {
-	EggLineEntry  *entry  = NULL,
-	              *tmp    = NULL,
-	              *result = NULL;
-	gchar        **largv  = NULL,
-	             **origv  = NULL;
-	gint           largc  = 0,
-	               i;
-	GError        *error  = NULL;
+	EggLineCommand  *command = NULL,
+	                *tmp     = NULL,
+	                *result  = NULL;
+	gchar          **largv   = NULL,
+	               **origv   = NULL;
+	gint             largc   = 0,
+	                 i;
+	GError          *error   = NULL;
 
 	g_return_val_if_fail (EGG_IS_LINE (line), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
@@ -342,17 +383,17 @@ egg_line_resolve (EggLine       *line,
 		return NULL;
 	}
 
-	entry = line->priv->entries;
+	command = line->priv->commands;
 	origv = largv;
 
-	for (i = 0; largv [0] && entry [i].name;) {
-		if (g_str_equal (largv [0], entry [i].name)) {
-			if (entry [i].generator) {
-				tmp = entry [i].generator (line, &largc, &largv);
+	for (i = 0; largv [0] && command [i].name;) {
+		if (g_str_equal (largv [0], command [i].name)) {
+			if (command [i].generator) {
+				tmp = command [i].generator (line, &largc, &largv);
 			}
 
-			result = &entry [i];
-			entry = tmp ? tmp : empty;
+			result = &command [i];
+			command = tmp ? tmp : empty;
 
 			i = 0;
 			largv = &largv [1];
@@ -375,16 +416,16 @@ egg_line_resolve (EggLine       *line,
 /**
  * egg_line_show_usage:
  * @line: An #EggLine
- * @entry: An #EggLineEntry
+ * @command: An #EggLineCommand
  *
- * Shows command usage for @entry.
+ * Shows command usage for @command.
  */
 void
-egg_line_show_usage (EggLine            *line,
-                     const EggLineEntry *entry)
+egg_line_show_usage (EggLine              *line,
+                     const EggLineCommand *command)
 {
 	g_return_if_fail (EGG_IS_LINE (line));
-	g_return_if_fail (entry != NULL);
+	g_return_if_fail (command != NULL);
 
-	g_print ("usage: %s\n", entry->usage ? entry->usage : "");
+	g_print ("usage: %s\n", command->usage ? command->usage : "");
 }
