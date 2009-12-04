@@ -21,387 +21,180 @@
 #endif
 
 #include <errno.h>
-#include <signal.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <readline/readline.h>
 
-#include <glib.h>
 #include <glib-object.h>
+#include <glib/gi18n.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
 
-#include <egg-line.h>
+#include <perfkit/perfkit.h>
+#include <perfkit-daemon/perfkit-daemon.h>
 
-#include "pk-channel-dbus.h"
-#include "pk-channels-dbus.h"
-#include "pk-source-dbus.h"
-#include "pk-sources-dbus.h"
+#include "egg-fmt.h"
+#include "egg-line.h"
 
-#include <perfkit-daemon/pkd-version.h>
+static EggFmtFunc    formatter  = NULL;
+static PkConnection *connection = NULL;
+static PkChannels   *channels   = NULL;
+static gboolean      opt_csv    = FALSE;
 
-#define REPORT_ERROR(e)     report_error (e, G_STRFUNC, __LINE__);
-#define PK_CHANNEL_FORMAT   "/com/dronelabs/Perfkit/Channels/%d"
-#define PK_CHANNEL_FORMAT_S "/com/dronelabs/Perfkit/Channels/%s"
-#define PK_CHANNEL_PREFIX   "/com/dronelabs/Perfkit/Channels/"
-
-static void          missing_cmd       (EggLine *line, const gchar *text, gpointer user_data);
-static void          execute_file      (EggLine *line, const gchar *filename);
-static EggLineEntry* channel_iter      (EggLine *line, gint *argc, gchar ***argv);
-static EggLineEntry* source_iter       (EggLine *line, gint *argc, gchar ***argv);
-static EggLineStatus ls_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus cd_cb             (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_show_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_list_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_add_cb    (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_remove_cb (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_set_cb    (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_get_cb    (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus version_cb        (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus help_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_start_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_stop_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_pause_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus channel_unpause_cb(EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus source_add_cb     (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus source_types_cb   (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus source_attach_cb  (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus quit_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus load_cb           (EggLine *line, gint  argc, gchar  **argv, GError **error);
-static EggLineStatus sleep_cb          (EggLine *line, gint  argc, gchar  **argv, GError **error);
-
-static gboolean use_system = FALSE;
-
-static GOptionEntry op_entries[] =
-{
-	{ "system", 's', 0, G_OPTION_ARG_NONE, &use_system, "", NULL },
+static GOptionEntry entries[] = {
+	{ "csv", 'c', 0, G_OPTION_ARG_NONE, &opt_csv,
+	  N_("Output comma-separated values"), NULL },
 	{ NULL }
 };
 
-static DBusGProxy      *channels  = NULL;
-static DBusGProxy      *sources   = NULL;
-static DBusGConnection *dbus_conn = NULL;
+/**************************************************************************
+ *                          Utility Functions                             *
+ **************************************************************************/
 
-static EggLineEntry entries[] =
+static gboolean
+pk_util_parse_int (const gchar *str,
+                   gint        *v_int)
 {
-	{ "channel",
-	  channel_iter,
-	  NULL,
-	  "Manage perfkit data channels\n"
-	  "\n"
-	  "Commands:\n"
-	  "  add     - Add a new data channel\n"
-	  "  remove  - Remove an existing data channel\n"
-	  "  show    - Display information on a data channel\n"
-	  "  set     - Set a data channel setting\n"
-	  "  get     - Get a data channel setting\n"
-	  "  start   - Start recording a data channel\n"
-	  "  stop    - Stop recording a data channel\n"
-	  "  pause   - Pause recording of a data channel\n"
-	  "  unpause - Unpause a paused data channel\n"
-	  "\n",
-	  "channel [add|remove|show|set|get|start|stop|pause|unpause]" },
-	{ "source",
-	  source_iter,
-	  NULL,
-	  "Manage perfkit data sources\n"
-	  "\n"
-	  "Commands:\n"
-	  "  add    - Add a new data source\n"
-	  "  attach - Attach a data source to a channel\n"
-	  "  remove - Remove an existing data source\n"
-	  "  list   - List all data sources\n"
-	  "  show   - Show an existing data source\n"
-	  "  types  - List data source types\n"
-	  "\n",
-	  "source [add|remove|list|show|attach|types]" },
-	{ "help",
-	  NULL,
-	  help_cb,
-	  "Get help on a command\n"
-	  "\n"
-	  "Usage:\n"
-	  "  help <command..>\n"
-	  "\n",
-	  "help <command>" },
-	{ "ls", NULL, ls_cb,
-	  "List the contents of the current directory\n"
-	  "\n"
-	  "Usage:\n"
-	  "  ls [OPTIONS] directory\n"
-	  "\n"
-	  "This command uses the host `ls' command.\n"
-	  "\n",
-	  "ls [OPTIONS] <directory>" },
-	{ "cd",
-	  NULL,
-	  cd_cb,
-	  "Change the current directory\n"
-	  "\n"
-	  "Usage:\n"
-	  "  cd <directory>\n"
-	  "\n",
-	  "cd <directory>" },
-	{ "version",
-	  NULL,
-	  version_cb,
-	  "Show the perfkit-shell version",
-	  "version" },
-	{ "quit",
-	  NULL,
-	  quit_cb,
-	  "Quit the perfkit-shell",
-	  "quit" },
-	{ "load", NULL, load_cb, "Load a batch file\n",
-	  "load [filename..]" },
-	{ "sleep", NULL, sleep_cb, "Sleep for a given number of seconds\n",
-	  "sleep N_SECONDS" },
-	{ NULL }
-};
+	g_return_val_if_fail (str != NULL, FALSE);
+	g_return_val_if_fail (v_int != NULL, FALSE);
 
-static EggLineEntry channel_entries[] =
-{
-	{ "list", NULL, channel_list_cb, "List perfkit data channels", NULL },
-	{ "show", NULL, channel_show_cb, "Show perfkit data channels", NULL },
-	{ "add", NULL, channel_add_cb, "Add a new perfkit data channel", NULL },
-	{ "remove", NULL, channel_remove_cb,
-	  "Remove an existing perfkit data channel",
-	  "channel remove <channel-id>" },
-	{ "set", NULL, channel_set_cb,
-	  "Set a data channel setting",
-	  "channel set <channel-id> [target|args|env|dir|pid] [setting]" },
-	{ "get", NULL, channel_get_cb,
-	  "Get a data channel setting",
-	  "channel get <channel-id> [target|args|env|dir|pid]" },
-	{ "start", NULL, channel_start_cb,
-	  "Start recording a data channel",
-	  "channel start <channel-id>" },
-	{ "stop", NULL, channel_stop_cb,
-	  "Stop recording a data channel",
-	  "channel stop <channel-id>" },
-	{ "pause", NULL, channel_pause_cb,
-	  "Pause recording of a data channel",
-	  "channel pause <channel-id>" },
-	{ "unpause", NULL, channel_unpause_cb,
-	  "Continue recording from a paused data channel",
-	  "channel unpause <channel-id>" },
-	{ NULL }
-};
+	errno = 0;
+	*v_int = strtol (str, NULL, 0);
 
-static EggLineEntry source_entries[] =
-{
-	{ "add", NULL, source_add_cb,
-	  "Add a new data source",
-	  "source add <source-type>" },
-	{ "types", NULL, source_types_cb,
-	  "List available data source types",
-	  "source types" },
-	{ "attach", NULL, source_attach_cb,
-	  "Attach a channel to a source",
-	  "source attach <source-id> <channel-id>" },
-	{ NULL }
-};
-
-gint
-main (gint   argc,
-      gchar *argv[])
-{
-	GOptionContext   *context;
-	GError           *error   = NULL;
-	EggLine          *line;
-	gint              bus, i;
-
-	/* TODO: This doesn't actually seem to work */
-	rl_catch_signals = 1;
-
-	/* parse command line arguments */
-	context = g_option_context_new ("- interactive perfkit shell");
-	g_option_context_add_main_entries (context, op_entries, GETTEXT_PACKAGE);
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_printerr ("%s\n", error->message);
-		g_error_free (error);
-		return EXIT_FAILURE;
+	if (errno != 0) {
+		*v_int = 0;
+		return FALSE;
 	}
 
-	/* initialize gobject */
-	g_type_init ();
-
-	/* connect to the DBUS */
-	bus = use_system ? DBUS_BUS_SYSTEM : DBUS_BUS_SESSION;
-	if (!(dbus_conn = dbus_g_bus_get (bus, &error))) {
-		g_printerr ("%s\n", error->message);
-		g_error_free (error);
-		return EXIT_FAILURE;
-	}
-
-	/* retrieve the proxy to the Channels service */
-	if (!(channels = dbus_g_proxy_new_for_name (
-					dbus_conn,
-					"com.dronelabs.Perfkit",
-					"/com/dronelabs/Perfkit/Channels",
-					"com.dronelabs.Perfkit.Channels")))
-	{
-		g_printerr ("Error connecting to perfkit channels service!\n");
-		return EXIT_FAILURE;
-	}
-
-	/* retrieve the proxy to the Sources service */
-	if (!(sources = dbus_g_proxy_new_for_name (
-					dbus_conn,
-					"com.dronelabs.Perfkit",
-					"/com/dronelabs/Perfkit/Sources",
-					"com.dronelabs.Perfkit.Sources")))
-	{
-		g_printerr ("Error connecting to perfkit sources service!\n");
-		return EXIT_FAILURE;
-	}
-
-	/* run the readline loop */
-	line = egg_line_new ();
-	egg_line_set_prompt (line, "perfkit> ");
-	egg_line_set_entries (line, entries);
-	g_signal_connect (line, "missing", G_CALLBACK (missing_cmd), NULL);
-
-	/* If any filenames were specified run them and exit */
-	if (argc > 1) {
-		for (i = 1; i < argc; i++) {
-			if (g_file_test (argv [i], G_FILE_TEST_IS_REGULAR))
-				execute_file (line, argv [i]);
-			else
-				g_printerr ("Invalid file \"%s\".\n", argv [i]);
-		}
-	}
-	else {
-		egg_line_run (line);
-	}
-
-	return EXIT_SUCCESS;
-}
-
-static void
-execute_file (EggLine     *line,
-              const gchar *filename)
-{
-	GFile            *file;
-	GInputStream     *stream;
-	GDataInputStream *reader;
-	gchar            *str;
-	GError           *error = NULL;
-
-	file = g_file_new_for_path (filename);
-
-	if (!(stream = (GInputStream*)g_file_read (file, NULL, &error))) {
-		g_printerr ("Error reading \"%s\": %s\n",
-		            filename, error->message);
-		g_error_free (error);
-		error = NULL;
-	}
-	else {
-		reader = g_data_input_stream_new (stream);
-		while (NULL != (str = g_data_input_stream_read_line (reader,
-		                                                     NULL,
-		                                                     NULL,
-		                                                     &error)))
-		{
-			/* ignore blank and comment lines */
-			if (strlen (g_strstrip (str)) == 0)
-				continue;
-			else if (g_str_has_prefix (str, "#"))
-				continue;
-
-			/* execute the command */
-			g_print ("perfkit> %s\n", str);
-			egg_line_execute (line, str);
-			g_free (str);
-		}
-
-		if (error) {
-			g_printerr ("Error reading \"%s\": %s\n",
-			            filename, error->message);
-			g_error_free (error);
-			error = NULL;
-		}
-
-		g_object_unref (reader);
-		g_object_unref (stream);
-	}
-
-	g_object_unref (file);
+	return TRUE;
 }
 
 static gboolean
-parse_int (const gchar *str,
-           gint        *v_int)
+pk_shell_connect (const gchar  *uri,
+                  GError      **error)
 {
-	gchar *endptr = NULL;
+	PkConnection *_connection;
+	PkChannels   *_channels;
 
-	errno = 0;
-	*v_int = strtol (str, &endptr, 0);
-	if (endptr == str || errno != 0)
+	g_return_val_if_fail (uri != NULL, FALSE);
+
+	_connection = pk_connection_new_for_uri (uri);
+
+	if (!pk_connection_connect (_connection, error))
 		return FALSE;
+
+	_channels = pk_connection_get_channels (_connection);
+
+	if (connection)
+		g_object_unref (connection);
+	connection = _connection;
+
+	if (channels)
+		g_object_unref (channels);
+	channels = _channels;
+
 	return TRUE;
 }
 
 static void
-report_error (GError       *error,
-              const gchar  *func,
-              gint          line)
+pk_shell_missing_cb (EggLine     *line,
+                     const gchar *command,
+                     gpointer     user_data)
 {
-	time_t    t;
-	struct tm tt;
-
-	g_return_if_fail (error != NULL);
-
-	t = time (NULL);
-	tt = *localtime (&t);
-
-	g_printerr ("ERROR REPORT\n"
-	            "  Date and Time..: %s" /* XXX: asctime includes \n */
-	            "  Domain.........: %s\n"
-	            "  Code...........: %d\n"
-	            "  Message........: %s\n"
-	            "  File...........: %s\n"
-	            "  Method.........: %s\n"
-	            "  Line...........: %d\n",
-	            asctime (&tt),
-	            g_quark_to_string (error->domain),
-	            error->code,
-	            error->message,
-	            __FILE__,
-	            func,
-	            line);
+	g_printerr (_("Command not found: %s\n"), command);
 }
 
-static void
-missing_cmd (EggLine     *line,
-             const gchar *text,
-             gpointer     user_data)
+static gboolean
+pk_util_channels_iter (EggFmtIter *iter,
+                       gpointer    user_data)
 {
-	g_printerr ("Command not found: %s\n", text);
+	PkChannel *channel;
+	GList     *list;
+	gint       i;
+
+	if (!user_data)
+		return FALSE;
+
+	/* initialize our iter */
+	if (!iter->user_data2) {
+		iter->user_data2 = user_data;
+		iter->user_data = user_data;
+	}
+
+	/* we are finished if the list is empty */
+	if (!iter->user_data)
+		return FALSE;
+
+	list = iter->user_data;
+	channel = list->data;
+
+	if (!channel)
+		return FALSE;
+
+	/* load the data into the columns */
+	for (i = 0; i < iter->n_columns; i++) {
+		if (0 == g_ascii_strcasecmp (iter->column_names [i], "id")) {
+			g_value_set_int (&iter->column_values [i],
+			                 pk_channel_get_id (channel));
+		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "pid")) {
+			g_value_set_int (&iter->column_values [i],
+			                 pk_channel_get_pid (channel));
+		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "target")) {
+			g_value_take_string (&iter->column_values [i],
+			                     pk_channel_get_target (channel));
+		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "arguments")) {
+			g_value_take_boxed (&iter->column_values [i],
+			                    pk_channel_get_args (channel));
+		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "state")) {
+			switch (pk_channel_get_state (channel)) {
+			case PK_CHANNEL_READY:
+				g_value_set_string (&iter->column_values [i], "READY");
+				break;
+			case PK_CHANNEL_STARTED:
+				g_value_set_string (&iter->column_values [i], "STARTED");
+				break;
+			case PK_CHANNEL_PAUSED:
+				g_value_set_string (&iter->column_values [i], "PAUSED");
+				break;
+			case PK_CHANNEL_STOPPED:
+				g_value_set_string (&iter->column_values [i], "STOPPED");
+				break;
+			default:
+				g_value_set_string (&iter->column_values [i], "?");
+				break;
+			}
+		}
+		else {
+			g_warn_if_reached ();
+		}
+	}
+
+	/* move to the next position */
+	iter->user_data = g_list_next (iter->user_data);
+
+	return TRUE;
 }
 
-static EggLineEntry*
-channel_iter (EggLine   *line,
-              gint      *argc,
-              gchar   ***argv)
-{
-	return channel_entries;
-}
+/**************************************************************************
+ *                        Perfkit Shell Commands                          *
+ **************************************************************************/
 
-static EggLineEntry*
-source_iter (EggLine   *line,
-             gint      *argc,
-             gchar   ***argv)
+static EggLineStatus
+pk_shell_cmd_quit (EggLine  *line,
+                   gint      argc,
+                   gchar   **argv,
+                   GError  **error)
 {
-	return source_entries;
+	egg_line_quit (line);
+	return EGG_LINE_STATUS_OK;
 }
 
 static EggLineStatus
-ls_cb (EggLine  *line,
-       gint      argc,
-       gchar   **argv,
-       GError  **error)
+pk_shell_cmd_ls (EggLine  *line,
+                 gint      argc,
+                 gchar   **argv,
+                 GError  **error)
 {
 	EggLineStatus   result = EGG_LINE_STATUS_OK;
 	gchar         **cmd;
@@ -425,9 +218,7 @@ ls_cb (EggLine  *line,
 	                   &output,
 	                   NULL,
 	                   NULL,
-	                   error))
-	{
-		REPORT_ERROR (*error);
+	                   error)) {
 		result = EGG_LINE_STATUS_FAILURE;
 	}
 	else {
@@ -441,10 +232,10 @@ ls_cb (EggLine  *line,
 }
 
 static EggLineStatus
-cd_cb (EggLine  *line,
-       gint      argc,
-       gchar   **argv,
-       GError  **error)
+pk_shell_cmd_cd (EggLine  *line,
+                 gint      argc,
+                 gchar   **argv,
+                 GError  **error)
 {
 	if (argc == 0 || !argv [0] || !strlen (argv [0]))
 		g_chdir (g_get_home_dir ());
@@ -454,754 +245,327 @@ cd_cb (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
-static void
-print_columns (const gchar *first_column, ...)
-{
-	va_list  args;
-	gchar   *name;
-	gint     len,
-	         i;
-	GString *title,
-	        *sep;
-
-	g_return_if_fail (first_column != NULL);
-
-	sep = g_string_new ("+");
-	title = g_string_new ("|");
-
-	va_start (args, first_column);
-	name = (gchar*)first_column;
-
-	while (name) {
-		len = va_arg (args, gint);
-		for (i = -2; i < len; i++)
-			g_string_append (sep, "-");
-		g_string_append (sep, "+");
-		g_string_append (title, " ");
-		g_string_append (title, name);
-		for (i = 0; i < (len - strlen (name)); i++)
-			g_string_append (title, " ");
-		g_string_append (title, " |");
-		name = va_arg (args, gchar*);
-	}
-
-	g_print ("%s\n%s\n%s\n", sep->str, title->str, sep->str);
-
-	g_string_free (title, TRUE);
-	g_string_free (sep, TRUE);
-}
-
-typedef struct
-{
-	gint    id;
-	GPid    pid;
-	gchar  *target;
-	gchar  *args;
-} PkChannelCache;
-
-static void
-pk_channel_printv (gchar **paths)
-{
-	DBusGProxy      *proxy;
-	gint             i,
-	                 target_len = 0,
-	                 args_len = 0;
-	GList           *list = NULL,
-	                *iter;
-	PkChannelCache  *cache;
-	const gchar     *id_str;
-	gchar          **tmp = NULL,
-	                *tmps;
-
-	g_return_if_fail (paths != NULL);
-
-	if (!paths [0]) {
-		g_print ("No channels found.\n");
-		return;
-	}
-
-	for (i = 0; paths [i]; i++) {
-		id_str = g_strrstr (paths [i], "/");
-		if (id_str)
-			id_str++;
-		else
-			id_str = "0";
-		proxy = dbus_g_proxy_new_for_name (dbus_conn,
-		                                   "com.dronelabs.Perfkit",
-		                                   paths [i],
-		                                   "com.dronelabs.Perfkit.Channel");
-		tmps = NULL;
-		cache = g_slice_new0 (PkChannelCache);
-		if (!com_dronelabs_Perfkit_Channel_get_pid (proxy, (guint*)&cache->pid, NULL))
-			continue;
-		com_dronelabs_Perfkit_Channel_get_target (proxy, &tmps, NULL);
-		com_dronelabs_Perfkit_Channel_get_args (proxy, &tmp, NULL);
-		if (!tmp)
-			cache->args = g_strdup ("");
-		else
-			cache->args = g_strjoinv (" ", tmp);
-		g_strfreev (tmp);
-		tmp = NULL;
-		cache->id = strtol (id_str, NULL, 10);
-		if (!tmps)
-			tmps = g_strdup ("");
-		cache->target = g_strdup (tmps);
-		g_free (tmps);
-		tmps = NULL;
-		list = g_list_prepend (list, cache);
-		g_object_unref (proxy);
-		if (cache->target && strlen (cache->target) > target_len)
-			target_len = strlen (cache->target);
-		if (cache->args && strlen (cache->args) > args_len)
-			args_len = strlen (cache->args);
-	}
-
-	if (target_len < 8)
-		target_len = 8;
-
-	if (args_len < 8)
-		args_len = 8;
-
-	print_columns ("ID", 4, "Pid", 5, "Target", target_len, "Args", args_len, NULL);
-
-	for (iter = list; iter; iter = iter->next) {
-		cache = iter->data;
-		g_print ("| %- 4d | %-5d | %s", cache->id, cache->pid, cache->target);
-		for (i = strlen (cache->target); i < target_len; i++)
-			g_print (" ");
-		g_print (" | %s", cache->args);
-		for (i = strlen (cache->args); i < args_len; i++)
-			g_print (" ");
-		g_print (" |\n");
-		g_free (cache->target);
-		g_free (cache->args);
-		g_slice_free (PkChannelCache, cache);
-	}
-
-	g_list_free (list);
-
-	g_print ("+------+-------+");
-	for (i = -2; i < target_len; i++)
-		g_print ("-");
-	g_print ("+");
-	for (i = -2; i < args_len; i++)
-		g_print ("-");
-	g_print ("+\n");
-}
-
-static void
-pk_channel_print (const gchar *path)
-{
-	gchar **paths;
-
-	paths = g_malloc0 (sizeof (gchar*) * 2);
-	paths [0] = g_strdup (path);
-	pk_channel_printv (paths);
-	g_strfreev (paths);
-}
-
 static EggLineStatus
-channel_show_cb (EggLine  *line,
-                 gint      argc,
-                 gchar   **argv,
-                 GError  **error)
+pk_shell_cmd_version (EggLine  *line,
+                      gint      argc,
+                      gchar   **argv,
+                      GError  **error)
 {
-	gchar *path;
-	gint   id = 0, i;
-
-	if (argc < 1)
-		return channel_list_cb (line, argc, argv, error);
-
-	for (i = 0; i < argc; i++) {
-		if (parse_int (argv [i], &id)) {
-			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-			pk_channel_print (path);
-			g_free (path);
-		}
-		else {
-			g_printerr ("Channel \"%s\" could not be found.\n", argv [i]);
-		}
-	}
-
+	/* TODO: Add Admin Service to the Daemon
+	 *       and retrieve the remote version.
+	 */
+	g_print ("Protocol:  %s\n", PK_VERSION_S);
+	g_print ("Daemon:    %s\n", PKD_VERSION_S);
 	return EGG_LINE_STATUS_OK;
 }
 
 static EggLineStatus
-channel_list_cb (EggLine  *line,
-                 gint      argc,
-                 gchar   **argv,
-                 GError  **error)
-{
-	GPtrArray  *paths = NULL;
-
-	if (!com_dronelabs_Perfkit_Channels_find_all (channels, &paths, error)) {
-		REPORT_ERROR (*error);
-		return EGG_LINE_STATUS_FAILURE;
-	}
-
-	/* add a NULL terminator to make the buffer a GStrv */
-	g_ptr_array_add (paths, NULL);
-	pk_channel_printv ((gpointer)paths->pdata);
-	g_ptr_array_unref (paths);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-channel_add_cb (EggLine  *line,
-                gint      argc,
-                gchar   **argv,
-                GError  **error)
-{
-	gchar *path = NULL;
-
-	/* TODO: Support specifying properties */
-
-	if (!com_dronelabs_Perfkit_Channels_add (channels, &path, error)) {
-		REPORT_ERROR (*error);
-		return EGG_LINE_STATUS_FAILURE;
-	}
-
-	pk_channel_print (path);
-	g_free (path);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-channel_remove_cb (EggLine  *line,
+pk_shell_cmd_help (EggLine  *line,
                    gint      argc,
                    gchar   **argv,
                    GError  **error)
 {
-	EggLineStatus  result = EGG_LINE_STATUS_OK;
-	gchar         *path   = NULL;
-	gint           id     = 0;
-
-	if (argc < 1 || !strlen (argv [0]))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!parse_int (argv [0], &id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-
-	if (!com_dronelabs_Perfkit_Channels_remove (channels, path, error)) {
-		REPORT_ERROR (*error);
-		result = EGG_LINE_STATUS_FAILURE;
-		goto cleanup;
-	}
-
-	g_print ("Channel %d removed.\n", id);
-
-cleanup:
-	g_free (path);
-
-	return result;
-}
-
-static EggLineStatus
-channel_get_cb (EggLine  *line,
-                gint      argc,
-                gchar   **argv,
-                GError  **error)
-{
-	EggLineStatus   result = EGG_LINE_STATUS_OK;
-	gint            id     = 0,
-	                i,
-		            v_int  = 0;
-	gchar          *v_str  = NULL,
-	              **v_strv = NULL,
-	               *path;
-	DBusGProxy     *channel;
-
-	if (argc < 2)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!parse_int (argv [0], &id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!argv [1] || strlen (argv [1]) == 0)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!g_str_equal ("target", argv [1]) &&
-	    !g_str_equal ("args", argv [1]) &&
-	    !g_str_equal ("env", argv [1]) &&
-	    !g_str_equal ("dir", argv [1]) &&
-	    !g_str_equal ("pid", argv [1]))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-	channel = dbus_g_proxy_new_for_name (dbus_conn,
-	                                     "com.dronelabs.Perfkit",
-	                                     path,
-	                                     "com.dronelabs.Perfkit.Channel");
-
-#define PRINT_SHELL_STR(s) G_STMT_START { \
-	gchar *tmp = g_strescape ((s), NULL); \
-	g_print ("%s\n", tmp); \
-	g_free (tmp); \
-} G_STMT_END
-
-	if (g_str_equal ("target", argv [1])) {
-	    if (com_dronelabs_Perfkit_Channel_get_target (channel, &v_str, error)) {
-	    	PRINT_SHELL_STR (v_str);
-	    	g_free (v_str);
-		}
-		else {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("pid", argv [1])) {
-		if (com_dronelabs_Perfkit_Channel_get_pid (channel, (guint*)&v_int, error)) {
-			g_print ("%d\n", v_int);
-		}
-		else {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("args", argv [1])) {
-		if (com_dronelabs_Perfkit_Channel_get_args (channel, &v_strv, error)) {
-			for (i = 0; v_strv [i]; i++)
-				g_print ("%s ", v_strv [i]);
-			g_print ("\n");
-			g_strfreev (v_strv);
-		}
-		else {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("env", argv [1])) {
-		if (com_dronelabs_Perfkit_Channel_get_env (channel, &v_strv, error)) {
-			for (i = 0; v_strv [i]; i++)
-				g_print ("%s ", v_strv [i]);
-			g_print ("\n");
-			g_strfreev (v_strv);
-		}
-		else {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("dir", argv [1])) {
-		if (com_dronelabs_Perfkit_Channel_get_dir (channel, &v_str, error)) {
-			PRINT_SHELL_STR (v_str);
-	    	g_free (v_str);
-		}
-		else {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-
-	g_object_unref (channel);
-	g_free (path);
-
-	return result;
-}
-
-static EggLineStatus
-channel_set_cb (EggLine  *line,
-                gint      argc,
-                gchar   **argv,
-                GError  **error)
-{
-	EggLineStatus  result = EGG_LINE_STATUS_OK;
-	gint           id     = 0;
-	DBusGProxy    *channel;
-	gchar         *path;
-	GPid           pid    = (GPid)0;
-
-	if (argc < 3)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!parse_int (argv [0], &id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!g_str_equal ("target", argv [1]) &&
-	    !g_str_equal ("args", argv [1]) &&
-	    !g_str_equal ("env", argv [1]) &&
-	    !g_str_equal ("dir", argv [1]) &&
-	    !g_str_equal ("pid", argv [1]))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-	channel = dbus_g_proxy_new_for_name (dbus_conn,
-	                                     "com.dronelabs.Perfkit",
-	                                     path,
-	                                     "com.dronelabs.Perfkit.Channel");
-	g_free (path);
-
-	if (g_str_equal ("target", argv [1])) {
-		if (!com_dronelabs_Perfkit_Channel_set_target (channel, argv [2], error)) {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("args", argv [1])) {
-		if (!com_dronelabs_Perfkit_Channel_set_args (channel, (const gchar**)&argv [2], error)) {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("env", argv [1])) {
-		if (!com_dronelabs_Perfkit_Channel_set_env (channel, (const gchar**)&argv [2], error)) {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("dir", argv [1])) {
-		if (!com_dronelabs_Perfkit_Channel_set_dir (channel, argv [2], error)) {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else if (g_str_equal ("pid", argv [1])) {
-		if (!parse_int (argv [2], &pid)) {
-			result = EGG_LINE_STATUS_FAILURE;
-			goto cleanup;
-		}
-		if (!com_dronelabs_Perfkit_Channel_set_pid (channel, pid, error)) {
-			REPORT_ERROR (*error);
-			result = EGG_LINE_STATUS_FAILURE;
-		}
-	}
-	else g_warn_if_reached ();
-
-cleanup:
-	g_object_unref (channel);
-
-	return result;
-}
-
-static EggLineStatus
-version_cb (EggLine  *line,
-            gint      argc,
-            gchar   **argv,
-            GError  **error)
-{
-	g_print ("%s\n", PKD_VERSION_S);
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-quit_cb (EggLine  *line,
-         gint      argc,
-         gchar   **argv,
-         GError  **error)
-{
-	egg_line_quit (line);
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-help_cb (EggLine  *line,
-         gint      argc,
-         gchar   **argv,
-         GError  **error)
-{
-	EggLineEntry  *entry;
-	gchar         *path;
+	EggLineCommand *command;
+	gchar          *path;
 
 	if (argc < 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	path = g_strjoinv (" ", argv);
-	entry = egg_line_resolve (line, path, NULL, NULL);
+	command = egg_line_resolve (line, path, NULL, NULL);
 	g_free (path);
 
-	if (!entry)
+	if (!command)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	if (entry->help)
-		g_print ("%s\n", entry->help);
+	if (command->help)
+		g_print ("%s\n", _(command->help));
 
 	return EGG_LINE_STATUS_OK;
 }
 
 static EggLineStatus
-channel_start_cb (EggLine   *line,
-                  gint       argc,
-                  gchar    **argv,
-                  GError   **error)
-{
-	DBusGProxy *channel;
-	gint        id = 0, i;
-	gchar      *path;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	for (i = 0; i < argc; i++) {
-		if (parse_int (argv [i], &id)) {
-			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-			channel = dbus_g_proxy_new_for_name (dbus_conn,
-			                                     "com.dronelabs.Perfkit",
-			                                     path,
-			                                     "com.dronelabs.Perfkit.Channel");
-			if (!com_dronelabs_Perfkit_Channel_start (channel, error)) {
-				REPORT_ERROR (*error);
-				g_error_free (*error);
-				*error = NULL; /* XXX: Propagate error? */
-			}
-			else {
-				g_print ("Channel %d started.\n", id);
-			}
-			g_object_unref (channel);
-			g_free (path);
-		}
-		else {
-			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-channel_stop_cb (EggLine  *line,
-                  gint     argc,
-                  gchar  **argv,
-                  GError **error)
-{
-	DBusGProxy *channel;
-	gint        id = 0, i;
-	gchar      *path;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	for (i = 0; i < argc; i++) {
-		if (parse_int (argv [i], &id)) {
-			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-			channel = dbus_g_proxy_new_for_name (dbus_conn,
-			                                     "com.dronelabs.Perfkit",
-			                                     path,
-			                                     "com.dronelabs.Perfkit.Channel");
-			if (!com_dronelabs_Perfkit_Channel_stop (channel, error)) {
-				REPORT_ERROR (*error);
-				g_error_free (*error);
-				*error = NULL; /* XXX: Propagate? */
-			}
-			else {
-				g_print ("Channel %d stopped.\n", id);
-			}
-			g_object_unref (channel);
-			g_free (path);
-		}
-		else {
-			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-channel_pause_cb (EggLine   *line,
-                  gint       argc,
-                  gchar    **argv,
-                  GError   **error)
-{
-	DBusGProxy *channel;
-	gint        id = 0, i;
-	gchar      *path;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	for (i = 0; i < argc; i++) {
-		if (parse_int (argv [i], &id)) {
-			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-			channel = dbus_g_proxy_new_for_name (dbus_conn,
-			                                     "com.dronelabs.Perfkit",
-			                                     path,
-			                                     "com.dronelabs.Perfkit.Channel");
-			if (!com_dronelabs_Perfkit_Channel_pause (channel, error)) {
-				REPORT_ERROR (*error);
-				g_error_free (*error);
-				*error = NULL; /* XXX: Propagate? */
-			}
-			else {
-				g_print ("Channel %d paused.\n", id);
-			}
-			g_object_unref (channel);
-			g_free (path);
-		}
-		else {
-			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-channel_unpause_cb (EggLine  *line,
-                    gint     argc,
-                    gchar  **argv,
-                    GError **error)
-{
-	DBusGProxy *channel;
-	gint        id = 0, i;
-	gchar      *path;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	for (i = 0; i < argc; i++) {
-		if (parse_int (argv [i], &id)) {
-			path = g_strdup_printf (PK_CHANNEL_FORMAT, id);
-			channel = dbus_g_proxy_new_for_name (dbus_conn,
-			                                     "com.dronelabs.Perfkit",
-			                                     path,
-			                                     "com.dronelabs.Perfkit.Channel");
-			if (!com_dronelabs_Perfkit_Channel_unpause (channel, error)) {
-				REPORT_ERROR (*error);
-				g_error_free (*error);
-				*error = NULL; /* XXX: Propagate? */
-			}
-			else {
-				g_print ("Channel %d unpaused.\n", id);
-			}
-			g_object_unref (channel);
-			g_free (path);
-		}
-		else {
-			g_printerr ("Invalid channel \"%s\".\n", argv [i]);
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-load_cb (EggLine   *line,
-         gint       argc,
-         gchar    **argv,
-         GError   **error)
-{
-	gint i;
-
-	for (i = 0; i < argc; i++)
-		execute_file (line, argv [i]);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-source_add_cb (EggLine  *line,
-               gint      argc,
-               gchar   **argv,
-               GError  **error)
-{
-	gint   id    = 0;
-	gchar *path  = NULL,
-	      *tmp;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!com_dronelabs_Perfkit_Sources_add (sources, argv [0], &path, error))
-		return EGG_LINE_STATUS_FAILURE;
-
-	tmp = g_strrstr (path, "/");
-	if (tmp) {
-		tmp++;
-		if (parse_int (tmp, &id))
-			g_print ("Added data source %d.\n", id);
-	}
-
-	g_free (path);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-source_types_cb (EggLine  *line,
-                 gint      argc,
-                 gchar   **argv,
-                 GError  **error)
-{
-	gchar **types = NULL;
-	gint    i;
-
-	if (!com_dronelabs_Perfkit_Sources_get_types (sources, &types, error))
-		return EGG_LINE_STATUS_FAILURE;
-
-	for (i = 0; types [i]; i++)
-		g_print ("%s\n", types [i]);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static DBusGProxy*
-get_source (gint id)
-{
-	DBusGProxy *proxy;
-	gchar  *path;
-
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d", id);
-	proxy = dbus_g_proxy_new_for_name (dbus_conn,
-	                                   "com.dronelabs.Perfkit",
-	                                   path,
-	                                   "com.dronelabs.Perfkit.Source");
-	g_free (path);
-
-	return proxy;
-}
-
-static EggLineStatus
-source_attach_cb  (EggLine  *line,
+pk_shell_cmd_load (EggLine  *line,
                    gint      argc,
                    gchar   **argv,
                    GError  **error)
 {
-	DBusGProxy *source;
-	gint sid = 0, cid = 0;
-	gchar *path;
+	gint i;
 
-	if (argc != 2)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!parse_int (argv [0], &sid) ||
-	    !parse_int (argv [1], &cid))
-	    return EGG_LINE_STATUS_BAD_ARGS;
-
-	source = get_source (sid);
-	path = g_strdup_printf (PK_CHANNEL_FORMAT, cid);
-
-	if (!com_dronelabs_Perfkit_Source_set_channel (source, path, error)) {
-		g_free (path);
-		return EGG_LINE_STATUS_FAILURE;
-	}
-	else {
-		g_print ("Attached channel %d to source %d.\n", cid, sid);
-	}
-
-	g_free (path);
+	for (i = 0; i < argc; i++)
+		egg_line_execute_file (line, argv [i]);
 
 	return EGG_LINE_STATUS_OK;
 }
 
 static EggLineStatus
-sleep_cb  (EggLine  *line,
-           gint      argc,
-           gchar   **argv,
-           GError  **error)
+pk_shell_cmd_sleep (EggLine  *line,
+                    gint      argc,
+                    gchar   **argv,
+                    GError  **error)
 {
 	gint i = 0;
 
 	if (argc != 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	if (!parse_int (argv [0], &i))
+	if (!pk_util_parse_int (argv [0], &i))
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	g_usleep (G_USEC_PER_SEC * i);
 
 	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_list (EggLine  *line,
+                           gint      argc,
+                           gchar   **argv,
+                           GError  **error)
+{
+	EggFmtIter  iter;
+	GList      *list;
+
+	egg_fmt_iter_init (&iter,
+	                   pk_util_channels_iter,
+	                   "ID", G_TYPE_INT,
+	                   "PID", G_TYPE_INT,
+	                   "State", G_TYPE_STRING,
+	                   "Target", G_TYPE_STRING,
+	                   "Arguments", G_TYPE_STRV,
+	                   NULL);
+	list = pk_channels_find_all (channels);
+	formatter (&iter, list, NULL);
+
+	g_list_foreach (list, (GFunc)g_object_unref, NULL);
+	g_list_free (list);
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_add (EggLine  *line,
+                          gint      argc,
+                          gchar   **argv,
+                          GError  **error)
+{
+	PkChannel *channel;
+
+	channel = pk_channels_add (channels);
+	g_print ("Added channel %d.\n", pk_channel_get_id (channel));
+	g_object_unref (channel);
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_start (EggLine  *line,
+                            gint      argc,
+                            gchar   **argv,
+                            GError  **error)
+{
+	PkChannel *channel;
+	gint       i,
+	           v_int = 0;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_OK;
+
+	for (i = 0; i < argc; i++) {
+		if (pk_util_parse_int (argv [i], &v_int)) {
+			channel = pk_channels_get (channels, v_int);
+			pk_channel_start (channel, NULL);
+			g_object_unref (channel);
+		}
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_stop (EggLine  *line,
+                           gint      argc,
+                           gchar   **argv,
+                           GError  **error)
+{
+	PkChannel *channel;
+	gint       i,
+	           v_int = 0;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_OK;
+
+	for (i = 0; i < argc; i++) {
+		if (pk_util_parse_int (argv [i], &v_int)) {
+			channel = pk_channels_get (channels, v_int);
+			pk_channel_stop (channel, NULL);
+			g_object_unref (channel);
+		}
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_pause (EggLine  *line,
+                            gint      argc,
+                            gchar   **argv,
+                            GError  **error)
+{
+	PkChannel *channel;
+	gint       i,
+	           v_int = 0;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_OK;
+
+	for (i = 0; i < argc; i++) {
+		if (pk_util_parse_int (argv [i], &v_int)) {
+			channel = pk_channels_get (channels, v_int);
+			pk_channel_pause (channel, NULL);
+			g_object_unref (channel);
+		}
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_unpause (EggLine  *line,
+                              gint      argc,
+                              gchar   **argv,
+                              GError  **error)
+{
+	PkChannel *channel;
+	gint       i,
+	           v_int = 0;
+
+	if (argc < 1)
+		return EGG_LINE_STATUS_OK;
+
+	for (i = 0; i < argc; i++) {
+		if (pk_util_parse_int (argv [i], &v_int)) {
+			channel = pk_channels_get (channels, v_int);
+			pk_channel_unpause (channel, NULL);
+			g_object_unref (channel);
+		}
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+static EggLineCommand channel_commands[] = {
+	{ "list", NULL, pk_shell_cmd_channel_list,
+	  N_("List perfkit channels"),
+	  "channel list" },
+	{ "add", NULL, pk_shell_cmd_channel_add,
+	  N_("Add a new perfkit channel"),
+	  "channel add" },
+	{ "start", NULL, pk_shell_cmd_channel_start,
+	  N_("Start the perfkit channel"),
+	  "channel start" },
+	{ "stop", NULL, pk_shell_cmd_channel_stop,
+	  N_("Stop the perfkit channel"),
+	  "channel stop" },
+	{ "pause", NULL, pk_shell_cmd_channel_pause,
+	  N_("Pause the perfkit channel"),
+	  "channel pause" },
+	{ "unpause", NULL, pk_shell_cmd_channel_unpause,
+	  N_("Unpause the perfkit channel"),
+	  "channel unpause" },
+	{ NULL }
+};
+
+static EggLineCommand*
+pk_shell_iter_channel (EggLine   *line,
+                       gint      *argc,
+                       gchar   ***argv)
+{
+	return channel_commands;
+}
+
+static EggLineCommand source_commands[] = {
+	{ NULL }
+};
+
+static EggLineCommand*
+pk_shell_iter_source (EggLine   *line,
+                      gint      *argc,
+                      gchar   ***argv)
+{
+	return source_commands;
+}
+
+static EggLineCommand commands[] = {
+	{ "quit", NULL, pk_shell_cmd_quit,
+	  N_("Quit perfkit-shell"), "quit" },
+	{ "ls", NULL, pk_shell_cmd_ls,
+	  N_("List directory contents"),
+	  "ls [FILE]..." },
+	{ "cd", NULL, pk_shell_cmd_cd,
+	  N_("Change working directory"),
+	  "cd [DIRECTORY]..." },
+	{ "version", NULL, pk_shell_cmd_version,
+	  N_("Display version information"),
+	  "version" },
+	{ "help", NULL, pk_shell_cmd_help,
+	  N_("Display help information about perfkit"),
+	  "help [COMMAND]..." },
+	{ "load", NULL, pk_shell_cmd_load,
+	  N_("Load commands from a file"),
+	  "source [FILENAME]..." },
+	{ "sleep", NULL, pk_shell_cmd_sleep,
+	  N_("Delay for a specified amount of time"),
+	  "sleep [SECONDS]" },
+	{ "channel", pk_shell_iter_channel, NULL,
+	  N_("Manage perfkit channels"),
+	  "channel [COMMAND]" },
+	{ "source", pk_shell_iter_source, NULL,
+	  N_("Manage perfkit data sources"),
+	  "source [COMMAND]" },
+	{ NULL }
+};
+
+gint
+main (gint   argc,
+      gchar *argv[])
+{
+	GOptionContext *context;
+	GError         *error = NULL;
+	EggLine        *line;
+
+	/* parse command line arguments */
+	context = g_option_context_new ("- interactive perfkit shell");
+	g_option_context_add_main_entries (context, entries, GETTEXT_PACKAGE);
+
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_printerr ("%s\n", error->message);
+		g_error_free (error);
+		return EXIT_FAILURE;
+	}
+
+	/* initialize libraries */
+	g_type_init ();
+
+	/* connect to the daemon */
+	if (!pk_shell_connect ("dbus://", &error)) {
+		g_printerr ("%s\n", error->message);
+		return EXIT_FAILURE;
+	}
+
+	/* determine our console formatter */
+	formatter = opt_csv ? egg_fmt_csv : egg_fmt_table;
+
+	/* setup readline abstraction */
+	line = egg_line_new ();
+	egg_line_set_prompt (line, "perfkit> ");
+	egg_line_set_commands (line, commands);
+	g_signal_connect (line, "missing", G_CALLBACK (pk_shell_missing_cb), NULL);
+
+	/* run the shell main loop */
+	egg_line_run (line);
+
+	pk_util_parse_int ("asdf", &argc);
+
+	return EXIT_SUCCESS;
 }
