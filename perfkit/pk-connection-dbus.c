@@ -395,6 +395,86 @@ pk_connection_dbus_real_channel_get_state (PkConnection *connection,
 	return state;
 }
 
+static gboolean
+pk_connection_dbus_real_channel_start (PkConnection  *connection,
+                                       gint           channel_id,
+                                       GError       **error)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gboolean                 result;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	result = com_dronelabs_Perfkit_Channel_start (proxy, error);
+	g_object_unref (proxy);
+
+	return result;
+}
+
+static gboolean
+pk_connection_dbus_real_channel_stop (PkConnection  *connection,
+                                      gint           channel_id,
+                                      GError       **error)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gboolean                 result;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	result = com_dronelabs_Perfkit_Channel_stop (proxy, error);
+	g_object_unref (proxy);
+
+	return result;
+}
+
+static gboolean
+pk_connection_dbus_real_channel_pause (PkConnection  *connection,
+                                       gint           channel_id,
+                                       GError       **error)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gboolean                 result;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	result = com_dronelabs_Perfkit_Channel_pause (proxy, error);
+	g_object_unref (proxy);
+
+	return result;
+}
+
+static gboolean
+pk_connection_dbus_real_channel_unpause (PkConnection  *connection,
+                                         gint           channel_id,
+                                         GError       **error)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gboolean                 result;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	result = com_dronelabs_Perfkit_Channel_unpause (proxy, error);
+	g_object_unref (proxy);
+
+	return result;
+}
+
 static void
 pk_connection_dbus_finalize (GObject *object)
 {
@@ -426,6 +506,10 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_get_env    = pk_connection_dbus_real_channel_get_env;
 	conn_class->channel_get_pid    = pk_connection_dbus_real_channel_get_pid;
 	conn_class->channel_get_state  = pk_connection_dbus_real_channel_get_state;
+	conn_class->channel_start      = pk_connection_dbus_real_channel_start;
+	conn_class->channel_stop       = pk_connection_dbus_real_channel_stop;
+	conn_class->channel_pause      = pk_connection_dbus_real_channel_pause;
+	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
 }
 
 static void

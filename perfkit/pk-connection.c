@@ -290,6 +290,46 @@ pk_connection_channel_get_state (PkConnection *connection,
 		channel_get_state (connection, channel_id);
 }
 
+gboolean
+pk_connection_channel_start (PkConnection  *connection,
+                             gint           channel_id,
+                             GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_start (connection, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_stop (PkConnection  *connection,
+                            gint           channel_id,
+                            GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_stop (connection, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_pause (PkConnection  *connection,
+                             gint           channel_id,
+                             GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_pause (connection, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_unpause (PkConnection  *connection,
+                               gint           channel_id,
+                               GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		channel_unpause (connection, channel_id, error);
+}
+
 /**************************************************************************
  *                         GObject Class Methods                          *
  **************************************************************************/

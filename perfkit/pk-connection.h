@@ -115,6 +115,18 @@ struct _PkConnectionClass
 	                                               gint                  channel_id);
 	PkChannelState    (*channel_get_state)        (PkConnection         *connection,
 	                                               gint                  channel_id);
+	gboolean          (*channel_start)            (PkConnection         *connection,
+	                                               gint                  channel_id,
+	                                               GError              **error);
+	gboolean          (*channel_stop)             (PkConnection         *connection,
+	                                               gint                  channel_id,
+	                                               GError              **error);
+	gboolean          (*channel_pause)            (PkConnection         *connection,
+	                                               gint                  channel_id,
+	                                               GError              **error);
+	gboolean          (*channel_unpause)          (PkConnection         *connection,
+	                                               gint                  channel_id,
+	                                               GError              **error);
 
 	/*
 	 * Future Expansion

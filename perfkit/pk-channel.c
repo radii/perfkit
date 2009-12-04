@@ -208,3 +208,87 @@ pk_channel_get_state (PkChannel *channel)
 	return pk_connection_channel_get_state (channel->priv->connection,
 	                                        channel->priv->channel_id);
 }
+
+/**
+ * pk_channel_start:
+ * @channel: A #PkChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * 
+ *
+ * Return value: %TRUE on success. @error is set on failure.
+ *
+ * Side effects: The channels state machine is altered.
+ */
+gboolean
+pk_channel_start (PkChannel  *channel,
+                  GError    **error)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), FALSE);
+	return pk_connection_channel_start (channel->priv->connection,
+	                                    channel->priv->channel_id,
+	                                    error);
+}
+
+/**
+ * pk_channel_stop:
+ * @channel: A #PkChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * 
+ *
+ * Return value: %TRUE on success. @error is set on failure.
+ *
+ * Side effects: The channels state machine is altered.
+ */
+gboolean
+pk_channel_stop (PkChannel  *channel,
+                 GError    **error)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), FALSE);
+	return pk_connection_channel_stop (channel->priv->connection,
+	                                   channel->priv->channel_id,
+	                                   error);
+}
+
+/**
+ * pk_channel_pause:
+ * @channel: A #PkChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * 
+ *
+ * Return value: %TRUE on success. @error is set on failure.
+ *
+ * Side effects: The channels state machine is altered.
+ */
+gboolean
+pk_channel_pause (PkChannel  *channel,
+                  GError    **error)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), FALSE);
+	return pk_connection_channel_pause (channel->priv->connection,
+	                                    channel->priv->channel_id,
+	                                    error);
+}
+
+/**
+ * pk_channel_unpause:
+ * @channel: A #PkChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * 
+ *
+ * Return value: %TRUE on success. @error is set on failure.
+ *
+ * Side effects: The channels state machine is altered.
+ */
+gboolean
+pk_channel_unpause (PkChannel  *channel,
+                    GError    **error)
+{
+	g_return_val_if_fail (PK_IS_CHANNEL (channel), FALSE);
+	return pk_connection_channel_unpause (channel->priv->connection,
+	                                      channel->priv->channel_id,
+	                                      error);
+}

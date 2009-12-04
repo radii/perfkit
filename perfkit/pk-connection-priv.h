@@ -45,6 +45,18 @@ GPid           pk_connection_channel_get_pid    (PkConnection         *connectio
                                                  gint                  channel_id);
 PkChannelState pk_connection_channel_get_state  (PkConnection         *connection,
                                                  gint                  channel_id);
+gboolean       pk_connection_channel_start      (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 GError              **error);
+gboolean       pk_connection_channel_stop       (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 GError              **error);
+gboolean       pk_connection_channel_pause      (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 GError              **error);
+gboolean       pk_connection_channel_unpause    (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 GError              **error);
 
 G_END_DECLS
 
