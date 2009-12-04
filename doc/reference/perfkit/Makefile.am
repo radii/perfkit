@@ -52,6 +52,9 @@ IGNORE_HFILES=							\
 	perfkit.h						\
 	pk-channels-priv.h					\
 	pk-connection-dbus.h					\
+	pk-connection-priv.h					\
+	pk-channels-dbus.h					\
+	pk-channel-dbus.h					\
 	$(NULL)
 
 EXTRA_HFILES=
