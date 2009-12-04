@@ -155,7 +155,7 @@ pk_channels_get (PkChannels *channels,
  * Side effects: None
  */
 PkChannel*
-pk_channel_add (PkChannels *channels)
+pk_channels_add (PkChannels *channels)
 {
 	gint channel_id = 0;
 
