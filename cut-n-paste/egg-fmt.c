@@ -157,6 +157,8 @@ egg_fmt_table (EggFmtIter *iter,
 				strings [i] = g_strdup_printf ("%u", g_value_get_uint (val));
 			else if (type == G_TYPE_STRING)
 				strings [i] = g_strdup_printf ("%s", g_value_get_string (val));
+			else if (type == G_TYPE_STRV)
+				strings [i] = g_strjoinv (" ", g_value_get_boxed (val));
 
 			g_value_unset (val);
 			g_value_init (val, type);
