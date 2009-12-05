@@ -785,6 +785,7 @@ main (gint   argc,
 	GOptionContext *context;
 	GError         *error = NULL;
 	EggLine        *line;
+	gint            i;
 
 	/* parse command line arguments */
 	context = g_option_context_new ("- interactive perfkit shell");
@@ -814,10 +815,15 @@ main (gint   argc,
 	egg_line_set_commands (line, commands);
 	g_signal_connect (line, "missing", G_CALLBACK (pk_shell_missing_cb), NULL);
 
-	/* run the shell main loop */
-	egg_line_run (line);
-
-	pk_util_parse_int ("asdf", &argc);
+	if (argc > 1) {
+		/* run any filename arguments */
+		for (i = 1; i < argc; i++)
+			egg_line_execute_file (line, argv [i]);
+	}
+	else {
+		/* run the shell main loop */
+		egg_line_run (line);
+	}
 
 	return EXIT_SUCCESS;
 }
