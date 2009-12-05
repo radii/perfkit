@@ -19,12 +19,14 @@ INST_H_FILES = \
 	pk-channel.h \
 	pk-channels.h \
 	pk-connection.h \
+	pk-sources.h \
 	$(NULL)
 
 NOINST_H_FILES = \
 	pk-connection-dbus.h \
 	pk-channel-priv.h \
 	pk-channels-priv.h \
+	pk-sources-priv.h \
 	$(NULL)
 
 libperfkit_1_0_la_SOURCES = \
@@ -34,6 +36,7 @@ libperfkit_1_0_la_SOURCES = \
 	pk-channels.c \
 	pk-connection.c \
 	pk-connection-dbus.c \
+	pk-sources.c \
 	$(NULL)
 
 libperfkit_1_0_la_CPPFLAGS = \

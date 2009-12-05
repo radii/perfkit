@@ -23,6 +23,7 @@
 
 #include "pk-channel.h"
 #include "pk-channels.h"
+#include "pk-sources.h"
 
 G_BEGIN_DECLS
 
@@ -144,6 +145,12 @@ struct _PkConnectionClass
 	                                               GError              **error);
 
 	/*
+	 * Sources Service RPCs
+	 */
+
+	gchar**           (*sources_get_types)        (PkConnection         *connection);
+
+	/*
 	 * Future Expansion
 	 */
 	gpointer          reserved [64];
@@ -171,10 +178,8 @@ void          pk_connection_disconnect_async   (PkConnection         *connection
 void          pk_connection_disconnect_finish  (PkConnection         *connection,
                                                 GAsyncResult         *result);
 
-/*
- * Channels Service RPCs
- */
 PkChannels*   pk_connection_get_channels       (PkConnection         *connection);
+PkSources*    pk_connection_get_sources        (PkConnection         *connection);
 
 G_END_DECLS
 

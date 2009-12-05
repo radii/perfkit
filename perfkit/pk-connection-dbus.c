@@ -29,6 +29,7 @@
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
 #include "pk-connection-dbus.h"
+#include "pk-sources-dbus.h"
 
 G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
 
@@ -560,6 +561,21 @@ pk_connection_dbus_real_channel_unpause (PkConnection  *connection,
 	return result;
 }
 
+static gchar**
+pk_connection_dbus_real_sources_get_types (PkConnection *connection)
+{
+	PkConnectionDBusPrivate  *priv;
+	gchar                   **types = NULL;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	com_dronelabs_Perfkit_Sources_get_types (priv->sources, &types, NULL);
+
+	return types;
+}
+
 static void
 pk_connection_dbus_finalize (GObject *object)
 {
@@ -600,6 +616,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_stop       = pk_connection_dbus_real_channel_stop;
 	conn_class->channel_pause      = pk_connection_dbus_real_channel_pause;
 	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
+	conn_class->sources_get_types  = pk_connection_dbus_real_sources_get_types;
 }
 
 static void

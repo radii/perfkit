@@ -26,6 +26,8 @@
 #include "pk-channels-priv.h"
 #include "pk-connection.h"
 #include "pk-connection-dbus.h"
+#include "pk-sources.h"
+#include "pk-sources-priv.h"
 
 /**
  * SECTION:pk-connection
@@ -45,6 +47,7 @@ G_DEFINE_TYPE (PkConnection, pk_connection, G_TYPE_OBJECT)
 struct _PkConnectionPrivate
 {
 	PkChannels *channels;
+	PkSources  *sources;
 };
 
 /**
@@ -210,6 +213,12 @@ PkChannels*
 pk_connection_get_channels (PkConnection *connection)
 {
 	return connection->priv->channels;
+}
+
+PkSources*
+pk_connection_get_sources (PkConnection *connection)
+{
+	return connection->priv->sources;
 }
 
 /**************************************************************************
@@ -380,6 +389,14 @@ pk_connection_channel_unpause (PkConnection  *connection,
 		channel_unpause (connection, channel_id, error);
 }
 
+gchar**
+pk_connection_sources_get_types (PkConnection *connection)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		sources_get_types (connection);
+}
+
 /**************************************************************************
  *                         GObject Class Methods                          *
  **************************************************************************/
@@ -410,4 +427,8 @@ pk_connection_init (PkConnection *connection)
 	connection->priv->channels = pk_channels_new (connection);
 	g_object_add_weak_pointer (G_OBJECT (connection->priv->channels),
 	                           (gpointer*)&connection->priv->channels);
+
+	connection->priv->sources = pk_sources_new (connection);
+	g_object_add_weak_pointer (G_OBJECT (connection->priv->sources),
+	                           (gpointer*)&connection->priv->sources);
 }
