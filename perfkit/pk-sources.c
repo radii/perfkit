@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-source.h"
+#include "pk-source-priv.h"
 #include "pk-sources.h"
 #include "pk-connection.h"
 #include "pk-connection-priv.h"
@@ -91,4 +93,24 @@ pk_sources_get_types (PkSources *sources)
 {
 	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
 	return pk_connection_sources_get_types (sources->priv->connection);
+}
+
+/**
+ * pk_sources_get:
+ * @sources: A #PkSources
+ * @source_id: the source id
+ *
+ * Retrieves a proxy for a remote Perfkit source.
+ *
+ * Return value: the newly created instance of #PkSource.  The instance
+ *   should be freed with g_object_unref().
+ *
+ * Side effects: None
+ */
+PkSource*
+pk_sources_get (PkSources *sources,
+                gint       source_id)
+{
+	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
+	return pk_source_new (sources->priv->connection, source_id);
 }

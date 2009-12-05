@@ -50,6 +50,8 @@ struct _PkSourcesClass
 
 GType      pk_sources_get_type  (void) G_GNUC_CONST;
 gchar**    pk_sources_get_types (PkSources *sources);
+PkSource*  pk_sources_get       (PkSources *sources,
+                                 gint       source_id);
 
 G_END_DECLS
 
