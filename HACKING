@@ -138,7 +138,7 @@ libperfkit-1.0
   them as if they were in your local process.  For example, to create a
   new Channel:
 
-    PkChannel *channel = pk_channels_new (channels);
+    PkChannel *channel = pk_channels_add (channels);
 
   When you are done with the channel, you should unreference it:
 
