@@ -245,6 +245,16 @@ pk_connection_channel_get_target (PkConnection *connection,
 		channel_get_target (connection, channel_id);
 }
 
+void
+pk_connection_channel_set_target (PkConnection *connection,
+                                  gint          channel_id,
+                                  const gchar  *target)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_set_target (connection, channel_id, target);
+}
+
 gchar**
 pk_connection_channel_get_args (PkConnection *connection,
                                 gint          channel_id)
@@ -252,6 +262,16 @@ pk_connection_channel_get_args (PkConnection *connection,
 	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channel_get_args (connection, channel_id);
+}
+
+void
+pk_connection_channel_set_args (PkConnection  *connection,
+                                gint           channel_id,
+                                gchar        **args)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_set_args (connection, channel_id, args);
 }
 
 gchar*
@@ -263,6 +283,16 @@ pk_connection_channel_get_dir (PkConnection *connection,
 		channel_get_dir (connection, channel_id);
 }
 
+void
+pk_connection_channel_set_dir (PkConnection *connection,
+                               gint          channel_id,
+                               const gchar  *dir)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_set_dir (connection, channel_id, dir);
+}
+
 gchar**
 pk_connection_channel_get_env (PkConnection *connection,
                                gint          channel_id)
@@ -272,6 +302,16 @@ pk_connection_channel_get_env (PkConnection *connection,
 		channel_get_env (connection, channel_id);
 }
 
+void
+pk_connection_channel_set_env (PkConnection  *connection,
+                               gint           channel_id,
+                               gchar        **env)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_set_env (connection, channel_id, env);
+}
+
 GPid
 pk_connection_channel_get_pid (PkConnection *connection,
                                gint          channel_id)
@@ -279,6 +319,16 @@ pk_connection_channel_get_pid (PkConnection *connection,
 	g_return_val_if_fail (PK_IS_CONNECTION (connection), 0);
 	return PK_CONNECTION_GET_CLASS (connection)->
 		channel_get_pid (connection, channel_id);
+}
+
+void
+pk_connection_channel_set_pid (PkConnection *connection,
+                               gint          channel_id,
+                               GPid          pid)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_set_pid (connection, channel_id, pid);
 }
 
 PkChannelState

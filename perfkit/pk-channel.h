@@ -66,21 +66,31 @@ struct _PkChannelClass
 };
 
 GType          pk_channel_get_type   (void) G_GNUC_CONST;
-gint           pk_channel_get_id     (PkChannel  *channel);
-gchar*         pk_channel_get_target (PkChannel  *channel);
-gchar**        pk_channel_get_args   (PkChannel  *channel);
-gchar*         pk_channel_get_dir    (PkChannel  *channel);
-gchar**        pk_channel_get_env    (PkChannel  *channel);
-GPid           pk_channel_get_pid    (PkChannel  *channel);
-PkChannelState pk_channel_get_state  (PkChannel  *channel);
-gboolean       pk_channel_start      (PkChannel  *channel,
-                                      GError    **error);
-gboolean       pk_channel_stop       (PkChannel  *channel,
-                                      GError    **error);
-gboolean       pk_channel_pause      (PkChannel  *channel,
-                                      GError    **error);
-gboolean       pk_channel_unpause    (PkChannel  *channel,
-                                      GError    **error);
+gint           pk_channel_get_id     (PkChannel    *channel);
+gchar*         pk_channel_get_target (PkChannel    *channel);
+void           pk_channel_set_target (PkChannel    *channel,
+                                      const gchar  *target);
+gchar**        pk_channel_get_args   (PkChannel    *channel);
+void           pk_channel_set_args   (PkChannel    *channel,
+                                      gchar       **args);
+gchar*         pk_channel_get_dir    (PkChannel    *channel);
+void           pk_channel_set_dir    (PkChannel    *channel,
+                                      const gchar  *dir);
+gchar**        pk_channel_get_env    (PkChannel    *channel);
+void           pk_channel_set_env    (PkChannel    *channel,
+                                      gchar       **env);
+GPid           pk_channel_get_pid    (PkChannel    *channel);
+void           pk_channel_set_pid    (PkChannel    *channel,
+                                      GPid          pid);
+PkChannelState pk_channel_get_state  (PkChannel    *channel);
+gboolean       pk_channel_start      (PkChannel    *channel,
+                                      GError      **error);
+gboolean       pk_channel_stop       (PkChannel    *channel,
+                                      GError      **error);
+gboolean       pk_channel_pause      (PkChannel    *channel,
+                                      GError      **error);
+gboolean       pk_channel_unpause    (PkChannel    *channel,
+                                      GError      **error);
 
 G_END_DECLS
 

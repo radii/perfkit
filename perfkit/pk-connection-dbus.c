@@ -300,6 +300,23 @@ pk_connection_dbus_real_channel_get_target (PkConnection *connection,
 	return target;
 }
 
+static void
+pk_connection_dbus_real_channel_set_target (PkConnection *connection,
+                                            gint          channel_id,
+                                            const gchar  *target)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_set_target (proxy, target, NULL);
+	g_object_unref (proxy);
+}
+
 static gchar**
 pk_connection_dbus_real_channel_get_args (PkConnection *connection,
                                           gint          channel_id)
@@ -317,6 +334,23 @@ pk_connection_dbus_real_channel_get_args (PkConnection *connection,
 	g_object_unref (proxy);
 
 	return args;
+}
+
+static void
+pk_connection_dbus_real_channel_set_args (PkConnection  *connection,
+                                          gint           channel_id,
+                                          gchar        **args)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_set_args (proxy, (const gchar**)args, NULL);
+	g_object_unref (proxy);
 }
 
 static gchar*
@@ -338,6 +372,23 @@ pk_connection_dbus_real_channel_get_dir (PkConnection *connection,
 	return dir;
 }
 
+static void
+pk_connection_dbus_real_channel_set_dir (PkConnection *connection,
+                                         gint          channel_id,
+                                         const gchar  *dir)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_set_dir (proxy, dir, NULL);
+	g_object_unref (proxy);
+}
+
 static gchar**
 pk_connection_dbus_real_channel_get_env (PkConnection *connection,
                                          gint          channel_id)
@@ -357,6 +408,23 @@ pk_connection_dbus_real_channel_get_env (PkConnection *connection,
 	return env;
 }
 
+static void
+pk_connection_dbus_real_channel_set_env (PkConnection  *connection,
+                                         gint           channel_id,
+                                         gchar        **env)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_set_env (proxy, (const gchar**)env, NULL);
+	g_object_unref (proxy);
+}
+
 static GPid
 pk_connection_dbus_real_channel_get_pid (PkConnection *connection,
                                          gint          channel_id)
@@ -374,6 +442,23 @@ pk_connection_dbus_real_channel_get_pid (PkConnection *connection,
 	g_object_unref (proxy);
 
 	return pid;
+}
+
+static void
+pk_connection_dbus_real_channel_set_pid (PkConnection *connection,
+                                         gint          channel_id,
+                                         GPid          pid)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_set_pid (proxy, pid, NULL);
+	g_object_unref (proxy);
 }
 
 static PkChannelState
@@ -501,10 +586,15 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channels_add       = pk_connection_dbus_real_channels_add;
 	conn_class->channels_find_all  = pk_connection_dbus_real_channels_find_all;
 	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;
+	conn_class->channel_set_target = pk_connection_dbus_real_channel_set_target;
 	conn_class->channel_get_args   = pk_connection_dbus_real_channel_get_args;
+	conn_class->channel_set_args   = pk_connection_dbus_real_channel_set_args;
 	conn_class->channel_get_dir    = pk_connection_dbus_real_channel_get_dir;
+	conn_class->channel_set_dir    = pk_connection_dbus_real_channel_set_dir;
 	conn_class->channel_get_env    = pk_connection_dbus_real_channel_get_env;
+	conn_class->channel_set_env    = pk_connection_dbus_real_channel_set_env;
 	conn_class->channel_get_pid    = pk_connection_dbus_real_channel_get_pid;
+	conn_class->channel_set_pid    = pk_connection_dbus_real_channel_set_pid;
 	conn_class->channel_get_state  = pk_connection_dbus_real_channel_get_state;
 	conn_class->channel_start      = pk_connection_dbus_real_channel_start;
 	conn_class->channel_stop       = pk_connection_dbus_real_channel_stop;

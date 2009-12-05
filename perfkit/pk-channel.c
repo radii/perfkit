@@ -116,6 +116,28 @@ pk_channel_get_target (PkChannel *channel)
 }
 
 /**
+ * pk_channel_set_target:
+ * @channel: A #PkChannel
+ * @target: A path to an executable on the remote host
+ *
+ * Sets the "target" property.  The target is the executable that should
+ * be spawned when the channel starts recording.  A value of %NULL
+ * indicates that no process need be spawned.
+ *
+ * Side effects: the target for the channel is changed if the channel
+ *   has not yet been started.
+ */
+void
+pk_channel_set_target (PkChannel   *channel,
+                       const gchar *target)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_set_target (channel->priv->connection,
+	                                  channel->priv->channel_id,
+	                                  target);
+}
+
+/**
  * pk_channel_get_args:
  * @channel: A #PkChannel
  *
@@ -132,6 +154,26 @@ pk_channel_get_args (PkChannel *channel)
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
 	return pk_connection_channel_get_args (channel->priv->connection,
 	                                       channel->priv->channel_id);
+}
+
+/**
+ * pk_channel_set_args:
+ * @channel: A #PkChannel
+ * @args: a #GStrv containing arguments for the target executable
+ *
+ * Sets the "args" property.  The args are passed to the child process
+ * when it is spawned.
+ *
+ * Side effects: Sets the args property of the channel.
+ */
+void
+pk_channel_set_args (PkChannel  *channel,
+                     gchar     **args)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_set_args (channel->priv->connection,
+	                                channel->priv->channel_id,
+	                                args);
 }
 
 /**
@@ -154,6 +196,27 @@ pk_channel_get_dir (PkChannel *channel)
 }
 
 /**
+ * pk_channel_set_dir:
+ * @channel: A #PkChannel
+ * @dir: the new working directory
+ *
+ * Sets the "dir" property.  The dir is the working directory for the
+ * spawned process on the remote host.
+ *
+ * Side effects: the dir for the channel is changed if the channel
+ *   has not yet been started.
+ */
+void
+pk_channel_set_dir (PkChannel   *channel,
+                    const gchar *dir)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_set_dir (channel->priv->connection,
+	                               channel->priv->channel_id,
+	                               dir);
+}
+
+/**
  * pk_channel_get_env:
  * @channel: A #PkChannel
  *
@@ -173,6 +236,26 @@ pk_channel_get_env (PkChannel *channel)
 }
 
 /**
+ * pk_channel_set_env:
+ * @channel: A #PkChannel
+ * @env: a #GStrv containining KEY=VALUE environment variables
+ *
+ * Sets the "env" property.  The env is a %NULL-terminated list of strings
+ * containing KEY=VALUE pairs.
+ *
+ * Side effects: Sets the env property of the channel.
+ */
+void
+pk_channel_set_env (PkChannel  *channel,
+                    gchar     **env)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_set_env (channel->priv->connection,
+	                               channel->priv->channel_id,
+	                               env);
+}
+
+/**
  * pk_channel_get_pid:
  * @channel: A #PkChannel
  *
@@ -189,6 +272,29 @@ pk_channel_get_pid (PkChannel *channel)
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), 0);
 	return pk_connection_channel_get_pid (channel->priv->connection,
 	                                      channel->priv->channel_id);
+}
+
+/**
+ * pk_channel_set_pid:
+ * @channel: A #PkChannel
+ * @pid: a process identifier
+ *
+ * Sets the "pid" property.  The pid can be used two different ways.
+ * Once a process has been spawned, it will contain the spawned process
+ * identifier.  However, if no procses is spawned, it can be used to
+ * attach to an existing process.  Therefore, it must be set before the
+ * channel is started.
+ *
+ * Side effects: the pid property is changed.
+ */
+void
+pk_channel_set_pid (PkChannel *channel,
+                    GPid       pid)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_set_pid (channel->priv->connection,
+	                               channel->priv->channel_id,
+	                               pid);
 }
 
 /**

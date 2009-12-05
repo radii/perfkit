@@ -35,14 +35,29 @@ gboolean       pk_connection_channels_find_all  (PkConnection         *connectio
                                                  GError              **error);
 gchar*         pk_connection_channel_get_target (PkConnection         *connection,
                                                  gint                  channel_id);
+void           pk_connection_channel_set_target (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 const gchar          *target);
 gchar**        pk_connection_channel_get_args   (PkConnection         *connection,
                                                  gint                  channel_id);
+void           pk_connection_channel_set_args   (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 gchar               **args);
 gchar*         pk_connection_channel_get_dir    (PkConnection         *connection,
                                                  gint                  channel_id);
+void           pk_connection_channel_set_dir    (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 const gchar          *dir);
 gchar**        pk_connection_channel_get_env    (PkConnection         *connection,
                                                  gint                  channel_id);
+void           pk_connection_channel_set_env    (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 gchar               **env);
 GPid           pk_connection_channel_get_pid    (PkConnection         *connection,
                                                  gint                  channel_id);
+void           pk_connection_channel_set_pid    (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 GPid                  pid);
 PkChannelState pk_connection_channel_get_state  (PkConnection         *connection,
                                                  gint                  channel_id);
 gboolean       pk_connection_channel_start      (PkConnection         *connection,
