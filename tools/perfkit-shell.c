@@ -617,7 +617,34 @@ pk_shell_iter_channel (EggLine   *line,
 	return channel_commands;
 }
 
+static EggLineStatus
+pk_shell_cmd_source_types (EggLine  *line,
+                           gint      argc,
+                           gchar   **argv,
+                           GError  **error)
+{
+	PkSources  *sources;
+	gchar     **types;
+	gint        i;
+
+	sources = pk_connection_get_sources (connection);
+	types = pk_sources_get_types (sources);
+
+	if (types) {
+		for (i = 0; types [i]; i++) {
+			g_print ("%s\n", types [i]);
+		}
+	}
+
+	g_strfreev (types);
+
+	return EGG_LINE_STATUS_OK;
+}
+
 static EggLineCommand source_commands[] = {
+	{ "types", NULL, pk_shell_cmd_source_types,
+	  N_("List available source types"),
+	  "source types" },
 	{ NULL }
 };
 
