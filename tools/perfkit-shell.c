@@ -36,6 +36,7 @@
 static EggFmtFunc    formatter  = NULL;
 static PkConnection *connection = NULL;
 static PkChannels   *channels   = NULL;
+static PkSources    *sources    = NULL;
 static gboolean      opt_csv    = FALSE;
 
 static GOptionEntry entries[] = {
@@ -80,6 +81,7 @@ pk_shell_connect (const gchar  *uri,
 {
 	PkConnection *_connection;
 	PkChannels   *_channels;
+	PkSources    *_sources;
 
 	g_return_val_if_fail (uri != NULL, FALSE);
 
@@ -89,6 +91,7 @@ pk_shell_connect (const gchar  *uri,
 		return FALSE;
 
 	_channels = pk_connection_get_channels (_connection);
+	_sources = pk_connection_get_sources (_connection);
 
 	if (connection)
 		g_object_unref (connection);
@@ -96,7 +99,11 @@ pk_shell_connect (const gchar  *uri,
 
 	if (channels)
 		g_object_unref (channels);
-	channels = _channels;
+	channels = g_object_ref (_channels);
+
+	if (sources)
+		g_object_unref (sources);
+	sources = g_object_ref (_sources);
 
 	return TRUE;
 }
@@ -631,11 +638,9 @@ pk_shell_cmd_source_types (EggLine  *line,
                            gchar   **argv,
                            GError  **error)
 {
-	PkSources  *sources;
-	gchar     **types;
-	gint        i;
+	gchar **types;
+	gint    i;
 
-	sources = pk_connection_get_sources (connection);
 	types = pk_sources_get_types (sources);
 
 	if (types) {
@@ -655,13 +660,11 @@ pk_shell_cmd_source_add (EggLine  *line,
                          gchar   **argv,
                          GError  **error)
 {
-	PkSources *sources;
-	PkSource  *source;
+	PkSource *source;
 
 	if (argc != 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	sources = pk_connection_get_sources (connection);
 	if (NULL != (source = pk_sources_add (sources, argv [0]))) {
 		g_print ("Added source %d\n", pk_source_get_id (source));
 		g_object_unref (source);
@@ -673,6 +676,47 @@ pk_shell_cmd_source_add (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+static EggLineStatus
+pk_shell_cmd_source_attach (EggLine  *line,
+                            gint      argc,
+                            gchar   **argv,
+                            GError  **error)
+{
+	PkChannel  *channel    = NULL;
+	PkSource   *source     = NULL;
+	gint        source_id  = 0,
+	            channel_id = 0;
+
+	if (argc != 2)
+		return EGG_LINE_STATUS_BAD_ARGS;
+	else if (!pk_util_parse_int (argv [0], &source_id))
+		return EGG_LINE_STATUS_BAD_ARGS;
+	else if (!pk_util_parse_int (argv [1], &channel_id))
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	g_print ("Source=%d, Channel=%d\n", source_id, channel_id);
+
+	channels = pk_connection_get_channels (connection);
+	sources = pk_connection_get_sources (connection);
+
+	if (!(source = pk_sources_get (sources, source_id)))
+		goto error;
+
+	if (!(channel = pk_channels_get (channels, channel_id)))
+		goto error;
+
+	pk_source_set_channel (source, channel);
+
+error:
+	if (channel)
+		g_object_unref (channel);
+
+	if (source)
+		g_object_unref (source);
+
+	return EGG_LINE_STATUS_OK;
+}
+
 static EggLineCommand source_commands[] = {
 	{ "types", NULL, pk_shell_cmd_source_types,
 	  N_("List available source types"),
@@ -680,6 +724,9 @@ static EggLineCommand source_commands[] = {
 	{ "add", NULL, pk_shell_cmd_source_add,
 	  N_("Add a data source"),
 	  "source add [TYPE]" },
+	{ "attach", NULL, pk_shell_cmd_source_attach,
+	  N_("Attach a source to a data channel"),
+	  "source attach [SOURCE] [CHANNEL]" },
 	{ NULL }
 };
 
