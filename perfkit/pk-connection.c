@@ -397,6 +397,17 @@ pk_connection_sources_get_types (PkConnection *connection)
 		sources_get_types (connection);
 }
 
+gboolean
+pk_connection_sources_add (PkConnection  *connection,
+                           const gchar   *type,
+                           gint          *source_id,
+                           GError       **error)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		sources_add (connection, type, source_id, error);
+}
+
 /**************************************************************************
  *                         GObject Class Methods                          *
  **************************************************************************/

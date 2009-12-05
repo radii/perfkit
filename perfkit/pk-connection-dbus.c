@@ -576,6 +576,41 @@ pk_connection_dbus_real_sources_get_types (PkConnection *connection)
 	return types;
 }
 
+static gboolean
+pk_connection_dbus_real_sources_add (PkConnection  *connection,
+                                     const gchar   *type,
+                                     gint          *source_id,
+                                     GError       **error)
+{
+	PkConnectionDBusPrivate  *priv;
+	gchar                    *path   = NULL,
+	                         *tmp;
+	gboolean                  result = FALSE;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), FALSE);
+	g_return_val_if_fail (source_id != NULL, FALSE);
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	*source_id = 0;
+
+	if (!com_dronelabs_Perfkit_Sources_add (priv->sources, type,
+	                                        &path, error)) {
+	    return FALSE;
+	}
+
+	tmp = g_strrstr (path, "/");
+	if (tmp) {
+		tmp++;
+		errno = 0;
+		*source_id = strtol (tmp, NULL, 0);
+		result = (errno == 0);
+	}
+	g_free (path);
+
+	return result;
+}
+
 static void
 pk_connection_dbus_finalize (GObject *object)
 {
@@ -617,6 +652,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_pause      = pk_connection_dbus_real_channel_pause;
 	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
 	conn_class->sources_get_types  = pk_connection_dbus_real_sources_get_types;
+	conn_class->sources_add        = pk_connection_dbus_real_sources_add;
 }
 
 static void

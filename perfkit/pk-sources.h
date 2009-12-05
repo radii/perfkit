@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pk-source.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_SOURCES            (pk_sources_get_type ())
@@ -52,6 +54,8 @@ GType      pk_sources_get_type  (void) G_GNUC_CONST;
 gchar**    pk_sources_get_types (PkSources *sources);
 PkSource*  pk_sources_get       (PkSources *sources,
                                  gint       source_id);
+PkSource*  pk_sources_add       (PkSources   *sources,
+                                 const gchar *type);
 
 G_END_DECLS
 

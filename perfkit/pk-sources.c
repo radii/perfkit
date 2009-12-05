@@ -114,3 +114,36 @@ pk_sources_get (PkSources *sources,
 	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
 	return pk_source_new (sources->priv->connection, source_id);
 }
+
+/**
+ * pk_sources_add:
+ * @sources: A #PkSources
+ * @type: The name of the perfkit data source type
+ *
+ * Adds a new data source to the remote perfkit daemon.
+ *
+ * See pk_sources_get_types().
+ *
+ * Return value: The newly created #PkSource instance which should be freed
+ *   with g_object_unref().
+ *
+ * Side effects: creates a new data source on the remote system.
+ */
+PkSource*
+pk_sources_add (PkSources   *sources,
+                const gchar *type)
+{
+	gint    source_id = 0;
+	GError *error     = NULL;
+
+	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
+
+	if (!pk_connection_sources_add (sources->priv->connection,
+	                                type, &source_id, &error)) {
+	    g_warning ("%s", error->message);
+	    g_error_free (error);
+	    return NULL;
+	}
+
+	return pk_source_new (sources->priv->connection, source_id);
+}

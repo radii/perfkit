@@ -149,6 +149,10 @@ struct _PkConnectionClass
 	 */
 
 	gchar**           (*sources_get_types)        (PkConnection         *connection);
+	gboolean          (*sources_add)              (PkConnection         *connection,
+	                                               const gchar          *type,
+	                                               gint                 *source_id,
+	                                               GError              **error);
 
 	/*
 	 * Future Expansion

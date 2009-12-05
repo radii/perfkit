@@ -73,6 +73,10 @@ gboolean       pk_connection_channel_unpause    (PkConnection         *connectio
                                                  gint                  channel_id,
                                                  GError              **error);
 gchar**        pk_connection_sources_get_types  (PkConnection         *connection);
+gboolean       pk_connection_sources_add        (PkConnection         *connection,
+                                                 const gchar          *type,
+                                                 gint                 *source_id,
+                                                 GError              **error);
 
 G_END_DECLS
 
