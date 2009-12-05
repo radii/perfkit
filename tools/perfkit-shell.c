@@ -52,16 +52,24 @@ static gboolean
 pk_util_parse_int (const gchar *str,
                    gint        *v_int)
 {
+	gchar *ptr;
+	gint   val;
+
 	g_return_val_if_fail (str != NULL, FALSE);
 	g_return_val_if_fail (v_int != NULL, FALSE);
 
+	*v_int = 0;
 	errno = 0;
-	*v_int = strtol (str, NULL, 0);
 
-	if (errno != 0) {
-		*v_int = 0;
+	val = strtol (str, &ptr, 0);
+
+	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0))
 		return FALSE;
-	}
+
+	if (str == ptr)
+		return FALSE;
+
+	*v_int = val;
 
 	return TRUE;
 }
