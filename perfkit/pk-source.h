@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pk-channel.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_SOURCE            (pk_source_get_type ())
@@ -48,8 +50,10 @@ struct _PkSourceClass
 	GObjectClass parent_class;
 };
 
-GType          pk_source_get_type   (void) G_GNUC_CONST;
-gint           pk_source_get_id     (PkSource    *source);
+GType  pk_source_get_type    (void) G_GNUC_CONST;
+gint   pk_source_get_id      (PkSource  *source);
+void   pk_source_set_channel (PkSource  *source,
+                              PkChannel *channel);
 
 G_END_DECLS
 

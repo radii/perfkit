@@ -155,6 +155,13 @@ struct _PkConnectionClass
 	                                               GError              **error);
 
 	/*
+	 * Source RPCs
+	 */
+	void              (*source_set_channel)       (PkConnection         *connection,
+	                                               gint                  source_id,
+	                                               gint                  channel_id);
+
+	/*
 	 * Future Expansion
 	 */
 	gpointer          reserved [64];

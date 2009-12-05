@@ -77,6 +77,9 @@ gboolean       pk_connection_sources_add        (PkConnection         *connectio
                                                  const gchar          *type,
                                                  gint                 *source_id,
                                                  GError              **error);
+void           pk_connection_source_set_channel (PkConnection         *connection,
+                                                 gint                  source_id,
+                                                 gint                  channel_id);
 
 G_END_DECLS
 

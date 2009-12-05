@@ -96,3 +96,24 @@ pk_source_get_id (PkSource *source)
 	g_return_val_if_fail (PK_IS_SOURCE (source), -1);
 	return source->priv->source_id;
 }
+
+/**
+ * pk_source_set_channel:
+ * @source: A #PkSource
+ * @channel: A #PkChannel
+ *
+ * Sets the channel in which the source delivers samples.
+ *
+ * Side effects: Sets the channel for the source.
+ */
+void
+pk_source_set_channel (PkSource  *source,
+                       PkChannel *channel)
+{
+	g_return_if_fail (PK_IS_SOURCE (source));
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+
+	pk_connection_source_set_channel (source->priv->connection,
+	                                  source->priv->source_id,
+	                                  pk_channel_get_id (channel));
+}

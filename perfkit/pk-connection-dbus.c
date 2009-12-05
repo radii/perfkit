@@ -29,6 +29,7 @@
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
 #include "pk-connection-dbus.h"
+#include "pk-source-dbus.h"
 #include "pk-sources-dbus.h"
 
 G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
@@ -56,6 +57,26 @@ pk_channel_proxy_new (PkConnection *connection,
 	                                   "com.dronelabs.Perfkit",
 	                                   path,
 	                                   "com.dronelabs.Perfkit.Channel");
+	g_free (path);
+
+	return proxy;
+}
+
+static DBusGProxy*
+pk_source_proxy_new (PkConnection *connection,
+                     gint          source_id)
+{
+	DBusGProxy      *proxy;
+	DBusGConnection *conn;
+	gchar           *path;
+
+	conn = PK_CONNECTION_DBUS (connection)->priv->dbus;
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
+	                        source_id);
+	proxy = dbus_g_proxy_new_for_name (conn,
+	                                   "com.dronelabs.Perfkit",
+	                                   path,
+	                                   "com.dronelabs.Perfkit.Source");
 	g_free (path);
 
 	return proxy;
@@ -612,6 +633,29 @@ pk_connection_dbus_real_sources_add (PkConnection  *connection,
 }
 
 static void
+pk_connection_dbus_real_source_set_channel (PkConnection *connection,
+                                            gint          source_id,
+                                            gint          channel_id)
+{
+	PkConnectionDBusPrivate  *priv;
+	gchar                    *path;
+	DBusGProxy               *proxy;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	proxy = pk_source_proxy_new (connection, source_id);
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
+	                        channel_id);
+
+	com_dronelabs_Perfkit_Source_set_channel (proxy, path, NULL);
+
+	g_free (path);
+	g_object_unref (proxy);
+}
+
+static void
 pk_connection_dbus_finalize (GObject *object)
 {
 	G_OBJECT_CLASS (pk_connection_dbus_parent_class)->finalize (object);
@@ -653,6 +697,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
 	conn_class->sources_get_types  = pk_connection_dbus_real_sources_get_types;
 	conn_class->sources_add        = pk_connection_dbus_real_sources_add;
+	conn_class->source_set_channel = pk_connection_dbus_real_source_set_channel;
 }
 
 static void

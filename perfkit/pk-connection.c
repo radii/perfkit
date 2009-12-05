@@ -408,6 +408,16 @@ pk_connection_sources_add (PkConnection  *connection,
 		sources_add (connection, type, source_id, error);
 }
 
+void
+pk_connection_source_set_channel (PkConnection *connection,
+                                  gint          source_id,
+                                  gint          channel_id)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		source_set_channel (connection, source_id, channel_id);
+}
+
 /**************************************************************************
  *                         GObject Class Methods                          *
  **************************************************************************/
