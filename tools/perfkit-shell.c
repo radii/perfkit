@@ -641,10 +641,37 @@ pk_shell_cmd_source_types (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+static EggLineStatus
+pk_shell_cmd_source_add (EggLine  *line,
+                         gint      argc,
+                         gchar   **argv,
+                         GError  **error)
+{
+	PkSources *sources;
+	PkSource  *source;
+
+	if (argc != 1)
+		return EGG_LINE_STATUS_BAD_ARGS;
+
+	sources = pk_connection_get_sources (connection);
+	if (NULL != (source = pk_sources_add (sources, argv [0]))) {
+		g_print ("Added source %d\n", pk_source_get_id (source));
+		g_object_unref (source);
+	}
+	else {
+		g_printerr ("Could not create source of type \"%s\"\n", argv [0]);
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
 static EggLineCommand source_commands[] = {
 	{ "types", NULL, pk_shell_cmd_source_types,
 	  N_("List available source types"),
 	  "source types" },
+	{ "add", NULL, pk_shell_cmd_source_add,
+	  N_("Add a data source"),
+	  "source add [TYPE]" },
 	{ NULL }
 };
 
