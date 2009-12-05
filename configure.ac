@@ -27,6 +27,7 @@ AC_PROG_CC
 AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
+AM_PROG_CC_C_O
 PKD_MAJOR_VERSION=perfkit_major_version
 PKD_MINOR_VERSION=perfkit_minor_version
 PKD_MICRO_VERSION=perfkit_micro_version
