@@ -142,6 +142,10 @@ pk_util_channels_iter (EggFmtIter *iter,
 			g_value_take_string (&iter->column_values [i],
 			                     pk_channel_get_target (channel));
 		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "directory")) {
+			g_value_take_string (&iter->column_values [i],
+			                     pk_channel_get_dir (channel));
+		}
 		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "arguments")) {
 			g_value_take_boxed (&iter->column_values [i],
 			                    pk_channel_get_args (channel));
@@ -333,6 +337,7 @@ pk_shell_cmd_channel_list (EggLine  *line,
 	                   "State", G_TYPE_STRING,
 	                   "Target", G_TYPE_STRING,
 	                   "Arguments", G_TYPE_STRV,
+	                   "Directory", G_TYPE_STRING,
 	                   NULL);
 	list = pk_channels_find_all (channels);
 	formatter (&iter, list, NULL);
