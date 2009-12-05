@@ -651,7 +651,19 @@ static EggLineCommand commands[] = {
 	  N_("Delay for a specified amount of time"),
 	  "sleep [SECONDS]" },
 	{ "channel", pk_shell_iter_channel, NULL,
-	  N_("Manage perfkit channels"),
+	  N_("Manage perfkit channels\n"
+	     "\n"
+	     "Commands:\n"
+	     "\n"
+	     "  add     - Add a new channel\n"
+	     "  get     - Get channel properties\n"
+	     "  list    - List available channels\n"
+	     "  pause   - Pause a channel\n"
+	     "  unpause - Unpause a paused channel\n"
+	     "  remove  - Remove a channel\n"
+	     "  set     - Set channel properties\n"
+	     "  start   - Start the channel recording\n"
+	     "  stop    - Stop the channel recording\n"),
 	  "channel [COMMAND]" },
 	{ "source", pk_shell_iter_source, NULL,
 	  N_("Manage perfkit data sources"),
