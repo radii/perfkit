@@ -666,7 +666,7 @@ pk_shell_cmd_source_add (EggLine  *line,
 		return EGG_LINE_STATUS_BAD_ARGS;
 
 	if (NULL != (source = pk_sources_add (sources, argv [0]))) {
-		g_print ("Added source %d\n", pk_source_get_id (source));
+		g_print ("Added source %d.\n", pk_source_get_id (source));
 		g_object_unref (source);
 	}
 	else {
@@ -693,8 +693,6 @@ pk_shell_cmd_source_attach (EggLine  *line,
 		return EGG_LINE_STATUS_BAD_ARGS;
 	else if (!pk_util_parse_int (argv [1], &channel_id))
 		return EGG_LINE_STATUS_BAD_ARGS;
-
-	g_print ("Source=%d, Channel=%d\n", source_id, channel_id);
 
 	channels = pk_connection_get_channels (connection);
 	sources = pk_connection_get_sources (connection);
