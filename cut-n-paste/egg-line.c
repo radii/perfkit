@@ -307,7 +307,8 @@ egg_line_execute (EggLine     *line,
  * @line: An #EggLine
  * @filename: a filename
  *
- * 
+ * Executes the contents of a file.  Lines that start with
+ * a # or are empty are ignored.
  */
 void
 egg_line_execute_file (EggLine     *line,
@@ -332,8 +333,11 @@ egg_line_execute_file (EggLine     *line,
 	                                                     NULL)) {
 	    g_strstrip (str_return);
 
-	    if (!g_str_has_prefix (str_return, "#") && strlen (str_return))
+	    if (!g_str_has_prefix (str_return, "#") && strlen (str_return)) {
+	    	g_print ("%s%s\n", line->priv->prompt, str_return);
 	    	egg_line_execute (line, str_return);
+		}
+
 	    g_free (str_return);
 	}
 
