@@ -1,5 +1,9 @@
 bin_PROGRAMS = perfkit-gui
-noinst_LTLIBRARIES = libperfkit-gui.la
+
+noinst_LTLIBRARIES =							\
+	libperfkit-gui.la						\
+	libservices.la							\
+	$(NULL)
 
 headerdir = $(prefix)/include/perfkit-gui-1.0/perfkit-gui
 header_DATA = $(INST_H_FILES)
@@ -38,6 +42,7 @@ INST_H_FILES =								\
 NOINST_H_FILES =							\
 	$(NULL)
 
+
 libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
@@ -45,15 +50,29 @@ libperfkit_gui_la_SOURCES =						\
 	pkg-runtime.c							\
 	pkg-service.c							\
 	$(NULL)
-
 libperfkit_gui_la_LIBADD = $(PERFKIT_GUI_LIBS)
 libperfkit_gui_la_LDFLAGS =						\
 	-export-dynamic							\
 	-export-symbols-regex "^pkg_.*"					\
 	$(NULL)
 
+
+libservices_la_SOURCES =						\
+	services/pkg-gui-service.c					\
+	$(NULL)
+libservices_la_LIBADD = $(PERFKIT_GUI_LIBS)
+libservices_la_LDFLAGS =						\
+	-export-dynamic							\
+	-export-symbols-regex "^pkg_.*"					\
+	$(NULL)
+
+
 perfkit_gui_SOURCES = main.c
-perfkit_gui_LDADD = libperfkit-gui.la $(PERFKIT_GUI_LIBS)
+perfkit_gui_LDADD =							\
+	libperfkit-gui.la						\
+	libservices.la							\
+	$(PERFKIT_GUI_LIBS)						\
+	$(NULL)
 perfkit_gui_LDFLAGS =							\
 	-export-dynamic							\
 	-export-symbols-regex "^pkg_.*"					\

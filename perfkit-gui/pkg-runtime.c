@@ -27,6 +27,7 @@
 #include "pkg-paths.h"
 #include "pkg-runtime.h"
 #include "pkg-service.h"
+#include "services/pkg-gui-service.h"
 
 static GMainLoop       *main_loop     = NULL;
 static GList           *services      = NULL;
@@ -65,6 +66,9 @@ pkg_runtime_initialize (void)
 		g_printerr ("Existing instance of Pkg was found. Exiting gracefully.\n");
 		exit (EXIT_SUCCESS);
 	}
+
+	/* add core services */
+	pkg_runtime_add_service ("Gui", g_object_new (PKG_TYPE_GUI_SERVICE, NULL));
 
 	started = TRUE;
 }
@@ -127,11 +131,10 @@ pkg_runtime_shutdown (void)
  */
 void
 pkg_runtime_add_service (const gchar *name,
-                             PkgService *service)
+                         PkgService *service)
 {
 	gboolean  needs_start = FALSE;
 	GError   *error       = NULL;
-	gchar    *path;
 
 	G_LOCK (services);
 
@@ -140,9 +143,13 @@ pkg_runtime_add_service (const gchar *name,
 		services = g_list_append (services, g_object_ref (service));
 		needs_start = started;
 
-		path = g_strdup_printf ("/com/dronelabs/Pkg/%s", name);
+		/* TODO: Enable DBUS service bridge.
+		 *
+		gchar *path = g_strdup_printf ("/com/dronelabs/PerfkitGui/%s", name);
 		dbus_g_connection_register_g_object (dbus_conn, path, G_OBJECT (service));
 		g_free (path);
+		 *
+		 */
 	}
 	else {
 		g_warning ("Service named \"%s\" already exists!", name);
