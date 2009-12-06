@@ -174,6 +174,13 @@ libperfkit-1.0
        |  Provides access to manipulate the source.
        |
 
+  Profiling sample delivery is a critical path in the lifecycle of the
+  perfkit-daemon and client.  Perfkit, by default, uses the DBUS for
+  communicating with clients.  The particular DBUS connection used is managed
+  by the DBUS daemon and therefore has a decent amount of overhead. Therefore,
+  a private connection between the client and the daemon is created and the
+  DBUS serialization protocol is used in a peer-to-peer manner.
+
 perfkit-shell
 =============
 
