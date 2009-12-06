@@ -1,5 +1,5 @@
 dnl ************************************************************************
-dnl Versioning
+dnl Versioning Macros
 dnl ************************************************************************
 m4_define([perfkit_major_version], [0])
 m4_define([perfkit_minor_version], [1])
@@ -28,6 +28,11 @@ AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
+
+
+dnl ************************************************************************
+dnl Versioning Definitions
+dnl ************************************************************************
 PKD_MAJOR_VERSION=perfkit_major_version
 PKD_MINOR_VERSION=perfkit_minor_version
 PKD_MICRO_VERSION=perfkit_micro_version
@@ -37,6 +42,11 @@ PK_MAJOR_VERSION=perfkit_major_version
 PK_MINOR_VERSION=perfkit_minor_version
 PK_MICRO_VERSION=perfkit_micro_version
 PK_API_VERSION=1.0
+PK_VERSION=perfkit_version
+PKG_MAJOR_VERSION=perfkit_major_version
+PKG_MINOR_VERSION=perfkit_minor_version
+PKG_MICRO_VERSION=perfkit_micro_version
+PKG_API_VERSION=1.0
 PK_VERSION=perfkit_version
 AC_SUBST(PKD_MAJOR_VERSION)
 AC_SUBST(PKD_MINOR_VERSION)
@@ -48,6 +58,11 @@ AC_SUBST(PK_MINOR_VERSION)
 AC_SUBST(PK_MICRO_VERSION)
 AC_SUBST(PK_API_VERSION)
 AC_SUBST(PK_VERSION)
+AC_SUBST(PKG_MAJOR_VERSION)
+AC_SUBST(PKG_MINOR_VERSION)
+AC_SUBST(PKG_MICRO_VERSION)
+AC_SUBST(PKG_API_VERSION)
+AC_SUBST(PKG_VERSION)
 
 
 dnl ************************************************************************
@@ -63,6 +78,11 @@ PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.20
 PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0 >= 2.20
 				   dbus-glib-1 >= 0.80
 				   gio-2.0     >= 2.20])
+PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0 >= 2.20
+				   gthread-2.0 >= 2.20
+				   dbus-glib-1 >= 0.80
+				   gtk+-2.0    >= 2.18
+				   ethos-1.0   >= 0.2.2])
 
 
 dnl ************************************************************************
@@ -116,6 +136,11 @@ AC_OUTPUT([
 	doc/reference/perfkit/version.xml
 	perfkit/Makefile
 	perfkit/pk-version.h
+
+	doc/reference/perfkit-gui/Makefile
+	doc/reference/perfkit-gui/version.xml
+	perfkit-gui/Makefile
+	perfkit-gui/pkg-version.h
 ])
 
 echo ""

@@ -7,7 +7,7 @@ AUTOMAKE_OPTIONS = 1.6
 # of using the various options.
 
 # The name of the module, e.g. 'glib'.
-DOC_MODULE=perfkit-daemon
+DOC_MODULE=perfkit-gui
 
 # The top-level SGML file. You can change this if you want to.
 DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
@@ -16,7 +16,7 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 # gtk-doc will search all .c & .h files beneath here for inline comments
 # documenting the functions and macros.
 # e.g. DOC_SOURCE_DIR=../../../gtk
-DOC_SOURCE_DIR=../../../perfkit-daemon
+DOC_SOURCE_DIR=../../../perfkit-gui
 
 # Extra options to pass to gtkdoc-scangobj. Not normally needed.
 SCANGOBJ_OPTIONS=--type-init-func="g_type_init()"
@@ -27,7 +27,7 @@ SCAN_OPTIONS=
 
 # Extra options to supply to gtkdoc-mkdb.
 # e.g. MKDB_OPTIONS=--sgml-mode --output-format=xml
-MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=pkd
+MKDB_OPTIONS=--sgml-mode --output-format=xml --name-space=pkg
 
 # Extra options to supply to gtkdoc-mktmpl
 # e.g. MKTMPL_OPTIONS=--only-section-tmpl
@@ -43,13 +43,12 @@ FIXXREF_OPTIONS=\
 # Used for dependencies. The docs will be rebuilt if any of these change.
 # e.g. HFILE_GLOB=$(top_srcdir)/gtk/*.h
 # e.g. CFILE_GLOB=$(top_srcdir)/gtk/*.c
-HFILE_GLOB=$(top_srcdir)/perfkit-daemon/pkd*.h
-CFILE_GLOB=$(top_srcdir)/perfkit-daemon/pkd*.c
+HFILE_GLOB=$(top_srcdir)/perfkit-gui/pkg*.h
+CFILE_GLOB=$(top_srcdir)/perfkit-gui/pkg*.c
 
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
 IGNORE_HFILES=							\
-	pkd.h						\
 	$(NULL)
 
 EXTRA_HFILES=
@@ -73,10 +72,10 @@ expand_content_files=
 # e.g. INCLUDES=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
 
-INCLUDES=-I$(top_srcdir) $(PERFKIT_DAEMON_CFLAGS)
+INCLUDES=-I$(top_srcdir) $(PERFKIT_GUI_CFLAGS)
 GTKDOC_LIBS=							\
-	$(top_builddir)/perfkit-daemon/libperfkit-daemon.la		\
-	$(PERFKIT_DAEMON_LIBS)						\
+	$(top_builddir)/perfkit-gui/libperfkit-gui.la		\
+	$(PERFKIT_GUI_LIBS)					\
 	$(NULL)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
