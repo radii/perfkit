@@ -35,5 +35,9 @@ III.	Contributing
 Perfkit is actively looking for contributors to help improve the codebase
 and add collection data sources.
 
+You can find more information on the architecture of Perfkit and a layout
+of the codebase in HACKING which can be found in the same directory as this
+file.
+
 Perfkit was brought to you by Christian Hergert and Shapor Naghibzadeh.
 
