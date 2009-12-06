@@ -32,8 +32,8 @@
 #include "pkd-channel-dbus.h"
 #include "pkd-log.h"
 #include "pkd-runtime.h"
-#include "pkd-source.h"
 #include "pkd-sample.h"
+#include "pkd-source.h"
 
 /**
  * SECTION:pkd-channel
@@ -59,12 +59,6 @@ enum
 	PROP_DIR,
 };
 
-enum
-{
-	SAMPLE_READY,
-	SIGNAL_LAST
-};
-
 struct _PkdChannelPrivate
 {
 	GStaticRWLock   rw_lock;
@@ -77,10 +71,16 @@ struct _PkdChannelPrivate
 	gchar         **env;       /* GStrv of KEY=VALUE environment vars */
 	gboolean        spawned;   /* If we are responsible for the child process */
 	GPtrArray      *sources;   /* Array of PkdSource's */
+	GPtrArray      *subs;      /* Array of Subscriptions */
 };
 
-static guint signals[SIGNAL_LAST] = {0,};
-static gint  channel_seq          = 0;
+typedef struct
+{
+	DBusGConnection *conn;
+	DBusGProxy      *proxy;
+} Subscription;
+
+static gint channel_seq = 0;
 
 /**
  * pkd_channel_get_dir:
@@ -855,16 +855,100 @@ do_stop (PkdChannel *channel)
 		kill (priv->pid, SIGTERM);
 }
 
+static gboolean
+pkd_channel_subscribe_dbus (PkdChannel   *channel,
+                            const gchar  *address,
+                            const gchar  *path,
+                            GError      **error)
+{
+	PkdChannelPrivate *priv;
+	DBusGConnection   *conn;
+	DBusGProxy        *proxy;
+	Subscription      *sub;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
+	g_return_val_if_fail (address != NULL, FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	priv = channel->priv;
+
+	/* connect to peers DBUS */
+	if (!(conn = dbus_g_connection_open (address, error)))
+		return FALSE;
+
+	/* get a proxy to their subscription listner */
+	if (!(proxy = dbus_g_proxy_new_for_peer (conn, path, "com.dronelabs.Perfkit.Subscription"))) {
+		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
+		             "Could not connect to subscription path");
+		dbus_g_connection_unref (conn);
+		return FALSE;
+	}
+
+	/* store subscription for later */
+	sub = g_slice_new0 (Subscription);
+	sub->conn = conn;
+	sub->proxy = proxy;
+
+	/* store for future samples */
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+	g_ptr_array_add (priv->subs, sub);
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return TRUE;
+}
+
+/**
+ * pkd_channel_deliver:
+ * @channel: A #PkdChannel
+ * @source: A #PkdSource
+ * @sample: A #PkdSample
+ *
+ * Delivers a newly created #PkdSample from @source to @channel.  The
+ * #PkdChannel instance will then forward the sample to listening
+ * subscriptions.
+ */
 void
 pkd_channel_deliver (PkdChannel *channel,
                      PkdSource  *source,
                      PkdSample  *sample)
 {
-	g_debug ("%s", __func__);
-	g_signal_emit (channel,
-	               signals [SAMPLE_READY],
-	               0,
-	               sample);
+	PkdChannelPrivate *priv;
+	Subscription      *sub;
+	gint               i;
+
+	/* TODO:
+	 *   - How should we handle delivery errors?
+	 *   - Should we send samples asynchronously with no reply?
+	 *   - Should we make a copy of the subscription array in the
+	 *     critical section (ref'ing each) and then execute callbacks
+	 *     outside the section.
+	 */
+
+	priv = channel->priv;
+
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
+
+	for (i = 0; i < priv->subs->len; i++) {
+		sub = g_ptr_array_index (priv->subs, i);
+		dbus_g_proxy_call_no_reply (sub->proxy,
+		                            "Deliver",
+		                            dbus_g_type_get_collection ("GArray", G_TYPE_UCHAR),
+		                            pkd_sample_get_array (sample),
+		                            G_TYPE_INVALID,
+		                            G_TYPE_INVALID);
+	}
+
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
+}
+
+static void
+subscription_free (Subscription *sub)
+{
+	g_return_if_fail (sub != NULL);
+
+	g_object_unref (sub->proxy);
+	dbus_g_connection_unref (sub->conn);
+	g_slice_free (Subscription, sub);
 }
 
 /**************************************************************************
@@ -874,6 +958,17 @@ pkd_channel_deliver (PkdChannel *channel,
 static void
 pkd_channel_finalize (GObject *object)
 {
+	PkdChannelPrivate *priv;
+
+	priv = PKD_CHANNEL (object)->priv;
+
+	g_free (priv->dir);
+	g_free (priv->target);
+	g_strfreev (priv->args);
+	g_strfreev (priv->env);
+	g_ptr_array_unref (priv->sources);
+	g_ptr_array_unref (priv->subs);
+
 	G_OBJECT_CLASS (pkd_channel_parent_class)->finalize (object);
 }
 
@@ -1014,24 +1109,6 @@ pkd_channel_class_init (PkdChannelClass *klass)
 	                                                     G_TYPE_STRV,
 	                                                     G_PARAM_READWRITE));
 
-	/**
-	 * PkdChannel::sample-ready:
-	 * @channel: A #PkdChannel
-	 * @sample: A #PkdSample
-	 *
-	 * The "sample-ready" signal.
-	 */
-	signals [SAMPLE_READY] = g_signal_new ("sample-ready",
-	                                       PKD_TYPE_CHANNEL,
-	                                       G_SIGNAL_RUN_FIRST,
-	                                       0,
-	                                       NULL,
-	                                       NULL,
-	                                       g_cclosure_marshal_VOID__BOXED,
-	                                       G_TYPE_NONE,
-	                                       1,
-	                                       PKD_TYPE_SAMPLE);
-
 	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL,
 	                                 &dbus_glib_pkd_channel_object_info);
 }
@@ -1047,11 +1124,14 @@ pkd_channel_init (PkdChannel *channel)
 
 	channel->priv->state = PKD_CHANNEL_READY;
 	channel->priv->args = g_malloc0 (sizeof (gchar*));
-
-	/* generate unique identifier */
 	channel->priv->id = g_atomic_int_exchange_and_add (&channel_seq, 1);
 	channel->priv->dir = g_strdup ("/");
 	channel->priv->sources = g_ptr_array_sized_new (16);
+	g_ptr_array_set_free_func (channel->priv->sources,
+	                           (GDestroyNotify)g_object_unref);
+	channel->priv->subs = g_ptr_array_new ();
+	g_ptr_array_set_free_func (channel->priv->subs,
+	                           (GDestroyNotify)subscription_free);
 
 	/* register the channel on the DBUS */
 	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
