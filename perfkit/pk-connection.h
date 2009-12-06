@@ -24,6 +24,7 @@
 #include "pk-channel.h"
 #include "pk-channels.h"
 #include "pk-sources.h"
+#include "pk-sample.h"
 
 G_BEGIN_DECLS
 
@@ -50,6 +51,15 @@ typedef enum
 typedef struct _PkConnection        PkConnection;
 typedef struct _PkConnectionClass   PkConnectionClass;
 typedef struct _PkConnectionPrivate PkConnectionPrivate;
+
+/**
+ * PkSampleCallback:
+ * @sample: A #PkSample
+ * @user_data: user data supplied to subscription
+ *
+ * A callback for a sample received from a perfkit-daemon.
+ */
+typedef void (*PkSampleCallback) (PkSample *sample, gpointer user_data);
 
 struct _PkConnection
 {
@@ -143,6 +153,10 @@ struct _PkConnectionClass
 	gboolean          (*channel_unpause)          (PkConnection         *connection,
 	                                               gint                  channel_id,
 	                                               GError              **error);
+	void              (*channel_subscribe)        (PkConnection         *connection,
+	                                               gint                  channel_id,
+	                                               PkSampleCallback      callback,
+	                                               gpointer              user_data);
 
 	/*
 	 * Sources Service RPCs

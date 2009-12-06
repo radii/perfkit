@@ -20,15 +20,20 @@
 #include "config.h"
 #endif
 
-#include "errno.h"
-#include "stdlib.h"
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 
+#include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-lowlevel.h>
 #include <glib/gi18n.h>
 
 #include "pk-channel-dbus.h"
 #include "pk-channels-dbus.h"
 #include "pk-connection-dbus.h"
+#include "pk-sample.h"
+#include "pk-sample-priv.h"
 #include "pk-source-dbus.h"
 #include "pk-sources-dbus.h"
 
@@ -37,10 +42,49 @@ G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
 struct _PkConnectionDBusPrivate
 {
 	GStaticRWLock    rw_lock;
-	DBusGConnection *dbus;
-	DBusGProxy      *channels;
-	DBusGProxy      *sources;
+	DBusGConnection *dbus;          /* Connection to shared DBUS */
+	DBusGProxy      *channels;      /* Proxy to Channels service */
+	DBusGProxy      *sources;       /* Proxy to Sources service */
+	DBusServer      *server;        /* Private DBUS server for receiving
+	                                 * samples from the daemon.
+	                                 */
+	GHashTable      *subscriptions; /* Active subscriptions */
 };
+
+typedef struct
+{
+	gint             subscription_id;
+	PkSampleCallback callback;
+	gpointer         user_data;
+} Subscription;
+
+static gint subscription_seq = 0;
+
+static gboolean
+pk_util_parse_int (const gchar *str,
+                   gint        *v_int)
+{
+	gchar *ptr;
+	gint   val;
+
+	g_return_val_if_fail (str != NULL, FALSE);
+	g_return_val_if_fail (v_int != NULL, FALSE);
+
+	*v_int = 0;
+	errno = 0;
+
+	val = strtol (str, &ptr, 0);
+
+	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0))
+		return FALSE;
+
+	if (str == ptr)
+		return FALSE;
+
+	*v_int = val;
+
+	return TRUE;
+}
 
 static DBusGProxy*
 pk_channel_proxy_new (PkConnection *connection,
@@ -74,8 +118,7 @@ pk_source_proxy_new (PkConnection *connection,
 	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
 	                        source_id);
 	proxy = dbus_g_proxy_new_for_name (conn,
-	                                   "com.dronelabs.Perfkit",
-	                                   path,
+	                                   "com.dronelabs.Perfkit", path,
 	                                   "com.dronelabs.Perfkit.Source");
 	g_free (path);
 
@@ -88,12 +131,118 @@ pk_connection_is_connected_locked (PkConnection *connection)
 	return (PK_CONNECTION_DBUS (connection)->priv->dbus != NULL);
 }
 
+#define HAS_INTERFACE(m,i)   (g_strcmp0(i, dbus_message_get_interface(m)) == 0)
+#define IS_MEMBER_NAMED(m,i) (g_strcmp0(i, dbus_message_get_member(m)) == 0)
+#define IS_SIGNATURE(m,i)    (g_strcmp0(i, dbus_message_get_signature(m)) == 0)
+
+enum
+{
+	MESSAGE_UNKNOWN,
+	MESSAGE_DELIVER,
+};
+
+static gint
+get_message_type (DBusMessage *message)
+{
+	if (IS_MEMBER_NAMED (message, "Deliver"))
+		return MESSAGE_DELIVER;
+	return MESSAGE_UNKNOWN;
+}
+
+static DBusHandlerResult
+handle_deliver (DBusConnection   *connection,
+                DBusMessage      *message,
+                PkConnectionDBus *self)
+{
+	PkConnectionDBusPrivate  *priv;
+	DBusMessageIter           iter,
+	                          array;
+	const gchar              *data   = NULL;
+	gint                      len    = 0,
+	                          sub_id = 0;
+	PkSample                 *sample;
+	gchar                   **decomp = NULL;
+	Subscription             *sub;
+
+	if (!IS_SIGNATURE (message, "ay") ||
+	    (!dbus_message_get_path_decomposed (message, &decomp)) ||
+	    (g_strv_length (decomp) != 2) ||
+	    (g_strcmp0 (decomp [0], "Subscriptions") != 0) ||
+	    (!pk_util_parse_int (decomp [1], &sub_id)))
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+	priv = self->priv;
+
+	dbus_message_iter_init (message, &iter);
+	dbus_message_iter_recurse (&iter, &array);
+	dbus_message_iter_get_fixed_array (&array, &data, &len);
+
+	/* create and deliver the sample */
+	sample = pk_sample_new_from_data (data, len);
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
+	if (NULL != (sub = g_hash_table_lookup (priv->subscriptions, &sub_id)))
+		sub->callback (sample, sub->user_data);
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
+	pk_sample_unref (sample);
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusHandlerResult
+subscription_message_func (DBusConnection *connection,
+                           DBusMessage    *message,
+                           gpointer        user_data)
+{
+	if (!HAS_INTERFACE (message, "com.dronelabs.Perfkit.Subscription"))
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+	switch (get_message_type (message)) {
+	case MESSAGE_DELIVER:
+		return handle_deliver (connection, message, user_data);
+	default:
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+}
+
+static DBusObjectPathVTable subscription_vtable = {
+	NULL,                      /* Unregister Function */
+	subscription_message_func, /* Message Function    */
+};
+
+static void
+pk_connection_dbus_accept_func (DBusServer     *server,
+                                DBusConnection *conn,
+                                gpointer        user_data)
+{
+	/* TODO:
+	 *   Store the connection somewhere.
+	 *   Provide a way to disconnect/close the connection
+	 *   Authentication (maybe a unique cookie)?
+	 */
+
+	dbus_connection_ref (conn);
+	dbus_connection_setup_with_g_main (conn, NULL);
+
+	/*
+	 * Register a handler for anything in the /Subscriptions handler.
+	 * This allows us to have a single handler for incoming messages
+	 * including samples and out-of-band data.
+	 */
+
+	dbus_connection_register_fallback (conn,
+	                                   "/Subscriptions",
+	                                   &subscription_vtable,
+	                                   user_data);
+}
+
 static gboolean
 pk_connection_dbus_real_connect (PkConnection  *connection,
                                  GError       **error)
 {
 	PkConnectionDBusPrivate *priv;
 	gboolean                 success = FALSE;
+	gchar                   *path;
+	DBusError                path_error;
 
 	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), FALSE);
 
@@ -117,7 +266,37 @@ pk_connection_dbus_real_connect (PkConnection  *connection,
 			                                           "com.dronelabs.Perfkit",
 			                                           "/com/dronelabs/Perfkit/Sources",
 			                                           "com.dronelabs.Perfkit.Sources");
+
 			success = TRUE;
+
+			/* TODO: We should create a new server before each incoming
+			 *       subscription and then remove the file.
+			 */
+
+			/*
+			 * Setup private DBUS channel for receiving streaming samples
+			 * from perfkit-daemon instances.
+			 */
+
+			path = g_strdup_printf ("unix:path=/tmp/perfkit-%d.socket", getpid ());
+			dbus_error_init (&path_error);
+
+			if (!(priv->server = dbus_server_listen (path, &path_error))) {
+				g_warning ("Cannot listen on %s: %s: %s",
+				           path, path_error.name, path_error.message);
+				g_warning ("Receiving data samples will not be available");
+				dbus_error_free (&path_error);
+			}
+			else {
+				dbus_server_set_auth_mechanisms (priv->server, NULL);
+				dbus_server_set_new_connection_function (priv->server,
+				                                         pk_connection_dbus_accept_func,
+				                                         g_object_ref (connection),
+				                                         (DBusFreeFunction)g_object_unref);
+				dbus_server_setup_with_g_main (priv->server, NULL);
+			}
+
+			g_free (path);
 		}
 		else {
 			g_set_error (error, PK_CONNECTION_ERROR,
@@ -582,6 +761,53 @@ pk_connection_dbus_real_channel_unpause (PkConnection  *connection,
 	return result;
 }
 
+static void
+pk_connection_dbus_real_channel_subscribe (PkConnection     *connection,
+                                           gint              channel_id,
+                                           PkSampleCallback  callback,
+                                           gpointer          user_data)
+{
+	PkConnectionDBusPrivate *priv;
+	DBusGProxy              *proxy;
+	gchar                   *path;
+	Subscription            *sub;
+
+	g_return_if_fail (PK_IS_CONNECTION_DBUS (connection));
+
+	priv = PK_CONNECTION_DBUS (connection)->priv;
+
+	/*
+	 * Subscriptions work by creating a new service on our private DBUS
+	 * server.  We then send the socket address and path on this Bus to
+	 * the perfkit-daemon.  The daemon then connects back to our Bus and
+	 * sends samples directly to our service.
+	 */
+
+	/* create subscription */
+	sub = g_slice_new (Subscription);
+	sub->subscription_id = g_atomic_int_exchange_and_add (&subscription_seq, 1);
+	sub->callback = callback;
+	sub->user_data = user_data;
+
+	/* save subscription for lookups */
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+	g_hash_table_insert (priv->subscriptions, &sub->subscription_id, sub);
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	/* TODO: Prepare socket for this subscription so we can remove it
+	 *       after they have connected back.
+	 */
+
+	/* notify the daemon of the subscription */
+	path = g_strdup_printf ("/Subscriptions/%d", sub->subscription_id);
+	proxy = pk_channel_proxy_new (connection, channel_id);
+	com_dronelabs_Perfkit_Channel_subscribe (proxy,
+	                                         dbus_server_get_address (priv->server),
+	                                         path, NULL);
+	g_object_unref (proxy);
+	g_free (path);
+}
+
 static gchar**
 pk_connection_dbus_real_sources_get_types (PkConnection *connection)
 {
@@ -623,9 +849,11 @@ pk_connection_dbus_real_sources_add (PkConnection  *connection,
 	tmp = g_strrstr (path, "/");
 	if (tmp) {
 		tmp++;
-		errno = 0;
-		*source_id = strtol (tmp, NULL, 0);
-		result = (errno == 0);
+		if (!(result = pk_util_parse_int (tmp, source_id))) {
+			g_set_error (error, PK_CONNECTION_ERROR,
+			             PK_CONNECTION_ERROR_INVALID,
+			             "An invalid path was returned");
+		}
 	}
 	g_free (path);
 
@@ -653,6 +881,12 @@ pk_connection_dbus_real_source_set_channel (PkConnection *connection,
 
 	g_free (path);
 	g_object_unref (proxy);
+}
+
+static void
+subscription_free (gpointer data)
+{
+	g_slice_free (Subscription, data);
 }
 
 static void
@@ -695,6 +929,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->channel_stop       = pk_connection_dbus_real_channel_stop;
 	conn_class->channel_pause      = pk_connection_dbus_real_channel_pause;
 	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
+	conn_class->channel_subscribe  = pk_connection_dbus_real_channel_subscribe;
 	conn_class->sources_get_types  = pk_connection_dbus_real_sources_get_types;
 	conn_class->sources_add        = pk_connection_dbus_real_sources_add;
 	conn_class->source_set_channel = pk_connection_dbus_real_source_set_channel;
@@ -706,7 +941,12 @@ pk_connection_dbus_init (PkConnectionDBus *connection)
 	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE (connection,
 	                                                PK_TYPE_CONNECTION_DBUS,
 	                                                PkConnectionDBusPrivate);
+
 	g_static_rw_lock_init (&connection->priv->rw_lock);
+
+	connection->priv->subscriptions =
+		g_hash_table_new_full (g_int_hash, g_int_equal, NULL,
+		                       subscription_free);
 }
 
 PkConnection*

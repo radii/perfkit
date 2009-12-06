@@ -68,5 +68,10 @@
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_state_dbus"/>
       <arg name="state" type="u" direction="out"/>
     </method>
+    <method name="Subscribe">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_subscribe_dbus"/>
+      <arg name="address" type="s" direction="in"/>
+      <arg name="path" type="s" direction="in"/>
+    </method>
   </interface>
 </node>

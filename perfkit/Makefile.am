@@ -21,6 +21,7 @@ INST_H_FILES = \
 	pk-connection.h \
 	pk-sources.h \
 	pk-source.h \
+	pk-sample.h \
 	$(NULL)
 
 NOINST_H_FILES = \
@@ -29,6 +30,7 @@ NOINST_H_FILES = \
 	pk-channels-priv.h \
 	pk-sources-priv.h \
 	pk-source-priv.h \
+	pk-sample-priv.h \
 	$(NULL)
 
 libperfkit_1_0_la_SOURCES = \
@@ -40,6 +42,7 @@ libperfkit_1_0_la_SOURCES = \
 	pk-connection-dbus.c \
 	pk-sources.c \
 	pk-source.c \
+	pk-sample.c \
 	$(NULL)
 
 libperfkit_1_0_la_CPPFLAGS = \

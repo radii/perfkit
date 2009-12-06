@@ -21,6 +21,7 @@
 #include "pk-channel.h"
 #include "pk-connection.h"
 #include "pk-connection-priv.h"
+#include "pk-sample.h"
 
 /**
  * SECTION:pk-channel
@@ -37,11 +38,19 @@
 
 G_DEFINE_TYPE (PkChannel, pk_channel, G_TYPE_OBJECT)
 
+enum
+{
+	SAMPLE,
+	SIGNAL_LAST
+};
+
 struct _PkChannelPrivate
 {
 	PkConnection *connection;
 	gint          channel_id;
 };
+
+static guint signals[SIGNAL_LAST] = {0,};
 
 static void
 pk_channel_finalize (GObject *object)
@@ -57,6 +66,25 @@ pk_channel_class_init (PkChannelClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_channel_finalize;
 	g_type_class_add_private (object_class, sizeof (PkChannelPrivate));
+
+	/**
+	 * PkChannel::sample:
+	 * @channel: A #PkChannel
+	 * @sample: A #PkSample
+	 *
+	 * The "sample" signal.  This signal is emitted whenever a sample is
+	 * received from the perfkit-daemon.
+	 */
+	signals [SAMPLE] = g_signal_new ("sample",
+	                                 PK_TYPE_CHANNEL,
+	                                 G_SIGNAL_RUN_FIRST,
+	                                 0,
+	                                 NULL,
+	                                 NULL,
+	                                 g_cclosure_marshal_VOID__BOXED,
+	                                 G_TYPE_NONE,
+	                                 1,
+	                                 PK_TYPE_SAMPLE);
 }
 
 static void
@@ -397,4 +425,45 @@ pk_channel_unpause (PkChannel  *channel,
 	return pk_connection_channel_unpause (channel->priv->connection,
 	                                      channel->priv->channel_id,
 	                                      error);
+}
+
+/**
+ * pk_channel_emit_sample:
+ * @channel: A #PkChannel
+ * @sample: A #PkSample
+ *
+ * Emits the "sample" signal for @channel.
+ */
+void
+pk_channel_emit_sample (PkChannel *channel,
+                        PkSample  *sample)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	g_signal_emit (channel, signals [SAMPLE], 0, sample);
+}
+
+static void
+pk_channel_sample_cb (PkSample  *sample,
+                      gpointer   channel)
+{
+	pk_channel_emit_sample (channel, sample);
+}
+
+/**
+ * pk_channel_subscribe:
+ * @channel: A #PkChannel
+ *
+ * Subscribes the channel for receiving samples.  This will enable
+ * the emission of the "sample" signal.
+ *
+ * See pk_channel_unsubscribe().
+ */
+void
+pk_channel_subscribe (PkChannel *channel)
+{
+	g_return_if_fail (PK_IS_CHANNEL (channel));
+	pk_connection_channel_subscribe (channel->priv->connection,
+	                                 channel->priv->channel_id,
+	                                 pk_channel_sample_cb,
+	                                 channel);
 }

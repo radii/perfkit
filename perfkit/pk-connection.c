@@ -389,6 +389,17 @@ pk_connection_channel_unpause (PkConnection  *connection,
 		channel_unpause (connection, channel_id, error);
 }
 
+void
+pk_connection_channel_subscribe (PkConnection     *connection,
+                                 gint              channel_id,
+                                 PkSampleCallback  callback,
+                                 gpointer          user_data)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	PK_CONNECTION_GET_CLASS (connection)->
+		channel_subscribe (connection, channel_id, callback, user_data);
+}
+
 gchar**
 pk_connection_sources_get_types (PkConnection *connection)
 {

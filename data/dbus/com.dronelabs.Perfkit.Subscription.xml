@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<node>
+  <interface name="com.dronelabs.Perfkit.Subscription">
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_subscription"/>
+
+    <method name="Deliver">
+      <arg name="buffer" type="ay" direction="in"/>
+    </method>
+  </interface>
+</node>

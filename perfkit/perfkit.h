@@ -24,6 +24,7 @@
 #include "pk-channel.h"
 #include "pk-channels.h"
 #include "pk-connection.h"
+#include "pk-sample.h"
 #include "pk-source.h"
 #include "pk-sources.h"
 #include "pk-version.h"

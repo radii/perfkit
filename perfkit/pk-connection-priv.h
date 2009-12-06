@@ -72,6 +72,10 @@ gboolean       pk_connection_channel_pause      (PkConnection         *connectio
 gboolean       pk_connection_channel_unpause    (PkConnection         *connection,
                                                  gint                  channel_id,
                                                  GError              **error);
+void           pk_connection_channel_subscribe  (PkConnection         *connection,
+                                                 gint                  channel_id,
+                                                 PkSampleCallback      callback,
+                                                 gpointer              user_data);
 gchar**        pk_connection_sources_get_types  (PkConnection         *connection);
 gboolean       pk_connection_sources_add        (PkConnection         *connection,
                                                  const gchar          *type,
