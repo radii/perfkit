@@ -207,6 +207,8 @@ gboolean      pk_connection_is_connected       (PkConnection         *connection
 
 PkChannels*   pk_connection_get_channels       (PkConnection         *connection);
 PkSources*    pk_connection_get_sources        (PkConnection         *connection);
+void          pk_connection_emit_connected     (PkConnection         *connection);
+void          pk_connection_emit_disconnected  (PkConnection         *connection);
 
 G_END_DECLS
 

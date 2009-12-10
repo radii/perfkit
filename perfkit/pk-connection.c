@@ -50,6 +50,15 @@ struct _PkConnectionPrivate
 	PkSources  *sources;
 };
 
+enum
+{
+	CONNECTED,
+	DISCONNECTED,
+	LAST_SIGNAL
+};
+
+static guint signals [LAST_SIGNAL];
+
 /**
  * pk_connection_new_for_uri:
  * @uri: a connection uri
@@ -245,6 +254,32 @@ PkSources*
 pk_connection_get_sources (PkConnection *connection)
 {
 	return connection->priv->sources;
+}
+
+/**
+ * pk_connection_emit_connected:
+ * @connection: A #PkConnection
+ *
+ * Emits the "connected" signal.
+ */
+void
+pk_connection_emit_connected (PkConnection *connection)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	g_signal_emit (connection, signals [CONNECTED], 0);
+}
+
+/**
+ * pk_connection_emit_disconnected:
+ * @connection: A #PkConnection
+ *
+ * Emits the "disconnected" signal.
+ */
+void
+pk_connection_emit_disconnected (PkConnection *connection)
+{
+	g_return_if_fail (PK_IS_CONNECTION (connection));
+	g_signal_emit (connection, signals [DISCONNECTED], 0);
 }
 
 /**************************************************************************
@@ -473,6 +508,40 @@ pk_connection_class_init (PkConnectionClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_connection_finalize;
 	g_type_class_add_private (object_class, sizeof (PkConnectionPrivate));
+
+	/**
+	 * PkConnection::connected:
+	 * @connection: A #PkConnection
+	 *
+	 * The "connected" signal
+	 */
+	signals [CONNECTED] =
+		g_signal_new ("connected",
+		              PK_TYPE_CONNECTION,
+		              G_SIGNAL_RUN_FIRST,
+		              0,
+		              NULL,
+		              NULL,
+		              g_cclosure_marshal_VOID__VOID,
+		              G_TYPE_NONE,
+		              0);
+
+	/**
+	 * PkConnection::disconnected:
+	 * @connection: A #PkConnection
+	 *
+	 * The "disconnected" signal.
+	 */
+	signals [DISCONNECTED] =
+		g_signal_new ("disconnected",
+		              PK_TYPE_CONNECTION,
+		              G_SIGNAL_RUN_FIRST,
+		              0,
+		              NULL,
+		              NULL,
+		              g_cclosure_marshal_VOID__VOID,
+		              G_TYPE_NONE,
+		              0);
 }
 
 static void
