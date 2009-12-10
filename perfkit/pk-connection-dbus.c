@@ -314,6 +314,9 @@ pk_connection_dbus_real_connect (PkConnection  *connection,
 
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 
+	if (success)
+		pk_connection_emit_connected (connection);
+
 	return success;
 }
 
