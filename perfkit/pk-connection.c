@@ -178,6 +178,20 @@ pk_connection_connect (PkConnection  *connection,
 }
 
 /**
+ * pk_connection_is_connected:
+ * @connection: A #PkConnection
+ *
+ * Checks if the connection is connected.
+ *
+ * Return value: %TRUE if connected.
+ */
+gboolean
+pk_connection_is_connected (PkConnection *connection)
+{
+	return PK_CONNECTION_GET_CLASS (connection)->is_connected (connection);
+}
+
+/**
  * pk_connection_disconnect:
  * @connection: A #PkConnection
  *
@@ -215,6 +229,18 @@ pk_connection_get_channels (PkConnection *connection)
 	return connection->priv->channels;
 }
 
+/**
+ * pk_connection_get_sources:
+ * @connection: A #PkConnection
+ *
+ * Retrieves the proxy for the Perfkit sources service.  The sources
+ * service provides access to retrieving, adding, and removing Perfkit
+ * data sources.
+ *
+ * Return value: A #PkSources
+ *
+ * Side effect: None
+ */
 PkSources*
 pk_connection_get_sources (PkConnection *connection)
 {

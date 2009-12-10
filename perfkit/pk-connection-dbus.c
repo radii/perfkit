@@ -236,6 +236,13 @@ pk_connection_dbus_accept_func (DBusServer     *server,
 }
 
 static gboolean
+pk_connection_dbus_real_is_connected (PkConnection *connection)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), FALSE);
+	return (PK_CONNECTION_DBUS (connection)->priv->dbus != NULL);
+}
+
+static gboolean
 pk_connection_dbus_real_connect (PkConnection  *connection,
                                  GError       **error)
 {
@@ -912,6 +919,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	conn_class->disconnect         = pk_connection_dbus_real_disconnect;
 	conn_class->disconnect_async   = pk_connection_dbus_real_disconnect_async;
 	conn_class->disconnect_finish  = pk_connection_dbus_real_disconnect_finish;
+	conn_class->is_connected       = pk_connection_dbus_real_is_connected;
 	conn_class->channels_add       = pk_connection_dbus_real_channels_add;
 	conn_class->channels_find_all  = pk_connection_dbus_real_channels_find_all;
 	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;

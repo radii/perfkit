@@ -73,12 +73,12 @@ struct _PkConnectionClass
 {
 	GObjectClass parent_class;
 
-	gboolean          (*connect)                  (PkConnection         *connection,
-	                                               GError              **error);
-
 	/*
 	 * Daemon Connection Implementation
 	 */
+
+	gboolean          (*connect)                  (PkConnection         *connection,
+	                                               GError              **error);
 	void              (*connect_async)            (PkConnection         *connection,
 	                                               GAsyncReadyCallback   callback,
 	                                               gpointer              user_data);
@@ -92,6 +92,7 @@ struct _PkConnectionClass
 	                                               gpointer              user_data);
 	void              (*disconnect_finish)        (PkConnection         *connection,
 	                                               GAsyncResult         *result);
+	gboolean          (*is_connected)             (PkConnection         *connection);
 
 	/*
 	 * Channels Service RPCs
@@ -202,6 +203,7 @@ void          pk_connection_disconnect_async   (PkConnection         *connection
                                                 gpointer              user_data);
 void          pk_connection_disconnect_finish  (PkConnection         *connection,
                                                 GAsyncResult         *result);
+gboolean      pk_connection_is_connected       (PkConnection         *connection);
 
 PkChannels*   pk_connection_get_channels       (PkConnection         *connection);
 PkSources*    pk_connection_get_sources        (PkConnection         *connection);
