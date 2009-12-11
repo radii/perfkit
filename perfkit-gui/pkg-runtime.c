@@ -21,15 +21,15 @@
 #endif
 
 #include <stdlib.h>
+
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <gtk/gtk.h>
 
 #include "pkg-paths.h"
 #include "pkg-runtime.h"
 #include "pkg-service.h"
-#include "services/pkg-gui-service.h"
 
-static GMainLoop       *main_loop     = NULL;
 static GList           *services      = NULL;
 static GHashTable      *services_hash = NULL;
 static gboolean         started       = FALSE;
@@ -49,7 +49,6 @@ pkg_runtime_initialize (void)
 
 	g_return_if_fail (started == FALSE);
 
-	main_loop = g_main_loop_new (NULL, FALSE);
 	services_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 
 	/* TODO: support other busses */
@@ -68,7 +67,6 @@ pkg_runtime_initialize (void)
 	}
 
 	/* add core services */
-	pkg_runtime_add_service ("Gui", g_object_new (PKG_TYPE_GUI_SERVICE, NULL));
 
 	started = TRUE;
 }
@@ -82,8 +80,7 @@ pkg_runtime_initialize (void)
 void
 pkg_runtime_run (void)
 {
-	g_return_if_fail (main_loop != NULL);
-	g_main_loop_run (main_loop);
+	gtk_main ();
 }
 
 /**
@@ -94,8 +91,7 @@ pkg_runtime_run (void)
 void
 pkg_runtime_quit (void)
 {
-	g_return_if_fail (main_loop != NULL);
-	g_main_loop_quit (main_loop);
+	gtk_main_quit ();
 }
 
 /**
@@ -117,8 +113,6 @@ pkg_runtime_shutdown (void)
 	services = NULL;
 
 	G_UNLOCK (services);
-
-	main_loop = NULL;
 }
 
 /**

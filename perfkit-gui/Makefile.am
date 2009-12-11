@@ -1,12 +1,8 @@
 bin_PROGRAMS = perfkit-gui
-
-noinst_LTLIBRARIES =							\
-	libperfkit-gui.la						\
-	libservices.la							\
-	$(NULL)
-
+noinst_LTLIBRARIES = libperfkit-gui.la
 headerdir = $(prefix)/include/perfkit-gui-1.0/perfkit-gui
 header_DATA = $(INST_H_FILES)
+
 
 WARNINGS =								\
 	-Wall -Werror -Wold-style-definition				\
@@ -18,6 +14,7 @@ WARNINGS =								\
 	-Winit-self -Wmissing-include-dirs -Wundef			\
 	-Waggregate-return -Wmissing-format-attribute			\
 	-Wnested-externs
+
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\"	\
@@ -31,6 +28,7 @@ AM_CPPFLAGS = \
 	$(PERFKIT_GUI_CFLAGS)						\
 	$(NULL)
 
+
 INST_H_FILES =								\
 	perfkit-gui.h							\
 	pkg-paths.h							\
@@ -38,6 +36,7 @@ INST_H_FILES =								\
 	pkg-service.h							\
 	pkg-version.h							\
 	$(NULL)
+
 
 NOINST_H_FILES =							\
 	$(NULL)
@@ -57,20 +56,9 @@ libperfkit_gui_la_LDFLAGS =						\
 	$(NULL)
 
 
-libservices_la_SOURCES =						\
-	services/pkg-gui-service.c					\
-	$(NULL)
-libservices_la_LIBADD = $(PERFKIT_GUI_LIBS)
-libservices_la_LDFLAGS =						\
-	-export-dynamic							\
-	-export-symbols-regex "^pkg_.*"					\
-	$(NULL)
-
-
 perfkit_gui_SOURCES = main.c
 perfkit_gui_LDADD =							\
 	libperfkit-gui.la						\
-	libservices.la							\
 	$(PERFKIT_GUI_LIBS)						\
 	$(NULL)
 perfkit_gui_LDFLAGS =							\
