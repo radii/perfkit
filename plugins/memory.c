@@ -110,4 +110,9 @@ memory_generate_sample (PkdSourceSimple  *source,
 	return sample;
 }
 
-PKD_SOURCE_SIMPLE_REGISTER ("memory", memory_generate_sample)
+PKD_SOURCE_SIMPLE_REGISTER ("memory", "Memory Profiling", "0.0.1",
+                            "A basic memory profiler that looks at memory "
+                            "allocations for a given process.  It records "
+                            "total VM size, resident memory, and various "
+                            "other information.",
+                            memory_generate_sample)

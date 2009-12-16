@@ -22,6 +22,7 @@
 #include <glib-object.h>
 
 #include "pkd-source.h"
+#include "pkd-source-info.h"
 
 G_BEGIN_DECLS
 
@@ -49,17 +50,6 @@ typedef struct _PkdSources        PkdSources;
 typedef struct _PkdSourcesClass   PkdSourcesClass;
 typedef struct _PkdSourcesPrivate PkdSourcesPrivate;
 
-/**
- * PkdSourceFactoryFunc:
- * @type_name: The name of the source factory
- * @user_data: user data for the factory
- *
- * Callback to create instances of #PkdSource when a source of the factory
- * needs creating.
- */
-typedef PkdSource* (*PkdSourceFactoryFunc) (const gchar *type_name,
-                                            gpointer     user_data);
-
 struct _PkdSources
 {
 	GObject parent;
@@ -80,7 +70,10 @@ PkdSource* pkd_sources_add         (PkdSources            *sources,
                                     const gchar           *factory,
                                     GError               **error);
 void       pkd_sources_register    (PkdSources            *sources,
-                                    const gchar           *factory,
+                                    const gchar           *uid,
+                                    const gchar           *name,
+                                    const gchar           *version,
+                                    const gchar           *description,
                                     PkdSourceFactoryFunc   factory_func,
                                     gpointer               user_data);
 

@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pkd-source.h"
+
 G_BEGIN_DECLS
 
 #define PKD_TYPE_SOURCE_INFO            (pkd_source_info_get_type())
@@ -35,6 +37,17 @@ typedef struct _PkdSourceInfo        PkdSourceInfo;
 typedef struct _PkdSourceInfoClass   PkdSourceInfoClass;
 typedef struct _PkdSourceInfoPrivate PkdSourceInfoPrivate;
 
+/**
+ * PkdSourceFactoryFunc:
+ * @type_name: The name of the source factory
+ * @user_data: user data for the factory
+ *
+ * Callback to create instances of #PkdSource when a source of the factory
+ * needs creating.
+ */
+typedef PkdSource* (*PkdSourceFactoryFunc) (const gchar *type_name,
+                                            gpointer     user_data);
+
 struct _PkdSourceInfo
 {
 	GObject parent;
@@ -48,11 +61,15 @@ struct _PkdSourceInfoClass
 	GObjectClass parent_class;
 };
 
-GType                 pkd_source_info_get_type        (void) G_GNUC_CONST;
-G_CONST_RETURN gchar* pkd_source_info_get_uid         (PkdSourceInfo *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_name        (PkdSourceInfo *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_description (PkdSourceInfo *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_version     (PkdSourceInfo *source_info);
+GType                 pkd_source_info_get_type         (void) G_GNUC_CONST;
+G_CONST_RETURN gchar* pkd_source_info_get_uid          (PkdSourceInfo        *source_info);
+G_CONST_RETURN gchar* pkd_source_info_get_name         (PkdSourceInfo        *source_info);
+G_CONST_RETURN gchar* pkd_source_info_get_description  (PkdSourceInfo        *source_info);
+G_CONST_RETURN gchar* pkd_source_info_get_version      (PkdSourceInfo        *source_info);
+PkdSource*            pkd_source_info_create           (PkdSourceInfo        *source_info);
+void                  pkd_source_info_set_factory_func (PkdSourceInfo        *source_info,
+                                                        PkdSourceFactoryFunc  factory_func,
+                                                        gpointer              user_data);
 
 G_END_DECLS
 

@@ -45,13 +45,6 @@ struct _PkdSourcesPrivate
 	GHashTable    *factories;
 };
 
-typedef struct
-{
-	const gchar          *factory;
-	PkdSourceFactoryFunc  factory_func;
-	gpointer              user_data;
-} Factory;
-
 GQuark
 pkd_sources_error_quark (void)
 {
@@ -76,8 +69,8 @@ pkd_sources_add (PkdSources   *sources,
                  GError      **error)
 {
 	PkdSourcesPrivate *priv;
+	PkdSourceInfo     *info;
 	PkdSource         *source = NULL;
-	Factory           *f;
 	gboolean           result = FALSE;
 
 	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
@@ -86,14 +79,14 @@ pkd_sources_add (PkdSources   *sources,
 
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 
-	if (!(f = g_hash_table_lookup (priv->factories, factory))) {
+	if (!(info = g_hash_table_lookup (priv->factories, factory))) {
 		g_set_error (error, PKD_SOURCES_ERROR, PKD_SOURCES_ERROR_INVALID_TYPE,
-		             "\"%s\" is not a valid data source",
+		             "\"%s\" is not a valid data source type",
 		             factory);
 		goto unlock;
 	}
 
-	if (!(source = f->factory_func (factory, f->user_data))) {
+	if (!(source = pkd_source_info_create (info))) {
 		g_set_error (error, PKD_SOURCES_ERROR, PKD_SOURCES_ERROR_INVALID_TYPE,
 		             "Could not create data source \"%s\"",
 		             factory);
@@ -123,31 +116,40 @@ unlock:
  */
 void
 pkd_sources_register (PkdSources           *sources,
-                      const gchar          *factory,
+                      const gchar          *uid,
+                      const gchar          *name,
+                      const gchar          *version,
+                      const gchar          *description,
                       PkdSourceFactoryFunc  factory_func,
                       gpointer              user_data)
 {
 	PkdSourcesPrivate *priv;
-	Factory           *f;
+	PkdSourceInfo     *info;
 	gchar             *key;
 
 	g_return_if_fail (PKD_IS_SOURCES (sources));
+	g_return_if_fail (uid != NULL);
+	g_return_if_fail (name != NULL);
+	g_return_if_fail (version != NULL);
 
 	priv = sources->priv;
 
-	if (g_hash_table_lookup (priv->factories, factory)) {
+	if (g_hash_table_lookup (priv->factories, uid)) {
 		g_warning (_("Data source type \"%s\" already registered."),
-		           factory);
+		           uid);
 		return;
 	}
 
-	key = g_strdup (factory);
-	f= g_slice_new0 (Factory);
-	f->factory = key;
-	f->factory_func = factory_func;
-	f->user_data = user_data;
-
-	g_hash_table_insert (priv->factories, key, f);
+	key = g_strdup (uid);
+	info = g_object_new (PKD_TYPE_SOURCE_INFO,
+	                     "uid", uid,
+	                     "name", name,
+	                     "version", version,
+	                     "description", description,
+	                     NULL);
+	g_assert (info);
+	pkd_source_info_set_factory_func (info, factory_func, user_data);
+	g_hash_table_insert (priv->factories, key, info);
 }
 
 /**************************************************************************
@@ -228,5 +230,6 @@ pkd_sources_init (PkdSources *sources)
 	sources->priv = G_TYPE_INSTANCE_GET_PRIVATE (sources,
 	                                             PKD_TYPE_SOURCES,
 	                                             PkdSourcesPrivate);
-	sources->priv->factories = g_hash_table_new (g_str_hash, g_str_equal);
+	sources->priv->factories = g_hash_table_new_full (
+			g_str_hash, g_str_equal, g_free, g_object_unref);
 }

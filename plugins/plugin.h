@@ -2,7 +2,7 @@
 #include <ethos/ethos.h>
 #include <perfkit-daemon/perfkit-daemon.h>
 
-#define PKD_SOURCE_SIMPLE_REGISTER(name,callback) \
+#define PKD_SOURCE_SIMPLE_REGISTER(uid,name,version,description,callback) \
 \
 static PkdSource* \
 pkd_factory (const gchar *type_name, \
@@ -22,7 +22,8 @@ activate_plugin (EthosPlugin *plugin, \
 { \
 	PkdSources *sources; \
 	sources = PKD_SOURCES (pkd_runtime_get_service ("Sources")); \
-	pkd_sources_register (sources, (name), pkd_factory, NULL); \
+	pkd_sources_register (sources, (uid), (name), (version), \
+	                      (description), pkd_factory, NULL); \
 } \
 \
 G_MODULE_EXPORT EthosPlugin* \

@@ -38,10 +38,12 @@ G_DEFINE_TYPE (PkdSourceInfo, pkd_source_info, G_TYPE_OBJECT)
 
 struct _PkdSourceInfoPrivate
 {
-	gchar *uid;
-	gchar *name;
-	gchar *description;
-	gchar *version;
+	gchar                *uid;
+	gchar                *name;
+	gchar                *description;
+	gchar                *version;
+	PkdSourceFactoryFunc  factory_func;
+	gpointer              factory_data;
 };
 
 enum
@@ -133,6 +135,46 @@ pkd_source_info_get_version (PkdSourceInfo *source_info)
 {
 	g_return_val_if_fail (PKD_IS_SOURCE_INFO (source_info), NULL);
 	return source_info->priv->version;
+}
+
+/**
+ * pkd_source_info_create:
+ * @source_info: A #PkdSourceInfo
+ *
+ * Instantiates a new instance of the data source type using the registered
+ * factory methods.
+ *
+ * Return value: a #PkdSource instance if successfull; otherwise %NULL.
+ */
+PkdSource*
+pkd_source_info_create (PkdSourceInfo *source_info)
+{
+	PkdSourceInfoPrivate *priv;
+
+	g_return_val_if_fail (PKD_IS_SOURCE_INFO (source_info), NULL);
+	g_return_val_if_fail (source_info->priv->factory_func, NULL);
+
+	priv = source_info->priv;
+
+	return priv->factory_func (priv->uid, priv->factory_data);
+}
+
+/**
+ * pkd_source_info_set_factory_func:
+ * @source_info: A #PkdSourceInfo
+ * @factory_func: A #PkdSourceFactoryFunc
+ * @user_data: user data for @factory_func
+ *
+ * Registers a factory function to generate instances of a #PkdSource.
+ */
+void
+pkd_source_info_set_factory_func (PkdSourceInfo        *source_info,
+                                  PkdSourceFactoryFunc  factory_func,
+                                  gpointer              user_data)
+{
+	g_return_if_fail (PKD_IS_SOURCE_INFO (source_info));
+	source_info->priv->factory_func = factory_func;
+	source_info->priv->factory_data = user_data;
 }
 
 /*
@@ -279,7 +321,7 @@ pkd_source_info_class_init (PkdSourceInfoClass *klass)
 	                                                      "uid",
 	                                                      "Unique Identifier",
 	                                                      NULL,
-	                                                      G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkdSourceInfo:name:
@@ -292,7 +334,7 @@ pkd_source_info_class_init (PkdSourceInfoClass *klass)
 	                                                      "name",
 	                                                      "Name",
 	                                                      NULL,
-	                                                      G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkdSourceInfo:description:
@@ -305,7 +347,7 @@ pkd_source_info_class_init (PkdSourceInfoClass *klass)
 	                                                      "description",
 	                                                      "Description",
 	                                                      NULL,
-	                                                      G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkdSourceInfo:version:
@@ -318,7 +360,7 @@ pkd_source_info_class_init (PkdSourceInfoClass *klass)
 	                                                      "version",
 	                                                      "Version",
 	                                                      NULL,
-	                                                      G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
