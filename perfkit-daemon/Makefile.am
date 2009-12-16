@@ -33,6 +33,7 @@ INST_H_FILES = \
 	pkd-source.h \
 	pkd-source-simple.h \
 	pkd-sources.h \
+	pkd-source-info.h \
 	perfkit-daemon.h \
 	$(NULL)
 
@@ -54,6 +55,7 @@ libperfkit_daemon_la_SOURCES = \
 	pkd-source.c \
 	pkd-source-simple.c \
 	pkd-sources.c \
+	pkd-source-info.c \
 	$(NULL)
 
 libperfkit_daemon_la_LIBADD = $(PERFKIT_DAEMON_LIBS)
