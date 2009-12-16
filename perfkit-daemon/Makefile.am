@@ -71,15 +71,20 @@ perfkit_daemon_LDFLAGS = \
 	-export-symbols-regex "^pkd_.*" \
 	$(NULL)
 
-update-dbus:
-	dbus-binding-tool --mode=glib-server --prefix=pkd_channels --output=pkd-channels-dbus.h \
-		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml
-	dbus-binding-tool --mode=glib-server --prefix=pkd_channel --output=pkd-channel-dbus.h \
-		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml
-	dbus-binding-tool --mode=glib-server --prefix=pkd_sources --output=pkd-sources-dbus.h \
-		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml
-	dbus-binding-tool --mode=glib-server --prefix=pkd_source --output=pkd-source-dbus.h \
-		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml
+pkd-channels-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_channels --output=$@ $<
 
+pkd-channel-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_channel --output=$@ $<
+
+pkd-source-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_source --output=$@ $<
+
+pkd-sources-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_sources --output=$@ $<
+
+pkd-source-info-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.SourceInfo.xml
+	dbus-binding-tool --mode=glib-server --prefix=pkd_source_info --output=$@ $<
+ 
 test:
 	PERFKIT_PLUGIN_DIR=$(top_builddir)/plugins/.libs $(builddir)/perfkit-daemon --stdout

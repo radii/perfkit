@@ -24,7 +24,10 @@
 #include <glib-object.h>
 #include <glib/gi18n.h>
 
+#include "pkd-runtime.h"
 #include "pkd-source-info.h"
+#include "pkd-source-info-glue.h"
+#include "pkd-source-info-dbus.h"
 
 G_DEFINE_TYPE (PkdSourceInfo, pkd_source_info, G_TYPE_OBJECT)
 
@@ -180,7 +183,7 @@ pkd_source_info_set_factory_func (PkdSourceInfo        *source_info,
 /*
  *-----------------------------------------------------------------------------
  *
- * Private Setters
+ * Private Methods
  *
  *-----------------------------------------------------------------------------
  */
@@ -189,8 +192,16 @@ static void
 pkd_source_info_set_uid (PkdSourceInfo *source_info,
                          const gchar   *uid)
 {
+	gchar *path;
+
 	g_return_if_fail (PKD_IS_SOURCE_INFO (source_info));
+
 	source_info->priv->uid = g_strdup (uid);
+
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/SourceTypes/%s", uid);
+	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
+	                                     path, G_OBJECT (source_info));
+	g_free (path);
 }
 
 static void
@@ -215,6 +226,38 @@ pkd_source_info_set_version (PkdSourceInfo *source_info,
 {
 	g_return_if_fail (PKD_IS_SOURCE_INFO (source_info));
 	source_info->priv->version = g_strdup (version);
+}
+
+static gboolean
+pkd_source_info_get_uid_dbus (PkdSourceInfo  *source_info,
+                              gchar         **uid,
+                              GError        **error)
+{
+	g_return_val_if_fail (PKD_IS_SOURCE_INFO (source_info), FALSE);
+	g_return_val_if_fail (uid != NULL, FALSE);
+	*uid = g_strdup (source_info->priv->uid);
+	return TRUE;
+}
+
+static gboolean
+pkd_source_info_create_dbus (PkdSourceInfo  *source_info,
+                             gchar         **path,
+                             GError        **error)
+{
+	PkdSource *source;
+
+	g_return_val_if_fail (PKD_IS_SOURCE_INFO (source_info), FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+
+	source = pkd_source_info_create (source_info);
+	if (!source)
+		return FALSE; // TODO: Add error message
+
+	*path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
+	                         pkd_source_get_id (source));
+	// TODO: Unref source? Is another reference stored?
+
+	return TRUE;
 }
 
 /*
@@ -361,6 +404,8 @@ pkd_source_info_class_init (PkdSourceInfoClass *klass)
 	                                                      "Version",
 	                                                      NULL,
 	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	dbus_g_object_type_install_info (PKD_TYPE_SOURCE_INFO, &dbus_glib_pkd_source_info_object_info);
 }
 
 static void
