@@ -345,6 +345,12 @@ pk_shell_cmd_channel_list (EggLine  *line,
 	EggFmtIter  iter;
 	GList      *list;
 
+	list = pk_channels_find_all (channels);
+	if (!g_list_length(list)) {
+	   g_print ("No channels where found.\n");
+	   return EGG_LINE_STATUS_OK;
+   }
+
 	egg_fmt_iter_init (&iter,
 	                   pk_util_channels_iter,
 	                   "ID", G_TYPE_INT,
@@ -354,7 +360,6 @@ pk_shell_cmd_channel_list (EggLine  *line,
 	                   "Arguments", G_TYPE_STRV,
 	                   "Directory", G_TYPE_STRING,
 	                   NULL);
-	list = pk_channels_find_all (channels);
 	formatter (&iter, list, NULL);
 
 	g_list_foreach (list, (GFunc)g_object_unref, NULL);
