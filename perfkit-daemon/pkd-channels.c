@@ -28,6 +28,7 @@
 #include "pkd-channels.h"
 #include "pkd-channels-glue.h"
 #include "pkd-channels-dbus.h"
+#include "pkd-service.h"
 
 /**
  * SECTION:pkd-channels
@@ -38,7 +39,11 @@
  * are exposed over the DBUS.
  */
 
-G_DEFINE_TYPE (PkdChannels, pkd_channels, G_TYPE_OBJECT)
+static void pkd_channels_init_service (PkdServiceIface *iface);
+
+G_DEFINE_TYPE_EXTENDED (PkdChannels, pkd_channels, G_TYPE_OBJECT, 0,
+                        G_IMPLEMENT_INTERFACE (PKD_TYPE_SERVICE,
+                                               pkd_channels_init_service));
 
 struct _PkdChannelsPrivate
 {
@@ -273,4 +278,9 @@ pkd_channels_init (PkdChannels *channels)
 	g_static_rw_lock_init (&channels->priv->rw_lock);
 	channels->priv->channels = g_hash_table_new_full (g_int_hash, g_int_equal,
 	                                                  g_free, g_object_unref);
+}
+
+static void
+pkd_channels_init_service (PkdServiceIface *iface)
+{
 }

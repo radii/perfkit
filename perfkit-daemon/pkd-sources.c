@@ -23,6 +23,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
+#include "pkd-service.h"
 #include "pkd-sources.h"
 #include "pkd-sources-glue.h"
 #include "pkd-sources-dbus.h"
@@ -36,7 +37,11 @@
  * access to the sources over the DBUS.
  */
 
-G_DEFINE_TYPE (PkdSources, pkd_sources, G_TYPE_OBJECT)
+static void pkd_sources_init_service (PkdServiceIface *iface);
+
+G_DEFINE_TYPE_EXTENDED (PkdSources, pkd_sources, G_TYPE_OBJECT, 0,
+                        G_IMPLEMENT_INTERFACE (PKD_TYPE_SERVICE,
+                                               pkd_sources_init_service));
 
 struct _PkdSourcesPrivate
 {
@@ -232,4 +237,9 @@ pkd_sources_init (PkdSources *sources)
 	                                             PkdSourcesPrivate);
 	sources->priv->factories = g_hash_table_new_full (
 			g_str_hash, g_str_equal, g_free, g_object_unref);
+}
+
+static void
+pkd_sources_init_service (PkdServiceIface *iface)
+{
 }
