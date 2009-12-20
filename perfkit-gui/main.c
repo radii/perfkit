@@ -57,8 +57,8 @@ main (gint argc,
 	}
 
 	/* initialize libraries */
-	g_type_init ();
 	g_thread_init (NULL);
+	g_type_init ();
 
 	/* initialize runtime and block on main loop */
 	pkg_runtime_initialize ();
