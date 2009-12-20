@@ -53,26 +53,28 @@ G_LOCK_DEFINE (services);
 
 /**
  * pkd_runtime_initialize:
- * @use_session_bus: If the DBUS session bus should be used.
  *
- * Initializes the runtime system.  If @use_session_bus is FALSE, then the
- * Sysetm DBUS will be used.
+ * Initializes and prepares the daemon for execution.
  *
- * Side effects: None
+ * Side effects:
+ *       The process is setup and new services, caches, and other necessities
+ *       are created.
  */
 void
-pkd_runtime_initialize (gboolean use_session_bus)
+pkd_runtime_initialize (void)
 {
 	static gchar *plugin_dirs[2];
 	GError       *error = NULL;
 
 	g_return_if_fail (started == FALSE);
 
+	g_message ("%s: Initializing runtime", G_STRFUNC);
+
 	main_loop = g_main_loop_new (NULL, FALSE);
 	services_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 
 	/* connect to dbus */
-	if (!(dbus_conn = dbus_g_bus_get (use_session_bus ? DBUS_BUS_SESSION : DBUS_BUS_SYSTEM, &error))) {
+	if (!(dbus_conn = dbus_g_bus_get (DBUS_BUS_SESSION, &error))) {
 		g_printerr ("%s", error->message);
 		exit (EXIT_FAILURE);
 	}
@@ -87,9 +89,17 @@ pkd_runtime_initialize (gboolean use_session_bus)
 		exit (EXIT_SUCCESS);
 	}
 
+	g_message ("%s: Adding core services.", G_STRFUNC);
+
+	started = TRUE;
+
 	/* register core services */
 	pkd_runtime_add_service ("Channels", g_object_new (PKD_TYPE_CHANNELS, NULL));
 	pkd_runtime_add_service ("Sources", g_object_new (PKD_TYPE_SOURCES, NULL));
+
+	/* load default listeners */
+
+	g_message ("%s: Activating listeners.", G_STRFUNC);
 
 	/* HACK:
 	 *   This hack is here to ensure that pkd-source-simple.o is linked
@@ -97,6 +107,8 @@ pkd_runtime_initialize (gboolean use_session_bus)
 	 *   used, the linker thinks it can completely drop the .o file.
 	 */
 	(void)g_type_children (PKD_TYPE_SOURCE_SIMPLE, NULL);
+
+	g_message ("%s: Registering plugins.", G_STRFUNC);
 
 	/* register plugins */
 	if (g_getenv ("PERFKIT_PLUGIN_DIR"))
@@ -111,7 +123,7 @@ pkd_runtime_initialize (gboolean use_session_bus)
 	ethos_manager_set_plugin_dirs (manager, plugin_dirs);
 	ethos_manager_initialize (manager);
 
-	started = TRUE;
+	g_message ("%s: Plugins registered.", G_STRFUNC);
 }
 
 /**
@@ -185,6 +197,8 @@ pkd_runtime_add_service (const gchar *name,
 	gboolean  needs_start = FALSE;
 	GError   *error       = NULL;
 	gchar    *path;
+
+	g_return_if_fail (PKD_IS_SERVICE (service));
 
 	G_LOCK (services);
 

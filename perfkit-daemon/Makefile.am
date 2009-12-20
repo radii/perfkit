@@ -28,6 +28,7 @@ INST_H_FILES = \
 	pkd-sample.h \
 	pkd-channel.h \
 	pkd-channels.h \
+	pkd-config.h \
 	pkd-service.h \
 	pkd-runtime.h \
 	pkd-paths.h \
@@ -49,6 +50,7 @@ libperfkit_daemon_la_SOURCES = \
 	pkd-sample.c \
 	pkd-channel.c \
 	pkd-channels.c \
+	pkd-config.c \
 	pkd-log.c \
 	pkd-service.c \
 	pkd-runtime.c \

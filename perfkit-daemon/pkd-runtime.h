@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-void              pkd_runtime_initialize      (gboolean use_session_bus);
+void              pkd_runtime_initialize      (void);
 void              pkd_runtime_shutdown        (void);
 void              pkd_runtime_run             (void);
 void              pkd_runtime_quit            (void);
