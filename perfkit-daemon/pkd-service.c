@@ -73,8 +73,11 @@ gboolean
 pkd_service_start (PkdService  *service,
                    GError     **error)
 {
+	g_return_val_if_fail (PKD_IS_SERVICE (service), FALSE);
+
 	if (PKD_SERVICE_GET_INTERFACE (service)->start)
 		return PKD_SERVICE_GET_INTERFACE (service)->start (service, error);
+
 	return TRUE;
 }
 
@@ -89,6 +92,8 @@ pkd_service_start (PkdService  *service,
 void
 pkd_service_stop (PkdService *service)
 {
+	g_return_if_fail (PKD_IS_SERVICE (service));
+
 	if (PKD_SERVICE_GET_INTERFACE (service)->stop)
 		PKD_SERVICE_GET_INTERFACE (service)->stop (service);
 }
@@ -109,7 +114,10 @@ gboolean
 pkd_service_initialize (PkdService  *service,
                         GError     **error)
 {
+	g_return_val_if_fail (PKD_IS_SERVICE (service), FALSE);
+
 	if (PKD_SERVICE_GET_INTERFACE (service)->initialize)
 		return PKD_SERVICE_GET_INTERFACE (service)->initialize (service, error);
+
 	return TRUE;
 }
