@@ -22,18 +22,19 @@
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
+#include "pkd-listener.h"
 #include "pkd-service.h"
 
 G_BEGIN_DECLS
 
-void              pkd_runtime_initialize      (void);
-void              pkd_runtime_shutdown        (void);
-void              pkd_runtime_run             (void);
-void              pkd_runtime_quit            (void);
-void              pkd_runtime_add_service     (const gchar *name, PkdService *service);
-PkdService *      pkd_runtime_get_service     (const gchar *name);
-void              pkd_runtime_remove_service  (const gchar *name);
-DBusGConnection * pkd_runtime_get_connection  (void);
+void        pkd_runtime_add_listener   (PkdListener *listener);
+void        pkd_runtime_add_service    (const gchar *name, PkdService *service);
+PkdService* pkd_runtime_get_service    (const gchar *name);
+void        pkd_runtime_initialize     (void);
+void        pkd_runtime_quit           (void);
+void        pkd_runtime_remove_service (const gchar *name);
+void        pkd_runtime_run            (void);
+void        pkd_runtime_shutdown       (void);
 
 G_END_DECLS
 

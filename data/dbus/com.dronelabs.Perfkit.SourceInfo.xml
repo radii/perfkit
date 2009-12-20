@@ -8,6 +8,11 @@
       <arg name="uid" type="s" direction="out"/>
     </method>
 
+    <method name="GetName">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info_get_name_dbus"/>
+      <arg name="name" type="s" direction="out"/>
+    </method>
+
     <method name="Create">
       <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info_create_dbus"/>
       <arg name="path" type="o" direction="out"/>

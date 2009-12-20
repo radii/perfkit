@@ -461,12 +461,14 @@ pk_connection_channel_subscribe (PkConnection     *connection,
 		channel_subscribe (connection, channel_id, callback, user_data);
 }
 
-gchar**
-pk_connection_sources_get_types (PkConnection *connection)
+gboolean
+pk_connection_sources_get_source_types (PkConnection  *connection,
+                                        gchar        ***uids,
+                                        GError        **error)
 {
-	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), FALSE);
 	return PK_CONNECTION_GET_CLASS (connection)->
-		sources_get_types (connection);
+		sources_get_source_types (connection, uids, error);
 }
 
 gboolean
@@ -488,6 +490,24 @@ pk_connection_source_set_channel (PkConnection *connection,
 	g_return_if_fail (PK_IS_CONNECTION (connection));
 	PK_CONNECTION_GET_CLASS (connection)->
 		source_set_channel (connection, source_id, channel_id);
+}
+
+gint
+pk_connection_source_info_create (PkConnection *connection,
+                                  const gchar  *uid)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), -1);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		source_info_create (connection, uid);
+}
+
+gchar*
+pk_connection_source_info_get_name (PkConnection *connection,
+                                    const gchar  *uid)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	return PK_CONNECTION_GET_CLASS (connection)->
+		source_info_get_name (connection, uid);
 }
 
 /**************************************************************************

@@ -68,6 +68,8 @@ PkdChannel*  pkd_channels_add         (PkdChannels *channels);
 void         pkd_channels_remove      (PkdChannels *channels,
                                        PkdChannel  *channel);
 GList*       pkd_channels_find_all    (PkdChannels *channels);
+PkdChannel*  pkd_channels_get         (PkdChannels *channels,
+                                       gint         channel_id);
 
 G_END_DECLS
 

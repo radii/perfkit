@@ -28,8 +28,6 @@
 
 #include "pkd-channel.h"
 #include "pkd-channel-priv.h"
-#include "pkd-channel-glue.h"
-#include "pkd-channel-dbus.h"
 #include "pkd-log.h"
 #include "pkd-runtime.h"
 #include "pkd-sample.h"
@@ -76,11 +74,13 @@ struct _PkdChannelPrivate
 
 typedef struct
 {
-	DBusGConnection *conn;
-	DBusGProxy      *proxy;
+	gint id;
+	PkdChannelSubscriptionFunc func;
+	gpointer user_data;
 } Subscription;
 
 static gint channel_seq = 0;
+static gint sub_seq = 0;
 
 /**
  * pkd_channel_get_dir:
@@ -604,10 +604,6 @@ pkd_channel_error_quark (void)
 	return g_quark_from_static_string ("pkd-channel-error-quark");
 }
 
-/**************************************************************************
- *                          Protected Methods                             *
- **************************************************************************/
-
 void
 pkd_channel_add_source (PkdChannel *channel,
                         PkdSource  *source)
@@ -622,126 +618,6 @@ pkd_channel_add_source (PkdChannel *channel,
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 	g_ptr_array_add (priv->sources, g_object_ref (source));
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
-}
-
-static gboolean
-pkd_channel_get_target_dbus (PkdChannel  *channel,
-                             gchar      **target,
-                             GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (target != NULL, FALSE);
-	*target = pkd_channel_get_target (channel);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_set_target_dbus (PkdChannel  *channel,
-                             gchar       *target,
-                             GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (target != NULL, FALSE);
-	pkd_channel_set_target (channel, target);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_get_args_dbus (PkdChannel   *channel,
-                           gchar      ***args,
-                           GError      **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (args != NULL, FALSE);
-	*args = pkd_channel_get_args (channel);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_set_args_dbus (PkdChannel  *channel,
-                           gchar      **args,
-                           GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (args != NULL, FALSE);
-	pkd_channel_set_args (channel, (const gchar**)args);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_get_pid_dbus (PkdChannel  *channel,
-                          guint       *pid,
-                          GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (pid != NULL, FALSE);
-	*pid = (guint)pkd_channel_get_pid (channel);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_set_pid_dbus (PkdChannel  *channel,
-                          guint        pid,
-                          GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	pkd_channel_set_pid (channel, (GPid)pid);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_get_dir_dbus (PkdChannel  *channel,
-                          gchar      **dir,
-                          GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (dir != NULL, FALSE);
-	*dir = pkd_channel_get_dir (channel);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_set_dir_dbus (PkdChannel  *channel,
-                          gchar       *dir,
-                          GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (dir != NULL, FALSE);
-	pkd_channel_set_dir (channel, dir);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_get_env_dbus (PkdChannel   *channel,
-                          gchar      ***env,
-                          GError      **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (env != NULL, FALSE);
-	*env = pkd_channel_get_env (channel);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_set_env_dbus (PkdChannel  *channel,
-                          gchar      **env,
-                          GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (env != NULL, FALSE);
-	pkd_channel_set_env (channel, (const gchar**)env);
-	return TRUE;
-}
-
-static gboolean
-pkd_channel_get_state_dbus (PkdChannel  *channel,
-                            guint       *v_uint,
-                            GError     **error)
-{
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (v_uint != NULL, FALSE);
-	*v_uint = pkd_channel_get_state (channel);
-	return TRUE;
 }
 
 static gboolean
@@ -855,48 +731,6 @@ do_stop (PkdChannel *channel)
 		kill (priv->pid, SIGTERM);
 }
 
-static gboolean
-pkd_channel_subscribe_dbus (PkdChannel   *channel,
-                            const gchar  *address,
-                            const gchar  *path,
-                            GError      **error)
-{
-	PkdChannelPrivate *priv;
-	DBusGConnection   *conn;
-	DBusGProxy        *proxy;
-	Subscription      *sub;
-
-	g_return_val_if_fail (PKD_IS_CHANNEL (channel), FALSE);
-	g_return_val_if_fail (address != NULL, FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-
-	priv = channel->priv;
-
-	/* connect to peers DBUS */
-	if (!(conn = dbus_g_connection_open (address, error)))
-		return FALSE;
-
-	/* get a proxy to their subscription listner */
-	if (!(proxy = dbus_g_proxy_new_for_peer (conn, path, "com.dronelabs.Perfkit.Subscription"))) {
-		g_set_error (error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_INVALID,
-		             "Could not connect to subscription path");
-		dbus_g_connection_unref (conn);
-		return FALSE;
-	}
-
-	/* store subscription for later */
-	sub = g_slice_new0 (Subscription);
-	sub->conn = conn;
-	sub->proxy = proxy;
-
-	/* store for future samples */
-	g_static_rw_lock_writer_lock (&priv->rw_lock);
-	g_ptr_array_add (priv->subs, sub);
-	g_static_rw_lock_writer_unlock (&priv->rw_lock);
-
-	return TRUE;
-}
-
 /**
  * pkd_channel_deliver:
  * @channel: A #PkdChannel
@@ -926,19 +760,18 @@ pkd_channel_deliver (PkdChannel *channel,
 
 	priv = channel->priv;
 
+	pkd_sample_ref (sample);
+
 	g_static_rw_lock_reader_lock (&priv->rw_lock);
 
 	for (i = 0; i < priv->subs->len; i++) {
 		sub = g_ptr_array_index (priv->subs, i);
-		dbus_g_proxy_call_no_reply (sub->proxy,
-		                            "Deliver",
-		                            dbus_g_type_get_collection ("GArray", G_TYPE_UCHAR),
-		                            pkd_sample_get_array (sample),
-		                            G_TYPE_INVALID,
-		                            G_TYPE_INVALID);
+		sub->func (channel, sample, sub->user_data);
 	}
 
 	g_static_rw_lock_reader_unlock (&priv->rw_lock);
+
+	pkd_sample_unref (sample);
 }
 
 static void
@@ -946,9 +779,61 @@ subscription_free (Subscription *sub)
 {
 	g_return_if_fail (sub != NULL);
 
-	g_object_unref (sub->proxy);
-	dbus_g_connection_unref (sub->conn);
+	memset (sub, 0, sizeof (Subscription));
 	g_slice_free (Subscription, sub);
+}
+
+static Subscription*
+subscription_new (PkdChannelSubscriptionFunc func,
+                  gpointer                   user_data)
+{
+	Subscription *sub;
+
+	g_return_val_if_fail (func != NULL, NULL);
+
+	sub = g_slice_new0 (Subscription);
+	sub->id = g_atomic_int_exchange_and_add (&sub_seq, 1);
+	sub->func = func;
+	sub->user_data = user_data;
+
+	return sub;
+}
+
+/**
+ * pkd_channel_subscribe:
+ * @channel: A #PkdChannel
+ * @func: A #PkdChannelSubscriptionFunc
+ * @user_data: data for @func
+ *
+ * Subscribes to sample callbacks for the channel.
+ *
+ * Return value:
+ *       A unique id for the subscription.
+ *
+ * Side effects:
+ *       None.
+ */
+gint
+pkd_channel_subscribe (PkdChannel                 *channel,
+                       PkdChannelSubscriptionFunc  func,
+                       gpointer                    user_data)
+{
+	PkdChannelPrivate *priv;
+	Subscription *sub;
+
+	g_return_val_if_fail (PKD_IS_CHANNEL (channel), -1);
+	g_return_val_if_fail (func != NULL, -1);
+
+	priv = channel->priv;
+
+	sub = subscription_new (func, user_data);
+	g_assert (sub);
+
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+	g_ptr_array_add (priv->subs, sub);
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	return sub->id;
 }
 
 /**************************************************************************
@@ -1108,16 +993,11 @@ pkd_channel_class_init (PkdChannelClass *klass)
 	                                                     "Target arguments",
 	                                                     G_TYPE_STRV,
 	                                                     G_PARAM_READWRITE));
-
-	dbus_g_object_type_install_info (PKD_TYPE_CHANNEL,
-	                                 &dbus_glib_pkd_channel_object_info);
 }
 
 static void
 pkd_channel_init (PkdChannel *channel)
 {
-	gchar *path;
-
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE ((channel),
 	                                             PKD_TYPE_CHANNEL,
 	                                             PkdChannelPrivate);
@@ -1132,11 +1012,4 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv->subs = g_ptr_array_new ();
 	g_ptr_array_set_free_func (channel->priv->subs,
 	                           (GDestroyNotify)subscription_free);
-
-	/* register the channel on the DBUS */
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
-	                        channel->priv->id);
-	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
-	                                     path, G_OBJECT (channel));
-	g_free (path);
 }

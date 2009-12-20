@@ -26,6 +26,8 @@
 #include <ethos/ethos.h>
 
 #include "pkd-channels.h"
+#include "pkd-listener.h"
+#include "pkd-listener-dbus.h"
 #include "pkd-paths.h"
 #include "pkd-runtime.h"
 #include "pkd-service.h"
@@ -45,11 +47,13 @@
 static GMainLoop       *main_loop     = NULL;
 static GList           *services      = NULL;
 static GHashTable      *services_hash = NULL;
+static GList           *listeners     = NULL;
 static gboolean         started       = FALSE;
 static DBusGConnection *dbus_conn     = NULL;
 static EthosManager    *manager       = NULL;
 
 G_LOCK_DEFINE (services);
+G_LOCK_DEFINE (listeners);
 
 /**
  * pkd_runtime_initialize:
@@ -64,33 +68,14 @@ void
 pkd_runtime_initialize (void)
 {
 	static gchar *plugin_dirs[2];
-	GError       *error = NULL;
 
 	g_return_if_fail (started == FALSE);
 
 	g_message ("%s: Initializing runtime", G_STRFUNC);
-
 	main_loop = g_main_loop_new (NULL, FALSE);
 	services_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 
-	/* connect to dbus */
-	if (!(dbus_conn = dbus_g_bus_get (DBUS_BUS_SESSION, &error))) {
-		g_printerr ("%s", error->message);
-		exit (EXIT_FAILURE);
-	}
-
-	/* if we do not get the bus name, another exists and we can exit */
-	if (dbus_bus_request_name (dbus_g_connection_get_connection (dbus_conn),
-	                           "com.dronelabs.Perfkit",
-	                           DBUS_NAME_FLAG_DO_NOT_QUEUE,
-	                           NULL) == DBUS_REQUEST_NAME_REPLY_EXISTS) {
-		g_printerr ("Existing instance of perfkit-daemon was found. "
-		            "Exiting gracefully.\n");
-		exit (EXIT_SUCCESS);
-	}
-
 	g_message ("%s: Adding core services.", G_STRFUNC);
-
 	started = TRUE;
 
 	/* register core services */
@@ -98,7 +83,6 @@ pkd_runtime_initialize (void)
 	pkd_runtime_add_service ("Sources", g_object_new (PKD_TYPE_SOURCES, NULL));
 
 	/* load default listeners */
-
 	g_message ("%s: Activating listeners.", G_STRFUNC);
 
 	/* HACK:
@@ -124,6 +108,11 @@ pkd_runtime_initialize (void)
 	ethos_manager_initialize (manager);
 
 	g_message ("%s: Plugins registered.", G_STRFUNC);
+
+	/*
+	 * Register the listeners to configure themselves if necessary.
+	 */
+	pkd_listener_dbus_register ();
 }
 
 /**
@@ -194,9 +183,8 @@ void
 pkd_runtime_add_service (const gchar *name,
                          PkdService  *service)
 {
-	gboolean  needs_start = FALSE;
-	GError   *error       = NULL;
-	gchar    *path;
+	gboolean needs_start = FALSE;
+	GError *error = NULL;
 
 	g_return_if_fail (PKD_IS_SERVICE (service));
 
@@ -206,10 +194,6 @@ pkd_runtime_add_service (const gchar *name,
 		g_hash_table_insert (services_hash, g_strdup (name), g_object_ref (service));
 		services = g_list_append (services, g_object_ref (service));
 		needs_start = started;
-
-		path = g_strdup_printf ("/com/dronelabs/Perfkit/%s", name);
-		dbus_g_connection_register_g_object (dbus_conn, path, G_OBJECT (service));
-		g_free (path);
 	}
 	else {
 		g_warning ("Service named \"%s\" already exists!", name);
@@ -293,4 +277,40 @@ DBusGConnection*
 pkd_runtime_get_connection (void)
 {
 	return dbus_conn;
+}
+
+/**
+ * pkd_runtime_add_listener:
+ * @listener: A #PkdListener
+ *
+ * Adds a new listener to the set of configured listeners.  The listener will
+ * be started when the runtime is ready for it.
+ */
+void
+pkd_runtime_add_listener (PkdListener *listener)
+{
+	gboolean needs_listen = FALSE;
+	GError *error = NULL;
+
+	g_return_if_fail (PKD_IS_LISTENER (listener));
+
+	G_LOCK (listeners);
+
+	if (!g_list_find (listeners, listener)) {
+		listeners = g_list_prepend (listeners, listener);
+		needs_listen = started;
+	}
+
+	G_UNLOCK (listeners);
+
+	if (needs_listen) {
+		if (!pkd_listener_listen (listener, &error)) {
+			g_warning ("Error starting %s: %s",
+			           g_type_name (G_TYPE_FROM_INSTANCE (listener)),
+			           error ? error->message : "UNKNOWN");
+			if (error) {
+				g_error_free (error);
+			}
+		}
+	}
 }

@@ -19,46 +19,51 @@ AM_CPPFLAGS = \
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\" \
 	-DHAVE_CONFIG_H \
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\" \
+	-I$(srcdir)/dbus \
 	$(WARNINGS) \
 	$(PERFKIT_DAEMON_CFLAGS) \
 	$(NULL)
 
 INST_H_FILES = \
-	pkd-version.h \
-	pkd-sample.h \
 	pkd-channel.h \
 	pkd-channels.h \
 	pkd-config.h \
-	pkd-service.h \
-	pkd-runtime.h \
+	pkd-listener.h \
 	pkd-paths.h \
+	pkd-runtime.h \
+	pkd-sample.h \
+	pkd-service.h \
 	pkd-source.h \
+	pkd-source-info.h \
 	pkd-source-simple.h \
 	pkd-sources.h \
-	pkd-source-info.h \
+	pkd-version.h \
 	perfkit-daemon.h \
 	$(NULL)
 
 NOINST_H_FILES = \
 	pkd-log.h \
 	pkd-channel-priv.h \
+	pkd-listener-dbus.h \
 	$(NULL)
 
 libperfkit_daemon_la_SOURCES = \
 	$(INST_H_FILES) \
 	$(NOINST_H_FILES) \
-	pkd-sample.c \
 	pkd-channel.c \
 	pkd-channels.c \
 	pkd-config.c \
+	pkd-listener.c \
+	pkd-listener-dbus.c \
 	pkd-log.c \
-	pkd-service.c \
-	pkd-runtime.c \
 	pkd-paths.c \
+	pkd-runtime.c \
+	pkd-sample.c \
+	pkd-service.c \
 	pkd-source.c \
+	pkd-source-info.c \
 	pkd-source-simple.c \
 	pkd-sources.c \
-	pkd-source-info.c \
 	$(NULL)
 
 libperfkit_daemon_la_LIBADD = $(PERFKIT_DAEMON_LIBS)
@@ -74,19 +79,15 @@ perfkit_daemon_LDFLAGS = \
 	-export-symbols-regex "^pkd_.*" \
 	$(NULL)
 
-pkd-channels-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml
+$(srcdir)/dbus/pkd-channels-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_channels --output=$@ $<
-
-pkd-channel-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml
+$(srcdir)/dbus/pkd-channel-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_channel --output=$@ $<
-
-pkd-source-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml
+$(srcdir)/dbus/pkd-source-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_source --output=$@ $<
-
-pkd-sources-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml
+$(srcdir)/dbus/pkd-sources-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_sources --output=$@ $<
-
-pkd-source-info-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.SourceInfo.xml
+$(srcdir)/dbus/pkd-source-info-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.SourceInfo.xml
 	dbus-binding-tool --mode=glib-server --prefix=pkd_source_info --output=$@ $<
  
 test:

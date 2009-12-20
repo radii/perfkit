@@ -21,6 +21,8 @@
 
 #include <glib-object.h>
 
+#include "pkd-sample.h"
+
 G_BEGIN_DECLS
 
 #define PKD_TYPE_CHANNEL            (pkd_channel_get_type ())
@@ -64,6 +66,18 @@ typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
 typedef struct _PkdChannelPrivate PkdChannelPrivate;
 
+/**
+ * PkdChannelSubscriptionFunc:
+ * @channel: A #PkdChannel
+ * @sample: A #PkdSample
+ * @user_data: user data from pkd_channel_subscribe
+ *
+ * A callback for channel subscriptions.
+ */
+typedef void (*PkdChannelSubscriptionFunc) (PkdChannel *channel,
+                                            PkdSample  *sample,
+                                            gpointer    user_data);
+
 struct _PkdChannel
 {
 	GObject parent;
@@ -95,6 +109,9 @@ gboolean        pkd_channel_stop        (PkdChannel *channel, GError      **erro
 gboolean        pkd_channel_pause       (PkdChannel *channel, GError      **error);
 gboolean        pkd_channel_unpause     (PkdChannel *channel, GError      **error);
 PkdChannelState pkd_channel_get_state   (PkdChannel *channel);
+gint            pkd_channel_subscribe   (PkdChannel *channel,
+                                         PkdChannelSubscriptionFunc func,
+                                         gpointer    user_data);
 
 G_END_DECLS
 

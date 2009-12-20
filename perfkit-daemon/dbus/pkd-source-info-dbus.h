@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.PIQ14U:1) */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.DFXX4U:1) */
 extern void dbus_glib_marshal_pkd_source_info_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                         GValue       *return_value,
                                                                         guint         n_param_values,
@@ -107,14 +107,15 @@ G_END_DECLS
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pkd_source_info_methods[] = {
   { (GCallback) pkd_source_info_get_uid_dbus, dbus_glib_marshal_pkd_source_info_BOOLEAN__POINTER_POINTER, 0 },
-  { (GCallback) pkd_source_info_create_dbus, dbus_glib_marshal_pkd_source_info_BOOLEAN__POINTER_POINTER, 55 },
+  { (GCallback) pkd_source_info_get_name_dbus, dbus_glib_marshal_pkd_source_info_BOOLEAN__POINTER_POINTER, 55 },
+  { (GCallback) pkd_source_info_create_dbus, dbus_glib_marshal_pkd_source_info_BOOLEAN__POINTER_POINTER, 112 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_source_info_object_info = {
   0,
   dbus_glib_pkd_source_info_methods,
-  2,
-"com.dronelabs.Perfkit.SourceInfo\0GetUid\0S\0uid\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.SourceInfo\0Create\0S\0path\0O\0F\0N\0o\0\0\0",
+  3,
+"com.dronelabs.Perfkit.SourceInfo\0GetUid\0S\0uid\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.SourceInfo\0GetName\0S\0name\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.SourceInfo\0Create\0S\0path\0O\0F\0N\0o\0\0\0",
 "\0",
 "\0"
 };

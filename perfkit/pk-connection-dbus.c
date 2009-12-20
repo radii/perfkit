@@ -36,6 +36,8 @@
 #include "pk-sample-priv.h"
 #include "pk-source-dbus.h"
 #include "pk-sources-dbus.h"
+#include "pk-source-info.h"
+#include "pk-source-info-dbus.h"
 
 G_DEFINE_TYPE (PkConnectionDBus, pk_connection_dbus, PK_TYPE_CONNECTION)
 
@@ -120,6 +122,24 @@ pk_source_proxy_new (PkConnection *connection,
 	proxy = dbus_g_proxy_new_for_name (conn,
 	                                   "com.dronelabs.Perfkit", path,
 	                                   "com.dronelabs.Perfkit.Source");
+	g_free (path);
+
+	return proxy;
+}
+
+static DBusGProxy*
+pk_source_info_proxy_new (PkConnection *connection,
+                          const gchar  *uid)
+{
+	DBusGProxy      *proxy;
+	DBusGConnection *conn;
+	gchar           *path;
+
+	conn = PK_CONNECTION_DBUS (connection)->priv->dbus;
+	path = g_strdup_printf ("/com/dronelabs/Perfkit/SourceInfo/%s", uid);
+	proxy = dbus_g_proxy_new_for_name (conn,
+	                                   "com.dronelabs.Perfkit", path,
+	                                   "com.dronelabs.Perfkit.SourceInfo");
 	g_free (path);
 
 	return proxy;
@@ -818,56 +838,48 @@ pk_connection_dbus_real_channel_subscribe (PkConnection     *connection,
 	g_free (path);
 }
 
-static gchar**
-pk_connection_dbus_real_sources_get_types (PkConnection *connection)
+static gboolean
+pk_connection_dbus_real_sources_get_source_types (PkConnection   *connection,
+                                                  gchar        ***uids,
+                                                  GError        **error)
 {
 	PkConnectionDBusPrivate  *priv;
-	gchar                   **types = NULL;
+	gchar **paths;
+	gint i, j = 0;
+	gchar *tmp;
 
 	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), 0);
 
 	priv = PK_CONNECTION_DBUS (connection)->priv;
 
-	com_dronelabs_Perfkit_Sources_get_types (priv->sources, &types, NULL);
-
-	return types;
-}
-
-static gboolean
-pk_connection_dbus_real_sources_add (PkConnection  *connection,
-                                     const gchar   *type,
-                                     gint          *source_id,
-                                     GError       **error)
-{
-	PkConnectionDBusPrivate  *priv;
-	gchar                    *path   = NULL,
-	                         *tmp;
-	gboolean                  result = FALSE;
-
-	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), FALSE);
-	g_return_val_if_fail (source_id != NULL, FALSE);
-
-	priv = PK_CONNECTION_DBUS (connection)->priv;
-
-	*source_id = 0;
-
-	if (!com_dronelabs_Perfkit_Sources_add (priv->sources, type,
-	                                        &path, error)) {
+	if (!com_dronelabs_Perfkit_Sources_get_source_types (priv->sources,
+	                                                     &paths, error)) {
 	    return FALSE;
 	}
 
-	tmp = g_strrstr (path, "/");
-	if (tmp) {
-		tmp++;
-		if (!(result = pk_util_parse_int (tmp, source_id))) {
-			g_set_error (error, PK_CONNECTION_ERROR,
-			             PK_CONNECTION_ERROR_INVALID,
-			             "An invalid path was returned");
+	(*uids) = g_malloc0 ((sizeof (gchar*)) * (g_strv_length (paths) + 1));
+	for (i = 0; paths [i]; i++) {
+		tmp = g_strrstr (paths [i], "/");
+		if (tmp) {
+			(*uids) [j++] = g_strdup (++tmp);
 		}
 	}
-	g_free (path);
 
-	return result;
+	return TRUE;
+}
+
+static gchar*
+pk_connection_dbus_real_source_info_get_name (PkConnection *connection,
+                                              const gchar  *uid)
+{
+	DBusGProxy *proxy;
+	gchar *name = NULL;
+
+	proxy = pk_source_info_proxy_new (connection, uid);
+	com_dronelabs_Perfkit_SourceInfo_get_name (proxy, &name, NULL);
+	g_object_unref (proxy);
+
+	return name;
 }
 
 static void
@@ -893,6 +905,35 @@ pk_connection_dbus_real_source_set_channel (PkConnection *connection,
 	g_object_unref (proxy);
 }
 
+static gint
+pk_connection_dbus_real_source_info_create (PkConnection *connection,
+                                            const gchar  *uid)
+{
+	DBusGProxy *proxy;
+	gchar *path = NULL;
+	gint source_id = -1;
+	gchar *tmp;
+
+	g_return_val_if_fail (PK_IS_CONNECTION_DBUS (connection), -1);
+
+	proxy = pk_source_info_proxy_new (connection, uid);
+	com_dronelabs_Perfkit_SourceInfo_create (proxy, &path, NULL);
+
+	if (path) {
+		if (g_str_has_prefix (path, "/com/dronelabs/Perfkit/Sources/")) {
+			tmp = path + strlen ("/com/dronelabs/Perfkit/Sources/");
+			if (!pk_util_parse_int (tmp, &source_id)) {
+				source_id = -1;
+			}
+		}
+		g_free (path);
+	}
+
+	g_object_unref (proxy);
+
+	return source_id;
+}
+
 static void
 subscription_free (gpointer data)
 {
@@ -915,35 +956,36 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	object_class->finalize = pk_connection_dbus_finalize;
 	g_type_class_add_private (object_class, sizeof (PkConnectionDBusPrivate));
 
-	conn_class                     = PK_CONNECTION_CLASS (klass);
-	conn_class->connect            = pk_connection_dbus_real_connect;
-	conn_class->connect_finish     = pk_connection_dbus_real_connect_finish;
-	conn_class->connect_finish     = pk_connection_dbus_real_connect_finish;
-	conn_class->disconnect         = pk_connection_dbus_real_disconnect;
-	conn_class->disconnect_async   = pk_connection_dbus_real_disconnect_async;
-	conn_class->disconnect_finish  = pk_connection_dbus_real_disconnect_finish;
-	conn_class->is_connected       = pk_connection_dbus_real_is_connected;
-	conn_class->channels_add       = pk_connection_dbus_real_channels_add;
-	conn_class->channels_find_all  = pk_connection_dbus_real_channels_find_all;
+	conn_class = PK_CONNECTION_CLASS (klass);
+	conn_class->connect = pk_connection_dbus_real_connect;
+	conn_class->connect_finish = pk_connection_dbus_real_connect_finish;
+	conn_class->connect_finish = pk_connection_dbus_real_connect_finish;
+	conn_class->disconnect = pk_connection_dbus_real_disconnect;
+	conn_class->disconnect_async = pk_connection_dbus_real_disconnect_async;
+	conn_class->disconnect_finish = pk_connection_dbus_real_disconnect_finish;
+	conn_class->is_connected = pk_connection_dbus_real_is_connected;
+	conn_class->channels_add = pk_connection_dbus_real_channels_add;
+	conn_class->channels_find_all = pk_connection_dbus_real_channels_find_all;
 	conn_class->channel_get_target = pk_connection_dbus_real_channel_get_target;
 	conn_class->channel_set_target = pk_connection_dbus_real_channel_set_target;
-	conn_class->channel_get_args   = pk_connection_dbus_real_channel_get_args;
-	conn_class->channel_set_args   = pk_connection_dbus_real_channel_set_args;
-	conn_class->channel_get_dir    = pk_connection_dbus_real_channel_get_dir;
-	conn_class->channel_set_dir    = pk_connection_dbus_real_channel_set_dir;
-	conn_class->channel_get_env    = pk_connection_dbus_real_channel_get_env;
-	conn_class->channel_set_env    = pk_connection_dbus_real_channel_set_env;
-	conn_class->channel_get_pid    = pk_connection_dbus_real_channel_get_pid;
-	conn_class->channel_set_pid    = pk_connection_dbus_real_channel_set_pid;
-	conn_class->channel_get_state  = pk_connection_dbus_real_channel_get_state;
-	conn_class->channel_start      = pk_connection_dbus_real_channel_start;
-	conn_class->channel_stop       = pk_connection_dbus_real_channel_stop;
-	conn_class->channel_pause      = pk_connection_dbus_real_channel_pause;
-	conn_class->channel_unpause    = pk_connection_dbus_real_channel_unpause;
-	conn_class->channel_subscribe  = pk_connection_dbus_real_channel_subscribe;
-	conn_class->sources_get_types  = pk_connection_dbus_real_sources_get_types;
-	conn_class->sources_add        = pk_connection_dbus_real_sources_add;
+	conn_class->channel_get_args = pk_connection_dbus_real_channel_get_args;
+	conn_class->channel_set_args = pk_connection_dbus_real_channel_set_args;
+	conn_class->channel_get_dir = pk_connection_dbus_real_channel_get_dir;
+	conn_class->channel_set_dir = pk_connection_dbus_real_channel_set_dir;
+	conn_class->channel_get_env = pk_connection_dbus_real_channel_get_env;
+	conn_class->channel_set_env = pk_connection_dbus_real_channel_set_env;
+	conn_class->channel_get_pid = pk_connection_dbus_real_channel_get_pid;
+	conn_class->channel_set_pid = pk_connection_dbus_real_channel_set_pid;
+	conn_class->channel_get_state = pk_connection_dbus_real_channel_get_state;
+	conn_class->channel_start = pk_connection_dbus_real_channel_start;
+	conn_class->channel_stop = pk_connection_dbus_real_channel_stop;
+	conn_class->channel_pause = pk_connection_dbus_real_channel_pause;
+	conn_class->channel_unpause = pk_connection_dbus_real_channel_unpause;
+	conn_class->channel_subscribe = pk_connection_dbus_real_channel_subscribe;
+	conn_class->sources_get_source_types = pk_connection_dbus_real_sources_get_source_types;
 	conn_class->source_set_channel = pk_connection_dbus_real_source_set_channel;
+	conn_class->source_info_create = pk_connection_dbus_real_source_info_create;
+	conn_class->source_info_get_name = pk_connection_dbus_real_source_info_get_name;
 }
 
 static void

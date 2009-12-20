@@ -26,64 +26,70 @@
 
 G_BEGIN_DECLS
 
-gboolean       pk_connection_channels_add       (PkConnection         *connection,
-                                                 gint                 *channel_id,
-                                                 GError              **error);
-gboolean       pk_connection_channels_find_all  (PkConnection         *connection,
-                                                 gint                **channel_ids,
-                                                 gint                 *n_channels,
-                                                 GError              **error);
-gchar*         pk_connection_channel_get_target (PkConnection         *connection,
-                                                 gint                  channel_id);
-void           pk_connection_channel_set_target (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 const gchar          *target);
-gchar**        pk_connection_channel_get_args   (PkConnection         *connection,
-                                                 gint                  channel_id);
-void           pk_connection_channel_set_args   (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 gchar               **args);
-gchar*         pk_connection_channel_get_dir    (PkConnection         *connection,
-                                                 gint                  channel_id);
-void           pk_connection_channel_set_dir    (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 const gchar          *dir);
-gchar**        pk_connection_channel_get_env    (PkConnection         *connection,
-                                                 gint                  channel_id);
-void           pk_connection_channel_set_env    (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 gchar               **env);
-GPid           pk_connection_channel_get_pid    (PkConnection         *connection,
-                                                 gint                  channel_id);
-void           pk_connection_channel_set_pid    (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 GPid                  pid);
-PkChannelState pk_connection_channel_get_state  (PkConnection         *connection,
-                                                 gint                  channel_id);
-gboolean       pk_connection_channel_start      (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 GError              **error);
-gboolean       pk_connection_channel_stop       (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 GError              **error);
-gboolean       pk_connection_channel_pause      (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 GError              **error);
-gboolean       pk_connection_channel_unpause    (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 GError              **error);
-void           pk_connection_channel_subscribe  (PkConnection         *connection,
-                                                 gint                  channel_id,
-                                                 PkSampleCallback      callback,
-                                                 gpointer              user_data);
-gchar**        pk_connection_sources_get_types  (PkConnection         *connection);
-gboolean       pk_connection_sources_add        (PkConnection         *connection,
-                                                 const gchar          *type,
-                                                 gint                 *source_id,
-                                                 GError              **error);
-void           pk_connection_source_set_channel (PkConnection         *connection,
-                                                 gint                  source_id,
-                                                 gint                  channel_id);
+gboolean       pk_connection_channels_add             (PkConnection         *connection,
+                                                       gint                 *channel_id,
+                                                       GError              **error);
+gboolean       pk_connection_channels_find_all        (PkConnection         *connection,
+                                                       gint                **channel_ids,
+                                                       gint                 *n_channels,
+                                                       GError              **error);
+gchar*         pk_connection_channel_get_target       (PkConnection         *connection,
+                                                       gint                  channel_id);
+void           pk_connection_channel_set_target       (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       const gchar          *target);
+gchar**        pk_connection_channel_get_args         (PkConnection         *connection,
+                                                       gint                  channel_id);
+void           pk_connection_channel_set_args         (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       gchar               **args);
+gchar*         pk_connection_channel_get_dir          (PkConnection         *connection,
+                                                       gint                  channel_id);
+void           pk_connection_channel_set_dir          (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       const gchar          *dir);
+gchar**        pk_connection_channel_get_env          (PkConnection         *connection,
+                                                       gint                  channel_id);
+void           pk_connection_channel_set_env          (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       gchar               **env);
+GPid           pk_connection_channel_get_pid          (PkConnection         *connection,
+                                                       gint                  channel_id);
+void           pk_connection_channel_set_pid          (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       GPid                  pid);
+PkChannelState pk_connection_channel_get_state        (PkConnection         *connection,
+                                                       gint                  channel_id);
+gboolean       pk_connection_channel_start            (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       GError              **error);
+gboolean       pk_connection_channel_stop             (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       GError              **error);
+gboolean       pk_connection_channel_pause            (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       GError              **error);
+gboolean       pk_connection_channel_unpause          (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       GError              **error);
+void           pk_connection_channel_subscribe        (PkConnection         *connection,
+                                                       gint                  channel_id,
+                                                       PkSampleCallback      callback,
+                                                       gpointer              user_data);
+gboolean       pk_connection_sources_add              (PkConnection         *connection,
+                                                       const gchar          *type,
+                                                       gint                 *source_id,
+                                                       GError              **error);
+gboolean       pk_connection_sources_get_source_types (PkConnection         *connection,
+                                                       gchar              ***uids,
+                                                       GError              **error);
+void           pk_connection_source_set_channel       (PkConnection         *connection,
+                                                       gint                  source_id,
+                                                       gint                  channel_id);
+gint           pk_connection_source_info_create       (PkConnection         *connection,
+                                                       const gchar          *uid);
+gchar*         pk_connection_source_info_get_name     (PkConnection         *connection,
+                                                       const gchar          *uid);
 
 G_END_DECLS
 

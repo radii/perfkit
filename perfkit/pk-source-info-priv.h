@@ -1,4 +1,4 @@
-/* perfkit.h
+/* pk-source-info-priv.h
  *
  * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
  *
@@ -16,18 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PERFKIT_H__
-#define __PERFKIT_H__
+#ifndef __PK_SOURCE_INFO_PRIV_H__
+#define __PK_SOURCE_INFO_PRIV_H__
 
 #include <glib-object.h>
 
-#include "pk-channel.h"
-#include "pk-channels.h"
 #include "pk-connection.h"
-#include "pk-sample.h"
-#include "pk-source.h"
 #include "pk-source-info.h"
-#include "pk-sources.h"
-#include "pk-version.h"
 
-#endif /* __PERFKIT_H__ */
+G_BEGIN_DECLS
+
+PkSourceInfo* pk_source_info_new (PkConnection *conn, const gchar *uid);
+
+G_END_DECLS
+
+#endif /* __PK_SOURCE_INFO_PRIV_H__ */

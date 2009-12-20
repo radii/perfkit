@@ -24,9 +24,8 @@
 #include <glib/gi18n.h>
 
 #include "pkd-service.h"
+#include "pkd-source-info.h"
 #include "pkd-sources.h"
-#include "pkd-sources-glue.h"
-#include "pkd-sources-dbus.h"
 
 /**
  * SECTION:pkd-sources
@@ -49,6 +48,15 @@ struct _PkdSourcesPrivate
 	GList         *sources;
 	GHashTable    *factories;
 };
+
+enum
+{
+	SOURCE_ADDED,
+	SOURCE_INFO_ADDED,
+	LAST_SIGNAL
+};
+
+static guint signals [LAST_SIGNAL];
 
 GQuark
 pkd_sources_error_quark (void)
@@ -104,6 +112,10 @@ pkd_sources_add (PkdSources   *sources,
 unlock:
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 
+	if (result && source) {
+		g_signal_emit (sources, signals [SOURCE_ADDED], 0, source);
+	}
+
 	return source;
 }
 
@@ -155,56 +167,54 @@ pkd_sources_register (PkdSources           *sources,
 	g_assert (info);
 	pkd_source_info_set_factory_func (info, factory_func, user_data);
 	g_hash_table_insert (priv->factories, key, info);
+	g_message ("%s: Registered source type \"%s\".", G_STRFUNC, uid);
+	g_signal_emit (sources, signals [SOURCE_INFO_ADDED], 0, info);
 }
 
-/**************************************************************************
- *                           Private Methods                              *
- **************************************************************************/
-
-static gboolean
-pkd_sources_add_dbus (PkdSources   *sources,
-                      const gchar  *type,
-                      gchar       **path,
-                      GError      **error)
-{
-	PkdSource *source;
-
-	g_return_val_if_fail (PKD_IS_SOURCES (sources), FALSE);
-	g_return_val_if_fail (type != NULL, FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-
-	if (!(source = pkd_sources_add (sources, type, error)))
-		return FALSE;
-
-	*path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
-	                         pkd_source_get_id (source));
-
-	return TRUE;
-}
-
-static gboolean
-pkd_sources_get_types_dbus (PkdSources   *sources,
-                            gchar      ***names,
-                            GError      **error)
+/**
+ * pkd_sources_get_registered:
+ * @sources: A #PkdSources
+ *
+ * Retrieves a list containing the #PkdSourceInfo source types available
+ * for creation.
+ *
+ * Return value:
+ *       A newly allocated #GList containing the #PkdSourceInfo instances.
+ *       The list is owned by the caller and should be freed using
+ *       g_list_free() after freeing each source info with g_object_unref().
+ *
+ * Side effects:
+ *       None.
+ */
+GList*
+pkd_sources_get_registered (PkdSources *sources)
 {
 	PkdSourcesPrivate *priv;
-	GHashTableIter     iter;
-	gchar             *key;
-	gint               count,
-					   i = 0;
+	GList *list = NULL;
+	GHashTableIter iter;
+	PkdSourceInfo *info;
 
-	g_return_val_if_fail (names != NULL, FALSE);
+	g_return_val_if_fail (PKD_IS_SOURCES (sources), NULL);
 
 	priv = sources->priv;
 
-	count = g_hash_table_size (priv->factories) + 1;
-	*names = g_malloc0 (count * sizeof (gchar*));
-
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
 	g_hash_table_iter_init (&iter, priv->factories);
-	while (g_hash_table_iter_next (&iter, (gpointer*)&key, NULL))
-		(*names) [i++] = g_strdup (key);
+	while (g_hash_table_iter_next (&iter, NULL, (gpointer*)&info)) {
+		list = g_list_prepend (list, g_object_ref (info));
+	}
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
 
-	return TRUE;
+	return list;
+}
+
+void
+pkd_sources_emit_source_added (PkdSources *sources,
+                               PkdSource  *source)
+{
+	g_return_if_fail (PKD_IS_SOURCES (sources));
+	g_return_if_fail (PKD_IS_SOURCE (source));
+	g_signal_emit (sources, signals [SOURCE_ADDED], 0, source);
 }
 
 /**************************************************************************
@@ -226,7 +236,41 @@ pkd_sources_class_init (PkdSourcesClass *klass)
 	object_class->finalize = pkd_sources_finalize;
 	g_type_class_add_private (object_class, sizeof (PkdSourcesPrivate));
 
-	dbus_g_object_type_install_info (PKD_TYPE_SOURCES, &dbus_glib_pkd_sources_object_info);
+	/**
+	 * PkdSources::source-added:
+	 * @source: a #PkdSource
+	 *
+	 * The "source-added" signal.  This signal is emmitted when a new source
+	 * is created.
+	 */
+	signals [SOURCE_ADDED] = g_signal_new ("source-added",
+	                                       PKD_TYPE_SOURCES,
+	                                       G_SIGNAL_RUN_FIRST,
+	                                       0,
+	                                       NULL,
+	                                       NULL,
+	                                       g_cclosure_marshal_VOID__OBJECT,
+	                                       G_TYPE_NONE,
+	                                       1,
+	                                       PKD_TYPE_SOURCE);
+
+	/**
+	 * PkdSource::source-info-added:
+	 * @source_info: A #PkdSourceInfo
+	 *
+	 * The "source-info-added" signal.  This signal is emitted when a new
+	 * #PkdSourceInfo is created.
+	 */
+	signals [SOURCE_INFO_ADDED] = g_signal_new ("source-info-added",
+	                                            PKD_TYPE_SOURCES,
+	                                            G_SIGNAL_RUN_FIRST,
+	                                            0,
+	                                            NULL,
+	                                            NULL,
+	                                            g_cclosure_marshal_VOID__OBJECT,
+	                                            G_TYPE_NONE,
+	                                            1,
+	                                            PKD_TYPE_SOURCE_INFO);
 }
 
 static void

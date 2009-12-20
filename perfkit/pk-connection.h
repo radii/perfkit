@@ -163,10 +163,12 @@ struct _PkConnectionClass
 	 * Sources Service RPCs
 	 */
 
-	gchar**           (*sources_get_types)        (PkConnection         *connection);
 	gboolean          (*sources_add)              (PkConnection         *connection,
 	                                               const gchar          *type,
 	                                               gint                 *source_id,
+	                                               GError              **error);
+	gboolean          (*sources_get_source_types) (PkConnection         *connection,
+	                                               gchar              ***uids,
 	                                               GError              **error);
 
 	/*
@@ -175,6 +177,14 @@ struct _PkConnectionClass
 	void              (*source_set_channel)       (PkConnection         *connection,
 	                                               gint                  source_id,
 	                                               gint                  channel_id);
+
+	/*
+	 * Source Info RPCs
+	 */
+	gint              (*source_info_create)      (PkConnection          *connection,
+	                                              const gchar           *uid);
+	gchar*            (*source_info_get_name)    (PkConnection          *connection,
+	                                              const gchar           *uid);
 
 	/*
 	 * Future Expansion

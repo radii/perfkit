@@ -26,8 +26,6 @@
 
 #include "pkd-channel.h"
 #include "pkd-channels.h"
-#include "pkd-channels-glue.h"
-#include "pkd-channels-dbus.h"
 #include "pkd-service.h"
 
 /**
@@ -50,6 +48,14 @@ struct _PkdChannelsPrivate
 	GStaticRWLock  rw_lock;
 	GHashTable    *channels;
 };
+
+enum
+{
+	CHANNEL_ADDED,
+	LAST_SIGNAL
+};
+
+static guint signals [LAST_SIGNAL];
 
 /**
  * pkd_channels_add:
@@ -80,6 +86,8 @@ pkd_channels_add (PkdChannels *channels)
 	g_static_rw_lock_writer_lock (&priv->rw_lock);
 	g_hash_table_insert (priv->channels, id, channel);
 	g_static_rw_lock_writer_unlock (&priv->rw_lock);
+
+	g_signal_emit (channels, signals [CHANNEL_ADDED], 0, channel);
 
 	return channel;
 }
@@ -147,96 +155,45 @@ pkd_channels_find_all (PkdChannels *channels)
 	return list;
 }
 
+/**
+ * pkd_channels_get:
+ * @channels: A #PkdChannels
+ * @channel_id: the channel identifier
+ *
+ * Retrieves a #PkdChannel for the given channel id.
+ *
+ * Return value:
+ *       An instance of #PkdChannel if successful; otherwise %NULL.  The caller
+ *       owns a reference to the resulting #PkdChannel and should unref it with
+ *       g_object_unref().
+ *
+ * Side effects:
+ *       None.
+ */
+PkdChannel*
+pkd_channels_get (PkdChannels *channels,
+                  gint         channel_id)
+{
+	PkdChannelsPrivate *priv;
+	PkdChannel *channel;
+
+	g_return_val_if_fail (PKD_IS_CHANNELS (channels), NULL);
+
+	priv = channels->priv;
+
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
+	channel = g_hash_table_lookup (priv->channels, &channel_id);
+	if (channel)
+		g_object_ref (channel);
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
+
+	return channel;
+}
+
 GQuark
 pkd_channels_error_quark (void)
 {
 	return g_quark_from_static_string ("pkd-channels-error");
-}
-
-/**************************************************************************
- *                         Private Methods                                *
- **************************************************************************/
-
-static gboolean
-pkd_channels_add_dbus (PkdChannels  *channels,
-                       gchar       **path,
-                       GError      **error)
-{
-	PkdChannelsPrivate *priv;
-	PkdChannel         *channel;
-
-	g_return_val_if_fail (PKD_IS_CHANNELS (channels), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-
-	priv = channels->priv;
-
-	channel = pkd_channels_add (channels);
-	*path = g_strdup_printf (DBUS_PKD_CHANNELS_PREFIX "%d",
-	                         pkd_channel_get_id (channel));
-
-	return TRUE;
-}
-
-static gboolean
-pkd_channels_remove_dbus (PkdChannels  *channels,
-                          gchar        *path,
-                          GError      **error)
-{
-	PkdChannelsPrivate *priv;
-	PkdChannel         *channel;
-	gint                id;
-
-	g_return_val_if_fail (PKD_IS_CHANNELS (channels), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-	g_return_val_if_fail (g_str_has_prefix (path, DBUS_PKD_CHANNELS_PREFIX), FALSE);
-
-	priv = channels->priv;
-	errno = 0;
-
-	id = strtoll (path + strlen (DBUS_PKD_CHANNELS_PREFIX), NULL, 10);
-
-	if (errno != 0) {
-		g_set_error (error, PKD_CHANNELS_ERROR, PKD_CHANNELS_ERROR_INVALID_CHANNEL,
-		             "The requested path is invalid");
-		return FALSE;
-	}
-
-	g_static_rw_lock_reader_lock (&priv->rw_lock);
-	if (NULL != (channel = g_hash_table_lookup (priv->channels, &id)))
-		g_object_ref (channel);
-	g_static_rw_lock_reader_unlock (&priv->rw_lock);
-
-	if (channel) {
-		pkd_channels_remove (channels, channel);
-		g_object_unref (channel);
-	}
-
-	return TRUE;
-}
-
-static gboolean
-pkd_channels_find_all_dbus (PkdChannels  *channels,
-                            GPtrArray   **paths,
-                            GError      **error)
-{
-	GList *list, *tmp;
-
-	g_return_val_if_fail (PKD_IS_CHANNELS (channels), FALSE);
-	g_return_val_if_fail (paths != NULL && *paths == NULL, FALSE);
-
-	list = pkd_channels_find_all (channels);
-	*paths = g_ptr_array_sized_new (g_list_length (list));
-
-	for (tmp = list; tmp; tmp = tmp->next) {
-		g_ptr_array_add ((*paths),
-		                 g_strdup_printf (DBUS_PKD_CHANNELS_PREFIX "%d",
-		                                  pkd_channel_get_id (tmp->data)));
-	}
-
-	g_list_foreach (list, (GFunc)g_object_unref, NULL);
-	g_list_free (list);
-
-	return TRUE;
 }
 
 /**************************************************************************
@@ -265,7 +222,23 @@ pkd_channels_class_init (PkdChannelsClass *klass)
 	object_class->finalize = pkd_channels_finalize;
 	g_type_class_add_private (object_class, sizeof (PkdChannelsPrivate));
 
-	dbus_g_object_type_install_info (PKD_TYPE_CHANNELS, &dbus_glib_pkd_channels_object_info);
+	/**
+	 * PkdChannels::channel-added:
+	 * @channel: A #PkdChannel
+	 *
+	 * The "channel-added" signal.  This signal is emitted when a new
+	 * channel is created.
+	 */
+	signals [CHANNEL_ADDED] = g_signal_new ("channel-added",
+	                                        PKD_TYPE_CHANNELS,
+	                                        G_SIGNAL_RUN_FIRST,
+	                                        0,
+	                                        NULL,
+	                                        NULL,
+	                                        g_cclosure_marshal_VOID__OBJECT,
+	                                        G_TYPE_NONE,
+	                                        1,
+	                                        PKD_TYPE_CHANNEL);
 }
 
 static void

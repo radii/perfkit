@@ -4,14 +4,9 @@
     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_sources"/>
 
     <!-- Methods -->
-    <method name="Add">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_sources_add_dbus"/>
-      <arg name="type" type="s" direction="in"/>
-      <arg name="path" type="o" direction="out"/>
-    </method>
-    <method name="GetTypes">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_sources_get_types_dbus"/>
-      <arg name="type" type="as" direction="out"/>
+    <method name="GetSourceTypes">
+      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_sources_get_source_types_dbus"/>
+      <arg name="paths" type="as" direction="out"/>
     </method>
   </interface>
 </node>

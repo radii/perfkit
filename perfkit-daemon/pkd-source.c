@@ -25,8 +25,6 @@
 #include "pkd-channel-priv.h"
 #include "pkd-runtime.h"
 #include "pkd-source.h"
-#include "pkd-source-glue.h"
-#include "pkd-source-dbus.h"
 
 /**
  * SECTION:pkd-source
@@ -41,8 +39,9 @@ G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
 
 struct _PkdSourcePrivate
 {
-	gint         id;
-	PkdChannel *channel;
+	GStaticRWLock  rw_lock;
+	gint           id;
+	PkdChannel    *channel;
 };
 
 static gint source_seq = 0;
@@ -203,13 +202,18 @@ pkd_source_set_channel (PkdSource  *source,
 
 	priv = source->priv;
 
+	g_static_rw_lock_writer_lock (&priv->rw_lock);
+
 	if (priv->channel) {
-		g_warning ("Cannot set channel multiple times");
-		return;
+		g_warning ("%s: Cannot set channel multiple times.", G_STRFUNC);
+		goto unlock;
 	}
 
 	priv->channel = g_object_ref (channel);
 	pkd_channel_add_source (channel, source);
+
+unlock:
+	g_static_rw_lock_writer_unlock (&priv->rw_lock);
 }
 
 /**
@@ -218,58 +222,30 @@ pkd_source_set_channel (PkdSource  *source,
  *
  * Retrieves the channel in which the source delivers samples.
  *
- * Return value: A #PkdChannel or %NULL.
+ * Return value:
+ *       A #PkdChannel instance if successful; otherwise %NULL.
+ *       The caller owns a reference to the #PkdChannel and should free it with
+ *       g_object_unref().
  *
- * Side effects: None
+ * Side effects:
+ *       None.
  */
 PkdChannel*
 pkd_source_get_channel (PkdSource *source)
 {
-	g_return_val_if_fail (PKD_IS_SOURCE (source), NULL);
-	return source->priv->channel;
-}
-
-/**************************************************************************
- *                             Private Methods                            *
- **************************************************************************/
-
-static gboolean
-pkd_source_get_channel_dbus (PkdSource  *source,
-                             gchar     **path,
-                             GError    **error)
-{
 	PkdSourcePrivate *priv;
+	PkdChannel *channel = NULL;
 
-	g_return_val_if_fail (path != NULL, FALSE);
+	g_return_val_if_fail (PKD_IS_SOURCE (source), NULL);
 
 	priv = source->priv;
 
-	if (!priv->channel)
-		*path = g_strdup ("");
-	else
-		*path = g_strdup_printf ("/com/dronelabs/Perfkit/Channels/%d",
-		                         pkd_channel_get_id (priv->channel));
+	g_static_rw_lock_reader_lock (&priv->rw_lock);
+	if (priv->channel)
+		channel = g_object_ref (priv->channel);
+	g_static_rw_lock_reader_unlock (&priv->rw_lock);
 
-	return TRUE;
-}
-
-static gboolean
-pkd_source_set_channel_dbus (PkdSource    *source,
-                             const gchar  *path,
-                             GError      **error)
-{
-	PkdChannel *channel;
-
-	g_return_val_if_fail (path != NULL, FALSE);
-
-	channel = PKD_CHANNEL (dbus_g_connection_lookup_g_object (pkd_runtime_get_connection (), path));
-
-	if (!channel)
-		return FALSE;
-
-	pkd_source_set_channel (source, channel);
-
-	return TRUE;
+	return channel;
 }
 
 /**************************************************************************
@@ -313,20 +289,12 @@ pkd_source_finalize (GObject *object)
 static void
 pkd_source_init (PkdSource *source)
 {
-	gchar *path;
-
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
 	                                            PKD_TYPE_SOURCE,
 	                                            PkdSourcePrivate);
 
 	source->priv->id = g_atomic_int_exchange_and_add (&source_seq, 1);
-
-	path = g_strdup_printf ("/com/dronelabs/Perfkit/Sources/%d",
-	                        source->priv->id);
-	dbus_g_connection_register_g_object (pkd_runtime_get_connection (),
-	                                     path,
-	                                     G_OBJECT (source));
-	g_free (path);
+	g_static_rw_lock_init (&source->priv->rw_lock);
 }
 
 static void
@@ -343,6 +311,4 @@ pkd_source_class_init (PkdSourceClass *klass)
 	klass->stop        = noop_stop;
 	klass->pause       = noop_pause;
 	klass->unpause     = noop_unpause;
-
-	dbus_g_object_type_install_info (PKD_TYPE_SOURCE, &dbus_glib_pkd_source_object_info);
 }

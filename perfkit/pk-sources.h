@@ -50,12 +50,12 @@ struct _PkSourcesClass
 	GObjectClass parent_class;
 };
 
-GType      pk_sources_get_type  (void) G_GNUC_CONST;
-gchar**    pk_sources_get_types (PkSources *sources);
-PkSource*  pk_sources_get       (PkSources *sources,
-                                 gint       source_id);
-PkSource*  pk_sources_add       (PkSources   *sources,
-                                 const gchar *type);
+GType      pk_sources_get_type         (void) G_GNUC_CONST;
+PkSource*  pk_sources_get              (PkSources *sources,
+                                        gint       source_id);
+PkSource*  pk_sources_add              (PkSources   *sources,
+                                        const gchar *type);
+GList*     pk_sources_get_source_types (PkSources *sources);
 
 G_END_DECLS
 

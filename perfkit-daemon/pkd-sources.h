@@ -63,19 +63,21 @@ struct _PkdSourcesClass
 	GObjectClass parent_class;
 };
 
-GQuark     pkd_sources_error_quark (void) G_GNUC_CONST;
-GType      pkd_sources_get_type    (void) G_GNUC_CONST;
-GList*     pkd_sources_find_all    (void);
-PkdSource* pkd_sources_add         (PkdSources            *sources,
-                                    const gchar           *factory,
-                                    GError               **error);
-void       pkd_sources_register    (PkdSources            *sources,
-                                    const gchar           *uid,
-                                    const gchar           *name,
-                                    const gchar           *version,
-                                    const gchar           *description,
-                                    PkdSourceFactoryFunc   factory_func,
-                                    gpointer               user_data);
+GQuark     pkd_sources_error_quark    (void) G_GNUC_CONST;
+GType      pkd_sources_get_type       (void) G_GNUC_CONST;
+GList*     pkd_sources_find_all       (void);
+PkdSource* pkd_sources_add            (PkdSources            *sources,
+                                       const gchar           *factory,
+                                       GError               **error);
+void       pkd_sources_register       (PkdSources            *sources,
+                                       const gchar           *uid,
+                                       const gchar           *name,
+                                       const gchar           *version,
+                                       const gchar           *description,
+                                       PkdSourceFactoryFunc   factory_func,
+                                       gpointer               user_data);
+GList*     pkd_sources_get_registered (PkdSources            *sources);
+void       pkd_sources_emit_source_added (PkdSources *sources, PkdSource *source);
 
 G_END_DECLS
 

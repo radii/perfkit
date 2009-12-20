@@ -18,6 +18,8 @@
 
 #include "pk-source.h"
 #include "pk-source-priv.h"
+#include "pk-source-info.h"
+#include "pk-source-info-priv.h"
 #include "pk-sources.h"
 #include "pk-connection.h"
 #include "pk-connection-priv.h"
@@ -77,25 +79,6 @@ pk_sources_new (PkConnection *connection)
 }
 
 /**
- * pk_sources_get_types:
- * @sources: A #PkSources
- *
- * Retrieves the list data source types that are available on the
- * remote system.
- *
- * Return value: A #GStrv that contains the types of available data
- *   sources.  The value should be freed with g_strfreev().
- *
- * Side effects: None
- */
-gchar**
-pk_sources_get_types (PkSources *sources)
-{
-	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
-	return pk_connection_sources_get_types (sources->priv->connection);
-}
-
-/**
  * pk_sources_get:
  * @sources: A #PkSources
  * @source_id: the source id
@@ -116,34 +99,45 @@ pk_sources_get (PkSources *sources,
 }
 
 /**
- * pk_sources_add:
+ * pk_sources_get_source_types:
  * @sources: A #PkSources
- * @type: The name of the perfkit data source type
  *
- * Adds a new data source to the remote perfkit daemon.
+ * Retrieves a list of #PkSourceInfo<!-- -->'s containing information
+ * about the available data source types.
  *
- * See pk_sources_get_types().
+ * Return value:
+ *       A newly created #GList containing a list of #PkSourceInfo.
+ *       The list should be freed using g_list_free().  Each of the
+ *       #PkSourceInfo should be freed with g_object_unref().
  *
- * Return value: The newly created #PkSource instance which should be freed
- *   with g_object_unref().
- *
- * Side effects: creates a new data source on the remote system.
+ * Side effects:
+ *       None.
  */
-PkSource*
-pk_sources_add (PkSources   *sources,
-                const gchar *type)
+GList*
+pk_sources_get_source_types (PkSources *sources)
 {
-	gint    source_id = 0;
-	GError *error     = NULL;
+	GError *error = NULL;
+	gchar **uids = NULL;
+	GList *list = NULL;
+	PkSourceInfo *info;
+	gint i;
 
 	g_return_val_if_fail (PK_IS_SOURCES (sources), NULL);
 
-	if (!pk_connection_sources_add (sources->priv->connection,
-	                                type, &source_id, &error)) {
-	    g_warning ("%s", error->message);
+	if (!pk_connection_sources_get_source_types (sources->priv->connection,
+	                                             &uids, &error)) {
+	    g_warning ("%s: Error retrieving source types: %s",
+	               G_STRFUNC, error->message);
 	    g_error_free (error);
 	    return NULL;
 	}
 
-	return pk_source_new (sources->priv->connection, source_id);
+	for (i = 0; uids [i]; i++) {
+		info = pk_source_info_new (sources->priv->connection, uids [i]);
+		list = g_list_prepend (list, info);
+	}
+
+	g_strfreev (uids);
+
+	return list;
 }

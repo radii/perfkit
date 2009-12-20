@@ -21,6 +21,7 @@ INST_H_FILES = \
 	pk-connection.h \
 	pk-sources.h \
 	pk-source.h \
+	pk-source-info.h \
 	pk-sample.h \
 	$(NULL)
 
@@ -31,6 +32,7 @@ NOINST_H_FILES = \
 	pk-sources-priv.h \
 	pk-source-priv.h \
 	pk-sample-priv.h \
+	pk-source-info-priv.h \
 	$(NULL)
 
 libperfkit_1_0_la_SOURCES = \
@@ -42,6 +44,7 @@ libperfkit_1_0_la_SOURCES = \
 	pk-connection-dbus.c \
 	pk-sources.c \
 	pk-source.c \
+	pk-source-info.c \
 	pk-sample.c \
 	$(NULL)
 
@@ -59,16 +62,28 @@ libperfkit_1_0_la_CPPFLAGS = \
 
 DISTCLEANFILES = $(BUILD_SOURCES)
 
-update-dbus:
+$(srcdir)/pk-channels-dbus.h:
 	dbus-binding-tool --mode=glib-client --prefix=pk_channels \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channels.xml \
 		--output=pk-channels-dbus.h
+
+$(srcdir)/pk-channel-dbus.h:
 	dbus-binding-tool --mode=glib-client --prefix=pk_channel \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Channel.xml \
 		--output=pk-channel-dbus.h
+
+$(srcdir)/pk-sources-dbus.h:
 	dbus-binding-tool --mode=glib-client --prefix=pk_sources \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Sources.xml \
 		--output=pk-sources-dbus.h
+
+$(srcdir)/pk-source-dbus.h:
 	dbus-binding-tool --mode=glib-client --prefix=pk_source \
 		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.Source.xml \
 		--output=pk-source-dbus.h
+
+$(srcdir)/pk-source-info-dbus.h: $(top_srcdir)/data/dbus/com.dronelabs.Perfkit.SourceInfo.xml
+	dbus-binding-tool --mode=glib-client --prefix=pk_source_info \
+		$(top_srcdir)/data/dbus/com.dronelabs.Perfkit.SourceInfo.xml \
+		--output=pk-source-info-dbus.h
+

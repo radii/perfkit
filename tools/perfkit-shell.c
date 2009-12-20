@@ -195,6 +195,54 @@ pk_util_channels_iter (EggFmtIter *iter,
 	return TRUE;
 }
 
+static gboolean
+pk_util_source_infos_iter (EggFmtIter *iter,
+                           gpointer    user_data)
+{
+	PkSourceInfo *info;
+	GList *list;
+	gint i;
+
+	if (!user_data)
+		return FALSE;
+
+	/* initialize our iter */
+	if (!iter->user_data2) {
+		iter->user_data2 = user_data;
+		iter->user_data = user_data;
+	}
+
+	/* we are finished if the list is empty */
+	if (!iter->user_data)
+		return FALSE;
+
+	list = iter->user_data;
+	info = list->data;
+
+	if (!info)
+		return FALSE;
+
+	/* load the data into the columns */
+	for (i = 0; i < iter->n_columns; i++) {
+		if (0 == g_ascii_strcasecmp (iter->column_names [i], "uid")) {
+			g_value_take_string (&iter->column_values [i],
+			                     pk_source_info_get_uid (info));
+		}
+		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "name")) {
+			g_value_take_string (&iter->column_values [i],
+			                     pk_source_info_get_name (info));
+		}
+		else {
+			g_warn_if_reached ();
+		}
+	}
+
+	/* move to the next position */
+	iter->user_data = g_list_next (iter->user_data);
+
+	return TRUE;
+}
+
 /**************************************************************************
  *                        Perfkit Shell Commands                          *
  **************************************************************************/
@@ -643,18 +691,25 @@ pk_shell_cmd_source_types (EggLine  *line,
                            gchar   **argv,
                            GError  **error)
 {
-	gchar **types;
-	gint    i;
+	EggFmtIter  iter;
+	GList      *list;
 
-	types = pk_sources_get_types (sources);
+	list = pk_sources_get_source_types (sources);
+	if (!g_list_length (list)) {
+	   g_printerr ("No source types where found.\n"
+	               "Try installing some plugins.\n");
+	   return EGG_LINE_STATUS_OK;
+   }
 
-	if (types) {
-		for (i = 0; types [i]; i++) {
-			g_print ("%s\n", types [i]);
-		}
-	}
+	egg_fmt_iter_init (&iter,
+	                   pk_util_source_infos_iter,
+	                   "UID", G_TYPE_STRING,
+	                   "Name", G_TYPE_STRING,
+	                   NULL);
+	formatter (&iter, list, NULL);
 
-	g_strfreev (types);
+	g_list_foreach (list, (GFunc)g_object_unref, NULL);
+	g_list_free (list);
 
 	return EGG_LINE_STATUS_OK;
 }
@@ -665,17 +720,36 @@ pk_shell_cmd_source_add (EggLine  *line,
                          gchar   **argv,
                          GError  **error)
 {
-	PkSource *source;
+	PkSource *source = NULL;
+	GList *list, *iter;
+	gchar *name;
 
 	if (argc != 1)
 		return EGG_LINE_STATUS_BAD_ARGS;
 
-	if (NULL != (source = pk_sources_add (sources, argv [0]))) {
-		g_print ("Added source %d.\n", pk_source_get_id (source));
+	list = pk_sources_get_source_types (sources);
+	for (iter = list; iter; iter = iter->next) {
+		name = pk_source_info_get_uid (iter->data);
+		if (g_ascii_strcasecmp (argv [0], name) == 0) {
+			source = pk_source_info_create (iter->data);
+			g_free (name);
+			break;
+		}
+		g_free (name);
+	}
+
+	g_list_foreach (list, (GFunc)g_object_unref, NULL);
+	g_list_free (list);
+
+	if (source) {
+		g_print (_("Created source %d of type \"%s\".\n"),
+		         pk_source_get_id (source),
+		         argv [0]);
 		g_object_unref (source);
 	}
 	else {
-		g_printerr ("Could not create source of type \"%s\"\n", argv [0]);
+		g_printerr (_("Could not create data source typed \"%s\".\n"),
+		            argv [0]);
 	}
 
 	return EGG_LINE_STATUS_OK;
