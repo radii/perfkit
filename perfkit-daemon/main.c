@@ -91,6 +91,7 @@ main (gint   argc,
 	pkd_config_init (config_filename);
 
 	if (use_system_bus) {
+		pkd_config_set_boolean ("dbus", "disable", FALSE);
 		pkd_config_set_boolean ("dbus", "system", TRUE);
 	}
 
