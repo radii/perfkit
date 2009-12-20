@@ -37,14 +37,6 @@ pkd_config_init (const gchar *filename)
 
 	g_return_if_fail (keyfile == NULL);
 
-	/*
-	 * Make sure the configuration file exists.
-	 */
-	if (!g_file_test (filename, G_FILE_TEST_IS_REGULAR)) {
-		g_warning ("Could not locate configuration file: %s", filename);
-		return;
-	}
-
 	keyfile = g_key_file_new ();
 	g_assert (keyfile);
 
@@ -52,8 +44,14 @@ pkd_config_init (const gchar *filename)
 	 * Load the configuration from file.  If we cannot, we leave the keyfile
 	 * around so we can use it store values.
 	 */
+
+	if (!g_file_test (filename, G_FILE_TEST_IS_REGULAR)) {
+		g_warning ("Could not locate configuration file: %s", filename);
+		return;
+	}
+
 	if (!g_key_file_load_from_file (keyfile, filename, 0, &error)) {
-		g_warning ("Could not open configuration file: %s", error->message);
+		g_warning ("Could not load configuration file: %s", error->message);
 		g_error_free (error);
 		return;
 	}
