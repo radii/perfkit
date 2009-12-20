@@ -604,6 +604,10 @@ pkd_channel_error_quark (void)
 	return g_quark_from_static_string ("pkd-channel-error-quark");
 }
 
+/*
+ * Internal method used by PkdSource to notify the channel it
+ * will be delivering samples to it.
+ */
 void
 pkd_channel_add_source (PkdChannel *channel,
                         PkdSource  *source)
