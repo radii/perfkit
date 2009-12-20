@@ -16,6 +16,7 @@ AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\" \
 	-DGETTEXT_PACKAGE=\""perfkit-daemon"\" \
+	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\" \
 	-DHAVE_CONFIG_H \
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\" \
 	$(WARNINGS) \
