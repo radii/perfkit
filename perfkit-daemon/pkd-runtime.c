@@ -21,8 +21,6 @@
 #endif
 
 #include <stdlib.h>
-#include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-lowlevel.h>
 #include <ethos/ethos.h>
 
 #include "pkd-channels.h"
@@ -49,7 +47,6 @@ static GList           *services      = NULL;
 static GHashTable      *services_hash = NULL;
 static GList           *listeners     = NULL;
 static gboolean         started       = FALSE;
-static DBusGConnection *dbus_conn     = NULL;
 static EthosManager    *manager       = NULL;
 
 G_LOCK_DEFINE (services);
@@ -262,21 +259,6 @@ pkd_runtime_get_service (const gchar *name)
 	G_UNLOCK (services);
 
 	return service;
-}
-
-/**
- * pkd_runtime_get_connection:
- *
- * Retrieves the D-BUS connection for the application.
- *
- * Return value: the #DBusGConnection
- *
- * Side effects: None
- */
-DBusGConnection*
-pkd_runtime_get_connection (void)
-{
-	return dbus_conn;
 }
 
 /**
