@@ -1,4 +1,4 @@
-SUBDIRS = data perfkit-daemon perfkit perfkit-gui plugins tools tests doc
+SUBDIRS = data perfkit-daemon perfkit bindings perfkit-gui plugins tools tests doc
 ACLOCAL_AMFLAGS = -I build/m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-maintainer-flags --enable-gtk-doc
 

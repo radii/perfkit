@@ -140,6 +140,9 @@ AC_OUTPUT([
 	doc/reference/perfkit-gui/Makefile
 	doc/reference/perfkit-gui/version.xml
 	perfkit-gui/Makefile
+
+	bindings/Makefile
+	bindings/vala/Makefile
 	perfkit-gui/pkg-version.h
 ])
 

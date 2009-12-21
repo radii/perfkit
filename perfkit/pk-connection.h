@@ -195,6 +195,7 @@ struct _PkConnectionClass
 GType         pk_connection_get_type           (void) G_GNUC_CONST;
 GQuark        pk_connection_error_quark        (void) G_GNUC_CONST;
 PkConnection* pk_connection_new_for_uri        (const gchar          *uri);
+const gchar*  pk_connection_get_uri            (PkConnection         *connection);
 
 /*
  * Daemon Connection

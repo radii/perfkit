@@ -46,6 +46,7 @@ G_DEFINE_TYPE (PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
+	gchar      *uri;
 	PkChannels *channels;
 	PkSources  *sources;
 };
@@ -78,12 +79,28 @@ pk_connection_new_for_uri (const gchar *uri)
 
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	if (g_str_has_prefix (uri, "dbus://"))
+	if (g_str_has_prefix (uri, "dbus://")) {
 		connection = pk_connection_dbus_new ();
-	else
+		connection->priv->uri = g_strdup (uri);
+	}
+	else {
 		g_warning (_("Unknown connection URI: %s"), uri);
+	}
 
 	return connection;
+}
+
+/**
+ * pk_connection_get_uri:
+ * @connection: A #PkConnection
+ *
+ * Retreives the uri for the connection.
+ */
+const gchar*
+pk_connection_get_uri (PkConnection *connection)
+{
+	g_return_val_if_fail (PK_IS_CONNECTION (connection), NULL);
+	return connection->priv->uri;
 }
 
 /**
