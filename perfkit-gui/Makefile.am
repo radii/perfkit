@@ -1,9 +1,13 @@
 bin_PROGRAMS = perfkit-gui
 
+uidir = $(datadir)/perfkit-gui/ui/
+ui_DATA = views/connection-view.ui
+
 AM_CPPFLAGS = \
 	$(PERFKIT_GUI_CFLAGS) \
 	-DGETTEXT_PACKAGE="\"perfkit-gui\"" \
 	-DLOCALE_DIR=\""$(datadir)/locale"\" \
+	-DPACKAGE_DATADIR=\""$(datadir)/perfkit-gui"\" \
 	$(NULL)
 
 AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
@@ -30,4 +34,4 @@ perfkit_gui_VALAFLAGS = \
 	--vapidir=$(top_srcdir)/bindings/vala
 
 test:
-	$(builddir)/perfkit-gui
+	PERFKIT_GUI_UIDIR=$(srcdir)/views $(builddir)/perfkit-gui

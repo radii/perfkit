@@ -71,6 +71,42 @@ namespace PerfkitGui {
 			_registered.insert(path, view);
 		}
 
+		public static Gtk.Builder? load_ui(string name) {
+			var dir = Config.PACKAGE_DATADIR + "/ui";
+			if (Environment.get_variable("PERFKIT_GUI_UIDIR") != null) {
+				dir = Environment.get_variable("PERFKIT_GUI_UIDIR");
+			}
+
+			var uiname = "%s.ui".printf(name);
+			var path = Path.build_filename(dir, uiname, null);
+
+			if (FileUtils.test(path, FileTest.IS_REGULAR)) {
+				var builder = new Gtk.Builder();
+				try {
+					builder.add_from_file(path);
+				}
+				catch (Error e) {
+					warning("Error loading %s: %s", path, e.message);
+				}
+				return builder;
+			}
+
+			return null;
+		}
+
+		public static Gtk.Builder? attach_ui(string name, string widget, Gtk.Container parent) {
+			var ui = View.load_ui(name);
+			assert(ui != null);
+
+			var child = (Widget)ui.get_object("view-toplevel");
+			assert(child != null);
+
+			child.reparent(parent);
+			child.show();
+
+			return ui;
+		}
+
 		public abstract void set_controller(Controller controller);
 	}
 

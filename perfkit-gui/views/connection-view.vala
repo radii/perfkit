@@ -21,11 +21,17 @@ using Gtk;
 
 namespace PerfkitGui {
 	public class ConnectionView: Gtk.Window, View {
-		ConnectionController _controller = null;
+		ConnectionController _controller;
+		Gtk.Builder _builder;
 
 		public ConnectionView() {
 			this.title = _("Perfkit");
 			this.set_default_size(640, 480);
+
+			/*
+			 * Load the UI from GtkBuilder.
+			 */
+			this._builder = View.attach_ui("connection-view", "view-toplevel", this);
 
 			/*
 			 * Connect visibility notify so we know when our window is
