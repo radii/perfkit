@@ -62,6 +62,11 @@ namespace PerfkitGui {
 			var cell = new Gtk.CellRendererText();
 			column.pack_start(cell, true);
 			column.add_attribute(cell, "text", 0);
+
+			this.delete_event.connect(_ => {
+				this.hide();
+				return true;
+			});
 		}
 
 		public void set_controller(Controller controller) {
