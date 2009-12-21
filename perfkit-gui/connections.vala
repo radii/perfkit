@@ -1,6 +1,6 @@
-/* pkg-paths.h
- * 
- * Copyright (C) 2009 Christian Hergert
+/* connections.vala
+ *
+ * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,16 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PKG_PATHS_H__
-#define __PKG_PATHS_H__
+using Gee;
+using GLib;
+using Perfkit;
 
-#include <glib.h>
+namespace PerfkitGui {
+	namespace Connections {
+		static Gee.ArrayList<Perfkit.Connection> _conns;
 
-G_BEGIN_DECLS
+		public static void init() {
+			_conns = new Gee.ArrayList<Perfkit.Connection>();
+		}
 
-G_CONST_RETURN gchar *  pkg_paths_get_data_dir    (void);
-G_CONST_RETURN gchar *  pkg_paths_get_locale_dir  (void);
+		public static void add(Perfkit.Connection conn) {
+			if (!_conns.contains(conn)) {
+				_conns.add(conn);
+			}
+		}
 
-G_END_DECLS
+		public static Gee.List<Perfkit.Connection> all() {
+			return new ReadOnlyList<Perfkit.Connection>(_conns);
+		}
 
-#endif /* __PKG_PATHS_H__ */
+		public string hash(Connection conn) {
+			return string.joinv("_", conn.uri.split("/"));
+		}
+	}
+}

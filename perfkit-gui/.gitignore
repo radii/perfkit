@@ -1,4 +1,10 @@
 perfkit-gui
-pkg-version.h
-libperfkit-gui.la
-libservices.la
+connections.c
+controller.c
+view.c
+main.c
+runtime.c
+views/connection-view.c
+views/source-types-view.c
+controllers/connection-controller.c
+*.stamp

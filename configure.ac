@@ -28,6 +28,7 @@ AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
+AM_PROG_VALAC([0.7.0])
 
 
 dnl ************************************************************************
@@ -82,7 +83,7 @@ PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0 >= 2.20
 				   gthread-2.0 >= 2.20
 				   dbus-glib-1 >= 0.80
 				   gtk+-2.0    >= 2.18
-				   ethos-1.0   >= 0.2.2])
+				   gee-1.0     >= 0.3.0])
 
 
 dnl ************************************************************************
@@ -143,7 +144,6 @@ AC_OUTPUT([
 
 	bindings/Makefile
 	bindings/vala/Makefile
-	perfkit-gui/pkg-version.h
 ])
 
 echo ""

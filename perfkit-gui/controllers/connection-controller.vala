@@ -1,6 +1,6 @@
-/* perfkit-gui.h
- * 
- * Copyright (C) 2009 Christian Hergert
+/* connection-controller.vala
+ *
+ * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PERFKIT_GUI_H__
-#define __PERFKIT_GUI_H__
+using GLib;
+using Perfkit;
 
-#include "pkg-paths.h"
-#include "pkg-runtime.h"
-#include "pkg-service.h"
+namespace PerfkitGui {
+	public class ConnectionController: GLib.Object, Controller {
+		Connection _connection;
 
-#endif /* __PERFKIT_GUI_H__ */
+		public Connection connection {
+			get { return _connection; }
+			set {
+				_connection = value;
+			}
+		}
+
+		public ConnectionController() {
+		}
+	}
+}
