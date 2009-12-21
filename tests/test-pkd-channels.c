@@ -35,7 +35,7 @@ main (gint   argc,
 
 	g_setenv ("PERFKIT_PLUGIN_DIR", g_get_current_dir (), FALSE);
 
-	pkd_runtime_initialize (TRUE);
+	pkd_runtime_initialize ();
 
 	g_test_add_func ("/PkdChannels/add", test_PkdChannels_add);
 	g_test_add_func ("/PkdChannels/remove", test_PkdChannels_remove);
