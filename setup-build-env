@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#
+# Sets up the build environment for 
+#
+
+targets=" \
+   build-essential \
+   gnome-common \
+   gtk-doc-tools \
+   libgtk2.0-dev \
+   libdbus-glib-1-dev \
+   libreadline-dev \
+   python-gtk2-dev \
+   python-gobject-dev \
+   git-core \
+   "
+
+sudo apt-get install $targets 
+
+git clone git://git.dronelabs.com/ethos
+pushd ethos
+./autogen.sh
+make
+sudo make install
+popd
+
+./autogen.sh
+make
