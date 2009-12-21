@@ -23,6 +23,7 @@ namespace PerfkitGui {
 
     public interface Controller: GLib.Object {
         static Gee.ArrayList<Resolver> _resolvers;
+        static HashTable<string,Controller> _registered;
 
         /*
          *---------------------------------------------------------------------
@@ -42,14 +43,41 @@ namespace PerfkitGui {
 
         public static void init() {
             _resolvers = new Gee.ArrayList<Resolver>();
+            _registered = new HashTable<string,Controller>(str_hash, str_equal);
 
             Controller.add_resolver((path) => {
             	if (path.has_prefix("/Connection/")) {
-            		/* TODO: Set connection from path */
-            		return new ConnectionController();
+            		var hash = path.substring(12);
+            		var conn = Connections.lookup(hash);
+            		if (conn != null) {
+            			var ctrl = new ConnectionController();
+            			ctrl.connection = conn;
+            			Controller.register(path, ctrl);
+            			return ctrl;
+            		}
             	}
             	return null;
             });
+        }
+
+		/*
+		 *---------------------------------------------------------------------
+		 *
+		 * PerfkitGui::Controller::register --
+		 *
+		 * 		Registers a controller for a specific path.
+		 *
+		 * Results:
+		 * 		None.
+		 *
+		 * Side effects:
+		 *		None.
+		 *
+		 *---------------------------------------------------------------------
+		 */
+
+        public static void register(string path, Controller controller) {
+        	_registered.insert(path, controller);
         }
 
         /*

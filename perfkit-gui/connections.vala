@@ -34,6 +34,16 @@ namespace PerfkitGui {
 			}
 		}
 
+		public static Connection? lookup(string hash) {
+			foreach (var conn in _conns) {
+				var cur_hash = Connections.hash(conn);
+				if (cur_hash == hash) {
+					return conn;
+				}
+			}
+			return null;
+		}
+
 		public static Gee.List<Perfkit.Connection> all() {
 			return new ReadOnlyList<Perfkit.Connection>(_conns);
 		}
