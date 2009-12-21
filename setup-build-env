@@ -14,6 +14,8 @@ targets=" \
    python-gtk2-dev \
    python-gobject-dev \
    git-core \
+   valac \
+   libgee-dev \
    "
 
 sudo apt-get install $targets 
