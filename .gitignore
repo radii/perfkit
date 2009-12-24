@@ -9,7 +9,12 @@
 aclocal.m4
 autom4te.cache
 configure
-config.*
+config.status
+config.guess
+config.h
+config.h.in
+config.log
+config.sub
 depcomp
 gtk-doc.make
 install-sh
