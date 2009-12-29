@@ -10,6 +10,9 @@ bin_PROGRAMS = perfkit-daemon
 headerdir = $(prefix)/include/perfkit-daemon-1.0/perfkit-daemon
 header_DATA = $(INST_H_FILES)
 
+etcdir = $(sysconfdir)/perfkit
+etc_DATA = daemon.conf
+
 WARNINGS =								\
 	-Wall								\
 	-Werror								\
