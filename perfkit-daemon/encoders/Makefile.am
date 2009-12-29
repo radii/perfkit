@@ -49,7 +49,7 @@ zlib_la_SOURCES =							\
 	pkd-zlib.c							\
 	$(NULL)
 
-la_LIBADD =								\
+zlib_la_LIBADD =							\
 	$(PERFKIT_DAEMON_LIBS)						\
 	$(top_builddir)/perfkit-daemon/libperfkit-daemon.la		\
 	-lz								\
