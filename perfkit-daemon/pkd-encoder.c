@@ -36,14 +36,14 @@ static gboolean
 pkd_encoder_real_encode_samples (PkdSample **samples,
                                  gint        n_samples,
                                  gchar     **data,
-                                 gsize      *dapkd_len)
+                                 gsize      *data_len)
 {
 	gchar *buf = NULL;
 	gsize s = 0, buflen = 0;
 	gint i;
 
 	g_return_val_if_fail(data != NULL, FALSE);
-	g_return_val_if_fail(dapkd_len != NULL, FALSE);
+	g_return_val_if_fail(data_len != NULL, FALSE);
 
 	for (i = 0; i < n_samples; i++) {
 		/*
@@ -63,7 +63,7 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
 		s += buflen;
 	}
 
-	*dapkd_len = s;
+	*data_len = s;
 	(*data) = g_malloc(s);
 	s = 0;
 
@@ -102,7 +102,7 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
  * @samples An array of #PkdSample
  * @n_samples: The number of #PkdSample in @samples.
  * @data: A location for a data buffer
- * @dapkd_len: A location for the data buffer length
+ * @data_len: A location for the data buffer length
  *
  * 
  *
@@ -113,28 +113,28 @@ pkd_encoder_encode_samples  (PkdEncoder  *encoder,
                              PkdSample  **samples,
                              gint         n_samples,
                              gchar      **data,
-                             gsize       *dapkd_len)
+                             gsize       *data_len)
 {
 	if (encoder && PKD_ENCODER_GET_INTERFACE(encoder)->encode_samples)
 		return PKD_ENCODER_GET_INTERFACE(encoder)->encode_samples
-			(encoder, samples, n_samples, data, dapkd_len);
-	return pkd_encoder_real_encode_samples(samples, n_samples, data, dapkd_len);
+			(encoder, samples, n_samples, data, data_len);
+	return pkd_encoder_real_encode_samples(samples, n_samples, data, data_len);
 }
 
 static gboolean
 pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
                                   gchar       **data,
-                                  gsize        *dapkd_len)
+                                  gsize        *data_len)
 {
 	const gchar *name;
-	gint rows, i;
+	gint rows, i, l;
 	GType type;
 	gsize s = 0, o = 0;
 	gboolean p;
 
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);
-	g_return_val_if_fail(dapkd_len != NULL, FALSE);
+	g_return_val_if_fail(data_len != NULL, FALSE);
 
 	/*
 	 * Step 1:
@@ -178,6 +178,7 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	 * Allocate destination buffer.
 	 */
 	*data = g_malloc(s);
+	*data_len = s;
 
 	/*
 	 * Add the Source ID.
@@ -212,7 +213,9 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 		 * Copy the string into the buffer.
 		 */
 		name = pkd_manifest_get_row_name(manifest, i);
-		memcpy(&((*data)[o]), name, strlen(name) + 1);
+		l = strlen(name) + 1;
+		memcpy(&((*data)[o]), name, l);
+		o += l;
 	}
 
 	return TRUE;
@@ -223,7 +226,7 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
  * @encoder: A #PkdEncoder
  * @manifest: A #PkdManifest
  * @data: A location for a data buffer
- * @dapkd_len: A location for the data buffer length
+ * @data_len: A location for the data buffer length
  *
  * Encodes the manifest into a buffer.  If the encoder is %NULL, the default
  * of copying the buffers will be performed.
@@ -234,12 +237,12 @@ gboolean
 pkd_encoder_encode_manifest (PkdEncoder   *encoder,
                              PkdManifest  *manifest,
                              gchar       **data,
-                             gsize        *dapkd_len)
+                             gsize        *data_len)
 {
 	if (encoder && PKD_ENCODER_GET_INTERFACE(encoder)->encode_manifest)
 		return PKD_ENCODER_GET_INTERFACE(encoder)->encode_manifest
-			(encoder, manifest, data, dapkd_len);
-	return pkd_encoder_real_encode_manifest(manifest, data, dapkd_len);
+			(encoder, manifest, data, data_len);
+	return pkd_encoder_real_encode_manifest(manifest, data, data_len);
 }
 
 GType

@@ -5,6 +5,7 @@ noinst_PROGRAMS =							\
 	test-pkd-plugins						\
 	test-pkd-sample							\
 	test-pkd-manifest						\
+	test-pkd-encoder						\
 	$(NULL)
 
 TEST_PROGS +=								\
@@ -12,6 +13,7 @@ TEST_PROGS +=								\
 	test-pkd-plugins						\
 	test-pkd-sample							\
 	test-pkd-manifest						\
+	test-pkd-encoder						\
 	$(NULL)
 
 AM_CPPFLAGS =								\
@@ -29,3 +31,4 @@ test_pkd_log_SOURCES = test-pkd-log.c
 test_pkd_plugins_SOURCES = test-pkd-plugins.c
 test_pkd_sample_SOURCES = test-pkd-sample.c
 test_pkd_manifest_SOURCES = test-pkd-manifest.c
+test_pkd_encoder_SOURCES = test-pkd-encoder.c
