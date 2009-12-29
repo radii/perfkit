@@ -1,5 +1,5 @@
 /* pkd-channel.h
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,67 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_CHANNEL_H__
 #define __PKD_CHANNEL_H__
 
 #include <glib-object.h>
 
+#include "pkd-manifest.h"
 #include "pkd-sample.h"
+#include "pkd-source-info.h"
+#include "pkd-spawn-info.h"
 
 G_BEGIN_DECLS
 
-#define PKD_TYPE_CHANNEL            (pkd_channel_get_type ())
+#define PKD_TYPE_CHANNEL            (pkd_channel_get_type())
 #define PKD_CHANNEL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_CHANNEL, PkdChannel))
 #define PKD_CHANNEL_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_CHANNEL, PkdChannel const))
 #define PKD_CHANNEL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PKD_TYPE_CHANNEL, PkdChannelClass))
 #define PKD_IS_CHANNEL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_CHANNEL))
 #define PKD_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_CHANNEL))
 #define PKD_CHANNEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_CHANNEL, PkdChannelClass))
-#define PKD_CHANNEL_ERROR           (pkd_channel_error_quark ())
-
-/**
- * PkdChannelError:
- * @PKD_CHANNEL_ERROR_INVALID: The channel is in an invalid state.
- *
- * #PkdChannelError error enumeration.
- */
-typedef enum
-{
-	PKD_CHANNEL_ERROR_INVALID,
-} PkdChannelError;
-
-/**
- * PkdChannelState:
- * @PKD_CHANNEL_READY:
- * @PKD_CHANNEL_STARTED:
- * @PKD_CHANNEL_PAUSED:
- * @PKD_CHANNEL_STOPPED:
- *
- * The "PkdChannelState" enumeration.
- */
-typedef enum
-{
-	PKD_CHANNEL_READY,
-	PKD_CHANNEL_STARTED,
-	PKD_CHANNEL_PAUSED,
-	PKD_CHANNEL_STOPPED,
-} PkdChannelState;
 
 typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
 typedef struct _PkdChannelPrivate PkdChannelPrivate;
-
-/**
- * PkdChannelSubscriptionFunc:
- * @channel: A #PkdChannel
- * @sample: A #PkdSample
- * @user_data: user data from pkd_channel_subscribe
- *
- * A callback for channel subscriptions.
- */
-typedef void (*PkdChannelSubscriptionFunc) (PkdChannel *channel,
-                                            PkdSample  *sample,
-                                            gpointer    user_data);
 
 struct _PkdChannel
 {
@@ -91,27 +57,22 @@ struct _PkdChannelClass
 	GObjectClass parent_class;
 };
 
-GType           pkd_channel_get_type    (void) G_GNUC_CONST;
-GQuark          pkd_channel_error_quark (void) G_GNUC_CONST;
-gint            pkd_channel_get_id      (PkdChannel *channel);
-gchar*          pkd_channel_get_dir     (PkdChannel *channel);
-void            pkd_channel_set_dir     (PkdChannel *channel, const gchar  *dir);
-gchar**         pkd_channel_get_args    (PkdChannel *channel);
-void            pkd_channel_set_args    (PkdChannel *channel, const gchar **args);
-GPid            pkd_channel_get_pid     (PkdChannel *channel);
-void            pkd_channel_set_pid     (PkdChannel *channel, GPid pid);
-gchar*          pkd_channel_get_target  (PkdChannel *channel);
-void            pkd_channel_set_target  (PkdChannel *channel, const gchar  *target);
-gchar**         pkd_channel_get_env     (PkdChannel *channel);
-void            pkd_channel_set_env     (PkdChannel *channel, const gchar **env);
-gboolean        pkd_channel_start       (PkdChannel *channel, GError      **error);
-gboolean        pkd_channel_stop        (PkdChannel *channel, GError      **error);
-gboolean        pkd_channel_pause       (PkdChannel *channel, GError      **error);
-gboolean        pkd_channel_unpause     (PkdChannel *channel, GError      **error);
-PkdChannelState pkd_channel_get_state   (PkdChannel *channel);
-gint            pkd_channel_subscribe   (PkdChannel *channel,
-                                         PkdChannelSubscriptionFunc func,
-                                         gpointer    user_data);
+GType        pkd_channel_get_type            (void) G_GNUC_CONST;
+PkdChannel*   pkd_channel_new                 (const PkdSpawnInfo  *spawn_info);
+const gchar* pkd_channel_get_target          (PkdChannel          *channel);
+const gchar* pkd_channel_get_working_dir     (PkdChannel          *channel);
+gchar**      pkd_channel_get_args            (PkdChannel          *channel);
+gchar**      pkd_channel_get_env             (PkdChannel          *channel);
+GPid         pkd_channel_get_pid             (PkdChannel          *channel);
+gboolean     pkd_channel_start               (PkdChannel          *channel,
+                                             GError            **error);
+gboolean     pkd_channel_stop                (PkdChannel          *channel,
+                                             gboolean            killpid,
+                                             GError            **error);
+void         pkd_channel_pause               (PkdChannel          *channel);
+void         pkd_channel_unpause             (PkdChannel          *channel);
+PkdSource*    pkd_channel_add_source          (PkdChannel          *channel,
+                                             PkdSourceInfo       *source_info);
 
 G_END_DECLS
 

@@ -1,5 +1,5 @@
-/* pkd-paths.h
- * 
+/* pkd-plugins.h
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,16 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PKD_PATHS_H__
-#define __PKD_PATHS_H__
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
+#ifndef __PKD_PLUGINS_H__
+#define __PKD_PLUGINS_H__
 
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
-G_CONST_RETURN gchar*  pkd_paths_get_data_dir   (void);
-G_CONST_RETURN gchar*  pkd_paths_get_locale_dir (void);
+void pkd_plugins_init (void);
 
 G_END_DECLS
 
-#endif /* __PKD_PATHS_H__ */
+#endif /* __PKD_PLUGINS_H__ */

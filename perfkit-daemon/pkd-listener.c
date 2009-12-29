@@ -1,5 +1,5 @@
 /* pkd-listener.c
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,102 +16,169 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "pkd-listener.h"
+
+G_DEFINE_TYPE (PkdListener, pkd_listener, G_TYPE_OBJECT)
 
 /**
  * SECTION:pkd-listener
  * @title: PkdListener
- * @short_description: External communication
+ * @short_description: 
  *
- * #PkdListener<!-- -->'s are responsible for providing communication
- * with external resources.  Be it over TCP, DBus, or a Unix socket.
+ * 
  */
 
-GType
-pkd_listener_get_type (void)
+/**
+ * pkd_listener_new:
+ *
+ * Creates a new instance of #PkdListener.
+ *
+ * Return value: the newly created #PkdListener instance.
+ */
+PkdListener*
+pkd_listener_new (void)
 {
-	static GType g_type = 0;
-
-	if (G_UNLIKELY (!g_type)) {
-		const GTypeInfo g_type_info = {
-			sizeof (PkdListenerIface),
-			NULL, /* base_init      */
-			NULL, /* base_finalize  */
-			NULL, /* class_init     */
-			NULL, /* class_finalize */
-			NULL, /* class_data     */
-			0,    /* instance_size  */
-			0,    /* n_preallocs    */
-			NULL, /* instance_init  */
-			NULL  /* value_table    */
-		};
-
-		g_type = g_type_register_static (G_TYPE_INTERFACE,
-		                                 "PkdListener",
-		                                 &g_type_info,
-		                                 0);
-		g_type_interface_add_prerequisite (g_type, G_TYPE_OBJECT);
-	}
-
-	return g_type;
+	return g_object_new (PKD_TYPE_LISTENER, NULL);
 }
 
 /**
- * pkd_listener_listen:
- * @listener: a #PkdListener
- * @error: a location for a #GError or %NULL
+ * pkd_listener_start:
+ * @listener: A #PkdListener
+ * @error: A location for a #GError or %NULL
  *
- * 
+ * Starts a #PkdListener.
  *
- * Return value:
- *       %TRUE on success.
+ * Returns: %TRUE on success; otherwise %FALSE and @error is set.
  *
- * Side effects:
- *       
+ * Side effects: Listener implementation dependent.
  */
 gboolean
-pkd_listener_listen (PkdListener  *listener,
-                     GError     **error)
+pkd_listener_start (PkdListener  *listener,
+				   GError     **error)
 {
-	if (PKD_LISTENER_GET_INTERFACE (listener)->listen)
-		return PKD_LISTENER_GET_INTERFACE (listener)->listen (listener, error);
-	return TRUE;
+	g_return_val_if_fail(PKD_IS_LISTENER(listener), FALSE);
+	return PKD_LISTENER_GET_CLASS(listener)->start(listener, error);
 }
 
 /**
- * pkd_listener_shutdown:
- * @listener: a #PkdListener
+ * pkd_listener_stop:
+ * @listener: A #PkdListener
  *
- * 
+ * Stops the #PkdListener.
  *
- * Side effects: 
+ * Side effects: Listener implementation dependent.
  */
 void
-pkd_listener_shutdown (PkdListener *listener)
+pkd_listener_stop (PkdListener *listener)
 {
-	if (PKD_LISTENER_GET_INTERFACE (listener)->shutdown)
-		PKD_LISTENER_GET_INTERFACE (listener)->shutdown (listener);
+	g_return_if_fail(PKD_IS_LISTENER(listener));
+	return PKD_LISTENER_GET_CLASS(listener)->stop(listener);
 }
 
 /**
- * pkd_listener_initialize:
- * @listener: a #PkdListener
- * @error: a location for a #GError, or %NULL
+ * pkd_listener_source_info_added:
+ * @listener: A #PkdListener
+ * @source_info: A #PkdSourceInfo
  *
- * Initializes the #PkdListener.
- *
- * Return value:
- *       %TRUE if successful; otherwise %FALSE and @error is set.
- *
- * Side effects:
- *       Initial resources are allocated for the listener.
+ * Executes the "source-info-added" pipeline callback.
  */
-gboolean
-pkd_listener_initialize (PkdListener  *listener,
-                        GError     **error)
+void
+pkd_listener_source_info_added (PkdListener   *listener,
+							   PkdSourceInfo *source_info)
 {
-	if (PKD_LISTENER_GET_INTERFACE (listener)->initialize)
-		return PKD_LISTENER_GET_INTERFACE (listener)->
-				initialize (listener, error);
-	return TRUE;
+	if (PKD_LISTENER_GET_CLASS(listener)->source_info_added)
+		PKD_LISTENER_GET_CLASS(listener)->
+			source_info_added(listener, source_info);
+}
+
+/**
+ * pkd_listener_source_added:
+ * @listener: A #PkdListener
+ * @source: A #PkdSource
+ *
+ * Executes the "source-added" pipeline callback.
+ */
+void
+pkd_listener_source_added (PkdListener *listener,
+						  PkdSource   *source)
+{
+	if (PKD_LISTENER_GET_CLASS(listener)->source_added)
+		PKD_LISTENER_GET_CLASS(listener)->source_added(listener, source);
+}
+
+/**
+ * pkd_listener_channel_added:
+ * @listener: A #PkdListener
+ * @channel: A #PkdChannel
+ *
+ * Executes the "channel-added" pipeline callback.
+ */
+void
+pkd_listener_channel_added (PkdListener *listener,
+						   PkdChannel  *channel)
+{
+	if (PKD_LISTENER_GET_CLASS(listener)->channel_added)
+		PKD_LISTENER_GET_CLASS(listener)->channel_added(listener, channel);
+}
+
+/**
+ * pkd_listener_subscription_added:
+ * @listener: A #PkdListener
+ * @channel: A #PkdChannel
+ *
+ * Executes the "subscription-added" pipeline callbac.
+ */
+void
+pkd_listener_subscription_added (PkdListener     *listener,
+								PkdSubscription *subscription)
+{
+	if (PKD_LISTENER_GET_CLASS(listener)->subscription_added)
+		PKD_LISTENER_GET_CLASS(listener)->
+			subscription_added(listener, subscription);
+}
+
+/**
+ * pkd_listener_encoder_info_added:
+ * @listener: A #PkdListener
+ * @encoder_info: A #PkdEncoderInfo
+ *
+ * Executes the "encoder-info-added" pipeline callback.
+ */
+void
+pkd_listener_encoder_info_added (PkdListener    *listener,
+                                PkdEncoderInfo *encoder_info)
+{
+	if (PKD_LISTENER_GET_CLASS(listener)->encoder_info_added)
+		PKD_LISTENER_GET_CLASS(listener)->
+			encoder_info_added(listener, encoder_info);
+}
+
+static void
+pkd_listener_finalize (GObject *object)
+{
+	PkdListenerPrivate *priv;
+
+	g_return_if_fail (PKD_IS_LISTENER (object));
+
+	priv = PKD_LISTENER (object)->priv;
+
+	G_OBJECT_CLASS (pkd_listener_parent_class)->finalize (object);
+}
+
+static void
+pkd_listener_class_init (PkdListenerClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pkd_listener_finalize;
+}
+
+static void
+pkd_listener_init (PkdListener *listener)
+{
 }

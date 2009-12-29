@@ -1,4 +1,4 @@
-/* pkd-log.h
+/* pkd-pipeline.h
  *
  * Copyright (C) 2009 Christian Hergert
  * 
@@ -20,15 +20,31 @@
 #error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
 #endif
 
-#ifndef __PKD_LOG_H__
-#define __PKD_LOG_H__
+#ifndef __PKD_PIPELINE_H__
+#define __PKD_PIPELINE_H__
 
 #include <glib.h>
 
+#include "pkd-listener.h"
+#include "pkd-channel.h"
+#include "pkd-encoder-info.h"
+#include "pkd-source-info.h"
+#include "pkd-source.h"
+#include "pkd-subscription.h"
+
 G_BEGIN_DECLS
 
-void pkd_log_init (gboolean stdout_, const gchar *filename);
+void pkd_pipeline_init             (void);
+void pkd_pipeline_run              (void);
+void pkd_pipeline_quit             (void);
+void pkd_pipeline_shutdown         (void);
+void pkd_pipeline_add_channel      (PkdChannel      *channel);
+void pkd_pipeline_add_encoder_info (PkdEncoderInfo  *encoder_info);
+void pkd_pipeline_add_listener     (PkdListener     *listener);
+void pkd_pipeline_add_source       (PkdSource       *source);
+void pkd_pipeline_add_source_info  (PkdSourceInfo   *source_info);
+void pkd_pipeline_add_subscription (PkdSubscription *subscription);
 
 G_END_DECLS
 
-#endif /* __PKD_LOG_H__ */
+#endif /* __PKD_PIPELINE_H__ */

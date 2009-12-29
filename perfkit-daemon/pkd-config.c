@@ -1,5 +1,5 @@
 /* pkd-config.c
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -20,166 +20,140 @@
 #include "config.h"
 #endif
 
+#include <glib.h>
+#include <glib/gi18n.h>
+#include <glib/gthread.h>
+
 #include "pkd-config.h"
 
-static GKeyFile *keyfile = NULL;
+static GKeyFile *config = NULL;
 
 /**
  * pkd_config_init:
- * @filename: The configuration filename
+ * @filename: A string containing the configuration path.
  *
- * Initializes the runtime configuration using the filename specified.
+ * Initializes the configuration subsystem.  The configuration file is loaded
+ * into memory and will be used in the future to access specific configuration
+ * variables.  This method should only be called once.
+ *
+ * See pkd_config_get_string() and others.
+ *
+ * Side effects: The backing file for the configuration is loaded into global
+ * state.
  */
 void
 pkd_config_init (const gchar *filename)
 {
-	GError *error = NULL;
+	static gsize init = 0;
+	GKeyFile *keyfile;
+	GError *error;
 
-	g_return_if_fail (keyfile == NULL);
+	if (g_once_init_enter(&init)) {
+		error = NULL;
+		keyfile = g_key_file_new();
 
-	keyfile = g_key_file_new ();
-	g_assert (keyfile);
+		/* Load the configuration file from the specified file.
+		 * If we have an error, that is okay.  We will continue to use the
+		 * GKeyFile as a backing store for our configuration queries.
+		 */
 
-	/*
-	 * Load the configuration from file.  If we cannot, we leave the keyfile
-	 * around so we can use it store values.
-	 */
+		if (!g_key_file_load_from_file(keyfile, filename, 0, &error)) {
+			g_warning(_("%s: Could not load configuration: %s"),
+			          G_STRLOC, error->message);
+			g_error_free(error);
+		}
 
-	if (!g_file_test (filename, G_FILE_TEST_IS_REGULAR)) {
-		g_warning ("Could not locate configuration file: %s", filename);
-		return;
-	}
-
-	if (!g_key_file_load_from_file (keyfile, filename, 0, &error)) {
-		g_warning ("Could not load configuration file: %s", error->message);
-		g_error_free (error);
-		return;
+		config = keyfile;
+		g_once_init_leave(&init, (gsize)keyfile);
 	}
 }
 
 /**
  * pkd_config_get_string:
- * @group: the name of the config group
- * @name: the name of the key
+ * @group: A string containing the group of keys.
+ * @key: A string containing the key within the group.
+ * @default_: A string containing the default value if no value exists.
  *
- * Retrieves a value for the key from the active configuration.
+ * Retrieves the value for the key matching @key in the group matching @group.
+ * If the group or key do not exist, then a copy of @default_ is returned.
  *
- * Return value:
- *       A string containing the result if successful; otherwise %NULL.
- *       The string should be freed with g_free().
+ * Returns: A string containing either the value found or a copy of @default_.
+ * The resulting string should be freed with g_free() when it is no longer
+ * used.
  *
- * Side effects:
- *       None.
+ * Side effects: None.
  */
 gchar*
 pkd_config_get_string (const gchar *group,
-                       const gchar *name)
+                      const gchar *key,
+                      const gchar *default_)
 {
-	g_return_val_if_fail (keyfile != NULL, NULL);
-	g_return_val_if_fail (group != NULL, NULL);
-	g_return_val_if_fail (name != NULL, NULL);
+	g_return_val_if_fail(group != NULL, NULL);
+	g_return_val_if_fail(key != NULL, NULL);
+	g_return_val_if_fail(config != NULL, NULL);
 
-	return g_key_file_get_string (keyfile, group, name, NULL);
-}
-
-/**
- * pkd_config_get_boolean:
- * @group: the name of the config group
- * @name: the name of the key
- *
- * Retrieves a value for the key in the active configuration.
- *
- * Return value:
- *       A #gboolean containing the result if successful; otherwise %FALSE.
- *
- * Side effects:
- *       None.
- */
-gboolean
-pkd_config_get_boolean (const gchar *group,
-                        const gchar *name)
-{
-	g_return_val_if_fail (keyfile != NULL, FALSE);
-	g_return_val_if_fail (group != NULL, FALSE);
-	g_return_val_if_fail (name != NULL, FALSE);
-
-	return g_key_file_get_boolean (keyfile, group, name, NULL);
-}
-
-/**
- * pkd_config_get_boolean_default:
- * @group: the name of the config group
- * @name: the name of the key
- * @default_: the default value
- *
- * Retrieves a value for the key in the active configuration.  If the value
- * does not exist in the configuration, @default_ is returned.
- *
- * Return value:
- *       A #gboolean containing the result if successful; otherwise @default_.
- *
- * Side effects:
- *       None.
- */
-gboolean
-pkd_config_get_boolean_default (const gchar *group,
-                                const gchar *name,
-                                gboolean     default_)
-{
-	g_return_val_if_fail (keyfile != NULL, FALSE);
-	g_return_val_if_fail (group != NULL, FALSE);
-	g_return_val_if_fail (name != NULL, FALSE);
-
-	if (!g_key_file_has_key (keyfile, group, name, NULL)) {
-		return default_;
+	if (!g_key_file_has_key(config, group, key, NULL)) {
+		return g_strdup(default_);
 	}
 
-	return g_key_file_get_boolean (keyfile, group, name, NULL);
+	return g_key_file_get_string(config, group, key, NULL);
 }
 
 /**
  * pkd_config_get_integer:
- * @group: the name of the config group
- * @name: the name of the key
+ * @group: A string containing the group of keys.
+ * @key: A string containing the key within the group.
+ * @default_: An integer containing the default value if no value exists.
  *
- * Retrieves the value for the key in the active configuration.
+ * Retrieves the value for the key matching @key in the group matching @group.
+ * If the group or key do not exist, then @default_ is returned.
  *
- * Return value:
- *       A #gint containing the result if successful; otherwise 0.
+ * Returns: An integer containing the value found or @default_.
  *
- * Side effects:
- *       None.
+ * Side effects: None.
  */
 gint
 pkd_config_get_integer (const gchar *group,
-                        const gchar *name)
+                       const gchar *key,
+                       gint         default_)
 {
-	g_return_val_if_fail (keyfile != NULL, 0);
-	g_return_val_if_fail (group != NULL, 0);
-	g_return_val_if_fail (name != NULL, 0);
+	g_return_val_if_fail(group != NULL, 0);
+	g_return_val_if_fail(key != NULL, 0);
+	g_return_val_if_fail(config != NULL, 0);
 
-	return g_key_file_get_integer (keyfile, group, name, NULL);
+	if (!g_key_file_has_key(config, group, key, NULL)) {
+		return default_;
+	}
+
+	return g_key_file_get_integer(config, group, key, NULL);
 }
 
 /**
- * pkd_config_set_boolean:
- * @group: the name of the config group
- * @name: the name of the key
- * @value: the new value for the key
+ * pkd_config_get_boolean:
+ * @group: A string containing the group of keys.
+ * @key: A string containing the key within the group.
+ * @default_: An gboolean containing the default value if no value exists.
  *
- * Overrides a default value for a config key.
+ * Retrieves the value for the key matching @key in the group matching @group.
+ * If the group or key do not exist, then @default_ is returned.
  *
- * Side effects:
- *       Modifies the existing value in the config.
+ * Returns: A gboolean containing the value found or @default_.
+ *
+ * Side effects: None.
  */
-void
-pkd_config_set_boolean (const gchar *group,
-                        const gchar *name,
-                        gboolean     value)
-{
-	g_return_if_fail (keyfile != NULL);
-	g_return_if_fail (group != NULL);
-	g_return_if_fail (name != NULL);
 
-	g_key_file_set_boolean (keyfile, group, name, value);
+gboolean
+pkd_config_get_boolean (const gchar *group,
+                       const gchar *key,
+                       gboolean     default_)
+{
+	g_return_val_if_fail(group != NULL, FALSE);
+	g_return_val_if_fail(key != NULL, FALSE);
+	g_return_val_if_fail(config != NULL, FALSE);
+
+	if (!g_key_file_has_key(config, group, key, NULL)) {
+		return default_;
+	}
+
+	return g_key_file_get_boolean(config, group, key, NULL);
 }

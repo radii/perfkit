@@ -71,8 +71,7 @@ dnl Check for Required Modules
 dnl ************************************************************************
 PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.20
                                    gthread-2.0 >= 2.20
-                                   dbus-glib-1 >= 0.80
-                                   ethos-1.0   >= 0.2.2])
+                                   gmodule-2.0 >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.20
 				   dbus-glib-1 >= 0.80
 				   gio-2.0     >= 2.20])
@@ -131,6 +130,9 @@ AC_OUTPUT([
 	doc/reference/perfkit-daemon/Makefile
 	doc/reference/perfkit-daemon/version.xml
 	perfkit-daemon/Makefile
+	perfkit-daemon/sources/Makefile
+	perfkit-daemon/encoders/Makefile
+	perfkit-daemon/listeners/Makefile
 	perfkit-daemon/pkd-version.h
 
 	doc/reference/perfkit/Makefile

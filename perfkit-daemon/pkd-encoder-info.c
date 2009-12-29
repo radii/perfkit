@@ -1,4 +1,4 @@
-/* pkd-source-info.c
+/* pkd-encoder-info.c
  *
  * Copyright (C) 2009 Christian Hergert
  * 
@@ -25,27 +25,26 @@
 #include <glib/gi18n.h>
 #include <gmodule.h>
 
-#include "pkd-source-info.h"
+#include "pkd-encoder-info.h"
 
-G_DEFINE_TYPE(PkdSourceInfo, pkd_source_info, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkdEncoderInfo, pkd_encoder_info, G_TYPE_OBJECT)
 
 /**
- * SECTION:pkd-source_info
- * @title: PkdSourceInfo
+ * SECTION:pkd-encoder_info
+ * @title: PkdEncoderInfo
  * @short_description: 
  *
  * 
  */
 
-struct _PkdSourceInfoPrivate
+struct _PkdEncoderInfoPrivate
 {
 	GModule          *module;
-	PkdSourceFactory   factory;
+	PkdEncoderFactory  factory;
 	gchar            *uid;
 	gchar            *name;
 	gchar            *description;
 	gchar            *version;
-	gchar           **conflicts;
 };
 
 enum
@@ -58,52 +57,51 @@ enum
 };
 
 /**
- * pkd_source_info_new:
+ * pkd_encoder_info_new:
  *
- * Creates a new instance of #PkdSourceInfo.
+ * Creates a new instance of #PkdEncoderInfo.
  *
- * Return value: the newly created #PkdSourceInfo instance.
+ * Return value: the newly created #PkdEncoderInfo instance.
  */
-PkdSourceInfo*
-pkd_source_info_new (void)
+PkdEncoderInfo*
+pkd_encoder_info_new (void)
 {
-	return g_object_new (PKD_TYPE_SOURCE_INFO, NULL);
+	return g_object_new (PKD_TYPE_ENCODER_INFO, NULL);
 }
 
 /**
- * pkd_source_info_load_from_file:
- * @source_info: A #PkdSourceInfo
+ * pkd_encoder_info_load_from_file:
+ * @encoder_info: A #PkdEncoderInfo
  * @filename: A module filename to load
  * @error: A location for a #GError or %NULL
  *
  * Opens the module filename provided by @filename.  The symbol
- * "pkd_source_register" is retrieved from the module and executed to
- * register the source factory.
+ * "pkd_encoder_register" is retrieved from the module and executed to
+ * register the encoder factory.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  *
  * Side effects: The module is opened and executed.
  */
 gboolean
-pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
-                              const gchar   *filename,
-                              GError       **error)
+pkd_encoder_info_load_from_file(PkdEncoderInfo  *encoder_info,
+                              const gchar     *filename,
+                              GError         **error)
 {
-	PkdStaticSourceInfo *static_info = NULL;
-	PkdSourceInfoPrivate *priv;
+	PkdStaticEncoderInfo *static_info = NULL;
+	PkdEncoderInfoPrivate *priv;
 	GModule *module;
-	gint i;
 
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), FALSE);
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), FALSE);
 	g_return_val_if_fail(filename != NULL, FALSE);
 
-	priv = source_info->priv;
+	priv = encoder_info->priv;
 
 	/*
 	 * Ensure we have access to the filename.
 	 */
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
-		g_set_error(error, PKD_SOURCE_INFO_ERROR, PKD_SOURCE_INFO_ERROR_FILENAME,
+		g_set_error(error, PKD_ENCODER_INFO_ERROR, PKD_ENCODER_INFO_ERROR_FILENAME,
 		            _("%s: not a Titan Agent plugin."), filename);
 		return FALSE;
 	}
@@ -113,19 +111,19 @@ pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
 	 */
 	module = g_module_open(filename, G_MODULE_BIND_MASK);
 	if (!module) {
-		g_set_error(error, PKD_SOURCE_INFO_ERROR, PKD_SOURCE_INFO_ERROR_MODULE,
+		g_set_error(error, PKD_ENCODER_INFO_ERROR, PKD_ENCODER_INFO_ERROR_MODULE,
 		            _("%s: not a Module."), filename);
 		return FALSE;
 	}
 
 	/*
-	 * Retrieve the "pkd_source_plugin" symbol which contains the information
+	 * Retrieve the "pkd_encoder_plugin" symbol which contains the information
 	 * vtable.
 	 */
-	g_module_symbol(module, "pkd_source_plugin", (gpointer *)&static_info);
+	g_module_symbol(module, "pkd_encoder_plugin", (gpointer *)&static_info);
 	if (!static_info) {
-		g_set_error(error, PKD_SOURCE_INFO_ERROR, PKD_SOURCE_INFO_ERROR_SYMBOL,
-					_("%s: symbol pkd_source_plugin not found."), filename);
+		g_set_error(error, PKD_ENCODER_INFO_ERROR, PKD_ENCODER_INFO_ERROR_SYMBOL,
+					_("%s: symbol pkd_encoder_plugin not found."), filename);
 		g_module_close(module);
 		return FALSE;
 	}
@@ -134,25 +132,19 @@ pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
 	 * Make sure there is a factory method defined.
 	 */
 	if (!static_info->factory) {
-		g_warning("%s: Missing source factory function.", filename);
+		g_warning("%s: Missing encoder factory function.", filename);
 		g_module_close(module);
 		return FALSE;
 	}
 
 	/*
-	 * Retrieve the source descriptive text.
+	 * Retrieve the encoder descriptive text.
 	 */
 	priv->factory = static_info->factory;
 	priv->uid = g_strdup(static_info->uid);
 	priv->name = g_strdup(static_info->name);
 	priv->version = g_strdup(static_info->version);
 	priv->description = g_strdup(static_info->description);
-	if (static_info->conflicts) {
-		priv->conflicts = g_strsplit(static_info->conflicts, ",", 0);
-		for (i = 0; priv->conflicts[i]; i++) {
-			g_strstrip(priv->conflicts[i]);
-		}
-	}
 
 	/*
 	 * Save the module reference.
@@ -163,8 +155,8 @@ pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
 }
 
 /**
- * pkd_source_info_get_name:
- * @source_info: A #PkdSourceInfo
+ * pkd_encoder_info_get_name:
+ * @encoder_info: A #PkdEncoderInfo
  *
  * Retrieves the "name" property.
  *
@@ -173,15 +165,15 @@ pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_name(PkdSourceInfo *source_info)
+pkd_encoder_info_get_name(PkdEncoderInfo *encoder_info)
 {
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
-	return source_info->priv->name;
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
+	return encoder_info->priv->name;
 }
 
 /**
- * pkd_source_info_get_uid:
- * @source_info: A #PkdSourceInfo
+ * pkd_encoder_info_get_uid:
+ * @encoder_info: A #PkdEncoderInfo
  *
  * Retrieves the "uid" property.
  *
@@ -190,15 +182,15 @@ pkd_source_info_get_name(PkdSourceInfo *source_info)
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_uid(PkdSourceInfo *source_info)
+pkd_encoder_info_get_uid(PkdEncoderInfo *encoder_info)
 {
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
-	return source_info->priv->uid;
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
+	return encoder_info->priv->uid;
 }
 
 /**
- * pkd_source_info_get_description:
- * @source_info: A #PkdSourceInfo
+ * pkd_encoder_info_get_description:
+ * @encoder_info: A #PkdEncoderInfo
  *
  * Retrieves the "description" property.
  *
@@ -207,15 +199,15 @@ pkd_source_info_get_uid(PkdSourceInfo *source_info)
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_description (PkdSourceInfo *source_info)
+pkd_encoder_info_get_description (PkdEncoderInfo *encoder_info)
 {
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
-	return source_info->priv->description;
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
+	return encoder_info->priv->description;
 }
 
 /**
- * pkd_source_info_get_version:
- * @source_info: A #PkdSourceInfo
+ * pkd_encoder_info_get_version:
+ * @encoder_info: A #PkdEncoderInfo
  *
  * Retrieves the "version" property.
  *
@@ -224,120 +216,98 @@ pkd_source_info_get_description (PkdSourceInfo *source_info)
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_version (PkdSourceInfo *source_info)
+pkd_encoder_info_get_version (PkdEncoderInfo *encoder_info)
 {
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
-	return source_info->priv->version;
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
+	return encoder_info->priv->version;
 }
 
 /**
- * pkd_source_info_conflicts:
- * @source_info: A #PkdSourceInfo
- * @other: A #PkdSourceInfo
+ * pkd_encoder_info_create:
+ * @encoder_info: A #PkdEncoderInfo
  *
- * Determines if @other conflicts with @source_info.  Conflicting #PkdSourceInfo
- * cannot be added to the same channel.  This allows UI implementations to fail
- * fast or grey out options when not available.
+ * Executes the factory function to create a new instance of the #PkdEncoder
+ * described by the #PkdEncoderInfo.
  *
- * Returns: %TRUE if @other conflicts with @source_info.
+ * Returns: A newly created #PkdEncoder or %NULL.
+ *
+ * Side effects: None.
  */
-gboolean
-pkd_source_info_conflicts (PkdSourceInfo *source_info,
-                          PkdSourceInfo *other)
+PkdEncoder*
+pkd_encoder_info_create (PkdEncoderInfo *encoder_info)
 {
-	PkdSourceInfoPrivate *priv;
-	const gchar *other_uid;
-	gint i;
+	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
+	g_return_val_if_fail(encoder_info->priv->factory, NULL);
 
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), FALSE);
-	g_return_val_if_fail(PKD_IS_SOURCE_INFO(other), FALSE);
-
-	priv = source_info->priv;
-
-	if (!priv->conflicts) {
-		return FALSE;
-	}
-
-	other_uid = pkd_source_info_get_uid(other);
-	if (!other_uid) {
-		g_warning("%s: Invalid source info uid (NULL).", G_STRLOC);
-		return FALSE;
-	}
-
-	for (i = 0; i < g_strv_length(priv->conflicts); i++) {
-		if (g_str_equal(priv->conflicts[i], other_uid))
-			return TRUE;
-	}
-
-	return FALSE;
+	return encoder_info->priv->factory();
 }
 
 GQuark
-pkd_source_info_error_quark(void)
+pkd_encoder_info_error_quark(void)
 {
-	return g_quark_from_static_string("pkd-source-info-error-quark");
+	return g_quark_from_static_string("pkd-encoder-info-error-quark");
 }
 
 static void
-pkd_source_info_get_property (PkdSourceInfo *source_info,
+pkd_encoder_info_get_property (PkdEncoderInfo *encoder_info,
                              guint         prop_id,
                              GValue       *value,
                              GParamSpec   *pspec)
 {
 	switch (prop_id) {
 	case PROP_UID:
-		g_value_set_string(value, pkd_source_info_get_uid(source_info));
+		g_value_set_string(value, pkd_encoder_info_get_uid(encoder_info));
 		break;
 	case PROP_NAME:
-		g_value_set_string(value, pkd_source_info_get_name(source_info));
+		g_value_set_string(value, pkd_encoder_info_get_name(encoder_info));
 		break;
 	case PROP_DESC:
-		g_value_set_string(value, pkd_source_info_get_description(source_info));
+		g_value_set_string(value, pkd_encoder_info_get_description(encoder_info));
 		break;
 	case PROP_VERSION:
-		g_value_set_string(value, pkd_source_info_get_version(source_info));
+		g_value_set_string(value, pkd_encoder_info_get_version(encoder_info));
 		break;
 	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID(source_info, prop_id, pspec);
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(encoder_info, prop_id, pspec);
 	}
 }
 
 static void
-pkd_source_info_finalize(GObject *object)
+pkd_encoder_info_finalize(GObject *object)
 {
-	PkdSourceInfoPrivate *priv;
+	PkdEncoderInfoPrivate *priv;
 
-	g_return_if_fail(PKD_IS_SOURCE_INFO(object));
+	g_return_if_fail(PKD_IS_ENCODER_INFO(object));
 
-	priv = PKD_SOURCE_INFO(object)->priv;
+	priv = PKD_ENCODER_INFO(object)->priv;
 
 	g_free(priv->uid);
 	g_free(priv->name);
 	g_free(priv->description);
 	g_free(priv->version);
 
-	G_OBJECT_CLASS (pkd_source_info_parent_class)->finalize(object);
+	G_OBJECT_CLASS (pkd_encoder_info_parent_class)->finalize(object);
 }
 
 static void
-pkd_source_info_dispose(GObject *object)
+pkd_encoder_info_dispose(GObject *object)
 {
-	G_OBJECT_CLASS (pkd_source_info_parent_class)->dispose (object);
+	G_OBJECT_CLASS (pkd_encoder_info_parent_class)->dispose (object);
 }
 
 static void
-pkd_source_info_class_init(PkdSourceInfoClass *klass)
+pkd_encoder_info_class_init(PkdEncoderInfoClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkd_source_info_finalize;
-	object_class->dispose = pkd_source_info_dispose;
-	object_class->get_property = (gpointer)pkd_source_info_get_property;
-	g_type_class_add_private (object_class, sizeof(PkdSourceInfoPrivate));
+	object_class->finalize = pkd_encoder_info_finalize;
+	object_class->dispose = pkd_encoder_info_dispose;
+	object_class->get_property = (gpointer)pkd_encoder_info_get_property;
+	g_type_class_add_private (object_class, sizeof(PkdEncoderInfoPrivate));
 
 	/**
-	 * PkdSourceInfo:uid:
+	 * PkdEncoderInfo:uid:
 	 *
 	 * The "uid" property.
 	 */
@@ -350,7 +320,7 @@ pkd_source_info_class_init(PkdSourceInfoClass *klass)
 	                                                     G_PARAM_READABLE));
 
 	/**
-	 * PkdSourceInfo:name:
+	 * PkdEncoderInfo:name:
 	 *
 	 * The "name" property.
 	 */
@@ -363,7 +333,7 @@ pkd_source_info_class_init(PkdSourceInfoClass *klass)
 	                                                     G_PARAM_READABLE));
 
 	/**
-	 * PkdSourceInfo:description:
+	 * PkdEncoderInfo:description:
 	 *
 	 * The "description" property.
 	 */
@@ -376,7 +346,7 @@ pkd_source_info_class_init(PkdSourceInfoClass *klass)
 	                                                     G_PARAM_READABLE));
 
 	/**
-	 * PkdSourceInfo:version:
+	 * PkdEncoderInfo:version:
 	 *
 	 * The "version" property.
 	 */
@@ -390,9 +360,9 @@ pkd_source_info_class_init(PkdSourceInfoClass *klass)
 }
 
 static void
-pkd_source_info_init(PkdSourceInfo *source_info)
+pkd_encoder_info_init(PkdEncoderInfo *encoder_info)
 {
-	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (source_info,
-	                                                 PKD_TYPE_SOURCE_INFO,
-	                                                 PkdSourceInfoPrivate);
+	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (encoder_info,
+	                                                 PKD_TYPE_ENCODER_INFO,
+	                                                 PkdEncoderInfoPrivate);
 }

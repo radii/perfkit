@@ -1,5 +1,5 @@
-/* pkd.h
- * 
+/* perfkit-daemon.h
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,13 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef __PERFKIT_DAEMON_H__
+#define __PERFKIT_DAEMON_H__
+
+#define __PERFKIT_DAEMON_INSIDE__
+
+#include "pkd-config.h"
 #include "pkd-channel.h"
-#include "pkd-channels.h"
-#include "pkd-log.h"
-#include "pkd-paths.h"
-#include "pkd-runtime.h"
+#include "pkd-encoder.h"
+#include "pkd-encoder-info.h"
+#include "pkd-listener.h"
+#include "pkd-pipeline.h"
 #include "pkd-sample.h"
 #include "pkd-source.h"
-#include "pkd-source-simple.h"
-#include "pkd-sources.h"
+#include "pkd-source-info.h"
+#include "pkd-spawn-info.h"
+#include "pkd-subscription.h"
 #include "pkd-version.h"
+
+#undef __PERFKIT_DAEMON_INSIDE__
+
+#endif /* __PERFKIT_DAEMON_H__ */

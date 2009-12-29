@@ -1,5 +1,5 @@
 /* pkd-config.h
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_CONFIG_H__
 #define __PKD_CONFIG_H__
 
@@ -23,19 +27,16 @@
 
 G_BEGIN_DECLS
 
-void     pkd_config_init                (const gchar *filename);
-gchar*   pkd_config_get_string          (const gchar *group,
-                                         const gchar *name);
-gboolean pkd_config_get_boolean         (const gchar *group,
-                                         const gchar *name);
-gboolean pkd_config_get_boolean_default (const gchar *group,
-                                         const gchar *name,
-                                         gboolean     default_);
-gint     pkd_config_get_int             (const gchar *group,
-                                         const gchar *name);
-void     pkd_config_set_boolean         (const gchar *group,
-                                         const gchar *name,
-                                         gboolean     value);
+void     pkd_config_init         (const gchar *filename);
+gchar*   pkd_config_get_string   (const gchar *group,
+                                 const gchar *key,
+                                 const gchar *default_);
+gboolean pkd_config_get_boolean  (const gchar *group,
+                                 const gchar *key,
+                                 gboolean     default_);
+gint     pkd_config_get_integer  (const gchar *group,
+                                 const gchar *key,
+                                 gint         default_);
 
 G_END_DECLS
 

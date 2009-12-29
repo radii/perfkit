@@ -1,5 +1,5 @@
-/* pkd-channel-priv.h
- * 
+/* pkd-spawn-info.h
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,21 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PKD_CHANNEL_PRIV_H__
-#define __PKD_CHANNEL_PRIV_H__
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
 
-#include "pkd-channel.h"
-#include "pkd-source.h"
-#include "pkd-sample.h"
+#ifndef __PKD_SPAWN_INFO_H__
+#define __PKD_SPAWN_INFO_H__
 
-G_BEGIN_DECLS
+#include <glib.h>
 
-void pkd_channel_add_source (PkdChannel *channel,
-                             PkdSource  *source);
-void pkd_channel_deliver    (PkdChannel *channel,
-                             PkdSource  *source,
-                             PkdSample  *sample);
+typedef struct
+{
+	GPid    pid;
+	gchar  *target;
+	gchar **args;
+	gchar **env;
+	gchar  *working_dir;
+	gint    standard_input;
+	gint    standard_output;
+	gint    standard_error;
+} PkdSpawnInfo;
 
-G_END_DECLS
-
-#endif /* __PKD_CHANNEL_PRIV_H__ */
+#endif /* __PKD_SPAWN_INFO_H__ */

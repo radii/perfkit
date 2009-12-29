@@ -1,6 +1,6 @@
 /* pkd-source-info.h
  *
- * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,21 +32,46 @@ G_BEGIN_DECLS
 #define PKD_IS_SOURCE_INFO(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_SOURCE_INFO))
 #define PKD_IS_SOURCE_INFO_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_SOURCE_INFO))
 #define PKD_SOURCE_INFO_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_SOURCE_INFO, PkdSourceInfoClass))
+#define PKD_SOURCE_INFO_ERROR           (pkd_source_info_error_quark())
 
 typedef struct _PkdSourceInfo        PkdSourceInfo;
 typedef struct _PkdSourceInfoClass   PkdSourceInfoClass;
 typedef struct _PkdSourceInfoPrivate PkdSourceInfoPrivate;
 
+typedef PkdSource* (*PkdSourceFactory) (void);
+
 /**
- * PkdSourceFactoryFunc:
- * @type_name: The name of the source factory
- * @user_data: user data for the factory
+ * PkdStaticSourceInfo:
  *
- * Callback to create instances of #PkdSource when a source of the factory
- * needs creating.
+ * The #PkdStaticSourceInfo structure provides a table of information for
+ * source plugins to include in their namespace under the
+ * "pkd_source_plugin" symbol.  This symbol will be read at runtime and
+ * the data extracted.
  */
-typedef PkdSource* (*PkdSourceFactoryFunc) (const gchar *type_name,
-                                            gpointer     user_data);
+typedef struct
+{
+	const gchar      *uid;
+	const gchar      *version;
+	const gchar      *name;
+	const gchar      *description;
+	const gchar      *conflicts;
+	PkdSourceFactory   factory;
+} PkdStaticSourceInfo;
+
+/**
+ * PkdSourceInfoError:
+ * @PKD_SOURCE_INFO_ERROR_FILENAME
+ * @PKD_SOURCE_INFO_ERROR_MODULE
+ * @PKD_SOURCE_INFO_ERROR_SYMBOL
+ *
+ * #PkdSourceInfo error enumeration.
+ */
+typedef enum
+{
+	PKD_SOURCE_INFO_ERROR_FILENAME,
+	PKD_SOURCE_INFO_ERROR_MODULE,
+	PKD_SOURCE_INFO_ERROR_SYMBOL,
+} PkdSourceInfoError;
 
 struct _PkdSourceInfo
 {
@@ -61,15 +86,19 @@ struct _PkdSourceInfoClass
 	GObjectClass parent_class;
 };
 
-GType                 pkd_source_info_get_type         (void) G_GNUC_CONST;
-G_CONST_RETURN gchar* pkd_source_info_get_uid          (PkdSourceInfo        *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_name         (PkdSourceInfo        *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_description  (PkdSourceInfo        *source_info);
-G_CONST_RETURN gchar* pkd_source_info_get_version      (PkdSourceInfo        *source_info);
-PkdSource*            pkd_source_info_create           (PkdSourceInfo        *source_info);
-void                  pkd_source_info_set_factory_func (PkdSourceInfo        *source_info,
-                                                        PkdSourceFactoryFunc  factory_func,
-                                                        gpointer              user_data);
+GType         pkd_source_info_get_type        (void) G_GNUC_CONST;
+GQuark        pkd_source_info_error_quark     (void) G_GNUC_CONST;
+GList*        pkd_source_info_find_all        (void);
+PkdSourceInfo* pkd_source_info_new             (void);
+gboolean      pkd_source_info_load_from_file  (PkdSourceInfo  *source_info,
+                                              const gchar   *filename,
+                                              GError       **error);
+gboolean      pkd_source_info_conflicts       (PkdSourceInfo  *source_info,
+                                              PkdSourceInfo  *other);
+const gchar*  pkd_source_info_get_uid         (PkdSourceInfo  *source_info);
+const gchar*  pkd_source_info_get_name        (PkdSourceInfo  *source_info);
+const gchar*  pkd_source_info_get_description (PkdSourceInfo  *source_info);
+const gchar*  pkd_source_info_get_version     (PkdSourceInfo  *source_info);
 
 G_END_DECLS
 

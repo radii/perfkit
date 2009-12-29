@@ -1,5 +1,5 @@
 /* main.c
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -20,90 +20,103 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <glib.h>
-#include <glib-object.h>
-#include <glib/gthread.h>
 #include <glib/gi18n.h>
+#include <glib/gthread.h>
+#include <stdlib.h>
 
 #include "pkd-config.h"
 #include "pkd-log.h"
-#include "pkd-paths.h"
-#include "pkd-runtime.h"
+#include "pkd-pipeline.h"
+#include "pkd-plugins.h"
 
-static gchar*    config_filename = (gchar*)PACKAGE_SYSCONFDIR "/perfkit/daemon.conf";
-static gboolean  use_system_bus  = FALSE;
-static gboolean  use_stdout      = FALSE;
-static gchar    *log_file        = NULL;
+/*
+ * Command line arguments and storage for them.
+ */
 
-static GOptionEntry entries[] = {
-	{ "system", 0, 0, G_OPTION_ARG_NONE, &use_system_bus,
-	  N_("Use the system D-BUS"), NULL },
-	{ "stdout", 0, 0, G_OPTION_ARG_NONE, &use_stdout,
-	  N_("Log to standard output"), NULL },
-	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &log_file,
-	  N_("Log to FILE"), "FILE" },
-	{ "config", 'c', 0, G_OPTION_ARG_FILENAME, &config_filename,
-	  N_("Path to configuration file"), "PATH" },
+static gchar* opt_config = (gchar *)PACKAGE_SYSCONFDIR "/perfkit/agent.conf";
+static gchar* opt_logfile = NULL;
+static gboolean opt_stdout = FALSE;
+static GOptionEntry options[] = {
+	{ "conf", 'c', 0, G_OPTION_ARG_FILENAME, &opt_config,
+	  N_("Configuration filename."), N_("FILE") },
+	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &opt_logfile,
+	  N_("Enable logging to FILE."), N_("FILE") },
+	{ "stdout", '\0', 0, G_OPTION_ARG_NONE, &opt_stdout,
+	  N_("Enable logging to stdout."), NULL },
 	{ NULL }
 };
+
+static void
+sigint_handler(int signum)
+{
+	g_print("\n");
+	g_warning("SIGINT caught; shutting down gracefully.");
+	pkd_pipeline_quit();
+}
 
 gint
 main (gint   argc,
       gchar *argv[])
 {
-	GOptionContext *context  = NULL;
-	GError         *error    = NULL;
-	const gchar    *data_dir = NULL;
+	GOptionContext *context;
+	GError *error = NULL;
 
 	/*
-	 * Initialize i18n.
+	 * Setup I18N.
 	 */
-
-	data_dir = PACKAGE_LOCALE_DIR;
-	bindtextdomain (GETTEXT_PACKAGE, data_dir);
-	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-	textdomain (GETTEXT_PACKAGE);
+	textdomain(GETTEXT_PACKAGE);
+	bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+	g_set_application_name(_("Titan Agent"));
 
 	/*
-	 * Parse command line arguments
+	 * Parse command line arguments.
 	 */
-
-	context = g_option_context_new (_("- performance monitoring daemon"));
-	g_option_context_add_main_entries (context, entries, GETTEXT_PACKAGE);
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_printerr ("%s\n", error->message);
+	context = g_option_context_new(_("- Titan Agent"));
+	g_option_context_add_main_entries(context, options, GETTEXT_PACKAGE);
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_printerr("%s\n", error->message);
+		g_error_free(error);
 		return EXIT_FAILURE;
 	}
 
 	/*
-	 * Initialize required libraries including GThread and GObject.
+	 * Initialize required GLib subsystems.  It's not required, but better
+	 * to initialize threading before the GObject Type System.
 	 */
-
-	g_thread_init (NULL);
-	g_type_init ();
-	pkd_log_init (use_stdout, log_file);
+	g_thread_init(NULL);
+	g_type_init();
 
 	/*
-	 * Initialize configuration engine and override command line parameters.
+	 * Initialize Titan Agent subsystems.  We initialize logging before
+	 * the configuration system so logging is available in the case that
+	 * the configuration fails to parse.
+	 *
+	 * The pipeline is initialized before plugins so that it is available
+	 * in the case that a plugin requests access to it.
 	 */
-
-	pkd_config_init (config_filename);
-
-	if (use_system_bus) {
-		pkd_config_set_boolean ("dbus", "disable", FALSE);
-		pkd_config_set_boolean ("dbus", "system", TRUE);
-	}
+	pkd_log_init(opt_stdout, opt_logfile);
+	pkd_config_init(opt_config);
+	pkd_pipeline_init();
+	pkd_plugins_init();
 
 	/*
-	 * Initialize runtime and block on main loop.  When the mainloop exits,
-	 * cleanup appropriately.
+	 * Setup signal handlers to properly shutdown in the case of an error.
 	 */
+	signal(SIGINT, sigint_handler);
 
-	pkd_runtime_initialize ();
-	pkd_runtime_run ();
-	pkd_runtime_shutdown ();
+	/*
+	 * Block on the pipelines main loop.  This will block until a call to
+	 * pkd_pipeline_quit() is made.
+	 */
+	pkd_pipeline_run();
+
+	/*
+	 * Cleanup after ourselves and try to leave the system in a consistent
+	 * state.
+	 */
+	pkd_pipeline_shutdown();
 
 	return EXIT_SUCCESS;
 }
-

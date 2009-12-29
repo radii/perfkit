@@ -1,5 +1,5 @@
 /* pkd-sample.h
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,27 +16,53 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_SAMPLE_H__
 #define __PKD_SAMPLE_H__
 
-#include <glib-object.h>
+#include <glib.h>
+
+#include "pkd-manifest.h"
 
 G_BEGIN_DECLS
 
-#define PKD_TYPE_SAMPLE (pkd_sample_get_type())
-
 typedef struct _PkdSample PkdSample;
+typedef struct _PkdSampleWriter PkdSampleWriter;
 
-GType        pkd_sample_get_type   (void) G_GNUC_CONST;
-PkdSample*   pkd_sample_new        (void);
-PkdSample*   pkd_sample_sized_new  (gsize      n_bytes);
-PkdSample*   pkd_sample_ref        (PkdSample *sample);
-void         pkd_sample_unref      (PkdSample *sample);
-void         pkd_sample_write_int  (PkdSample *sample,
-                                    gint       v_int);
-void         pkd_sample_write_char (PkdSample *sample,
-                                    gchar      v_char);
-GArray*      pkd_sample_get_array  (PkdSample *sample);
+struct _PkdSampleWriter
+{
+	PkdManifest *manifest;
+	PkdSample   *sample;
+	gint        row_count;
+	gint        pos;
+	gint        extra;
+	gchar      *data;
+	gchar       inline_data[64];
+};
+
+GType     pkd_sample_get_type       (void) G_GNUC_CONST;
+PkdSample* pkd_sample_new            (void);
+PkdSample* pkd_sample_ref            (PkdSample        *sample);
+void      pkd_sample_unref          (PkdSample        *sample);
+void      pkd_sample_get_data       (PkdSample        *sample,
+                                    gchar          **data,
+                                    gsize           *dapkd_len);
+void      pkd_sample_writer_init    (PkdSampleWriter  *writer,
+                                    PkdManifest      *manifest,
+                                    PkdSample        *sample);
+void      pkd_sample_writer_string  (PkdSampleWriter  *writer,
+                                    gint             index,
+                                    const gchar      *s);
+void      pkd_sample_writer_boolean (PkdSampleWriter  *writer,
+                                    gint             index,
+                                    gboolean         b);
+void      pkd_sample_writer_integer (PkdSampleWriter  *writer,
+                                    gint             index,
+                                    gint             i);
+void      pkd_sample_writer_finish  (PkdSampleWriter  *writer);
 
 G_END_DECLS
 

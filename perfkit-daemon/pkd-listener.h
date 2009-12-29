@@ -1,5 +1,5 @@
 /* pkd-listener.h
- * 
+ *
  * Copyright (C) 2009 Christian Hergert
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,34 +16,66 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_LISTENER_H__
 #define __PKD_LISTENER_H__
 
 #include <glib-object.h>
 
+#include "pkd-channel.h"
+#include "pkd-encoder-info.h"
+#include "pkd-source.h"
+#include "pkd-source-info.h"
+#include "pkd-subscription.h"
+
 G_BEGIN_DECLS
 
-#define PKD_TYPE_LISTENER             (pkd_listener_get_type())
-#define PKD_LISTENER(o)               (G_TYPE_CHECK_INSTANCE_CAST((o),    PKD_TYPE_LISTENER, PkdListener))
-#define PKD_IS_LISTENER(o)            (G_TYPE_CHECK_INSTANCE_TYPE((o),    PKD_TYPE_LISTENER))
-#define PKD_LISTENER_GET_INTERFACE(o) (G_TYPE_INSTANCE_GET_INTERFACE((o), PKD_TYPE_LISTENER, PkdListenerIface))
+#define PKD_TYPE_LISTENER            (pkd_listener_get_type())
+#define PKD_LISTENER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_LISTENER, PkdListener))
+#define PKD_LISTENER_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PKD_TYPE_LISTENER, PkdListener const))
+#define PKD_LISTENER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PKD_TYPE_LISTENER, PkdListenerClass))
+#define PKD_IS_LISTENER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_LISTENER))
+#define PKD_IS_LISTENER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_LISTENER))
+#define PKD_LISTENER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_LISTENER, PkdListenerClass))
 
-typedef struct _PkdListener      PkdListener;
-typedef struct _PkdListenerIface PkdListenerIface;
+typedef struct _PkdListener        PkdListener;
+typedef struct _PkdListenerClass   PkdListenerClass;
+typedef struct _PkdListenerPrivate PkdListenerPrivate;
 
-struct _PkdListenerIface
+struct _PkdListener
 {
-	GTypeInterface parent;
+	GObject parent;
 
-	gboolean (*initialize) (PkdListener *listener, GError **error);
-	gboolean (*listen)     (PkdListener *listener, GError **error);
-	void     (*shutdown)   (PkdListener *listener);
+	/*< private >*/
+	PkdListenerPrivate *priv;
 };
 
-GType    pkd_listener_get_type   (void) G_GNUC_CONST;
-gboolean pkd_listener_initialize (PkdListener *listener, GError **error);
-gboolean pkd_listener_listen     (PkdListener *listener, GError **error);
-void     pkd_listener_shutdown   (PkdListener *listener);
+struct _PkdListenerClass
+{
+	GObjectClass parent_class;
+
+	/*
+	 * Listener methods.
+	 */
+	gboolean (*start) (PkdListener *listener, GError **error);
+	void     (*stop)  (PkdListener *listener);
+
+	/*
+	 * Pipeline Events.
+	 */
+	void (*channel_added)      (PkdListener *listener, PkdChannel      *channel);
+	void (*encoder_info_added) (PkdListener *listener, PkdEncoderInfo  *encoder_info);
+	void (*source_info_added)  (PkdListener *listener, PkdSourceInfo   *source_info);
+	void (*source_added)       (PkdListener *listener, PkdSource       *source);
+	void (*subscription_added) (PkdListener *listener, PkdSubscription *subscription);
+};
+
+GType    pkd_listener_get_type (void) G_GNUC_CONST;
+gboolean pkd_listener_start    (PkdListener *listener, GError **error);
+void     pkd_listener_stop     (PkdListener *listener);
 
 G_END_DECLS
 
