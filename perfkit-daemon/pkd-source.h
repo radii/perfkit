@@ -50,19 +50,19 @@ struct _PkdSourceClass
 {
 	GObjectClass parent_class;
 
-	gboolean (*conflicts) (PkdSource  *source,
-	                       PkdSource  *other,
-	                       GError   **error);
+	gboolean (*conflicts) (PkdSource   *source,
+	                       PkdSource   *other,
+	                       GError     **error);
 };
 
 GType     pkd_source_get_type         (void) G_GNUC_CONST;
-gboolean  pkd_source_conflicts        (PkdSource   *source,
-                                      PkdSource   *other,
-                                      GError    **error);
-void      pkd_source_deliver_sample   (PkdSource   *source,
-                                      PkdSample   *sample);
-void      pkd_source_deliver_manifest (PkdSource   *source,
-                                      PkdManifest *manifest);
+gboolean  pkd_source_conflicts        (PkdSource    *source,
+                                       PkdSource    *other,
+                                       GError      **error);
+void      pkd_source_deliver_sample   (PkdSource    *source,
+                                       PkdSample    *sample);
+void      pkd_source_deliver_manifest (PkdSource    *source,
+                                       PkdManifest  *manifest);
 
 G_END_DECLS
 

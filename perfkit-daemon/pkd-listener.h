@@ -60,22 +60,29 @@ struct _PkdListenerClass
 	/*
 	 * Listener methods.
 	 */
-	gboolean (*start) (PkdListener *listener, GError **error);
-	void     (*stop)  (PkdListener *listener);
+	gboolean (*start) (PkdListener  *listener,
+	                   GError      **error);
+	void     (*stop)  (PkdListener  *listener);
 
 	/*
 	 * Pipeline Events.
 	 */
-	void (*channel_added)      (PkdListener *listener, PkdChannel      *channel);
-	void (*encoder_info_added) (PkdListener *listener, PkdEncoderInfo  *encoder_info);
-	void (*source_info_added)  (PkdListener *listener, PkdSourceInfo   *source_info);
-	void (*source_added)       (PkdListener *listener, PkdSource       *source);
-	void (*subscription_added) (PkdListener *listener, PkdSubscription *subscription);
+	void (*channel_added)      (PkdListener     *listener,
+	                            PkdChannel      *channel);
+	void (*encoder_info_added) (PkdListener     *listener,
+	                            PkdEncoderInfo  *encoder_info);
+	void (*source_info_added)  (PkdListener     *listener,
+	                            PkdSourceInfo   *source_info);
+	void (*source_added)       (PkdListener     *listener,
+	                            PkdSource       *source);
+	void (*subscription_added) (PkdListener     *listener,
+	                            PkdSubscription *subscription);
 };
 
 GType    pkd_listener_get_type (void) G_GNUC_CONST;
-gboolean pkd_listener_start    (PkdListener *listener, GError **error);
-void     pkd_listener_stop     (PkdListener *listener);
+gboolean pkd_listener_start    (PkdListener  *listener,
+                                GError      **error);
+void     pkd_listener_stop     (PkdListener  *listener);
 
 G_END_DECLS
 

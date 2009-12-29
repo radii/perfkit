@@ -24,16 +24,16 @@
 
 #include "pkd-subscription.h"
 
-#define SWAP_MANIFEST(s,m) G_STMT_START { \
-	if ((s)->manifest)                    \
-		pkd_manifest_unref((s)->manifest); \
-	(s)->manifest = pkd_manifest_ref((m)); \
+#define SWAP_MANIFEST(s,m) G_STMT_START {  \
+    if ((s)->manifest)                     \
+        pkd_manifest_unref((s)->manifest); \
+    (s)->manifest = pkd_manifest_ref((m)); \
 } G_STMT_END
 
 extern void pkd_channel_add_subscription    (PkdChannel      *channel,
-                                            PkdSubscription *sub);
+                                             PkdSubscription *sub);
 extern void pkd_channel_remove_subscription (PkdChannel      *channel,
-                                            PkdSubscription *sub);
+                                             PkdSubscription *sub);
 
 struct _PkdSubscription
 {
@@ -42,16 +42,16 @@ struct _PkdSubscription
 	PkdChannel      *channel;        /* Our producing channel */
 	PkdEncoder      *encoder;        /* Sample/Manifest encoder */
 	PkdManifestFunc  manifest_func;  /* Manifest callback */
-	gpointer        manifest_data;  /* Manifest calback data */
+	gpointer         manifest_data;  /* Manifest calback data */
 	PkdSampleFunc    sample_func;    /* Sample callback */
-	gpointer        sample_data;    /* Sample callback data */
-	gsize           bufsize;        /* Total buffer size */
-	glong           timeout;        /* Buffering timeout in Milliseconds */
+	gpointer         sample_data;    /* Sample callback data */
+	gsize            bufsize;        /* Total buffer size */
+	glong            timeout;        /* Buffering timeout in Milliseconds */
 
-	GMutex         *mutex;          /* Synchronization mutex */
-	GQueue         *queue;          /* Queue for delivering samples */
-	gboolean        paused;         /* Subscription is paused (default) */
-	gsize           buflen;         /* Current buffer length */
+	GMutex          *mutex;          /* Synchronization mutex */
+	GQueue          *queue;          /* Queue for delivering samples */
+	gboolean         paused;         /* Subscription is paused (default) */
+	gsize            buflen;         /* Current buffer length */
 	PkdManifest     *manifest;       /* Our current manifest */
 };
 
@@ -91,13 +91,13 @@ pkd_subscription_destroy (PkdSubscription *sub)
  */
 PkdSubscription*
 pkd_subscription_new (PkdChannel      *channel,
-                     PkdEncoderInfo  *encoder_info,
-                     gsize           buffer_max,
-                     glong           buffer_timeout,
-                     PkdManifestFunc  manifest_func,
-                     gpointer        manifest_data,
-                     PkdSampleFunc    sample_func,
-                     gpointer        sample_data)
+                      PkdEncoderInfo  *encoder_info,
+                      gsize            buffer_max,
+                      glong            buffer_timeout,
+                      PkdManifestFunc  manifest_func,
+                      gpointer         manifest_data,
+                      PkdSampleFunc    sample_func,
+                      gpointer         sample_data)
 {
 	PkdSubscription *sub;
 	PkdEncoder *encoder = NULL;
@@ -251,7 +251,7 @@ pkd_subscription_flush_locked (PkdSubscription *sub)
  */
 void
 pkd_subscription_deliver_sample (PkdSubscription *subscription,
-                                PkdSample       *sample)
+                                 PkdSample       *sample)
 {
 	gchar *buf = NULL;
 	gsize buflen = 0;
@@ -309,7 +309,7 @@ unlock:
  */
 void
 pkd_subscription_deliver_manifest (PkdSubscription *subscription,
-                                  PkdManifest     *manifest)
+                                   PkdManifest     *manifest)
 {
 	PkdEncoder *encoder;
 	gchar *buf = NULL;

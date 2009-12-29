@@ -85,20 +85,20 @@ struct _PkdEncoderInfoClass
 	GObjectClass parent_class;
 };
 
-GType          pkd_encoder_info_get_type        (void) G_GNUC_CONST;
-GQuark         pkd_encoder_info_error_quark     (void) G_GNUC_CONST;
-GList*         pkd_encoder_info_find_all        (void);
-PkdEncoderInfo* pkd_encoder_info_new             (void);
-gboolean       pkd_encoder_info_load_from_file  (PkdEncoderInfo  *encoder_info,
-                                               const gchar     *filename,
-                                               GError         **error);
-gboolean       pkd_encoder_info_conflicts       (PkdEncoderInfo  *encoder_info,
-                                               PkdEncoderInfo   *other);
-const gchar*   pkd_encoder_info_get_uid         (PkdEncoderInfo  *encoder_info);
-const gchar*   pkd_encoder_info_get_name        (PkdEncoderInfo  *encoder_info);
-const gchar*   pkd_encoder_info_get_description (PkdEncoderInfo  *encoder_info);
-const gchar*   pkd_encoder_info_get_version     (PkdEncoderInfo  *encoder_info);
-PkdEncoder*     pkd_encoder_info_create          (PkdEncoderInfo  *encoder_info);
+GType            pkd_encoder_info_get_type        (void) G_GNUC_CONST;
+GQuark           pkd_encoder_info_error_quark     (void) G_GNUC_CONST;
+GList*           pkd_encoder_info_find_all        (void);
+PkdEncoderInfo*  pkd_encoder_info_new             (void);
+gboolean         pkd_encoder_info_load_from_file  (PkdEncoderInfo   *encoder_info,
+                                                   const gchar      *filename,
+                                                   GError          **error);
+gboolean         pkd_encoder_info_conflicts       (PkdEncoderInfo   *encoder_info,
+                                                   PkdEncoderInfo   *other);
+const gchar*     pkd_encoder_info_get_uid         (PkdEncoderInfo   *encoder_info);
+const gchar*     pkd_encoder_info_get_name        (PkdEncoderInfo   *encoder_info);
+const gchar*     pkd_encoder_info_get_description (PkdEncoderInfo   *encoder_info);
+const gchar*     pkd_encoder_info_get_version     (PkdEncoderInfo   *encoder_info);
+PkdEncoder*      pkd_encoder_info_create          (PkdEncoderInfo   *encoder_info);
 
 G_END_DECLS
 

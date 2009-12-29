@@ -86,19 +86,19 @@ struct _PkdSourceInfoClass
 	GObjectClass parent_class;
 };
 
-GType         pkd_source_info_get_type        (void) G_GNUC_CONST;
-GQuark        pkd_source_info_error_quark     (void) G_GNUC_CONST;
-GList*        pkd_source_info_find_all        (void);
-PkdSourceInfo* pkd_source_info_new             (void);
-gboolean      pkd_source_info_load_from_file  (PkdSourceInfo  *source_info,
-                                              const gchar   *filename,
-                                              GError       **error);
-gboolean      pkd_source_info_conflicts       (PkdSourceInfo  *source_info,
-                                              PkdSourceInfo  *other);
-const gchar*  pkd_source_info_get_uid         (PkdSourceInfo  *source_info);
-const gchar*  pkd_source_info_get_name        (PkdSourceInfo  *source_info);
-const gchar*  pkd_source_info_get_description (PkdSourceInfo  *source_info);
-const gchar*  pkd_source_info_get_version     (PkdSourceInfo  *source_info);
+GType           pkd_source_info_get_type        (void) G_GNUC_CONST;
+GQuark          pkd_source_info_error_quark     (void) G_GNUC_CONST;
+GList*          pkd_source_info_find_all        (void);
+PkdSourceInfo*  pkd_source_info_new             (void);
+gboolean        pkd_source_info_load_from_file  (PkdSourceInfo  *source_info,
+                                                 const gchar    *filename,
+                                                 GError        **error);
+gboolean        pkd_source_info_conflicts       (PkdSourceInfo  *source_info,
+                                                 PkdSourceInfo  *other);
+const gchar*    pkd_source_info_get_uid         (PkdSourceInfo  *source_info);
+const gchar*    pkd_source_info_get_name        (PkdSourceInfo  *source_info);
+const gchar*    pkd_source_info_get_description (PkdSourceInfo  *source_info);
+const gchar*    pkd_source_info_get_version     (PkdSourceInfo  *source_info);
 
 G_END_DECLS
 

@@ -29,14 +29,14 @@ G_BEGIN_DECLS
 
 void     pkd_config_init         (const gchar *filename);
 gchar*   pkd_config_get_string   (const gchar *group,
-                                 const gchar *key,
-                                 const gchar *default_);
+                                  const gchar *key,
+                                  const gchar *default_);
 gboolean pkd_config_get_boolean  (const gchar *group,
-                                 const gchar *key,
-                                 gboolean     default_);
+                                  const gchar *key,
+                                  gboolean     default_);
 gint     pkd_config_get_integer  (const gchar *group,
-                                 const gchar *key,
-                                 gint         default_);
+                                  const gchar *key,
+                                  gint         default_);
 
 G_END_DECLS
 

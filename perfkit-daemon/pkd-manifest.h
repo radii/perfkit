@@ -27,19 +27,19 @@ G_BEGIN_DECLS
 
 typedef struct _PkdManifest PkdManifest;
 
-GType           pkd_manifest_get_type      (void) G_GNUC_CONST;
+GType            pkd_manifest_get_type      (void) G_GNUC_CONST;
 PkdManifest*     pkd_manifest_new           (void);
-PkdManifest*     pkd_manifest_sized_new     (gint         size);
+PkdManifest*     pkd_manifest_sized_new     (gint          size);
 PkdManifest*     pkd_manifest_ref           (PkdManifest  *manifest);
-void            pkd_manifest_unref         (PkdManifest  *manifest);
-guint           pkd_manifest_append        (PkdManifest  *manifest,
-                                           const gchar *name,
-                                           GType        type);
-guint           pkd_manifest_get_n_rows    (PkdManifest  *manifest);
-GType           pkd_manifest_get_row_type  (PkdManifest  *manifest,
-                                           gint         row);
-const gchar*    pkd_manifest_get_row_name  (PkdManifest  *manifest,
-                                           gint         row);
+void             pkd_manifest_unref         (PkdManifest  *manifest);
+guint            pkd_manifest_append        (PkdManifest  *manifest,
+                                             const gchar  *name,
+                                             GType         type);
+guint            pkd_manifest_get_n_rows    (PkdManifest  *manifest);
+GType            pkd_manifest_get_row_type  (PkdManifest  *manifest,
+                                             gint          row);
+const gchar*     pkd_manifest_get_row_name  (PkdManifest  *manifest,
+                                             gint          row);
 
 G_END_DECLS
 

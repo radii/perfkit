@@ -31,21 +31,38 @@ G_BEGIN_DECLS
 
 typedef struct _PkdSubscription PkdSubscription;
 
+/**
+ * PkdManifestFunc:
+ * @buf: A buffer containing the encoded manifest
+ * @buflen: The length of @buf in bytes
+ * @user_data: user data provided to pkd_subscription_new().
+ *
+ * Callback to receive an encoded manifest when it is ready.
+ */
 typedef void (*PkdManifestFunc) (gchar *buf, gsize buflen, gpointer user_data);
-typedef void (*PkdSampleFunc)   (gchar *buf, gsize buflen, gpointer user_data);
+
+/**
+ * PkdSampleFunc:
+ * @buf: A buffer containing the encoded sample
+ * @buflen: The length of @buf in bytes
+ * @user_data: user data provided to pkd_subscription_new().
+ *
+ * Callback to receive an encoded stream of samples when they are ready.
+ */
+typedef void (*PkdSampleFunc) (gchar *buf, gsize buflen, gpointer user_data);
 
 PkdSubscription* pkd_subscription_new         (PkdChannel      *channel,
-                                             PkdEncoderInfo  *encoder_info,
-                                             gsize           buffer_max,
-                                             glong           buffer_timeout,
-                                             PkdManifestFunc  manifest_func,
-                                             gpointer        manifest_data,
-                                             PkdSampleFunc    sample_func,
-                                             gpointer        sample_data);
+                                               PkdEncoderInfo  *encoder_info,
+                                               gsize            buffer_max,
+                                               glong            buffer_timeout,
+                                               PkdManifestFunc  manifest_func,
+                                               gpointer         manifest_data,
+                                               PkdSampleFunc    sample_func,
+                                               gpointer         sample_data);
 PkdSubscription* pkd_subscription_ref         (PkdSubscription *subscription);
-void            pkd_subscription_unref       (PkdSubscription *subscription);
-void            pkd_subscription_pause       (PkdSubscription *subscription);
-void            pkd_subscription_unpause     (PkdSubscription *subscription);
+void             pkd_subscription_unref       (PkdSubscription *subscription);
+void             pkd_subscription_pause       (PkdSubscription *subscription);
+void             pkd_subscription_unpause     (PkdSubscription *subscription);
 PkdEncoder*      pkd_subscription_get_encoder (PkdSubscription *subscription);
 
 G_END_DECLS

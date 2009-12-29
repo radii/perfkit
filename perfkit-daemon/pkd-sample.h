@@ -36,33 +36,33 @@ struct _PkdSampleWriter
 {
 	PkdManifest *manifest;
 	PkdSample   *sample;
-	gint        row_count;
-	gint        pos;
-	gint        extra;
-	gchar      *data;
-	gchar       inline_data[64];
+	gint         row_count;
+	gint         pos;
+	gint         extra;
+	gchar       *data;
+	gchar        inline_data[64];
 };
 
-GType     pkd_sample_get_type       (void) G_GNUC_CONST;
-PkdSample* pkd_sample_new            (void);
-PkdSample* pkd_sample_ref            (PkdSample        *sample);
-void      pkd_sample_unref          (PkdSample        *sample);
-void      pkd_sample_get_data       (PkdSample        *sample,
-                                    gchar          **data,
-                                    gsize           *dapkd_len);
-void      pkd_sample_writer_init    (PkdSampleWriter  *writer,
-                                    PkdManifest      *manifest,
-                                    PkdSample        *sample);
-void      pkd_sample_writer_string  (PkdSampleWriter  *writer,
-                                    gint             index,
-                                    const gchar      *s);
-void      pkd_sample_writer_boolean (PkdSampleWriter  *writer,
-                                    gint             index,
-                                    gboolean         b);
-void      pkd_sample_writer_integer (PkdSampleWriter  *writer,
-                                    gint             index,
-                                    gint             i);
-void      pkd_sample_writer_finish  (PkdSampleWriter  *writer);
+GType       pkd_sample_get_type       (void) G_GNUC_CONST;
+PkdSample*  pkd_sample_new            (void);
+PkdSample*  pkd_sample_ref            (PkdSample        *sample);
+void        pkd_sample_unref          (PkdSample        *sample);
+void        pkd_sample_get_data       (PkdSample        *sample,
+                                       gchar           **data,
+                                       gsize            *dapkd_len);
+void        pkd_sample_writer_init    (PkdSampleWriter  *writer,
+                                       PkdManifest      *manifest,
+                                       PkdSample        *sample);
+void        pkd_sample_writer_string  (PkdSampleWriter  *writer,
+                                       gint              index,
+                                       const gchar      *s);
+void        pkd_sample_writer_boolean (PkdSampleWriter  *writer,
+                                       gint              index,
+                                       gboolean          b);
+void        pkd_sample_writer_integer (PkdSampleWriter  *writer,
+                                       gint              index,
+                                       gint              i);
+void        pkd_sample_writer_finish  (PkdSampleWriter  *writer);
 
 G_END_DECLS
 

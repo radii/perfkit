@@ -38,27 +38,27 @@ struct _PkdEncoderIface
 {
 	GTypeInterface parent;
 
-	gboolean (*encode_samples)  (PkdEncoder   *encoder,
-	                             PkdSample   **sample,
-	                             gint         n_samples,
-	                             gchar      **data,
-	                             gsize       *dapkd_len);
-	gboolean (*encode_manifest) (PkdEncoder   *encoder,
-	                             PkdManifest  *manifest,
-	                             gchar      **data,
-	                             gsize       *dapkd_len);
+	gboolean (*encode_samples)  (PkdEncoder    *encoder,
+	                             PkdSample    **sample,
+	                             gint           n_samples,
+	                             gchar        **data,
+	                             gsize         *dapkd_len);
+	gboolean (*encode_manifest) (PkdEncoder    *encoder,
+	                             PkdManifest   *manifest,
+	                             gchar        **data,
+	                             gsize         *dapkd_len);
 };
 
 GType    pkd_encoder_get_type        (void) G_GNUC_CONST;
-gboolean pkd_encoder_encode_samples  (PkdEncoder    *encoder,
-                                     PkdSample    **samples,
-                                     gint          n_samples,
-                                     gchar       **data,
-                                     gsize        *dapkd_len);
-gboolean pkd_encoder_encode_manifest (PkdEncoder    *encoder,
-                                     PkdManifest   *manifest,
-                                     gchar       **data,
-                                     gsize        *dapkd_len);
+gboolean pkd_encoder_encode_samples  (PkdEncoder     *encoder,
+                                      PkdSample     **samples,
+                                      gint            n_samples,
+                                      gchar         **data,
+                                      gsize          *dapkd_len);
+gboolean pkd_encoder_encode_manifest (PkdEncoder     *encoder,
+                                      PkdManifest    *manifest,
+                                      gchar         **data,
+                                      gsize          *dapkd_len);
 
 G_END_DECLS
 
