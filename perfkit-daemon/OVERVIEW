@@ -1,0 +1,57 @@
+
+                 
+
+             +------------------------------+
+             +  Client (Perfkit Gui/Shell)  |
+  Client     +------------------------------+
+                        |       |
+                        | DBus, |
+                        | TCP,  |
+                        | etc.  |
+   - - - - - - - - - - -|- - - -|- - - - - - - - - - -
+                        |       |
+             +------------------------------+
+  Daemon     |          PdkListener         |    Listens for incoming RPC Connections;
+             +------------------------------+    DBusListener, TCPListener, etc.
+                        |       |
+                        |       |
+                        |       |
+             +------------------------------+    Clients can request subscriptions.  Listener
+             |          PkdEncoder          |    will create them as necessary.  PkdSubscription
+             |                              |    will manage the hard work for it.  Listener just
+             |                              |    needs to ship the bytes off that subscription
+             |       PkdSubscription        |    yields.
+             |                              |
+             |                              |    Subscription uses a PkdEncoder internally to
+             +------------------------------+    encode samples and manifests into buffers.
+                        |       |
+                        |       |
+             +------------------------------+    PkdChannel aggregates a series of data sources
+             |          PkdChannel          |    together.  It can also spawn processes for you.
+             +------------------------------+    It basically does the hard setup work.
+                  ||     ||     ||     ||
+                  ||     ||     ||     ||
+                  ||   Sources  ||     ||
+                  ||     ||     ||     ||
+                 +--+   +--+   +--+   +--+
+                 |  |   |  |   |  |   |  |
+                 |  |   |  |   |  |   |  |       Data sources for extracting data during runtime.
+                 |  |   |  |   |  |   |  |       Generates samples and notifies the channel of
+                 |  |   |  |   |  |   |  |       manifest updates.
+                 |  |   |  |   |  |   |  |
+                 +--+   +--+   +--+   +--+
+
+
+=========
+
+
+There is some additional stuff worth noting.
+
+pkd-pipeline.c     - Global hooks to a majoring of the plumbing.
+pkd-plugins.c      - Manages plugins such as sources, listeners, and encoders.
+pkd-log.c          - Manages logging hooks.
+pkd-source-info.c  - Metadata about a source plugin.
+pkd-encoder-info.c - Metadata about an encoder plugin.
+pkd-spawn-info.c   - Information about how a process is spawned.
+pkd-config.c       - Access to the configuration file (daemon.conf).
+
