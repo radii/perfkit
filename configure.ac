@@ -83,6 +83,7 @@ PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0 >= 2.20
 				   dbus-glib-1 >= 0.80
 				   gtk+-2.0    >= 2.18
 				   gee-1.0     >= 0.3.0])
+PKG_CHECK_MODULES(DBUS,           [dbus-glib-1 >= 0.80])
 
 
 dnl ************************************************************************
