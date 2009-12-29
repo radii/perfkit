@@ -2,7 +2,7 @@
 # DBus Perfkit Daemon Listener - Accepts DBus Communication
 #
 
-dbus_LTLIBRARIES = libperfkit-daemon-dbus.la
+dbus_LTLIBRARIES = dbus.la
 dbusdir = $(libdir)/perfkit-daemon/listeners
 
 WARNINGS =								\
@@ -45,18 +45,18 @@ NOINST_H_FILES =							\
 	pkd-dbus.h							\
 	$(NULL)
 
-libperfkit_daemon_dbus_la_SOURCES =					\
+dbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
 	pkd-dbus.c							\
 	$(NULL)
 
-libperfkit_daemon_dbus_la_LIBADD =					\
+dbus_la_LIBADD =							\
 	$(PERFKIT_DAEMON_LIBS)						\
 	$(DBUS_LIBS)							\
 	$(top_builddir)/perfkit-daemon/libperfkit-daemon.la		\
 	$(NULL)
 
-libperfkit_daemon_dbus_la_LDFLAGS =					\
+dbus_la_LDFLAGS =							\
 	-export-dynamic							\
 	-export-symbols-regex "^pkd_.*"					\
 	-module								\
