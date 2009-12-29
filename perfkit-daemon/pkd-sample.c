@@ -324,11 +324,14 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 	/*
 	 * Allocate a buffer if needed for the samples data.
 	 */
-	if (s->len <= sizeof(s->inline_data)) {
+	if ((s->len + 1) <= sizeof(s->inline_data)) {
 		s->data = &s->inline_data[0];
 	} else {
-		s->data = g_malloc0(s->len);
+		s->data = g_malloc0(s->len + 1);
 	}
+
+	/* First bit is id-compression */
+	s->data[so++] = (writer->row_count < 0xFF);
 
 	while (wo < s->len) {
 		/*
