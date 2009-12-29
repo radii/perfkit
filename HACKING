@@ -16,7 +16,26 @@ Source Overview
   |
   |  The daemon which runs on the target machine to manage perfkit plugins
   |  and child processes.  The daemon orchestrates *how* things happen on
-  |  the target (as opposted to *what*).
+  |  the target (as opposted to *what*).  This could also be called the
+  |  Agent.
+  |
+  +- perfkit-daemon/encoders/
+  |
+  |  Encoders are responsible for convering recoreded Samples and Manifests
+  |  (which describe a series of samples) into buffers which can be decoded
+  |  on the other end.  They can provide various features such as compression
+  |  and encryption.
+  |
+  +- perfkit-daemon/listeners/
+  |
+  |  Listeners provide connectivity into the daemon over a form of RPC.  This
+  |  includes DBus, TCP, or another transport.
+  |
+  +- perfkit-daemon/sources/
+  |
+  |  Sources are the plugins into the daemon which extract information from
+  |  a single or group of processes.  They, for example, could extract memory
+  |  or network throughput and create samples to be passed on to the client.
   |
   +- perfkit/
   |
@@ -48,18 +67,6 @@ Source Overview
   |  can be copied verbatim from other source trees.  It is desired to keep
   |  these files unchanged so the process of updating them is as simple as
   |  dropping in a new file.
-  |
-  +- plugins/
-  |
-  |  The plugins directory contains the plugins for the perfkit daemon.  They
-  |  are loaded using the Ethos plugin library (libethos-1.0) and can provide
-  |  data sources or pipeline transforms within the daemon process.  These
-  |  plugins are added to a Perfkit Channel to extract data from the host.
-  |
-  |  Ethos plugins require a description file to be created which describe
-  |  the plugin.  This includes such things as the module name and what
-  |  plugin loader is needed to start the plugin.  Eventually, we hope to have
-  |  C, C++, C#, Python, and JavaScript plugins supported.
   |
   +- tests/
   |
@@ -113,6 +120,10 @@ perfkit-daemon
 
 libperfkit-1.0
 ==============
+
+  NOTE:
+         THIS IS PENDING A REWRITE TO MATCH THE NEW DAEMON DESIGN
+         --------------------------------------------------------
 
   Libperfkit is a shared library that reduces the complexity in talking to
   a remote perfkit-daemon.  It provides a transport abstraction so the
