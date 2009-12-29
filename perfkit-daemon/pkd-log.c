@@ -101,20 +101,20 @@ pkd_log_handler (const gchar    *log_domain,
  */
 void
 pkd_log_init (gboolean     stdout_,
-             const gchar *filename)
+              const gchar *filename)
 {
-	static gboolean initialized = FALSE;
+	static gsize initialized = FALSE;
 
 	/*
 	 * Only allow initialization of the logging subsystem once.  Create a
 	 * new GIOChannel* for easy log writing if needed.
 	 */
 
-	if (g_once_init_enter((gsize *)&initialized)) {
+	if (g_once_init_enter(&initialized)) {
 		wants_stdout = stdout_;
 		if (filename)
 			channel = g_io_channel_new_file(filename, "a", NULL);
 		g_log_set_handler(G_LOG_DOMAIN, G_LOG_LEVEL_MASK, pkd_log_handler, NULL);
-		g_once_init_leave((gsize *)&initialized, (gsize)TRUE);
+		g_once_init_leave(&initialized, TRUE);
 	}
 }
