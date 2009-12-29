@@ -60,7 +60,7 @@ pkd_plugins_init_encoders (void)
 	 */
 	name = g_dir_read_name(dir);
 	while (name) {
-		if (!g_str_has_suffix(name, ".so"))
+		if (!g_str_has_suffix(name, G_MODULE_SUFFIX))
 			goto next;
 
 		g_message("Loading %s encoder module.", name);
@@ -128,7 +128,7 @@ pkd_plugins_init_sources (void)
 	 */
 	name = g_dir_read_name(dir);
 	while (name) {
-		if (!g_str_has_suffix(name, ".so"))
+		if (!g_str_has_suffix(name, G_MODULE_SUFFIX))
 			goto next;
 
 		g_message("Loading %s source module.", name);
@@ -196,7 +196,7 @@ pkd_plugins_init_listeners (void)
 	 */
 	name = g_dir_read_name(dir);
 	while (name) {
-		if (!g_str_has_suffix(name, ".so"))
+		if (!g_str_has_suffix(name, G_MODULE_SUFFIX))
 			goto next;
 
 		g_message("Loading %s listener module.", name);
