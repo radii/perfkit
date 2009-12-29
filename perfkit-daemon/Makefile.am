@@ -2,7 +2,7 @@
 # Perfkit Daemon
 #
 
-SUBDIRS = sources encoders listeners
+SUBDIRS = . sources encoders listeners
 
 noinst_LTLIBRARIES = libperfkit-daemon.la
 bin_PROGRAMS = perfkit-daemon
