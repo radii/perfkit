@@ -102,7 +102,7 @@ pkd_encoder_info_load_from_file(PkdEncoderInfo  *encoder_info,
 	 */
 	if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR)) {
 		g_set_error(error, PKD_ENCODER_INFO_ERROR, PKD_ENCODER_INFO_ERROR_FILENAME,
-		            _("%s: not a Titan Agent plugin."), filename);
+		            _("%s: not a Perfkit Daemon plugin."), filename);
 		return FALSE;
 	}
 

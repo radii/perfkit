@@ -68,12 +68,12 @@ main (gint   argc,
 	textdomain(GETTEXT_PACKAGE);
 	bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-	g_set_application_name(_("Titan Agent"));
+	g_set_application_name(_("Perfkit Daemon"));
 
 	/*
 	 * Parse command line arguments.
 	 */
-	context = g_option_context_new(_("- Titan Agent"));
+	context = g_option_context_new(_("- Perfkit Daemon"));
 	g_option_context_add_main_entries(context, options, GETTEXT_PACKAGE);
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);
@@ -89,7 +89,7 @@ main (gint   argc,
 	g_type_init();
 
 	/*
-	 * Initialize Titan Agent subsystems.  We initialize logging before
+	 * Initialize Perfkit Daemon subsystems.  We initialize logging before
 	 * the configuration system so logging is available in the case that
 	 * the configuration fails to parse.
 	 *
