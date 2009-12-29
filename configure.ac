@@ -123,8 +123,6 @@ AC_OUTPUT([
 	data/dbus/Makefile
 	doc/Makefile
 	doc/reference/Makefile
-	tests/Makefile
-	plugins/Makefile
 	tools/Makefile
 
 	doc/reference/perfkit-daemon/Makefile
@@ -146,6 +144,9 @@ AC_OUTPUT([
 
 	bindings/Makefile
 	bindings/vala/Makefile
+
+	tests/Makefile
+	tests/perfkit-daemon/Makefile
 ])
 
 echo ""
