@@ -29,9 +29,13 @@
 #include "pkd-subscription.h"
 
 extern void pkd_subscription_deliver_sample   (PkdSubscription *subscription,
-                                              PkdSample       *sample);
+                                               PkdSample       *sample);
 extern void pkd_subscription_deliver_manifest (PkdSubscription *subscription,
-                                              PkdManifest     *manifest);
+                                               PkdManifest     *manifest);
+extern void pkd_sample_set_source_id          (PkdSample       *sample,
+                                               gint             source_id);
+extern void pkd_manifest_set_source_id        (PkdManifest     *manifest,
+                                               gint             source_id);
 
 /**
  * SECTION:pkd-channel
@@ -46,8 +50,11 @@ G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 struct _PkdChannelPrivate
 {
 	PkdSpawnInfo  spawn_info;
+
+	GMutex       *mutex;
 	GPtrArray    *subs;
 	GPtrArray    *sources;
+	GTree        *indexed;
 };
 
 /**
@@ -178,7 +185,7 @@ pkd_channel_get_pid (PkdChannel *channel)
  */
 PkdSource*
 pkd_channel_add_source (PkdChannel    *channel,
-                       PkdSourceInfo *source_info)
+                        PkdSourceInfo *source_info)
 {
 	g_return_val_if_fail(PKD_IS_CHANNEL(channel), NULL);
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
@@ -200,12 +207,39 @@ pkd_channel_add_source (PkdChannel    *channel,
  */
 void
 pkd_channel_deliver_sample (PkdChannel *channel,
-                           PkdSource  *source,
-                           PkdSample  *sample)
+                            PkdSource  *source,
+                            PkdSample  *sample)
 {
-	g_ptr_array_foreach(channel->priv->subs,
-	                    (GFunc)pkd_subscription_deliver_sample,
-	                    sample);
+	PkdChannelPrivate *priv;
+	gint i, idx;
+
+	g_return_if_fail(channel != NULL);
+	g_return_if_fail(source != NULL);
+	g_return_if_fail(sample != NULL);
+
+	/*
+	 * NOTES:
+	 *
+	 *   Can we look into dropping this into an Multi-Producer, Single Consumer
+	 *   Queue that ships the samples over to the subscription ever so often?
+	 *   it would be nice not to screw with the sample thread by introducing
+	 *   our mutexes.  It could cause collateral damage between sources during
+	 *   contention.
+	 *
+	 */
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	for (i = 0; i < priv->subs->len; i++) {
+		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+		pkd_sample_set_source_id(sample, idx);
+		pkd_subscription_deliver_sample(priv->subs->pdata[i],
+		                                sample);
+	}
+
+	g_mutex_unlock(priv->mutex);
 }
 
 /**
@@ -221,17 +255,33 @@ pkd_channel_deliver_sample (PkdChannel *channel,
  */
 void
 pkd_channel_deliver_manifest (PkdChannel  *channel,
-                             PkdSource   *source,
-                             PkdManifest *manifest)
+                              PkdSource   *source,
+                              PkdManifest *manifest)
 {
-	g_ptr_array_foreach(channel->priv->subs,
-	                    (GFunc)pkd_subscription_deliver_manifest,
-	                    manifest);
+	PkdChannelPrivate *priv;
+	gint i, idx;
+
+	g_return_if_fail(channel != NULL);
+	g_return_if_fail(source != NULL);
+	g_return_if_fail(manifest != NULL);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	for (i = 0; i < priv->subs->len; i++) {
+		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+		pkd_manifest_set_source_id(manifest, idx);
+		pkd_subscription_deliver_manifest(priv->subs->pdata[i],
+		                                  manifest);
+	}
+
+	g_mutex_unlock(priv->mutex);
 }
 
 void
 pkd_channel_add_subscription (PkdChannel      *channel,
-                             PkdSubscription *subscription)
+                              PkdSubscription *subscription)
 {
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
@@ -241,7 +291,7 @@ pkd_channel_add_subscription (PkdChannel      *channel,
 
 void
 pkd_channel_remove_subscription (PkdChannel      *channel,
-                                PkdSubscription *subscription)
+                                 PkdSubscription *subscription)
 {
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
@@ -284,4 +334,6 @@ pkd_channel_init (PkdChannel *channel)
 	                                             PkdChannelPrivate);
 	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
+	channel->priv->mutex = g_mutex_new();
+	channel->priv->indexed = g_tree_new(g_direct_equal);
 }

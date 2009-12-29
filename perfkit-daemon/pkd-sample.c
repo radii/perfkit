@@ -35,11 +35,12 @@
 
 struct _PkdSample
 {
-	volatile gint ref_count;
+	volatile gint  ref_count;
 
-	gint   len;
-	gchar *data;
-	gchar  inline_data[64];
+	gint           source_id;
+	gint           len;
+	gchar         *data;
+	gchar          inline_data[64];
 };
 
 static void
@@ -131,6 +132,36 @@ pkd_sample_get_data (PkdSample  *sample,
 
 	*data = sample->data;
 	*dapkd_len = sample->len;
+}
+
+/**
+ * pkd_sample_get_source_id:
+ * @sample: A #PkdSample
+ *
+ * Retrieves the source index within channel.
+ *
+ * Returns: an integer containing the source id
+ *
+ * Side effects: None.
+ */
+gint
+pkd_sample_get_source_id (PkdSample *sample)
+{
+	return sample->source_id;
+}
+
+/**
+ * pkd_sample_set_source_id:
+ * @sample: A #PkdSample
+ * @source_id: The source id in the channel
+ *
+ * Internal method used to set the source id.
+ */
+void
+pkd_sample_set_source_id (PkdSample *sample,
+                          gint       source_id)
+{
+	sample->source_id = source_id;
 }
 
 GType

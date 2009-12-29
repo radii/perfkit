@@ -32,6 +32,7 @@ PkdManifest*     pkd_manifest_new           (void);
 PkdManifest*     pkd_manifest_sized_new     (gint          size);
 PkdManifest*     pkd_manifest_ref           (PkdManifest  *manifest);
 void             pkd_manifest_unref         (PkdManifest  *manifest);
+gint             pkd_manifest_get_source_id (PkdManifest  *manifest);
 guint            pkd_manifest_append        (PkdManifest  *manifest,
                                              const gchar  *name,
                                              GType         type);

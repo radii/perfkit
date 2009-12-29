@@ -50,6 +50,7 @@ void        pkd_sample_unref          (PkdSample        *sample);
 void        pkd_sample_get_data       (PkdSample        *sample,
                                        gchar           **data,
                                        gsize            *dapkd_len);
+gint        pkd_sample_get_source_id  (PkdSample        *sample);
 void        pkd_sample_writer_init    (PkdSampleWriter  *writer,
                                        PkdManifest      *manifest,
                                        PkdSample        *sample);

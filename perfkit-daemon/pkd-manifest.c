@@ -38,9 +38,9 @@ typedef struct {
 
 struct _PkdManifest
 {
-	GArray *rows;
-
-	volatile gint ref_count;
+	GArray        *rows;
+	gint           source_id;
+	volatile gint  ref_count;
 };
 
 static void
@@ -242,6 +242,41 @@ pkd_manifest_get_row_name (PkdManifest *manifest,
 	g_return_val_if_fail(row > 0 && row <= manifest->rows->len, NULL);
 
 	return g_array_index(manifest->rows, PkdManifestRow, row - 1).name;
+}
+
+/**
+ * pkd_manifest_get_source_id:
+ * @manifest: A #PkdManifest
+ *
+ * Retrieves the source identifier for the #PkdManifest within its configured
+ * #PkdChannel.  This id can be used by encoders to ensure the client knows
+ * which source the manifest belongs to.
+ *
+ * Returns: An integer containing the source id.
+ *
+ * Side effects: None.
+ */
+gint
+pkd_manifest_get_source_id (PkdManifest *manifest)
+{
+	return manifest->source_id;
+}
+
+/**
+ * pkd_manifest_set_source_id:
+ * @manifest: A #PkdManifest
+ * @source_id: A source id
+ *
+ * Internal method used to set the source id by a channel receiving the
+ * manifest.
+ *
+ * Side effects: None.
+ */
+void
+pkd_manifest_set_source_id (PkdManifest *manifest,
+                            gint         source_id)
+{
+	manifest->source_id = source_id;
 }
 
 GType
