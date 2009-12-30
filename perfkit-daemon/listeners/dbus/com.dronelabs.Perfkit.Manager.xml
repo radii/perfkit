@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<node>
+  <interface name="com.dronelabs.Perfkit.Manager">
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_dbus_manager"/>
+
+    <!--
+        Manager::CreateChannel()
+
+            Creates a new PkdChannel.
+
+        Returns: A path to the newly created channel.
+    -->
+    <method name="CreateChannel">
+      <arg name="channel" type="o" direction="out"/>
+    </method>
+
+    <!--
+        Manager::CreateSubscription()
+        @channel: A path to a PkdChannel.
+        @buffer_size: Buffer size in bytes. 0 for no size-based buffer.
+        @buffer_timeout: Timeout in milliseconds that buffer should flush.
+          Zero for no timeout-based buffer flushing.
+        @encoder_info: A path to a PkdEncoderInfo.
+
+            Creates a new subscription using the parameters.
+
+        Returns: A path to a subscription.
+    -->
+    <method name="CreateSubscription">
+        <arg name="channel" type="o" direction="in"/>
+        <arg name="buffer_size" type="u" direction="in"/>
+        <arg name="buffer_timeout" type="u" direction="in"/>
+        <arg name="encoder_info" type="o" direction="in"/>
+        <arg name="subscription" type="o" direction="out"/>
+    </method>
+
+    <!--
+        Manager::GetProcesses()
+
+            Retrieves a list of processes on the system that are available for
+            profiling.  The list element is a tuple of process information
+            containing (Process ID, Name, Command Line Arguments, Icon Name).
+
+        Returns: An array of process tuples.
+    -->
+    <method name="GetProcesses">
+        <arg name="processes" type="a(usss)" direction="out"/>
+    </method>
+
+  </interface>
+</node>

@@ -36,6 +36,7 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\""perfkit-daemon"\"				\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\"				\
+	-I$(srcdir)/dbus						\
 	$(WARNINGS)							\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	$(DBUS_CFLAGS)							\
@@ -48,6 +49,7 @@ NOINST_H_FILES =							\
 dbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
 	pkd-dbus.c							\
+	dbus/pkd-dbus-manager.c						\
 	$(NULL)
 
 dbus_la_LIBADD =							\

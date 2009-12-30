@@ -50,8 +50,8 @@ struct _PkdDBusClass
 	PkdListenerClass parent_class;
 };
 
-GType        pkd_dbus_get_type (void) G_GNUC_CONST;
-PkdListener* pkd_dbus_new      (void);
+GType            pkd_dbus_get_type       (void) G_GNUC_CONST;
+DBusGConnection* pkd_dbus_get_connection (void);
 
 G_END_DECLS
 
