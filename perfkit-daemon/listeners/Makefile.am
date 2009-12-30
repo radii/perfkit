@@ -44,6 +44,8 @@ AM_CPPFLAGS =								\
 
 NOINST_H_FILES =							\
 	pkd-dbus.h							\
+	dbus/pkd-dbus-manager.h						\
+	dbus/pkd-channel-dbus.h						\
 	$(NULL)
 
 dbus_la_SOURCES =							\

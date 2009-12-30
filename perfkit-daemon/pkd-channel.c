@@ -49,6 +49,7 @@ G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
 struct _PkdChannelPrivate
 {
+	guint         channel_id;
 	PkdSpawnInfo  spawn_info;
 
 	GMutex       *mutex;
@@ -56,6 +57,25 @@ struct _PkdChannelPrivate
 	GPtrArray    *sources;
 	GTree        *indexed;
 };
+
+static guint channel_seq = 0;
+
+/**
+ * pkd_channel_get_id:
+ * @channel: A #PkdChannel
+ *
+ * Retrieves the channel id.
+ *
+ * Returns: The channel id.
+ *
+ * Side effects: None.
+ */
+guint
+pkd_channel_get_id (PkdChannel *channel)
+{
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), 0);
+	return channel->priv->channel_id;
+}
 
 /**
  * pkd_channel_new:
@@ -195,6 +215,35 @@ pkd_channel_add_source (PkdChannel    *channel,
 	return NULL;
 }
 
+gboolean
+pkd_channel_start (PkdChannel  *channel,
+                   GError     **error)
+{
+	return TRUE;
+}
+
+gboolean
+pkd_channel_stop (PkdChannel  *channel,
+                  gboolean     killpid,
+                  GError     **error)
+{
+	return TRUE;
+}
+
+gboolean
+pkd_channel_pause (PkdChannel  *channel,
+                   GError     **error)
+{
+	return TRUE;
+}
+
+gboolean
+pkd_channel_unpause (PkdChannel  *channel,
+                     GError     **error)
+{
+	return TRUE;
+}
+
 /**
  * pkd_channel_deliver_sample:
  * @channel: A #PkdChannel
@@ -231,6 +280,15 @@ pkd_channel_deliver_sample (PkdChannel *channel,
 	priv = channel->priv;
 
 	g_mutex_lock(priv->mutex);
+
+	/*
+	 * TODO:
+	 *
+	 *   If the channel itself is paused, we should do something similar
+	 *   to what subscriptions are doing now.  Cache the most recent
+	 *   manifest and drop all samples.
+	 *
+	 */
 
 	for (i = 0; i < priv->subs->len; i++) {
 		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
@@ -336,4 +394,5 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
 	channel->priv->indexed = g_tree_new(g_direct_equal);
+	channel->priv->channel_id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
 }

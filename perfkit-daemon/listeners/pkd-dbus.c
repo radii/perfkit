@@ -27,6 +27,7 @@
 
 #include "pkd-dbus.h"
 #include "pkd-dbus-manager.h"
+#include "pkd-channel-dbus.h"
 
 G_DEFINE_TYPE (PkdDBus, pkd_dbus, PKD_TYPE_LISTENER)
 
@@ -80,6 +81,12 @@ pkd_dbus_start(PkdListener  *listener,
 	}
 
 	/*
+	 * Register DBus object information for known types.
+	 */
+	dbus_g_object_type_install_info(PKD_TYPE_CHANNEL,
+	                                &dbus_glib_pkd_channel_object_info);
+
+	/*
 	 * Register objects on the DBus.
 	 */
 	(void)g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
@@ -92,6 +99,18 @@ pkd_dbus_start(PkdListener  *listener,
 static void
 pkd_dbus_stop(PkdListener *listener)
 {
+}
+
+static void
+pkd_dbus_channel_added (PkdListener *listener,
+                        PkdChannel  *channel)
+{
+	gchar *path;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	                       pkd_channel_get_id(channel));
+	dbus_g_connection_register_g_object(dbus_conn, path, G_OBJECT(channel));
+	g_free(path);
 }
 
 static void
@@ -123,6 +142,7 @@ pkd_dbus_class_init(PkdDBusClass *klass)
 	listener_class = PKD_LISTENER_CLASS(klass);
 	listener_class->start = pkd_dbus_start;
 	listener_class->stop = pkd_dbus_stop;
+	listener_class->channel_added = pkd_dbus_channel_added;
 }
 
 static void

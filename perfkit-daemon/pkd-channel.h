@@ -59,18 +59,21 @@ struct _PkdChannelClass
 
 GType         pkd_channel_get_type            (void) G_GNUC_CONST;
 PkdChannel*   pkd_channel_new                 (const PkdSpawnInfo  *spawn_info);
+guint         pkd_channel_get_id              (PkdChannel          *channel);
 const gchar*  pkd_channel_get_target          (PkdChannel          *channel);
 const gchar*  pkd_channel_get_working_dir     (PkdChannel          *channel);
 gchar**       pkd_channel_get_args            (PkdChannel          *channel);
 gchar**       pkd_channel_get_env             (PkdChannel          *channel);
 GPid          pkd_channel_get_pid             (PkdChannel          *channel);
 gboolean      pkd_channel_start               (PkdChannel          *channel,
-                                               GError            **error);
+                                               GError             **error);
 gboolean      pkd_channel_stop                (PkdChannel          *channel,
-                                               gboolean            killpid,
-                                               GError            **error);
-void          pkd_channel_pause               (PkdChannel          *channel);
-void          pkd_channel_unpause             (PkdChannel          *channel);
+                                               gboolean             killpid,
+                                               GError             **error);
+gboolean      pkd_channel_pause               (PkdChannel          *channel,
+                                               GError             **error);
+gboolean      pkd_channel_unpause             (PkdChannel          *channel,
+                                               GError             **error);
 PkdSource*    pkd_channel_add_source          (PkdChannel          *channel,
                                                PkdSourceInfo       *source_info);
 
