@@ -30,16 +30,17 @@
  * 
  */
 
-typedef struct {
-	gint   id;
-	GType  type;
-	gchar *name;
+typedef struct
+{
+	gint   id;                  /* Row identifier */
+	GType  type;                /* Row Type (String, Int, ..) */
+	gchar *name;                /* Row Name ("Ingress", ..) */
 } PkdManifestRow;
 
 struct _PkdManifest
 {
-	GArray        *rows;
-	gint           source_id;
+	GArray        *rows;        /* Array of PkdManifestRow */
+	gint           source_id;   /* Channel assigned Source Id */
 	volatile gint  ref_count;
 };
 
