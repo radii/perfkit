@@ -55,3 +55,30 @@ pkd-encoder-info.c - Metadata about an encoder plugin.
 pkd-spawn-info.c   - Information about how a process is spawned.
 pkd-config.c       - Access to the configuration file (daemon.conf).
 
+
+ENCODER EVELOPE FOR SAMPLE
+
+  +------------+---------------+--------+
+  | Length (4) | Source ID (1) | SAMPLE |
+  +------------+---------------+--------+
+
+SAMPLE
+
+                        [.....         Repeat           .....]
+  +---------------------+-----------------+------------------+
+  | Row Compression (1) | Row Index (1|4) | (Integer|String) |
+  +---------------------+-----------------+------------------+
+                        [.....                          .....]
+
+Integer
+
+  +-----------+
+  | Value (4) |
+  +-----------+
+
+String
+
+  +-----------------------------+
+  | String (1 + strlen(String)) |
+  +-----------------------------+
+
