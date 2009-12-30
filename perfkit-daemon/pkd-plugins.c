@@ -82,6 +82,7 @@ pkd_plugins_init_encoders (void)
 		 * Store the source info.
 		 */
 		pkd_pipeline_add_encoder_info(info);
+		g_object_unref(info);
 
 	next:
 		/*
@@ -150,6 +151,7 @@ pkd_plugins_init_sources (void)
 		 * Store the source info.
 		 */
 		pkd_pipeline_add_source_info(info);
+		g_object_unref(info);
 
 	next:
 		/*

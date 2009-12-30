@@ -144,6 +144,9 @@ pkd_pipeline_shutdown (void)
 		pkd_listener_stop(listeners->pdata[i]);
 		g_object_unref(listeners->pdata[i]);
 	}
+
+	g_list_foreach(source_infos, (GFunc)g_object_unref, NULL);
+	g_list_foreach(encoder_infos, (GFunc)g_object_unref, NULL);
 }
 
 /**
