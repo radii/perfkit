@@ -84,13 +84,13 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
 		/*
 		 * Source Identifier.
 		 */
-		(*data)[s] = (gchar)(pkd_sample_get_source_id(samples[i]) & 0xFF);
+		(*data)[s++] = (gchar)(pkd_sample_get_source_id(samples[i]) & 0xFF);
 
 		/*
 		 * Sample Data.
 		 */
 		memcpy(&((*data)[s]), buf, buflen);
-		s += buflen;
+		s += (buflen - 1); /* Don't include our previous increment */
 	}
 
 	return TRUE;

@@ -30,7 +30,7 @@ test_PkdSampleWriter_basic (void)
 	pkd_sample_writer_finish(&sw);
 	pkd_sample_get_data(s, &buf, &buflen);
 	g_assert(buf);
-	g_assert_cmpint(buflen, !=, 0);
+	g_assert_cmpint(buflen, ==, 11);
 
 	/* Ensure ID compression is enabled */
 	g_assert_cmpint(buf[0], ==, TRUE);

@@ -114,7 +114,7 @@ pkd_sample_unref(PkdSample *sample)
  * pkd_sample_get_data:
  * @sample: A #PkdSample
  * @data: A location for a buffer
- * @dapkd_len: A location for the buffer length
+ * @data_len: A location for the buffer length
  *
  * Retrieves the internal buffer for the sample.  The buffer should not be
  * modified or freed.
@@ -124,14 +124,14 @@ pkd_sample_unref(PkdSample *sample)
 void
 pkd_sample_get_data (PkdSample  *sample,
                     gchar    **data,
-                    gsize     *dapkd_len)
+                    gsize     *data_len)
 {
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(data != NULL);
-	g_return_if_fail(dapkd_len != NULL);
+	g_return_if_fail(data_len != NULL);
 
 	*data = sample->data;
-	*dapkd_len = sample->len;
+	*data_len = sample->len;
 }
 
 /**
@@ -211,6 +211,13 @@ pkd_sample_writer_init (PkdSampleWriter *writer,
 	writer->data = &writer->inline_data[0];
 
 	/*
+	 * We use one-byte for row index if the row count is <= 0xFF.
+	 */
+	size += (writer->row_count < 0xFF) ?
+	        (writer->row_count)        :
+	        (writer->row_count * sizeof(gint));
+
+	/*
 	 * Calculate the total size needed for our creation buffer.  The following
 	 * table is used to calculate the amount of inline data.
 	 *
@@ -220,7 +227,7 @@ pkd_sample_writer_init (PkdSampleWriter *writer,
 	 * gulong......: 4 bytes
 	 * gboolean....: 1 byte
 	 * gchar.......: 1 byte
-	 * gchararray..: sizeof gchar*
+	 * gchararray..: sizeof gchar* (Inline Pointer)
 	 */
 	for (i = 1; i <= writer->row_count; i++) {
 		type = pkd_manifest_get_row_type(manifest, i);
@@ -235,6 +242,13 @@ pkd_sample_writer_init (PkdSampleWriter *writer,
 		case G_TYPE_BOOLEAN:
 			size++;
 			break;
+		case G_TYPE_STRING:
+			/*
+			 * For strings we store the pointer directly in the creation buffer
+			 * and expand it when pkd_sample_writer_finish() is called.
+			 */
+			size += sizeof(gchar*);
+			break;
 		default:
 			/*
 			 * NOTE:
@@ -246,13 +260,6 @@ pkd_sample_writer_init (PkdSampleWriter *writer,
 	}
 
 	/*
-	 * We use one-byte for row index if the row count is <= 0xFF.
-	 */
-	size += (writer->row_count <= 0xFF) ?
-	        (writer->row_count)         :
-	        (writer->row_count * sizeof(gint));
-
-	/*
 	 * Either assign a new buffer that is big enough or clear the inline
 	 * buffer.
 	 */
@@ -261,6 +268,11 @@ pkd_sample_writer_init (PkdSampleWriter *writer,
 	} else {
 		memset(writer->inline_data, 0, sizeof(writer->inline_data));
 	}
+
+	/*
+	 * Mark the first byte as Manifest Row Compression.
+	 */
+	writer->data[writer->pos++] = (writer->row_count < 0xFF);
 }
 
 /**
@@ -327,7 +339,14 @@ pkd_sample_writer_integer (PkdSampleWriter *writer,
                            gint             idx,
                            gint             i)
 {
+	/*
+	 * Add the manifest row index.
+	 */
 	PKD_SAMPLE_WRITER_INDEX(writer, idx);
+
+	/*
+	 * Copy the integer value.
+	 */
 	memcpy(&writer->data[writer->pos], &i, sizeof(gint));
 	writer->pos += sizeof(gint);
 }
@@ -357,12 +376,15 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 	 */
 	if ((s->len + 1) <= sizeof(s->inline_data)) {
 		s->data = &s->inline_data[0];
+		memset(&s->inline_data[0], 0, sizeof(s->inline_data));
 	} else {
 		s->data = g_malloc0(s->len + 1);
 	}
 
-	/* First bit is id-compression */
-	s->data[so++] = (writer->row_count < 0xFF);
+	/*
+	 * First byte is id-compression.
+	 */
+	s->data[so++] = writer->data[wo++];
 
 	while (wo < s->len) {
 		/*
@@ -370,8 +392,7 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 		 * count is < 0xFF.  We also copy the index to the sample.
 		 */
 		if (c < 0xFF) {
-			idx = writer->data[wo++];
-			s->data[so++] = idx;
+			s->data[so++] = idx = writer->data[wo++];
 		} else {
 			memcpy(&idx, &writer->data[wo], sizeof(gint));
 			memcpy(&s->data[so], &writer->data[wo], sizeof(gint));
@@ -380,7 +401,7 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 		}
 
 		/*
-		 * Get the row type so we can determien if we need to expand
+		 * Get the row type so we can determine if we need to expand
 		 * a pointer type (string) or if its a shortened (byte) type.
 		 */
 		type = pkd_manifest_get_row_type(writer->manifest, idx);
