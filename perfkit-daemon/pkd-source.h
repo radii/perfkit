@@ -56,6 +56,7 @@ struct _PkdSourceClass
 };
 
 GType     pkd_source_get_type         (void) G_GNUC_CONST;
+guint     pkd_source_get_id           (PkdSource    *source);
 gboolean  pkd_source_conflicts        (PkdSource    *source,
                                        PkdSource    *other,
                                        GError      **error);

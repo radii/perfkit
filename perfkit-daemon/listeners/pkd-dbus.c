@@ -114,6 +114,18 @@ pkd_dbus_channel_added (PkdListener *listener,
 }
 
 static void
+pkd_dbus_source_added (PkdListener *listener,
+                       PkdSource   *source)
+{
+	gchar *path;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Sources/%d",
+	                       pkd_source_get_id(source));
+	dbus_g_connection_register_g_object(dbus_conn, path, G_OBJECT(source));
+	g_free(path);
+}
+
+static void
 pkd_dbus_finalize(GObject *object)
 {
 	PkdDBusPrivate *priv;
@@ -143,6 +155,7 @@ pkd_dbus_class_init(PkdDBusClass *klass)
 	listener_class->start = pkd_dbus_start;
 	listener_class->stop = pkd_dbus_stop;
 	listener_class->channel_added = pkd_dbus_channel_added;
+	listener_class->source_added = pkd_dbus_source_added;
 }
 
 static void

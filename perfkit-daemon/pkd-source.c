@@ -42,8 +42,11 @@ extern void pkd_channel_deliver_manifest (PkdChannel *channel, PkdSource *source
 
 struct _PkdSourcePrivate
 {
+	guint       source_id;
 	PkdChannel *channel;
 };
+
+static guint source_seq = 0;
 
 /**
  * pkd_source_set_channel:
@@ -156,4 +159,5 @@ pkd_source_init (PkdSource *source)
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
 	                                            PKD_TYPE_SOURCE,
 	                                            PkdSourcePrivate);
+	source->priv->source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
 }
