@@ -37,7 +37,8 @@ extern void pkd_channel_remove_subscription (PkdChannel      *channel,
 
 struct _PkdSubscription
 {
-	volatile gint ref_count;
+	guint            sub_id;
+	volatile gint    ref_count;
 
 	PkdChannel      *channel;        /* Our producing channel */
 	PkdEncoder      *encoder;        /* Sample/Manifest encoder */
@@ -54,6 +55,8 @@ struct _PkdSubscription
 	gsize            buflen;         /* Current buffer length */
 	PkdManifest     *manifest;       /* Our current manifest */
 };
+
+static guint subscription_seq = 0;
 
 static void
 pkd_subscription_destroy (PkdSubscription *sub)
@@ -112,6 +115,7 @@ pkd_subscription_new (PkdChannel      *channel,
 
 	sub = g_slice_new0(PkdSubscription);
 	sub->ref_count = 1;
+	sub->sub_id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
 	sub->mutex = g_mutex_new();
 	sub->queue = g_queue_new();
 	sub->channel = g_object_ref(channel);
@@ -170,6 +174,22 @@ pkd_subscription_unref (PkdSubscription *subscription)
 	if (g_atomic_int_dec_and_test(&subscription->ref_count)) {
 		pkd_subscription_destroy(subscription);
 	}
+}
+
+/**
+ * pkd_subscription_get_id:
+ * @subscription: A #PkdSubscription
+ *
+ * Retrieves the unique subscription id.
+ *
+ * Returns: The subscription id.
+ *
+ * Side effects: None.
+ */
+guint
+pkd_subscription_get_id (PkdSubscription *subscription)
+{
+	return subscription->sub_id;
 }
 
 static inline gboolean

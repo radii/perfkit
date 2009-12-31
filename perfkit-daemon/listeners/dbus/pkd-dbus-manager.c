@@ -47,11 +47,6 @@ G_DEFINE_TYPE (PkdDBusManager, pkd_dbus_manager, G_TYPE_OBJECT)
  * 
  */
 
-struct _PkdDBusManagerPrivate
-{
-	gpointer dummy;
-};
-
 gboolean
 pkd_dbus_manager_create_channel (PkdDBusManager  *manager,
                                  GPid             pid,
@@ -86,6 +81,22 @@ pkd_dbus_manager_create_channel (PkdDBusManager  *manager,
 	return TRUE;
 }
 
+static void
+manifest_cb (gchar    *buffer,
+             gsize     buffer_size,
+             gpointer  data)
+{
+	g_debug("Manifest CB");
+}
+
+static void
+sample_cb (gchar    *buffer,
+           gsize     buffer_size,
+           gpointer  data)
+{
+	g_debug("Sample CB");
+}
+
 gboolean
 pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
                                       const gchar     *channel,
@@ -95,7 +106,33 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
                                       gchar          **subscription,
                                       GError         **error)
 {
-	return FALSE;
+	PkdChannel *real_channel;
+	PkdEncoderInfo *real_encoder_info;
+	PkdSubscription *sub;
+	gpointer data = NULL;
+
+	real_channel = (PkdChannel *)dbus_g_connection_lookup_g_object(pkd_dbus_get_connection(), channel);
+	if (!channel) {
+		/* TODO: Set error message */
+		return FALSE;
+	}
+
+	/* Okay if this is NULL */
+	real_encoder_info = (PkdEncoderInfo *)dbus_g_connection_lookup_g_object(pkd_dbus_get_connection(), encoder_info);
+
+	/* subscribe to the channel */
+	sub = pkd_subscription_new(real_channel, real_encoder_info, buffer_size, buffer_timeout, manifest_cb, data, sample_cb, data);
+	if (!sub) {
+		/* TODO: Set error message */
+		return FALSE;
+	}
+
+	/* notify the pipeline of the subscription */
+	pkd_pipeline_add_subscription(sub);
+
+	*subscription = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d", pkd_subscription_get_id(sub));
+
+	return TRUE;
 }
 
 gboolean
@@ -149,7 +186,6 @@ pkd_dbus_manager_class_init (PkdDBusManagerClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_dbus_manager_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdDBusManagerPrivate));
 
 	dbus_g_object_type_install_info(PKD_DBUS_TYPE_MANAGER,
 	                                &dbus_glib_pkd_dbus_manager_object_info);
@@ -158,10 +194,6 @@ pkd_dbus_manager_class_init (PkdDBusManagerClass *klass)
 static void
 pkd_dbus_manager_init (PkdDBusManager *manager)
 {
-	manager->priv = G_TYPE_INSTANCE_GET_PRIVATE (manager,
-	                                             PKD_DBUS_TYPE_MANAGER,
-	                                             PkdDBusManagerPrivate);
-
 	dbus_g_connection_register_g_object(pkd_dbus_get_connection(),
 	                                    "/com/dronelabs/Perfkit/Manager",
 	                                    G_OBJECT(manager));

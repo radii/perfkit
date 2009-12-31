@@ -61,6 +61,7 @@ PkdSubscription* pkd_subscription_new         (PkdChannel      *channel,
                                                gpointer         sample_data);
 PkdSubscription* pkd_subscription_ref         (PkdSubscription *subscription);
 void             pkd_subscription_unref       (PkdSubscription *subscription);
+guint            pkd_subscription_get_id      (PkdSubscription *subscription);
 void             pkd_subscription_pause       (PkdSubscription *subscription);
 void             pkd_subscription_unpause     (PkdSubscription *subscription);
 PkdEncoder*      pkd_subscription_get_encoder (PkdSubscription *subscription);
