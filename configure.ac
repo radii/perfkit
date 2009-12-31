@@ -147,6 +147,7 @@ AC_OUTPUT([
 	bindings/vala/Makefile
 
 	tests/Makefile
+	tests/run-suite
 	tests/perfkit-daemon/Makefile
 ])
 

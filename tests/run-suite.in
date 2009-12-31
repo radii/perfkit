@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+#
+# run-suite
+#
+# Copyright (C) 2009 Christian Hergert
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+"""
+This is a script to manage running as much of the test suite that can be
+automated.  It will spawn the daemon with the proper settings to run
+within a build environment.  Afterwards, the basic tests suites found
+in the subdirectories are run.  Then, the remote RPC interfaces are stressed
+to the daemon.
+"""
+
+_BUILDROOT="@top_builddir@"
+_BUS_NAME = "com.dronelabs.Perfkit"
+_MANAGER_PATH = "/com/dronelabs/Perfkit/Manager"
+
+import subprocess
+import sys
+import os
+import threading
+
+def buildPathFor(*path):
+    return os.path.join(_BUILDROOT, *path)
+
+def daemonThread():
+    os.chdir(buildPathFor('perfkit-daemon'))
+    os.system('make test')
+
+def callManager(obj, method, *args, **kwargs):
+    callable = getattr(obj, method)
+    return callable(*args,
+                    dbus_interface='com.dronelabs.Perfkit.Manager',
+                    **kwargs)
+
+def runDaemonTests():
+    import dbus
+
+    bus = dbus.SessionBus()
+
+    manager = bus.get_object(_BUS_NAME, _MANAGER_PATH)
+    callManager(manager, 'Ping')
+
+def main():
+    import time
+
+    # Start the perfkit-daemon in a background thread
+    daemon = threading.Thread(target=daemonThread)
+    daemon.setDaemon(True)
+    daemon.start()
+    time.sleep(2)
+
+    # Run the perfkit-daemon unit tests
+    os.chdir(buildPathFor('tests', 'perfkit-daemon'))
+    os.system('make test')
+
+    # Run tests against the daemon
+    runDaemonTests()
+
+    # Kill the daemon
+    time.sleep(2)
+    os.system('pkill -9 perfkit-daemon')
+
+if __name__ == '__main__':
+    sys.exit(main())
