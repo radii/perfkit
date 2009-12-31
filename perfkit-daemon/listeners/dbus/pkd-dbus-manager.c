@@ -99,6 +99,8 @@ sample_cb (gchar    *buffer,
 
 gboolean
 pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
+                                      const gchar     *delivery_address,
+                                      const gchar     *delivery_path,
                                       const gchar     *channel,
                                       guint            buffer_size,
                                       guint            buffer_timeout,

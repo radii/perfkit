@@ -58,6 +58,8 @@ gboolean pkd_dbus_manager_create_channel      (PkdDBusManager  *manager,
                                                gchar          **channel,
                                                GError         **error);
 gboolean pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
+                                               const gchar     *delivery_address,
+                                               const gchar     *delivery_path,
                                                const gchar     *channel,
                                                guint            buffer_size,
                                                guint            buffer_timeout,
