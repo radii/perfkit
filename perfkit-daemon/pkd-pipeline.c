@@ -285,3 +285,18 @@ pkd_pipeline_add_encoder_info (PkdEncoderInfo *encoder_info)
 	                    encoder_info);
 	g_object_unref(encoder_info);
 }
+
+GList*
+pkd_pipeline_get_channels (void)
+{
+	GList *list;
+
+	G_LOCK(channels);
+
+	list = g_list_copy(channels);
+	g_list_foreach(list, (GFunc)g_object_ref, NULL);
+
+	G_UNLOCK(channels);
+
+	return list;
+}

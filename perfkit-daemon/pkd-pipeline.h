@@ -34,16 +34,17 @@
 
 G_BEGIN_DECLS
 
-void pkd_pipeline_init             (void);
-void pkd_pipeline_run              (void);
-void pkd_pipeline_quit             (void);
-void pkd_pipeline_shutdown         (void);
-void pkd_pipeline_add_channel      (PkdChannel      *channel);
-void pkd_pipeline_add_encoder_info (PkdEncoderInfo  *encoder_info);
-void pkd_pipeline_add_listener     (PkdListener     *listener);
-void pkd_pipeline_add_source       (PkdSource       *source);
-void pkd_pipeline_add_source_info  (PkdSourceInfo   *source_info);
-void pkd_pipeline_add_subscription (PkdSubscription *subscription);
+void   pkd_pipeline_init             (void);
+void   pkd_pipeline_run              (void);
+void   pkd_pipeline_quit             (void);
+void   pkd_pipeline_shutdown         (void);
+void   pkd_pipeline_add_channel      (PkdChannel      *channel);
+void   pkd_pipeline_add_encoder_info (PkdEncoderInfo  *encoder_info);
+void   pkd_pipeline_add_listener     (PkdListener     *listener);
+void   pkd_pipeline_add_source       (PkdSource       *source);
+void   pkd_pipeline_add_source_info  (PkdSourceInfo   *source_info);
+void   pkd_pipeline_add_subscription (PkdSubscription *subscription);
+GList* pkd_pipeline_get_channels     (void);
 
 G_END_DECLS
 

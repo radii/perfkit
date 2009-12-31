@@ -30,6 +30,11 @@
 
 #include "pkd-dbus.h"
 #include "pkd-dbus-manager.h"
+
+static gboolean pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
+                                               gchar          ***paths,
+                                               GError          **error);
+
 #include "pkd-dbus-manager-dbus.h"
 
 G_DEFINE_TYPE (PkdDBusManager, pkd_dbus_manager, G_TYPE_OBJECT)
@@ -99,6 +104,30 @@ pkd_dbus_manager_get_processes (PkdDBusManager  *manager,
                                 GError         **error)
 {
 	return FALSE;
+}
+
+static gboolean
+pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
+                               gchar          ***paths,
+                               GError          **error)
+{
+	GList *channels, *iter;
+	gchar **cpaths;
+	gint i;
+
+	channels = pkd_pipeline_get_channels();
+	cpaths = g_malloc0(sizeof(gchar*) * (g_list_length(channels) + 1));
+
+	for (iter = channels, i = 0; iter; iter = iter->next, i++) {
+		cpaths[i] = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+		                            pkd_channel_get_id(iter->data));
+	}
+
+	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
+	g_list_free(channels);
+	*paths = cpaths;
+
+	return TRUE;
 }
 
 static void

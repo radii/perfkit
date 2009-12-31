@@ -57,5 +57,16 @@
             <arg name="processes" type="a(usss)" direction="out"/>
         </method>
 
+        <!--
+            Manager::GetChannels
+
+                Retrieves a list of available channels.
+
+            Returns: An array of object paths.
+        -->
+        <method name="GetChannels">
+            <arg name="channels" type="as" direction="out"/>
+        </method>
+
     </interface>
 </node>
