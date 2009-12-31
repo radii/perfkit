@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_SOURCE_INFO_H__
 #define __PKD_SOURCE_INFO_H__
 
@@ -38,15 +42,27 @@ typedef struct _PkdSourceInfo        PkdSourceInfo;
 typedef struct _PkdSourceInfoClass   PkdSourceInfoClass;
 typedef struct _PkdSourceInfoPrivate PkdSourceInfoPrivate;
 
+/**
+ * PkdSourceFactory:
+ *
+ * The #PkdSourceFactory is a function prototype for creating new instances
+ * of #PkdSource via their respective plugin.  When a shared-module containing
+ * a source plugin is opened, a structure is read to extract meta-data on
+ * the plugin.  One field within that structure is "factory".  This method
+ * is executed to createa a new instance of the source to add to a #PkdChannel.
+ *
+ * Methods implmenting this prototype should simply create a new instance of
+ * the #PkdSource.  Configuration can happen in a later stage.
+ */
 typedef PkdSource* (*PkdSourceFactory) (void);
 
 /**
  * PkdStaticSourceInfo:
  *
- * The #PkdStaticSourceInfo structure provides a table of information for
- * source plugins to include in their namespace under the
- * "pkd_source_plugin" symbol.  This symbol will be read at runtime and
- * the data extracted.
+ * #PkdStaticSourceInfo is a structure that should be exported by
+ * source plugins under the symbol "pkd_source_plugin".  This symbol is read
+ * when the shared-module is loaded by the plugins subsystem.  The data is
+ * then used to construct a #PkdSourceInfo.
  */
 typedef struct
 {
@@ -88,7 +104,6 @@ struct _PkdSourceInfoClass
 
 GType           pkd_source_info_get_type        (void) G_GNUC_CONST;
 GQuark          pkd_source_info_error_quark     (void) G_GNUC_CONST;
-GList*          pkd_source_info_find_all        (void);
 PkdSourceInfo*  pkd_source_info_new             (void);
 gboolean        pkd_source_info_load_from_file  (PkdSourceInfo  *source_info,
                                                  const gchar    *filename,

@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_SUBSCRIPTION_H__
 #define __PKD_SUBSCRIPTION_H__
 
@@ -28,8 +32,6 @@
 #include "pkd-sample.h"
 
 G_BEGIN_DECLS
-
-typedef struct _PkdSubscription PkdSubscription;
 
 /**
  * PkdManifestFunc:
@@ -50,6 +52,17 @@ typedef void (*PkdManifestFunc) (gchar *buf, gsize buflen, gpointer user_data);
  * Callback to receive an encoded stream of samples when they are ready.
  */
 typedef void (*PkdSampleFunc) (gchar *buf, gsize buflen, gpointer user_data);
+
+/**
+ * PkdSubscription:
+ *
+ * #PkdSubscription is an opaque type representing a particular set of data
+ * that a client wishes to receive updates about.  This structure is typically
+ * created by a #PkdListener implementation to manage the work of aggregating
+ * the samples and encoding them into a give format.  This allows the listener
+ * to simply ship the bytes off to the client.
+ */
+typedef struct _PkdSubscription PkdSubscription;
 
 PkdSubscription* pkd_subscription_new         (PkdChannel      *channel,
                                                PkdEncoderInfo  *encoder_info,

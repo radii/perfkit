@@ -86,8 +86,8 @@ pkd_source_info_new (void)
  */
 gboolean
 pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
-                              const gchar   *filename,
-                              GError       **error)
+                               const gchar   *filename,
+                               GError       **error)
 {
 	PkdStaticSourceInfo *static_info = NULL;
 	PkdSourceInfoPrivate *priv;
@@ -243,7 +243,7 @@ pkd_source_info_get_version (PkdSourceInfo *source_info)
  */
 gboolean
 pkd_source_info_conflicts (PkdSourceInfo *source_info,
-                          PkdSourceInfo *other)
+                           PkdSourceInfo *other)
 {
 	PkdSourceInfoPrivate *priv;
 	const gchar *other_uid;

@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_DAEMON_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit-daemon/perfkit-daemon.h> can be included directly."
+#endif
+
 #ifndef __PKD_ENCODER_H__
 #define __PKD_ENCODER_H__
 

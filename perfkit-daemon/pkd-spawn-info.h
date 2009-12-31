@@ -25,6 +25,17 @@
 
 #include <glib.h>
 
+/**
+ * PkdSpawnInfo:
+ *
+ * #PkdSpawnInfo contains information about how a channel should be started.
+ * When a channel is created, using pkd_channel_new(), this structure is
+ * passed in.  The settings are immutable within the channel going forward.
+ *
+ * The pid may be set to signify that the data sources within the channel
+ * should attach to an existing process.  Otherwise, target should be set
+ * to the path of an executable to launch.
+ */
 typedef struct
 {
 	GPid    pid;
