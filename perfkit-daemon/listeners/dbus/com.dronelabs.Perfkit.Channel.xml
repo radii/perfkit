@@ -5,7 +5,6 @@
 
     <!--
         PkdChannel::Start()
-        @channel: A path to a channel.
 
             Starts the PkdChannels profiling.  If necessary, a process is
             spawned.
@@ -13,12 +12,10 @@
         Returns: True on success.
     -->
     <method name="Start">
-        <arg name="channel" type="o" direction="in"/>
     </method>
 
     <!--
         PkdChannel::Stop()
-        @channel: A path to a channel.
         @killpid: True if the inferior process should be killed.
 
             Stops the PkdChannels profiling.  Attached data sources are
@@ -28,13 +25,11 @@
         Returns: None.
     -->
     <method name="Stop">
-        <arg name="channel" type="o" direction="in"/>
         <arg name="killpid" type="b" direction="in"/>
     </method>
 
     <!--
         PkdChannel::Pause()
-        @channel: A path to a channel.
 
             Pauses a PkdChannels profiling.  Attached data sources are
             notified to stop producing samples.  If the source does not
@@ -43,12 +38,10 @@
         Returns: True on success.
     -->
     <method name="Pause">
-        <arg name="channel" type="o" direction="in"/>
     </method>
 
     <!--
         PkdChannel::Unpause()
-        @channel: A path to a channel.
 
             Unpauses a PkdChannels profiling.  Attached data sources
             are notified to wake up and continue producing samples.
@@ -59,7 +52,6 @@
         Returns: True on success.
     -->
     <method name="Unpause">
-        <arg name="channel" type="o" direction="in"/>
     </method>
   </interface>
 </node>
