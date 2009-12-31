@@ -253,7 +253,7 @@ error:
 void
 pkd_plugins_init (void)
 {
-	pkd_plugins_init_listeners();
 	pkd_plugins_init_sources();
 	pkd_plugins_init_encoders();
+	pkd_plugins_init_listeners();
 }
