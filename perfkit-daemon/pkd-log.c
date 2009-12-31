@@ -88,7 +88,6 @@ pkd_log_handler (const gchar    *log_domain,
 	g_free (buffer);
 }
 
-
 /**
  * pkd_log_init:
  * @stdout_: Indicates logging should be written to stdout.
@@ -97,7 +96,7 @@ pkd_log_handler (const gchar    *log_domain,
  * Initializes the logging subsystem.
  *
  * Side effects: GLib logging handlers are attached to receive incoming log
- * messages.  A file-handle is opened for @filename if necessary.
+ *   messages.  A file-handle is opened for @filename if necessary.
  */
 void
 pkd_log_init (gboolean     stdout_,

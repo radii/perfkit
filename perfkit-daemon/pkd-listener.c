@@ -33,19 +33,6 @@ G_DEFINE_TYPE (PkdListener, pkd_listener, G_TYPE_OBJECT)
  */
 
 /**
- * pkd_listener_new:
- *
- * Creates a new instance of #PkdListener.
- *
- * Return value: the newly created #PkdListener instance.
- */
-PkdListener*
-pkd_listener_new (void)
-{
-	return g_object_new (PKD_TYPE_LISTENER, NULL);
-}
-
-/**
  * pkd_listener_start:
  * @listener: A #PkdListener
  * @error: A location for a #GError or %NULL
@@ -58,7 +45,7 @@ pkd_listener_new (void)
  */
 gboolean
 pkd_listener_start (PkdListener  *listener,
-				   GError     **error)
+				    GError      **error)
 {
 	g_return_val_if_fail(PKD_IS_LISTENER(listener), FALSE);
 	return PKD_LISTENER_GET_CLASS(listener)->start(listener, error);
@@ -88,7 +75,7 @@ pkd_listener_stop (PkdListener *listener)
  */
 void
 pkd_listener_source_info_added (PkdListener   *listener,
-							   PkdSourceInfo *source_info)
+							    PkdSourceInfo *source_info)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->source_info_added)
 		PKD_LISTENER_GET_CLASS(listener)->
@@ -104,10 +91,11 @@ pkd_listener_source_info_added (PkdListener   *listener,
  */
 void
 pkd_listener_source_added (PkdListener *listener,
-						  PkdSource   *source)
+						   PkdSource   *source)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->source_added)
-		PKD_LISTENER_GET_CLASS(listener)->source_added(listener, source);
+		PKD_LISTENER_GET_CLASS(listener)->
+			source_added(listener, source);
 }
 
 /**
@@ -119,10 +107,11 @@ pkd_listener_source_added (PkdListener *listener,
  */
 void
 pkd_listener_channel_added (PkdListener *listener,
-						   PkdChannel  *channel)
+						    PkdChannel  *channel)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->channel_added)
-		PKD_LISTENER_GET_CLASS(listener)->channel_added(listener, channel);
+		PKD_LISTENER_GET_CLASS(listener)->
+			channel_added(listener, channel);
 }
 
 /**
@@ -134,7 +123,7 @@ pkd_listener_channel_added (PkdListener *listener,
  */
 void
 pkd_listener_subscription_added (PkdListener     *listener,
-								PkdSubscription *subscription)
+								 PkdSubscription *subscription)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->subscription_added)
 		PKD_LISTENER_GET_CLASS(listener)->
@@ -150,7 +139,7 @@ pkd_listener_subscription_added (PkdListener     *listener,
  */
 void
 pkd_listener_encoder_info_added (PkdListener    *listener,
-                                PkdEncoderInfo *encoder_info)
+                                 PkdEncoderInfo *encoder_info)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->encoder_info_added)
 		PKD_LISTENER_GET_CLASS(listener)->
@@ -160,13 +149,7 @@ pkd_listener_encoder_info_added (PkdListener    *listener,
 static void
 pkd_listener_finalize (GObject *object)
 {
-	PkdListenerPrivate *priv;
-
-	g_return_if_fail (PKD_IS_LISTENER (object));
-
-	priv = PKD_LISTENER (object)->priv;
-
-	G_OBJECT_CLASS (pkd_listener_parent_class)->finalize (object);
+	G_OBJECT_CLASS(pkd_listener_parent_class)->finalize(object);
 }
 
 static void
@@ -174,7 +157,7 @@ pkd_listener_class_init (PkdListenerClass *klass)
 {
 	GObjectClass *object_class;
 
-	object_class = G_OBJECT_CLASS (klass);
+	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = pkd_listener_finalize;
 }
 
