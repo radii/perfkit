@@ -26,6 +26,7 @@
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <string.h>
 
 #include "pkd-dbus.h"
 #include "pkd-dbus-manager.h"
@@ -48,10 +49,36 @@ struct _PkdDBusManagerPrivate
 
 gboolean
 pkd_dbus_manager_create_channel (PkdDBusManager  *manager,
+                                 GPid             pid,
+                                 const gchar     *target,
+                                 gchar          **args,
+                                 gchar          **env,
+                                 const gchar     *working_dir,
                                  gchar          **channel,
                                  GError         **error)
 {
-	return FALSE;
+	PkdChannel   *real_channel;
+	PkdSpawnInfo  spawn;
+
+	memset(&spawn, 0, sizeof(PkdSpawnInfo));
+
+	spawn.pid = pid;
+	spawn.target = (gchar *)target;
+	spawn.args = args;
+	spawn.env = env;
+	spawn.working_dir = (gchar *)working_dir;
+
+	real_channel = pkd_channel_new(&spawn);
+	if (!real_channel) {
+		/* TODO: Set error */
+		return FALSE;
+	}
+
+	pkd_pipeline_add_channel(real_channel);
+	*channel = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	                           pkd_channel_get_id(real_channel));
+
+	return TRUE;
 }
 
 gboolean

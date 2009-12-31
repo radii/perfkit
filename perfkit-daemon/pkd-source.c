@@ -60,7 +60,7 @@ static guint source_seq = 0;
  */
 void
 pkd_source_set_channel (PkdSource  *source,
-                       PkdChannel *channel)
+                        PkdChannel *channel)
 {
 	g_return_if_fail(PKD_IS_SOURCE(source));
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
@@ -86,7 +86,7 @@ pkd_source_set_channel (PkdSource  *source,
  */
 void
 pkd_source_deliver_sample (PkdSource *source,
-                          PkdSample *sample)
+                           PkdSample *sample)
 {
 	g_return_if_fail(source != NULL);
 	g_return_if_fail(sample != NULL);
@@ -111,7 +111,7 @@ pkd_source_deliver_sample (PkdSource *source,
  */
 void
 pkd_source_deliver_manifest (PkdSource   *source,
-                            PkdManifest *manifest)
+                             PkdManifest *manifest)
 {
 	g_return_if_fail(source != NULL);
 	g_return_if_fail(manifest != NULL);
@@ -156,8 +156,8 @@ pkd_source_class_init (PkdSourceClass *klass)
 static void
 pkd_source_init (PkdSource *source)
 {
-	source->priv = G_TYPE_INSTANCE_GET_PRIVATE (source,
-	                                            PKD_TYPE_SOURCE,
-	                                            PkdSourcePrivate);
+	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
+	                                           PKD_TYPE_SOURCE,
+	                                           PkdSourcePrivate);
 	source->priv->source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
 }

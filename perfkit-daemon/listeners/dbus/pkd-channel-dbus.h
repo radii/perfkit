@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.BAXB5U:1) */
+/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.3XIT5U:1) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER (GClosure     *closure,
                                                                   GValue       *return_value,
                                                                   guint         n_param_values,
@@ -100,7 +100,7 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:BOXED,BOOLEAN,POINTER (/tmp/dbus-binding-tool-c-marshallers.BAXB5U:2) */
+/* BOOLEAN:BOXED,BOOLEAN,POINTER (/tmp/dbus-binding-tool-c-marshallers.3XIT5U:2) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_BOOLEAN_POINTER (GClosure     *closure,
                                                                           GValue       *return_value,
                                                                           guint         n_param_values,

@@ -50,6 +50,11 @@ struct _PkdDBusManagerClass
 
 GType    pkd_dbus_manager_get_type            (void) G_GNUC_CONST;
 gboolean pkd_dbus_manager_create_channel      (PkdDBusManager  *manager,
+                                               GPid             pid,
+                                               const gchar     *target,
+                                               gchar          **args,
+                                               gchar          **env,
+                                               const gchar     *working_dir,
                                                gchar          **channel,
                                                GError         **error);
 gboolean pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
