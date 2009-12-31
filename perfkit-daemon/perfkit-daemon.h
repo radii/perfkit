@@ -26,6 +26,7 @@
 #include "pkd-encoder.h"
 #include "pkd-encoder-info.h"
 #include "pkd-listener.h"
+#include "pkd-manifest.h"
 #include "pkd-pipeline.h"
 #include "pkd-sample.h"
 #include "pkd-source.h"
