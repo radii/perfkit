@@ -300,3 +300,33 @@ pkd_pipeline_get_channels (void)
 
 	return list;
 }
+
+GList*
+pkd_pipeline_get_encoder_plugins (void)
+{
+	GList *list;
+
+	G_LOCK(encoder_infos);
+
+	list = g_list_copy(encoder_infos);
+	g_list_foreach(list, (GFunc)g_object_ref, NULL);
+
+	G_UNLOCK(encoder_infos);
+
+	return list;
+}
+
+GList*
+pkd_pipeline_get_source_plugins (void)
+{
+	GList *list;
+
+	G_LOCK(source_infos);
+
+	list = g_list_copy(source_infos);
+	g_list_foreach(list, (GFunc)g_object_ref, NULL);
+
+	G_UNLOCK(source_infos);
+
+	return list;
+}
