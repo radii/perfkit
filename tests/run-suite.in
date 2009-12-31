@@ -53,8 +53,14 @@ def runDaemonTests():
 
     bus = dbus.SessionBus()
 
+    # Get access to the manager service
     manager = bus.get_object(_BUS_NAME, _MANAGER_PATH)
     callManager(manager, 'Ping')
+
+    # Create a new Channel
+    path = callManager(manager, 'CreateChannel',
+                       0, '/bin/nc', "-l -p 10000".split(' '), [], '/')
+    assert path == '/com/dronelabs/Perfkit/Channels/0'
 
 def main():
     import time
