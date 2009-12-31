@@ -34,6 +34,9 @@ static GList     *sources = NULL;
 static GList     *channels = NULL;
 static GList     *encoder_infos = NULL;
 
+/*
+ * Fine grained locks.
+ */
 G_LOCK_DEFINE(channels);
 G_LOCK_DEFINE(listeners);
 G_LOCK_DEFINE(source_infos);
@@ -41,16 +44,19 @@ G_LOCK_DEFINE(sources);
 G_LOCK_DEFINE(subscriptions);
 G_LOCK_DEFINE(encoder_infos);
 
-extern void pkd_listener_source_info_added  (PkdListener *listener,
-											PkdSourceInfo *source_info);
-extern void pkd_listener_source_added       (PkdListener *listener,
-											PkdSource *source);
-extern void pkd_listener_channel_added      (PkdListener *listener,
-											PkdChannel *channel);
-extern void pkd_listener_subscription_added (PkdListener *listener,
-											PkdSubscription *subscription);
-extern void pkd_listener_encoder_info_added (PkdListener *listener,
-                                            PkdEncoderInfo *encoder_info);
+/*
+ * Internal pipeline callback methods.
+ */
+extern void pkd_listener_source_info_added  (PkdListener     *listener,
+											 PkdSourceInfo   *source_info);
+extern void pkd_listener_source_added       (PkdListener     *listener,
+											 PkdSource       *source);
+extern void pkd_listener_channel_added      (PkdListener     *listener,
+											 PkdChannel      *channel);
+extern void pkd_listener_subscription_added (PkdListener     *listener,
+											 PkdSubscription *subscription);
+extern void pkd_listener_encoder_info_added (PkdListener     *listener,
+                                             PkdEncoderInfo  *encoder_info);
 
 /**
  * pkd_pipeline_init:
@@ -67,9 +73,17 @@ pkd_pipeline_init (void)
 
 	if (g_once_init_enter(&init)) {
 		g_message("Initializing pipeline.");
+
+		/*
+		 * Create main loop and needed arrays.
+		 */
 		loop = g_main_loop_new(NULL, FALSE);
 		listeners = g_ptr_array_sized_new(4);
 		subscriptions = g_ptr_array_sized_new(4);
+
+		/*
+		 * Dummy value storage for g_once_*().
+		 */
 		g_once_init_leave(&init, (gsize)loop);
 	}
 }
@@ -86,6 +100,7 @@ void
 pkd_pipeline_run (void)
 {
 	GError *error;
+	const gchar *name;
 	gint i;
 
 	g_return_if_fail(loop != NULL);
@@ -98,14 +113,13 @@ pkd_pipeline_run (void)
 	g_message("Starting active listeners.");
 	for (i = 0 ; i < listeners->len ; i++) {
 		error = NULL;
+		name = g_type_name(G_TYPE_FROM_INSTANCE(listeners->pdata[i]));
+
 		if (!pkd_listener_start(listeners->pdata[i], &error)) {
-			g_warning("%s: %s",
-			          g_type_name(G_TYPE_FROM_INSTANCE(listeners->pdata[i])),
-			          error->message);
+			g_warning("%s: %s", name, error->message);
 			g_error_free(error);
 		} else {
-			g_message("%s started.",
-			          g_type_name(G_TYPE_FROM_INSTANCE(listeners->pdata[i])));
+			g_message("%s started.", name);
 		}
 	}
 
@@ -139,6 +153,8 @@ pkd_pipeline_shutdown (void)
 {
 	gint i;
 
+	g_message("Cleaning up after runtime.");
+
 	for (i = 0; i < listeners->len; i++) {
 		(void)g_object_ref(listeners->pdata[i]);
 		pkd_listener_stop(listeners->pdata[i]);
@@ -147,6 +163,10 @@ pkd_pipeline_shutdown (void)
 
 	g_list_foreach(source_infos, (GFunc)g_object_unref, NULL);
 	g_list_foreach(encoder_infos, (GFunc)g_object_unref, NULL);
+	g_ptr_array_foreach(listeners, (GFunc)g_object_unref, NULL);
+	g_ptr_array_foreach(subscriptions, (GFunc)pkd_subscription_unref, NULL);
+	g_list_foreach(sources, (GFunc)g_object_unref, NULL);
+	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
 }
 
 /**
