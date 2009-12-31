@@ -34,6 +34,9 @@
 static gboolean pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
                                                gchar          ***paths,
                                                GError          **error);
+static gboolean pkd_dbus_manager_ping         (PkdDBusManager   *manager,
+                                               const gchar     **time_,
+                                               GError          **path);
 
 #include "pkd-dbus-manager-dbus.h"
 
@@ -165,6 +168,19 @@ pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
 	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
 	g_list_free(channels);
 	*paths = cpaths;
+
+	return TRUE;
+}
+
+static gboolean
+pkd_dbus_manager_ping (PkdDBusManager  *manager,
+                       const gchar    **time_,
+                       GError         **error)
+{
+	GTimeVal tv;
+
+	g_get_current_time(&tv);
+	*time_ = g_time_val_to_iso8601(&tv);
 
 	return TRUE;
 }

@@ -4,6 +4,17 @@
         <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_dbus_manager"/>
 
         <!--
+            Manager::Ping()
+
+                A dummy method for clients to test connectivity to the daemon.
+
+            Returns: The current time on the daemon.
+        -->
+        <method name="Ping">
+            <arg name="time" type="s" direction="out"/>
+        </method>
+
+        <!--
             Manager::CreateChannel()
             @pid: An existing process id to attach to (or 0 for none).
             @target: The path to an executable (or NULL for none).

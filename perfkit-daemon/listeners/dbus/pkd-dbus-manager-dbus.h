@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:UINT,STRING,BOXED,BOXED,STRING,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.3GDX5U:1) */
+/* BOOLEAN:UINT,STRING,BOXED,BOXED,STRING,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.QL5O5U:1) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER (GClosure     *closure,
                                                                                                         GValue       *return_value,
                                                                                                         guint         n_param_values,
@@ -110,7 +110,7 @@ dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINT
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:STRING,STRING,BOXED,UINT,UINT,BOXED,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.3GDX5U:2) */
+/* BOOLEAN:STRING,STRING,BOXED,UINT,UINT,BOXED,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.QL5O5U:2) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER (GClosure     *closure,
                                                                                                              GValue       *return_value,
                                                                                                              guint         n_param_values,
@@ -169,7 +169,7 @@ dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.3GDX5U:3) */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.QL5O5U:3) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                          GValue       *return_value,
                                                                          guint         n_param_values,
@@ -222,17 +222,18 @@ G_END_DECLS
 
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pkd_dbus_manager_methods[] = {
-  { (GCallback) pkd_dbus_manager_create_channel, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER, 0 },
-  { (GCallback) pkd_dbus_manager_create_subscription, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER, 117 },
-  { (GCallback) pkd_dbus_manager_get_processes, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 293 },
-  { (GCallback) pkd_dbus_manager_get_channels, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 363 },
+  { (GCallback) pkd_dbus_manager_ping, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 0 },
+  { (GCallback) pkd_dbus_manager_create_channel, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER, 51 },
+  { (GCallback) pkd_dbus_manager_create_subscription, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER, 168 },
+  { (GCallback) pkd_dbus_manager_get_processes, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 344 },
+  { (GCallback) pkd_dbus_manager_get_channels, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 414 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_dbus_manager_object_info = {
   0,
   dbus_glib_pkd_dbus_manager_methods,
-  4,
-"com.dronelabs.Perfkit.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0com.dronelabs.Perfkit.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0\0",
+  5,
+"com.dronelabs.Perfkit.Manager\0Ping\0S\0time\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0com.dronelabs.Perfkit.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0\0",
 "\0",
 "\0"
 };
