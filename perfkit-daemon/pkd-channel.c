@@ -28,6 +28,17 @@
 #include "pkd-spawn-info.h"
 #include "pkd-subscription.h"
 
+/**
+ * SECTION:pkd-channel
+ * @title: PkdChannel
+ * @short_description: 
+ *
+ * 
+ */
+
+/*
+ * Internal methods used for management of samples and manifests.
+ */
 extern void pkd_subscription_deliver_sample   (PkdSubscription *subscription,
                                                PkdSample       *sample);
 extern void pkd_subscription_deliver_manifest (PkdSubscription *subscription,
@@ -36,14 +47,6 @@ extern void pkd_sample_set_source_id          (PkdSample       *sample,
                                                gint             source_id);
 extern void pkd_manifest_set_source_id        (PkdManifest     *manifest,
                                                gint             source_id);
-
-/**
- * SECTION:pkd-channel
- * @title: PkdChannel
- * @short_description: 
- *
- * 
- */
 
 G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
@@ -215,6 +218,21 @@ pkd_channel_add_source (PkdChannel    *channel,
 	return NULL;
 }
 
+/**
+ * pkd_channel_start:
+ * @channel: A #PkdChannel
+ * @error: A location for a #GError or %NULL
+ *
+ * Attempts to start the channel.  If the channel was successfully started
+ * the attached #PkdSource<!-- -->'s will be notified to start creating
+ * samples.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ *
+ * Side effects:
+ *   The channels state-machine is altered.
+ *   Data sources are notified to start sending manifests and samples.
+ */
 gboolean
 pkd_channel_start (PkdChannel  *channel,
                    GError     **error)
@@ -222,6 +240,24 @@ pkd_channel_start (PkdChannel  *channel,
 	return TRUE;
 }
 
+/**
+ * pkd_channel_stop:
+ * @channel: A #PkdChannel.
+ * @killpid: If the inferior process should be terminated.
+ * @error: A location for a #GError or %NULL.
+ *
+ * Attempts to stop the channel.  If successful, the attached
+ * #PkdSource<!-- -->'s will be notified that they should stop sending
+ * samples.  After the sources have been notified if @killpid is set
+ * the process will be terminated.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ *
+ * Side effects:
+ *   The state machine is altered.
+ *   Data sources are notified to stop.
+ *   The process is terminated if @killpid is set.
+ */
 gboolean
 pkd_channel_stop (PkdChannel  *channel,
                   gboolean     killpid,
@@ -230,6 +266,22 @@ pkd_channel_stop (PkdChannel  *channel,
 	return TRUE;
 }
 
+/**
+ * pkd_channel_pause:
+ * @channel: A #PkdChannel.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Attempts to pause the channel.  If successful, the attached
+ * #PkdSource<!-- -->'s are notified to pause as well.  Any samples delivered
+ * while paused are silently dropped.  Updated manifests, however, are stored
+ * for future delivery when unpausing occurs.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ *
+ * Side effects:
+ *   The state machine is altered.
+ *   Data sources are notified to pause.
+ */
 gboolean
 pkd_channel_pause (PkdChannel  *channel,
                    GError     **error)
@@ -237,6 +289,21 @@ pkd_channel_pause (PkdChannel  *channel,
 	return TRUE;
 }
 
+/**
+ * pkd_channel_unpause:
+ * @channel: A #PkdChannel.
+ * @error: A location for a #GError or %NULL.
+ *
+ * Attempts to unpause a #PkdChannel.  If successful; the
+ * #PkdSource<!-- -->'s will be notified to unpause and continue sending
+ * samples.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ *
+ * Side effects:
+ *   The state machine is altered.
+ *   Data sources are notified to resume.
+ */
 gboolean
 pkd_channel_unpause (PkdChannel  *channel,
                      GError     **error)
