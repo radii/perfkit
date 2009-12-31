@@ -28,6 +28,8 @@
 #include "pkd-dbus.h"
 #include "pkd-dbus-manager.h"
 #include "pkd-channel-dbus.h"
+#include "pkd-encoder-info-dbus.h"
+#include "pkd-source-info-dbus.h"
 
 G_DEFINE_TYPE (PkdDBus, pkd_dbus, PKD_TYPE_LISTENER)
 
@@ -50,6 +52,8 @@ pkd_dbus_start(PkdListener  *listener,
 {
 	PkdDBusPrivate *priv;
 	GError *error = NULL;
+	GList *list, *iter;
+	gchar *path;
 
 	g_return_val_if_fail(PKD_IS_DBUS(listener), FALSE);
 
@@ -85,11 +89,47 @@ pkd_dbus_start(PkdListener  *listener,
 	 */
 	dbus_g_object_type_install_info(PKD_TYPE_CHANNEL,
 	                                &dbus_glib_pkd_channel_object_info);
+	dbus_g_object_type_install_info(PKD_TYPE_ENCODER_INFO,
+	                                &dbus_glib_pkd_encoder_info_object_info);
+	dbus_g_object_type_install_info(PKD_TYPE_SOURCE_INFO,
+	                                &dbus_glib_pkd_source_info_object_info);
+
 
 	/*
 	 * Register objects on the DBus.
 	 */
+	g_message("Registering DBus Services.");
+
+	/*
+	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
+	 */
 	(void)g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
+
+	/*
+	 * Export available encoder plugins.
+	 */
+	list = pkd_pipeline_get_encoder_plugins();
+	for (iter = list; iter; iter = iter->next) {
+		path = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Encoders/%s",
+		                       pkd_encoder_info_get_uid(iter->data));
+		dbus_g_connection_register_g_object(dbus_conn, path, iter->data);
+		g_free(path);
+	}
+	g_list_foreach(list, (GFunc)g_object_unref, NULL);
+	g_list_free(list);
+
+	/*
+	 * Export available source plugins.
+	 */
+	list = pkd_pipeline_get_source_plugins();
+	for (iter = list; iter; iter = iter->next) {
+		path = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+		                       pkd_source_info_get_uid(iter->data));
+		dbus_g_connection_register_g_object(dbus_conn, path, iter->data);
+		g_free(path);
+	}
+	g_list_foreach(list, (GFunc)g_object_unref, NULL);
+	g_list_free(list);
 
 	g_message("DBus listener started.");
 
