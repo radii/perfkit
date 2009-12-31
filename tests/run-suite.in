@@ -76,7 +76,17 @@ def main():
     os.system('make test')
 
     # Run tests against the daemon
-    runDaemonTests()
+    try:
+        runDaemonTests()
+        print ''
+        print 'Tests executed successfully.'
+        print ''
+    except Exception, ex:
+        print >> sys.stderr, ''
+        print >> sys.stderr, 'There was an error executing the test suite!'
+        print >> sys.stderr, ''
+        print >> sys.stderr, ex
+        print >> sys.stderr, ''
 
     # Kill the daemon
     time.sleep(2)
