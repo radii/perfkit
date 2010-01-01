@@ -31,10 +31,18 @@
 /**
  * SECTION:pkd-channel
  * @title: PkdChannel
- * @short_description: 
+ * @short_description: Data source aggregation and process management
  *
- * 
+ * #PkdChannel encapsulates the logic for spawning a new inferior process or
+ * attaching to an existing one.  #PkdSource<!-- -->'s are added to the
+ * channel to provide instrumentation into the inferior.
+ *
+ * #PkdSource implementations will deliver data samples to the channel
+ * directly.  The channel will in turn pass them on to any subscriptions that
+ * are observing the channel.  This also occurs for #PkdManifest updates.
  */
+
+G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
 /*
  * Internal methods used for management of samples and manifests.
@@ -47,8 +55,6 @@ extern void pkd_sample_set_source_id          (PkdSample       *sample,
                                                gint             source_id);
 extern void pkd_manifest_set_source_id        (PkdManifest     *manifest,
                                                gint             source_id);
-
-G_DEFINE_TYPE (PkdChannel, pkd_channel, G_TYPE_OBJECT)
 
 struct _PkdChannelPrivate
 {
@@ -454,12 +460,22 @@ pkd_channel_class_init (PkdChannelClass *klass)
 static void
 pkd_channel_init (PkdChannel *channel)
 {
-	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE (channel,
-	                                             PKD_TYPE_CHANNEL,
-	                                             PkdChannelPrivate);
+	guint channel_id;
+
+	/*
+	 * Get the next monotonic id in the sequence.
+	 */
+	channel_id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
+
+	/*
+	 * Setup private members.
+	 */
+	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE(channel,
+	                                            PKD_TYPE_CHANNEL,
+	                                            PkdChannelPrivate);
 	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
 	channel->priv->indexed = g_tree_new(g_direct_equal);
-	channel->priv->channel_id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
+	channel->priv->channel_id = channel_id;
 }
