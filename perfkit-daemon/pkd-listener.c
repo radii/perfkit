@@ -22,15 +22,23 @@
 
 #include "pkd-listener.h"
 
-G_DEFINE_TYPE (PkdListener, pkd_listener, G_TYPE_OBJECT)
-
 /**
  * SECTION:pkd-listener
  * @title: PkdListener
- * @short_description: 
+ * @short_description: RPCs for client access.
  *
- * 
+ * The #PkdListener class provides a base object for RPC systems to inherit
+ * from.  It receives callbacks from the pipeline when import events occur.
+ *
+ * Listeners are implemented in their own shared module found in
+ * ${libdir}/perfkit-daemon/listeners.  Listener plugins should export the
+ * pkd_listener_register symbol which is called after the module is loaded.
+ * They are responsible for creating and adding their #PkdListener instance
+ * to the pipeline with pkd_pipeline_add_listener().  It's good practice
+ * to allow the listener to be disabled via the config subsystem.
  */
+
+G_DEFINE_TYPE (PkdListener, pkd_listener, G_TYPE_OBJECT)
 
 /**
  * pkd_listener_start:
@@ -41,7 +49,8 @@ G_DEFINE_TYPE (PkdListener, pkd_listener, G_TYPE_OBJECT)
  *
  * Returns: %TRUE on success; otherwise %FALSE and @error is set.
  *
- * Side effects: Listener implementation dependent.
+ * Side effects:
+ *   Listener implementation dependent.
  */
 gboolean
 pkd_listener_start (PkdListener  *listener,
@@ -57,7 +66,8 @@ pkd_listener_start (PkdListener  *listener,
  *
  * Stops the #PkdListener.
  *
- * Side effects: Listener implementation dependent.
+ * Side effects:
+ *   Listener implementation dependent.
  */
 void
 pkd_listener_stop (PkdListener *listener)
