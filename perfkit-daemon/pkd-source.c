@@ -27,8 +27,6 @@
 #include "pkd-channel.h"
 #include "pkd-source.h"
 
-G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
-
 /**
  * SECTION:pkd-source
  * @title: PkdSource
@@ -37,8 +35,17 @@ G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
  * 
  */
 
-extern void pkd_channel_deliver_sample   (PkdChannel *channel, PkdSource *source, PkdSample *sample);
-extern void pkd_channel_deliver_manifest (PkdChannel *channel, PkdSource *source, PkdManifest *manifest);
+G_DEFINE_ABSTRACT_TYPE (PkdSource, pkd_source, G_TYPE_OBJECT)
+
+/*
+ * Internal callbacks for channel delivery.
+ */
+extern void pkd_channel_deliver_sample   (PkdChannel  *channel,
+                                          PkdSource   *source,
+                                          PkdSample   *sample);
+extern void pkd_channel_deliver_manifest (PkdChannel  *channel,
+                                          PkdSource   *source,
+                                          PkdManifest *manifest);
 
 struct _PkdSourcePrivate
 {
@@ -123,10 +130,6 @@ pkd_source_deliver_manifest (PkdSource   *source,
 static void
 pkd_source_finalize (GObject *object)
 {
-#if 0
-	PkdSourcePrivate *priv = PKD_SOURCE(object)->priv;
-#endif
-
 	G_OBJECT_CLASS(pkd_source_parent_class)->finalize(object);
 }
 
@@ -156,8 +159,12 @@ pkd_source_class_init (PkdSourceClass *klass)
 static void
 pkd_source_init (PkdSource *source)
 {
+	gint source_id;
+
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKD_TYPE_SOURCE,
 	                                           PkdSourcePrivate);
-	source->priv->source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
+
+	source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
+	source->priv->source_id = source_id;
 }

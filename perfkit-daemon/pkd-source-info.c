@@ -27,15 +27,20 @@
 
 #include "pkd-source-info.h"
 
-G_DEFINE_TYPE(PkdSourceInfo, pkd_source_info, G_TYPE_OBJECT)
-
 /**
- * SECTION:pkd-source_info
+ * SECTION:pkd-source-info
  * @title: PkdSourceInfo
- * @short_description: 
+ * @short_description: #PkdSource plugins
  *
- * 
+ * #PkdSourceInfo represents a plugin that provides #PkdSource<!-- -->'s for
+ * instrumenting a process.  When the plugin's module is opened, various data
+ * is extracted and stored in a #PkdSourceInfo structure.
+ *
+ * pkd_source_info_create() will call the factory method for the plugin to
+ * create a new instance of a #PkdSource.
  */
+
+G_DEFINE_TYPE (PkdSourceInfo, pkd_source_info, G_TYPE_OBJECT)
 
 struct _PkdSourceInfoPrivate
 {
@@ -82,12 +87,13 @@ pkd_source_info_new (void)
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  *
- * Side effects: The module is opened and executed.
+ * Side effects:
+ *   The module is opened and information extracted from introspected symbols.
  */
 gboolean
-pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
-                               const gchar   *filename,
-                               GError       **error)
+pkd_source_info_load_from_file (PkdSourceInfo  *source_info,
+                                const gchar   *filename,
+                                GError       **error)
 {
 	PkdStaticSourceInfo *static_info = NULL;
 	PkdSourceInfoPrivate *priv;
@@ -173,7 +179,7 @@ pkd_source_info_load_from_file(PkdSourceInfo  *source_info,
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_name(PkdSourceInfo *source_info)
+pkd_source_info_get_name (PkdSourceInfo *source_info)
 {
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 	return source_info->priv->name;
@@ -190,7 +196,7 @@ pkd_source_info_get_name(PkdSourceInfo *source_info)
  * Side effects: None.
  */
 const gchar*
-pkd_source_info_get_uid(PkdSourceInfo *source_info)
+pkd_source_info_get_uid (PkdSourceInfo *source_info)
 {
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 	return source_info->priv->uid;
@@ -273,16 +279,16 @@ pkd_source_info_conflicts (PkdSourceInfo *source_info,
 }
 
 GQuark
-pkd_source_info_error_quark(void)
+pkd_source_info_error_quark (void)
 {
 	return g_quark_from_static_string("pkd-source-info-error-quark");
 }
 
 static void
 pkd_source_info_get_property (PkdSourceInfo *source_info,
-                             guint         prop_id,
-                             GValue       *value,
-                             GParamSpec   *pspec)
+                              guint          prop_id,
+                              GValue        *value,
+                              GParamSpec    *pspec)
 {
 	switch (prop_id) {
 	case PROP_UID:
@@ -303,7 +309,7 @@ pkd_source_info_get_property (PkdSourceInfo *source_info,
 }
 
 static void
-pkd_source_info_finalize(GObject *object)
+pkd_source_info_finalize (GObject *object)
 {
 	PkdSourceInfoPrivate *priv;
 
@@ -322,7 +328,7 @@ pkd_source_info_finalize(GObject *object)
 static void
 pkd_source_info_dispose(GObject *object)
 {
-	G_OBJECT_CLASS (pkd_source_info_parent_class)->dispose (object);
+	G_OBJECT_CLASS(pkd_source_info_parent_class)->dispose(object);
 }
 
 static void
@@ -390,7 +396,7 @@ pkd_source_info_class_init(PkdSourceInfoClass *klass)
 }
 
 static void
-pkd_source_info_init(PkdSourceInfo *source_info)
+pkd_source_info_init (PkdSourceInfo *source_info)
 {
 	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (source_info,
 	                                                 PKD_TYPE_SOURCE_INFO,
