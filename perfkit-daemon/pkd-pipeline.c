@@ -64,17 +64,17 @@ G_LOCK_DEFINE(subscriptions);
  * Internal pipeline callback methods.
  */
 extern void pkd_listener_channel_added      (PkdListener     *listener,
-											 PkdChannel      *channel);
+                                             PkdChannel      *channel);
 extern void pkd_listener_encoder_added      (PkdListener     *listener,
                                              PkdEncoder      *encoder);
 extern void pkd_listener_encoder_info_added (PkdListener     *listener,
                                              PkdEncoderInfo  *encoder_info);
 extern void pkd_listener_source_added       (PkdListener     *listener,
-											 PkdSource       *source);
+                                             PkdSource       *source);
 extern void pkd_listener_source_info_added  (PkdListener     *listener,
-											 PkdSourceInfo   *source_info);
+                                             PkdSourceInfo   *source_info);
 extern void pkd_listener_subscription_added (PkdListener     *listener,
-											 PkdSubscription *subscription);
+                                             PkdSubscription *subscription);
 
 /**
  * pkd_pipeline_init:
