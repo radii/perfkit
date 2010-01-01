@@ -24,7 +24,27 @@
 
 #include "pkd-sample.h"
 
-#define PKD_SAMPLE_WRITER_INDEX(w,i) G_STMT_START {         \
+/**
+ * SECTION:pkd-sample
+ * @title: PkdSample
+ * @short_description: Samples within a data stream
+ *
+ * #PkdSample represents a set of data from a particular sample within a
+ * data stream.  It contains as little information as possible within
+ * its buffer so that it requires little size overhead.  Data values contain
+ * an integer (usually a single byte) representing the data type within
+ * the active #PkdManifest followed by there data.
+ *
+ * More information on the serialization format can be found in the
+ * OVERVIEW file in the source tree.
+ *
+ * Various #PkdEncoder<!-- -->'s can perform extra compression based on the
+ * known information in the #PkdManifest.
+ *
+ * Only a few data types are supported but more will be added as needed.
+ */
+
+#define PKD_SAMPLE_WRITER_INDEX(w,i) G_STMT_START {        \
     if ((w)->row_count < 0xFF) {                           \
         (w)->data[(w)->pos++] = (gchar)((i) & 0xFF);       \
     } else {                                               \
@@ -37,10 +57,10 @@ struct _PkdSample
 {
 	volatile gint  ref_count;
 
-	gint           source_id;
-	gint           len;
-	gchar         *data;
-	gchar          inline_data[64];
+	gint   source_id;       /* Source identifier within the channel. */
+	gint   len;             /* Length of data within the sample. */
+	gchar *data;            /* Data buffer. Default is inline_buffer. */
+	gchar  inline_data[64]; /* Default inline buffer for @data. */
 };
 
 static void
@@ -64,6 +84,8 @@ pkd_sample_new(void)
 
 	sample = g_slice_new0(PkdSample);
 	sample->ref_count = 1;
+	sample->len = 0;
+	sample->data = &sample->inline_buffer[0];
 
 	return sample;
 }
@@ -367,7 +389,12 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 	gint wo = 0, so = 0, c, idx, l;
 	gchar *str;
 	GType type;
+	gboolean comp;
 
+	/*
+	 * Calculate how much extra space is needed based on complex type
+	 * expansion such as strings.
+	 */
 	s->len = writer->pos + writer->extra;
 	c = writer->row_count;
 
@@ -382,16 +409,17 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 	}
 
 	/*
-	 * First byte is id-compression.
+	 * First byte denotes id-compression.  Id compression allows us to use a
+	 * single byte for the sample rather than a full integer of 4 bytes.
 	 */
-	s->data[so++] = writer->data[wo++];
+	s->data[so++] = comp = writer->data[wo++];
 
 	while (wo < s->len) {
 		/*
-		 * Get the manifest index.  The index is one byte if the total table
-		 * count is < 0xFF.  We also copy the index to the sample.
+		 * Get the manifest index.  Only use one byte if we are using
+		 * compressed manifest ids.
 		 */
-		if (c < 0xFF) {
+		if (comp) {
 			s->data[so++] = idx = writer->data[wo++];
 		} else {
 			memcpy(&idx, &writer->data[wo], sizeof(gint));
@@ -427,7 +455,9 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 		default:
 			/*
 			 * NOTE:
-			 *   Possibly expand complex types in the future.
+			 *
+			 *   Possibly expand complex types through custom serializers in
+			 *   the future.
 			 */
 			g_assert_not_reached();
 		}
