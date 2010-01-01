@@ -28,6 +28,35 @@
 #include "pkd-plugins.h"
 #include "pkd-source-info.h"
 
+/**
+ * SECTION:pkd-plugins
+ * @title: Plugins
+ * @short_description: Runtime plugin management
+ *
+ * This module provides control over the plugin subsystem.  When initialized,
+ * it will crack open the available plugins on the system and extract the
+ * necessary meta-data for use during runtime.
+ *
+ * Listeners have a callback method which is invoked to setup the listener
+ * during startup.  The listeners will often check the configuration file
+ * to see if they are enabled.  If not, they do nothing.
+ *
+ * Both #PkdSource and #PkdEncoder instances are created dynamically through
+ * a factory method within the plugin modules.  Information on these plugins
+ * is extracted and loaded into #PkdSourceInfo and #PkdEncoderInfo objects
+ * accordingly.
+ */
+
+/**
+ * pkd_plugins_init_encoders:
+ *
+ * Initialize the #PkdEncoder plugins.  This is performed by opening the
+ * various shared libraries and extracting the pk_encoder_plugin symbol to
+ * find more information.
+ *
+ * Side effects:
+ *   The encoder shared modules are opened and introspected.
+ */
 static void
 pkd_plugins_init_encoders (void)
 {
@@ -41,10 +70,14 @@ pkd_plugins_init_encoders (void)
 	/*
 	 * Retrieve the plugin directory.
 	 */
-	if (g_getenv("PERFKIT_ENCODERS_DIR"))
+	if (g_getenv("PERFKIT_ENCODERS_DIR")) {
 		plugin_dir = g_strdup(g_getenv("PERFKIT_ENCODERS_DIR"));
-	else
-		plugin_dir = g_build_filename(PACKAGE_LIB_DIR, "perfkit-daemon", "encoders", NULL);
+	} else {
+		plugin_dir = g_build_filename(PACKAGE_LIB_DIR,
+		                              "perfkit-daemon",
+		                              "encoders",
+		                              NULL);
+	}
 
 	/*
 	 * Open the plugin directory.
@@ -97,6 +130,16 @@ error:
 	g_free(plugin_dir);
 }
 
+/**
+ * pkd_plugins_init_sources:
+ *
+ * Initialize the #PkdSource plugins.  This is performed by opening the
+ * various shared libraries and extracting the pk_source_plugin symbol to
+ * find more information.
+ *
+ * Side effects:
+ *   The source plugin shared modules are opened and introspected.
+ */
 static void
 pkd_plugins_init_sources (void)
 {
@@ -110,10 +153,14 @@ pkd_plugins_init_sources (void)
 	/*
 	 * Retrieve the plugin directory.
 	 */
-	if (g_getenv("PERFKIT_SOURCES_DIR"))
+	if (g_getenv("PERFKIT_SOURCES_DIR")) {
 		plugin_dir = g_strdup(g_getenv("PERFKIT_SOURCES_DIR"));
-	else
-		plugin_dir = g_build_filename(PACKAGE_LIB_DIR, "perfkit-daemon", "sources", NULL);
+	} else {
+		plugin_dir = g_build_filename(PACKAGE_LIB_DIR,
+		                              "perfkit-daemon",
+		                              "sources",
+		                              NULL);
+	}
 
 	/*
 	 * Open the plugin directory.
@@ -166,6 +213,16 @@ error:
 	g_free(plugin_dir);
 }
 
+/**
+ * pkd_plugins_init_listeners:
+ *
+ * Initializes the available #PkdListener plugins.  This is performed by
+ * opening the listener plugins shared-modules and locating the
+ * pkd_listener_register symbol.  That symbol is executed at which point
+ * the module is reponsible for creating a #PkdListener instance if
+ * necessary and registering it with the pipeline via
+ * pkd_pipeline_add_listener().
+ */
 static void
 pkd_plugins_init_listeners (void)
 {
@@ -248,7 +305,8 @@ error:
  * into the process space.  This method should only ever be called once;
  * during startup.
  *
- * Side effects: Plugin shared libraries are loaded into the process space.
+ * Side effects:
+ *   Plugin shared libraries are loaded into the process space.
  */
 void
 pkd_plugins_init (void)
