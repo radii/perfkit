@@ -113,9 +113,15 @@ pkd_subscription_new (PkdChannel      *channel,
 	g_return_val_if_fail(sample_func != NULL, NULL);
 	g_return_val_if_fail(manifest_func != NULL, NULL);
 
+	/*
+	 * Create an instance of the desired encoder if necessary.
+	 */
 	if (encoder_info)
 		encoder = pkd_encoder_info_create(encoder_info);
 
+	/*
+	 * Setup the subscription values.
+	 */
 	sub = g_slice_new0(PkdSubscription);
 	sub->ref_count = 1;
 	sub->sub_id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
@@ -132,6 +138,9 @@ pkd_subscription_new (PkdChannel      *channel,
 	sub->sample_func = sample_func;
 	sub->sample_data = sample_data;
 
+	/*
+	 * Notify the channel of the subscription.
+	 */
 	pkd_channel_add_subscription(channel, sub);
 
 	return sub;
@@ -196,6 +205,16 @@ pkd_subscription_get_id (PkdSubscription *subscription)
 	return subscription->sub_id;
 }
 
+/**
+ * pkd_subscription_needs_flush_locked:
+ * @sub: A #PkdSubscription.
+ *
+ * Determines if the subscrtipion needs to be flushed immediately.
+ *
+ * Returns: %TRUE if the subscription needs to be flushed.
+ *
+ * Side effects: None.
+ */
 static inline gboolean
 pkd_subscription_needs_flush_locked (PkdSubscription *sub)
 {
@@ -290,6 +309,12 @@ pkd_subscription_deliver_sample (PkdSubscription *subscription,
 	 *   time being, we will just protect the thing with a mutex.
 	 *   However, we should look at doing liburcu or something else in the
 	 *   future.
+	 *
+	 *   Upon further investigation, liburcu probably isn't what we would
+	 *   want since it is for read heavy situations (like a routing table).
+	 *   What we need is a lightweight queue.  Where multiple writers can
+	 *   deliver fast.  Flushing will typically be done by a single consumer
+	 *   at a time.  Or at minimum we can use the mutex for consumers.
 	 *
 	 */
 
