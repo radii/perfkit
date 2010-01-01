@@ -59,7 +59,7 @@ struct _PkdSample
 
 	gint   source_id;       /* Source identifier within the channel. */
 	gint   len;             /* Length of data within the sample. */
-	gchar *data;            /* Data buffer. Default is inline_buffer. */
+	gchar *data;            /* Data buffer. Default is inline_data. */
 	gchar  inline_data[64]; /* Default inline buffer for @data. */
 };
 
@@ -85,7 +85,7 @@ pkd_sample_new(void)
 	sample = g_slice_new0(PkdSample);
 	sample->ref_count = 1;
 	sample->len = 0;
-	sample->data = &sample->inline_buffer[0];
+	sample->data = &sample->inline_data[0];
 
 	return sample;
 }
