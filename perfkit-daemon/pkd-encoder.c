@@ -27,9 +27,18 @@
 /**
  * SECTION:pkd-encoder
  * @title: PkdEncoder
- * @short_description: 
+ * @short_description: Sample and Manifest encoding
  *
- * 
+ * The #PkdEncoder interface provides a way to encode both manifests and
+ * samples into buffers which can be transported to clients.  The default
+ * encoder implementation is fairly strait forward and passes native
+ * samples to the client with little encapsulation.
+ *
+ * It is possible to implement new encoders that compress or encrypt data
+ * if desired.
+ *
+ * The OVERVIEW file in the source tree provides more information on the
+ * encoding format for the default encoder.
  */
 
 static gboolean
