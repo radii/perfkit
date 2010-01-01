@@ -26,6 +26,23 @@
 
 #include "pkd-config.h"
 
+/**
+ * SECTION:pkd-config
+ * @title: Configuration
+ * @short_description: Parsing and management of runtime configuration
+ *
+ * The pkd_config_* set of functions provide access into reading the
+ * configuration file for the executing process.  The configuration file
+ * is powered by a #GKeyFile and is accessable through the group name
+ * and key.  You provide the default value in case the key is not found.
+ *
+ * For example, to see if the DBus listener is disabled, we can use:
+ *
+ * [[
+ * gboolean disabled = pkd_config_get_boolean("dbus", "disabled", TRUE);
+ * ]]
+ */
+
 static GKeyFile *config = NULL;
 
 /**
@@ -85,8 +102,8 @@ pkd_config_init (const gchar *filename)
  */
 gchar*
 pkd_config_get_string (const gchar *group,
-                      const gchar *key,
-                      const gchar *default_)
+                       const gchar *key,
+                       const gchar *default_)
 {
 	g_return_val_if_fail(group != NULL, NULL);
 	g_return_val_if_fail(key != NULL, NULL);
@@ -114,8 +131,8 @@ pkd_config_get_string (const gchar *group,
  */
 gint
 pkd_config_get_integer (const gchar *group,
-                       const gchar *key,
-                       gint         default_)
+                        const gchar *key,
+                        gint         default_)
 {
 	g_return_val_if_fail(group != NULL, 0);
 	g_return_val_if_fail(key != NULL, 0);
@@ -141,11 +158,10 @@ pkd_config_get_integer (const gchar *group,
  *
  * Side effects: None.
  */
-
 gboolean
 pkd_config_get_boolean (const gchar *group,
-                       const gchar *key,
-                       gboolean     default_)
+                        const gchar *key,
+                        gboolean     default_)
 {
 	g_return_val_if_fail(group != NULL, FALSE);
 	g_return_val_if_fail(key != NULL, FALSE);
