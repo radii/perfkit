@@ -39,6 +39,7 @@ void   pkd_pipeline_run                 (void);
 void   pkd_pipeline_quit                (void);
 void   pkd_pipeline_shutdown            (void);
 void   pkd_pipeline_add_channel         (PkdChannel      *channel);
+void   pkd_pipeline_add_encoder         (PkdEncoder      *encoder);
 void   pkd_pipeline_add_encoder_info    (PkdEncoderInfo  *encoder_info);
 void   pkd_pipeline_add_listener        (PkdListener     *listener);
 void   pkd_pipeline_add_source          (PkdSource       *source);

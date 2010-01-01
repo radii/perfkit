@@ -69,6 +69,8 @@ struct _PkdListenerClass
 	 */
 	void (*channel_added)      (PkdListener     *listener,
 	                            PkdChannel      *channel);
+	void (*encoder_added)      (PkdListener     *listener,
+	                            PkdEncoder      *encoder);
 	void (*encoder_info_added) (PkdListener     *listener,
 	                            PkdEncoderInfo  *encoder_info);
 	void (*source_info_added)  (PkdListener     *listener,

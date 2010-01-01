@@ -40,37 +40,41 @@
  * pkd_pipeline_run() and pkd_pipeline_quit().
  */
 
-static GMainLoop *loop = NULL;
-static GPtrArray *listeners = NULL;
-static GPtrArray *subscriptions = NULL;
-static GList     *source_infos = NULL;
-static GList     *sources = NULL;
 static GList     *channels = NULL;
+static GList     *encoders = NULL;
 static GList     *encoder_infos = NULL;
+static GPtrArray *listeners = NULL;
+static GMainLoop *loop = NULL;
+static GList     *sources = NULL;
+static GList     *source_infos = NULL;
+static GPtrArray *subscriptions = NULL;
 
 /*
  * Mutable data locks.
  */
 G_LOCK_DEFINE(channels);
-G_LOCK_DEFINE(listeners);
-G_LOCK_DEFINE(source_infos);
-G_LOCK_DEFINE(sources);
-G_LOCK_DEFINE(subscriptions);
+G_LOCK_DEFINE(encoders);
 G_LOCK_DEFINE(encoder_infos);
+G_LOCK_DEFINE(listeners);
+G_LOCK_DEFINE(sources);
+G_LOCK_DEFINE(source_infos);
+G_LOCK_DEFINE(subscriptions);
 
 /*
  * Internal pipeline callback methods.
  */
-extern void pkd_listener_source_info_added  (PkdListener     *listener,
-											 PkdSourceInfo   *source_info);
-extern void pkd_listener_source_added       (PkdListener     *listener,
-											 PkdSource       *source);
 extern void pkd_listener_channel_added      (PkdListener     *listener,
 											 PkdChannel      *channel);
-extern void pkd_listener_subscription_added (PkdListener     *listener,
-											 PkdSubscription *subscription);
+extern void pkd_listener_encoder_added      (PkdListener     *listener,
+                                             PkdEncoder      *encoder);
 extern void pkd_listener_encoder_info_added (PkdListener     *listener,
                                              PkdEncoderInfo  *encoder_info);
+extern void pkd_listener_source_added       (PkdListener     *listener,
+											 PkdSource       *source);
+extern void pkd_listener_source_info_added  (PkdListener     *listener,
+											 PkdSourceInfo   *source_info);
+extern void pkd_listener_subscription_added (PkdListener     *listener,
+											 PkdSubscription *subscription);
 
 /**
  * pkd_pipeline_init:
@@ -301,6 +305,31 @@ pkd_pipeline_add_subscription (PkdSubscription *subscription)
 						(GFunc)pkd_listener_subscription_added,
 						subscription);
 	pkd_subscription_unref(subscription);
+}
+
+/**
+ * pkd_pipeline_add_encoder:
+ * @encoder: A #PkdEncoder
+ *
+ * Registers a #PkdEncoder instance with the pipeline.  This allows listeners
+ * to be notified of the encoder in the case they want to notify clients.
+ *
+ * Side effects: None.
+ */
+void
+pkd_pipeline_add_encoder (PkdEncoder *encoder)
+{
+	g_return_if_fail(PKD_IS_ENCODER(encoder));
+
+	G_LOCK(encoders);
+	encoders = g_list_append(encoders, g_object_ref(encoder));
+	G_UNLOCK(encoders);
+
+	encoder = g_object_ref(encoder);
+	g_ptr_array_foreach(listeners,
+	                    (GFunc)pkd_listener_encoder_added,
+	                    encoder);
+	g_object_unref(encoder);
 }
 
 /**

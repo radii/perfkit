@@ -104,8 +104,7 @@ pkd_listener_source_added (PkdListener *listener,
 						   PkdSource   *source)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->source_added)
-		PKD_LISTENER_GET_CLASS(listener)->
-			source_added(listener, source);
+		PKD_LISTENER_GET_CLASS(listener)->source_added(listener, source);
 }
 
 /**
@@ -120,8 +119,22 @@ pkd_listener_channel_added (PkdListener *listener,
 						    PkdChannel  *channel)
 {
 	if (PKD_LISTENER_GET_CLASS(listener)->channel_added)
-		PKD_LISTENER_GET_CLASS(listener)->
-			channel_added(listener, channel);
+		PKD_LISTENER_GET_CLASS(listener)->channel_added(listener, channel);
+}
+
+/**
+ * pkd_listener_encoder_added:
+ * @listener: A #PkdListener
+ * @encoder: A #PkdEncoder
+ *
+ * Executes the "encoder-added" pipeline callback.
+ */
+void
+pkd_listener_encoder_added (PkdListener *listener,
+                            PkdEncoder  *encoder)
+{
+	if (PKD_LISTENER_GET_CLASS(listener)->encoder_added)
+		PKD_LISTENER_GET_CLASS(listener)->encoder_added(listener, encoder);
 }
 
 /**

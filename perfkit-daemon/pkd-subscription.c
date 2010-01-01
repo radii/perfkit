@@ -22,6 +22,7 @@
 
 #include <string.h>
 
+#include "pkd-pipeline.h"
 #include "pkd-subscription.h"
 
 /**
@@ -138,8 +139,10 @@ pkd_subscription_new (PkdChannel      *channel,
 	/*
 	 * Create an instance of the desired encoder if necessary.
 	 */
-	if (encoder_info)
+	if (encoder_info) {
 		encoder = pkd_encoder_info_create(encoder_info);
+		pkd_pipeline_add_encoder(encoder);
+	}
 
 	/*
 	 * Setup the subscription values.
