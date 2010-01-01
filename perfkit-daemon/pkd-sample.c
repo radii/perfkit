@@ -414,7 +414,7 @@ pkd_sample_writer_finish (PkdSampleWriter *writer)
 	 */
 	s->data[so++] = comp = writer->data[wo++];
 
-	while (wo < s->len) {
+	while (wo < writer->pos) {
 		/*
 		 * Get the manifest index.  Only use one byte if we are using
 		 * compressed manifest ids.
