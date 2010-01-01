@@ -127,6 +127,25 @@ pkd_source_deliver_manifest (PkdSource   *source,
 	pkd_channel_deliver_manifest(source->priv->channel, source, manifest);
 }
 
+/**
+ * pkd_source_get_id:
+ * @source: A #PkdSource
+ *
+ * Retrieves the unique source identifier for the source instance.  This is not
+ * the same as the source identifier within a #PkdChannel.  This is a monotonic
+ * identifier assigned to each source upon instance creation.
+ *
+ * Returns: An unsigned integer containing the source id.
+ *
+ * Side effects: None.
+ */
+guint
+pkd_source_get_id (PkdSource *source)
+{
+	g_return_val_if_fail(PKD_IS_SOURCE(source), 0);
+	return source->priv->source_id;
+}
+
 static void
 pkd_source_finalize (GObject *object)
 {

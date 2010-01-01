@@ -26,6 +26,20 @@
 #include "pkd-config.h"
 #include "pkd-pipeline.h"
 
+/**
+ * SECTION:pkd-pipeline
+ * @title: Pipeline
+ * @short_description: Daemon management and event pipeline
+ *
+ * The pipeline module provides access to managing the perfkit-daemon process.
+ * It has hooks into the various source and listener plugins as well as
+ * channels and subscriptions.  It is responsible for notifying listeners of
+ * various pipeline events which may be of interest.
+ *
+ * The pipeline also manages the mainloop for the application through
+ * pkd_pipeline_run() and pkd_pipeline_quit().
+ */
+
 static GMainLoop *loop = NULL;
 static GPtrArray *listeners = NULL;
 static GPtrArray *subscriptions = NULL;
@@ -35,7 +49,7 @@ static GList     *channels = NULL;
 static GList     *encoder_infos = NULL;
 
 /*
- * Fine grained locks.
+ * Mutable data locks.
  */
 G_LOCK_DEFINE(channels);
 G_LOCK_DEFINE(listeners);
@@ -64,7 +78,7 @@ extern void pkd_listener_encoder_info_added (PkdListener     *listener,
  * Initializes the pipeline subsystem.
  *
  * Side effects:
- *     The mainloop is initialized.
+ *   The mainloop is initialized.
  */
 void
 pkd_pipeline_init (void)
@@ -161,6 +175,8 @@ pkd_pipeline_shutdown (void)
 		g_object_unref(listeners->pdata[i]);
 	}
 
+	g_message("Listeners stopped.");
+
 	g_list_foreach(source_infos, (GFunc)g_object_unref, NULL);
 	g_list_foreach(encoder_infos, (GFunc)g_object_unref, NULL);
 	g_ptr_array_foreach(listeners, (GFunc)g_object_unref, NULL);
@@ -205,6 +221,8 @@ pkd_pipeline_add_source (PkdSource *source)
 {
 	g_return_if_fail(PKD_IS_SOURCE(source));
 
+	g_message("Registering source %d.", pkd_source_get_id(source));
+
 	G_LOCK(sources);
 	sources = g_list_append(sources, g_object_ref(source));
 	G_UNLOCK(sources);
@@ -226,6 +244,8 @@ void
 pkd_pipeline_add_channel (PkdChannel *channel)
 {
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
+
+	g_message("Registering channel %d.", pkd_channel_get_id(channel));
 
 	G_LOCK(channels);
 	channels = g_list_append(channels, g_object_ref(channel));
@@ -269,6 +289,9 @@ pkd_pipeline_add_subscription (PkdSubscription *subscription)
 	g_return_if_fail(subscriptions != NULL);
 	g_return_if_fail(subscription != NULL);
 
+	g_message("Registering subscription %d.",
+	          pkd_subscription_get_id(subscription));
+
 	G_LOCK(subscriptions);
 	g_ptr_array_add(subscriptions, pkd_subscription_ref(subscription));
 	G_UNLOCK(subscriptions);
@@ -306,21 +329,57 @@ pkd_pipeline_add_encoder_info (PkdEncoderInfo *encoder_info)
 	g_object_unref(encoder_info);
 }
 
+/**
+ * pkd_pipeline_get_channels:
+ *
+ * Retrieves a list of channels that are currently registered in the pipeline.
+ * The returned list is a copy which should be freed with g_list_free() after
+ * unref'ing the contents of the list with g_object_unref() for each item.
+ *
+ * [[
+ * GList *list = pkd_pipeline_get_channels();
+ * // do something ...
+ * g_list_foreach(list, (GFunc)g_object_unref, NULL);
+ * g_list_free(list);
+ * ]]
+ *
+ * Returns: A newly created list with the channels reference count incremented.
+ *
+ * Side effects: None.
+ */
 GList*
 pkd_pipeline_get_channels (void)
 {
 	GList *list;
 
 	G_LOCK(channels);
-
 	list = g_list_copy(channels);
 	g_list_foreach(list, (GFunc)g_object_ref, NULL);
-
 	G_UNLOCK(channels);
 
 	return list;
 }
 
+/**
+ * pkd_pipeline_get_encoder_plugins:
+ *
+ * Retrieves a list of encoder plugins that are current registered in the
+ * pipeline.  The returned list is a copy which should be freed using
+ * g_list_free() only after unref'ing the contents of the list with
+ * g_object_unref().
+ *
+ * [[
+ * GList *list = pkd_pipeline_get_encoder_plugins();
+ * // do something ...
+ * g_list_foreach(list, (GFunc)g_object_unref, NULL);
+ * g_list_free(list);
+ * ]]
+ *
+ * Returns: A newly created list with the #PkdEncoderInfo<!-- -->'s reference
+ *   count incremented.
+ *
+ * Side effects: None.
+ */
 GList*
 pkd_pipeline_get_encoder_plugins (void)
 {
@@ -336,16 +395,34 @@ pkd_pipeline_get_encoder_plugins (void)
 	return list;
 }
 
+/**
+ * pkd_pipeline_get_source_plugins:
+ *
+ * Retrieves a list of source plugins that are currently registered in the
+ * pipeline.  The returned list is a copy which should be freed using
+ * g_list_free() only after unref'ing the contents of the list with
+ * g_object_unref().
+ *
+ * [[
+ * GList *list = pkd_pipeline_get_source_plugins();
+ * // do something ...
+ * g_list_foreach(list, (GFunc)g_object_unref, NULL);
+ * g_list_free(list);
+ * ]]
+ *
+ * Returns: A newly created list with the #PkdSourceInfo<!-- -->'s reference
+ *   count incremented.
+ *
+ * Side effects: None.
+ */
 GList*
 pkd_pipeline_get_source_plugins (void)
 {
 	GList *list;
 
 	G_LOCK(source_infos);
-
 	list = g_list_copy(source_infos);
 	g_list_foreach(list, (GFunc)g_object_ref, NULL);
-
 	G_UNLOCK(source_infos);
 
 	return list;
