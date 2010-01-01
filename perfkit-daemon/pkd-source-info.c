@@ -278,6 +278,26 @@ pkd_source_info_conflicts (PkdSourceInfo *source_info,
 	return FALSE;
 }
 
+/**
+ * pkd_source_info_create:
+ * @source_info: A #PkdSourceInfo
+ *
+ * Executes the factory function to create a new instance of the #PkdSource
+ * described by the #PkdSourceInfo.
+ *
+ * Returns: A newly created #PkdSource or %NULL.
+ *
+ * Side effects: None.
+ */
+PkdSource*
+pkd_source_info_create (PkdSourceInfo *source_info)
+{
+	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
+	g_return_val_if_fail(source_info->priv->factory, NULL);
+
+	return source_info->priv->factory();
+}
+
 GQuark
 pkd_source_info_error_quark (void)
 {

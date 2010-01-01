@@ -114,6 +114,7 @@ const gchar*    pkd_source_info_get_uid         (PkdSourceInfo  *source_info);
 const gchar*    pkd_source_info_get_name        (PkdSourceInfo  *source_info);
 const gchar*    pkd_source_info_get_description (PkdSourceInfo  *source_info);
 const gchar*    pkd_source_info_get_version     (PkdSourceInfo  *source_info);
+PkdSource*      pkd_source_info_create          (PkdSourceInfo  *source_info);
 
 G_END_DECLS
 
