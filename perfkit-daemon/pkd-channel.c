@@ -216,10 +216,36 @@ PkdSource*
 pkd_channel_add_source (PkdChannel    *channel,
                         PkdSourceInfo *source_info)
 {
+	PkdChannelPrivate *priv;
+	PkdSource *source;
+	guint idx;
+
 	g_return_val_if_fail(PKD_IS_CHANNEL(channel), NULL);
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 
-	/* Do sync message pass */
+	priv = channel->priv;
+
+	/*
+	 * Create the new #PkdSource using the factory callback.
+	 */
+	source = pkd_source_info_create(source_info);
+	if (!source) {
+		g_warning("%s: Error creating instance of %s from source plugin.",
+		          G_STRLOC, pkd_source_info_get_uid(source_info));
+		return NULL;
+	}
+
+	g_mutex_lock(priv->mutex);
+
+	/*
+	 * Insert the newly created PkdSource into our GPtrArray for fast iteration
+	 * and our GTree for O(log n) worst-case index id lookups.
+	 */
+	g_ptr_array_add(priv->sources, source);
+	idx = priv->sources->len;
+	g_tree_insert(priv->indexed, source, GINT_TO_POINTER(idx));
+
+	g_mutex_unlock(priv->mutex);
 
 	return NULL;
 }
