@@ -30,6 +30,9 @@
     (s)->manifest = pkd_manifest_ref((m)); \
 } G_STMT_END
 
+/*
+ * Internal callbacks to notify channels of subscription.
+ */
 extern void pkd_channel_add_subscription    (PkdChannel      *channel,
                                              PkdSubscription *sub);
 extern void pkd_channel_remove_subscription (PkdChannel      *channel,
@@ -51,7 +54,7 @@ struct _PkdSubscription
 
 	GMutex          *mutex;          /* Synchronization mutex */
 	GQueue          *queue;          /* Queue for delivering samples */
-	gboolean         paused;         /* Subscription is paused (default) */
+	gboolean         disabled;       /* Subscription is disabled (default) */
 	gsize            buflen;         /* Current buffer length */
 	PkdManifest     *manifest;       /* Our current manifest */
 };
@@ -118,6 +121,7 @@ pkd_subscription_new (PkdChannel      *channel,
 	sub->sub_id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
 	sub->mutex = g_mutex_new();
 	sub->queue = g_queue_new();
+	sub->disabled = TRUE;
 	sub->channel = g_object_ref(channel);
 	sub->encoder = encoder;
 	sub->bufsize = buffer_max;
@@ -291,9 +295,9 @@ pkd_subscription_deliver_sample (PkdSubscription *subscription,
 
 	g_mutex_lock(subscription->mutex);
 
-	if (subscription->paused) {
+	if (subscription->disabled) {
 		/*
-		 * We are paused so we can silently drop the sample.
+		 * We are disabled so we can silently drop the sample.
 		 */
 		goto unlock;
 	}
@@ -302,7 +306,7 @@ pkd_subscription_deliver_sample (PkdSubscription *subscription,
 	g_assert(buflen);
 
 	/*
-	 * We are unpaused.
+	 * We are enabled.
 	 *
 	 *   1) Push the item onto the queue.
 	 *   2) Update the new buffered size.
@@ -320,23 +324,22 @@ unlock:
 }
 
 /**
- * pkd_subscription_deliver_sample:
+ * pkd_subscription_deliver_manifest_locked:
  * @subscription: A #PkdSubscription
  * @manifest: A #PkdManifest
  *
  * Delivers a manifest to the subscription.  If the subscription if configured
  * to buffer, the data will be stored until the condition is reached.
+ *
+ * The mutex should be held when calling this method.
  */
-void
-pkd_subscription_deliver_manifest (PkdSubscription *subscription,
-                                   PkdManifest     *manifest)
+static void
+pkd_subscription_deliver_manifest_locked (PkdSubscription *subscription,
+                                          PkdManifest     *manifest)
 {
 	PkdEncoder *encoder;
 	gchar *buf = NULL;
 	gsize buflen = 0;
-
-	g_return_if_fail(subscription != NULL);
-	g_return_if_fail(manifest != NULL);
 
 	/*
 	 * NOTES:
@@ -347,28 +350,26 @@ pkd_subscription_deliver_manifest (PkdSubscription *subscription,
 	 *
 	 */
 
-	g_mutex_lock(subscription->mutex);
-
 	/*
 	 * We can enter this in either one of two states:
 	 *
-	 * 1) We are paused.  No samples in queue.  No flushing required.  Simply
-	 *    store the manifest for when we are unpaused and it will get flushed.
-	 * 2) We are unpaused.  Samples may be in queue.  Samples must be flushed
+	 * 1) We are disabled.  No samples in queue.  No flushing required.  Simply
+	 *    store the manifest for when we are enabled and it will get flushed.
+	 * 2) We are enabled.  Samples may be in queue.  Samples must be flushed
 	 *    first.  Then we can store, then send our manifest.
 	 *
 	 */
 
-	if (subscription->paused) {
+	if (subscription->disabled) {
 		/*
 		 * State 1:
 		 *
 		 * The queue should be empty.  Release the previous manifest and
-		 * store the new one for when we are unpaused and flushing occurs.
+		 * store the new one for when we are enabled and flushing occurs.
 		 */
 		g_assert_cmpint(g_queue_get_length(subscription->queue), ==, 0);
 		SWAP_MANIFEST(subscription, manifest);
-		goto unlock;
+		return;
 	}
 
 	/*
@@ -405,7 +406,94 @@ pkd_subscription_deliver_manifest (PkdSubscription *subscription,
 	 * We are finished with the buffer.
 	 */
 	g_free(buf);
+}
 
-unlock:
+/**
+ * pkd_subscription_deliver_manifest:
+ * @subscription: A #PkdSubscription
+ * @manifest: A #PkdManifest
+ *
+ * Delivers a manifest to the subscription.  If the subscription if configured
+ * to buffer, the data will be stored until the condition is reached.
+ */
+void
+pkd_subscription_deliver_manifest (PkdSubscription *subscription,
+                                   PkdManifest     *manifest)
+{
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(manifest != NULL);
+
+	g_mutex_lock(subscription->mutex);
+	pkd_subscription_deliver_manifest_locked(subscription, manifest);
+	g_mutex_unlock(subscription->mutex);
+}
+
+/**
+ * pkd_subscription_enable:
+ * @subscription: A #PkdSubscription
+ *
+ * Enables a subscription to begin delivering manifest updates and samples.
+ * Subscriptions are started in a disabled state so this should be called
+ * when the client is ready to receive the information stream.
+ *
+ * Side effects:
+ *   The current manifest is delivered.
+ *   Samples are allowed to be delivered.
+ */
+void
+pkd_subscription_enable (PkdSubscription *subscription)
+{
+	g_return_if_fail(subscription != NULL);
+
+	g_mutex_lock(subscription->mutex);
+
+	/*
+	 * Mark the subscription as enabled.
+	 */
+	subscription->disabled = FALSE;
+
+	/*
+	 * Send our current manifest to the client.
+	 */
+	if (subscription->manifest) {
+		pkd_subscription_deliver_manifest_locked(subscription,
+		                                         subscription->manifest);
+	}
+
+	g_mutex_unlock(subscription->mutex);
+}
+
+/**
+ * pkd_subscription_disable:
+ * @subscription: A #PkdSubscription.
+ * @drain: If the current buffer should be drained before disabling.
+ *
+ * Disables the client receiving the subscription stream from receiving future
+ * manifest and sample events until pkd_subscription_enable() is called.  If
+ * drain is set, the current buffer will be flushed to the client.
+ *
+ * Side effects:
+ *   Future samples and manifest updates will be dropped.
+ */
+void
+pkd_subscription_disable (PkdSubscription *subscription,
+                          gboolean         drain)
+{
+	g_return_if_fail(subscription != NULL);
+
+	g_mutex_lock(subscription->mutex);
+
+	/*
+	 * Mark the subscription as disabled.
+	 */
+	subscription->disabled = TRUE;
+
+	/*
+	 * Drain buffered samples if needed.
+	 */
+	if (drain) {
+		pkd_subscription_flush_locked(subscription);
+	}
+
 	g_mutex_unlock(subscription->mutex);
 }

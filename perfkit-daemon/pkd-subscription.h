@@ -75,8 +75,9 @@ PkdSubscription* pkd_subscription_new         (PkdChannel      *channel,
 PkdSubscription* pkd_subscription_ref         (PkdSubscription *subscription);
 void             pkd_subscription_unref       (PkdSubscription *subscription);
 guint            pkd_subscription_get_id      (PkdSubscription *subscription);
-void             pkd_subscription_pause       (PkdSubscription *subscription);
-void             pkd_subscription_unpause     (PkdSubscription *subscription);
+void             pkd_subscription_disable     (PkdSubscription *subscription,
+                                               gboolean         drain);
+void             pkd_subscription_enable      (PkdSubscription *subscription);
 PkdEncoder*      pkd_subscription_get_encoder (PkdSubscription *subscription);
 
 G_END_DECLS
