@@ -410,24 +410,56 @@ pkd_channel_deliver_manifest (PkdChannel  *channel,
 	g_mutex_unlock(priv->mutex);
 }
 
+/**
+ * pkd_channel_add_subscription:
+ * @channel: A #PkdChannel
+ * @subscription: A #PkdSubscription
+ *
+ * Internal method for registering a subscription to a channel.
+ *
+ * Side effects: None.
+ */
 void
 pkd_channel_add_subscription (PkdChannel      *channel,
                               PkdSubscription *subscription)
 {
+	PkdChannelPrivate *priv;
+
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
 
-	/* Do sync message pass */
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+	g_ptr_array_add(priv->subs, pkd_subscription_ref(subscription));
+	g_mutex_unlock(priv->mutex);
 }
 
+/**
+ * pkd_channel_remove_subscription:
+ * @channel: A #PkdChannel
+ * @subscription: A #PkdSubscription
+ *
+ * Internal method for unregistering a subscription from a channel.
+ *
+ * Side effects: None.
+ */
 void
 pkd_channel_remove_subscription (PkdChannel      *channel,
                                  PkdSubscription *subscription)
 {
+	PkdChannelPrivate *priv;
+
 	g_return_if_fail(PKD_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
 
-	/* Do sync message pass */
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+	if (g_ptr_array_remove(priv->subs, subscription)) {
+		pkd_subscription_unref(subscription);
+	}
+	g_mutex_unlock(priv->mutex);
 }
 
 static void
@@ -454,7 +486,7 @@ pkd_channel_class_init (PkdChannelClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkd_channel_finalize;
-	g_type_class_add_private (object_class, sizeof (PkdChannelPrivate));
+	g_type_class_add_private(object_class, sizeof(PkdChannelPrivate));
 }
 
 static void
