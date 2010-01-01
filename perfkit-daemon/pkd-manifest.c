@@ -176,15 +176,29 @@ pkd_manifest_unref (PkdManifest *manifest)
  * Side effects: None.
  */
 guint
-pkd_manifest_append (PkdManifest  *manifest,
-                    const gchar *name,
-                    GType        type)
+pkd_manifest_append (PkdManifest *manifest,
+                     const gchar *name,
+                     GType        type)
 {
 	PkdManifestRow row;
 
 	g_return_val_if_fail(manifest != NULL, 0);
 	g_return_val_if_fail(name != NULL, 0);
 	g_return_val_if_fail(type != 0, 0);
+
+	switch (type) {
+	case G_TYPE_INT:
+	case G_TYPE_UINT:
+	case G_TYPE_LONG:
+	case G_TYPE_ULONG:
+	case G_TYPE_STRING:
+	case G_TYPE_CHAR:
+	case G_TYPE_BOOLEAN:
+		break;
+	default:
+		g_warn_if_reached();
+		return 0;
+	}
 
 	row.id = manifest->rows->len + 1;
 	row.name = g_strdup(name);
