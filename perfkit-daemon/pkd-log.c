@@ -35,35 +35,21 @@ static gchar       hostname[64] = "";
 
 static void
 pkd_log_handler (const gchar    *log_domain,
-                GLogLevelFlags  log_level,
-                const gchar    *message,
-                gpointer        user_data)
+                 GLogLevelFlags  log_level,
+                 const gchar    *message,
+                 gpointer        user_data)
 {
 	time_t          t;
 	struct tm       tt;
 	gchar           ftime[32],
 	               *buffer;
 	GPid            pid;
-	struct utsname  u;
 
 	if (!channel && !wants_stdout) {
 		return;
 	}
 
 	memset (&tt, 0, sizeof (tt));
-
-	if (!hostname[0]) {
-#ifdef __linux__
-		uname (&u);
-		memcpy (hostname, u.nodename, sizeof(hostname));
-#else
-#ifdef __APPLE__
-		gethostname (hostname, sizeof (hostname));
-#else
-#error "Compiling for unsupported platform."
-#endif /* __APPLE__ */
-#endif /* __linux__ */
-	}
 
 	t = time (NULL);
 	tt = *localtime (&t);
@@ -103,6 +89,7 @@ pkd_log_init (gboolean     stdout_,
               const gchar *filename)
 {
 	static gsize initialized = FALSE;
+	struct utsname  u;
 
 	/*
 	 * Only allow initialization of the logging subsystem once.  Create a
@@ -111,9 +98,26 @@ pkd_log_init (gboolean     stdout_,
 
 	if (g_once_init_enter(&initialized)) {
 		wants_stdout = stdout_;
-		if (filename)
+		if (filename) {
 			channel = g_io_channel_new_file(filename, "a", NULL);
-		g_log_set_handler(G_LOG_DOMAIN, G_LOG_LEVEL_MASK, pkd_log_handler, NULL);
+		}
+
+#ifdef __linux__
+		uname (&u);
+		memcpy (hostname, u.nodename, sizeof(hostname));
+#else
+#ifdef __APPLE__
+		gethostname (hostname, sizeof (hostname));
+#else
+#error "Target platform not supported"
+#endif /* __APPLE__ */
+#endif /* __linux__ */
+
+		g_log_set_handler(G_LOG_DOMAIN,
+		                  G_LOG_LEVEL_MASK,
+		                  pkd_log_handler,
+		                  NULL);
+
 		g_once_init_leave(&initialized, TRUE);
 	}
 }
