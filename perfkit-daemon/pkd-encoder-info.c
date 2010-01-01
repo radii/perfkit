@@ -27,15 +27,17 @@
 
 #include "pkd-encoder-info.h"
 
-G_DEFINE_TYPE(PkdEncoderInfo, pkd_encoder_info, G_TYPE_OBJECT)
-
 /**
- * SECTION:pkd-encoder_info
+ * SECTION:pkd-encoder-info
  * @title: PkdEncoderInfo
- * @short_description: 
+ * @short_description: Encoder plugins
  *
- * 
+ * #PkdEncoderInfo encapsulates information about an #PkdEncoder plugin.
+ * It also provides a simple interface to the plugins factory for creating
+ * new instances of #PkdEncoder.
  */
+
+G_DEFINE_TYPE(PkdEncoderInfo, pkd_encoder_info, G_TYPE_OBJECT)
 
 struct _PkdEncoderInfoPrivate
 {
@@ -84,9 +86,9 @@ pkd_encoder_info_new (void)
  * Side effects: The module is opened and executed.
  */
 gboolean
-pkd_encoder_info_load_from_file(PkdEncoderInfo  *encoder_info,
-                              const gchar     *filename,
-                              GError         **error)
+pkd_encoder_info_load_from_file (PkdEncoderInfo  *encoder_info,
+                                 const gchar     *filename,
+                                 GError         **error)
 {
 	PkdStaticEncoderInfo *static_info = NULL;
 	PkdEncoderInfoPrivate *priv;
@@ -165,7 +167,7 @@ pkd_encoder_info_load_from_file(PkdEncoderInfo  *encoder_info,
  * Side effects: None.
  */
 const gchar*
-pkd_encoder_info_get_name(PkdEncoderInfo *encoder_info)
+pkd_encoder_info_get_name (PkdEncoderInfo *encoder_info)
 {
 	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
 	return encoder_info->priv->name;
@@ -182,7 +184,7 @@ pkd_encoder_info_get_name(PkdEncoderInfo *encoder_info)
  * Side effects: None.
  */
 const gchar*
-pkd_encoder_info_get_uid(PkdEncoderInfo *encoder_info)
+pkd_encoder_info_get_uid (PkdEncoderInfo *encoder_info)
 {
 	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
 	return encoder_info->priv->uid;
@@ -250,9 +252,9 @@ pkd_encoder_info_error_quark(void)
 
 static void
 pkd_encoder_info_get_property (PkdEncoderInfo *encoder_info,
-                             guint         prop_id,
-                             GValue       *value,
-                             GParamSpec   *pspec)
+                               guint           prop_id,
+                               GValue         *value,
+                               GParamSpec     *pspec)
 {
 	switch (prop_id) {
 	case PROP_UID:
@@ -273,7 +275,7 @@ pkd_encoder_info_get_property (PkdEncoderInfo *encoder_info,
 }
 
 static void
-pkd_encoder_info_finalize(GObject *object)
+pkd_encoder_info_finalize (GObject *object)
 {
 	PkdEncoderInfoPrivate *priv;
 
@@ -286,17 +288,17 @@ pkd_encoder_info_finalize(GObject *object)
 	g_free(priv->description);
 	g_free(priv->version);
 
-	G_OBJECT_CLASS (pkd_encoder_info_parent_class)->finalize(object);
+	G_OBJECT_CLASS(pkd_encoder_info_parent_class)->finalize(object);
 }
 
 static void
-pkd_encoder_info_dispose(GObject *object)
+pkd_encoder_info_dispose (GObject *object)
 {
-	G_OBJECT_CLASS (pkd_encoder_info_parent_class)->dispose (object);
+	G_OBJECT_CLASS(pkd_encoder_info_parent_class)->dispose(object);
 }
 
 static void
-pkd_encoder_info_class_init(PkdEncoderInfoClass *klass)
+pkd_encoder_info_class_init (PkdEncoderInfoClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -304,65 +306,65 @@ pkd_encoder_info_class_init(PkdEncoderInfoClass *klass)
 	object_class->finalize = pkd_encoder_info_finalize;
 	object_class->dispose = pkd_encoder_info_dispose;
 	object_class->get_property = (gpointer)pkd_encoder_info_get_property;
-	g_type_class_add_private (object_class, sizeof(PkdEncoderInfoPrivate));
+	g_type_class_add_private(object_class, sizeof(PkdEncoderInfoPrivate));
 
 	/**
 	 * PkdEncoderInfo:uid:
 	 *
 	 * The "uid" property.
 	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_UID,
-	                                 g_param_spec_string("uid",
-	                                                     "uid",
-	                                                     "Unique id",
-	                                                     NULL,
-	                                                     G_PARAM_READABLE));
+	g_object_class_install_property(object_class,
+	                                PROP_UID,
+	                                g_param_spec_string("uid",
+	                                                    "uid",
+	                                                    "Unique id",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE));
 
 	/**
 	 * PkdEncoderInfo:name:
 	 *
 	 * The "name" property.
 	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_NAME,
-	                                 g_param_spec_string("name",
-	                                                     "name",
-	                                                     "Name",
-	                                                     NULL,
-	                                                     G_PARAM_READABLE));
+	g_object_class_install_property(object_class,
+	                                PROP_NAME,
+	                                g_param_spec_string("name",
+	                                                    "name",
+	                                                    "Name",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE));
 
 	/**
 	 * PkdEncoderInfo:description:
 	 *
 	 * The "description" property.
 	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_DESC,
-	                                 g_param_spec_string("description",
-	                                                     "description",
-	                                                     "Description",
-	                                                     NULL,
-	                                                     G_PARAM_READABLE));
+	g_object_class_install_property(object_class,
+	                                PROP_DESC,
+	                                g_param_spec_string("description",
+	                                                    "description",
+	                                                    "Description",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE));
 
 	/**
 	 * PkdEncoderInfo:version:
 	 *
 	 * The "version" property.
 	 */
-	g_object_class_install_property (object_class,
-	                                 PROP_VERSION,
-	                                 g_param_spec_string("version",
-	                                                     "version",
-	                                                     "Version",
-	                                                     NULL,
-	                                                     G_PARAM_READABLE));
+	g_object_class_install_property(object_class,
+	                                PROP_VERSION,
+	                                g_param_spec_string("version",
+	                                                    "version",
+	                                                    "Version",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE));
 }
 
 static void
-pkd_encoder_info_init(PkdEncoderInfo *encoder_info)
+pkd_encoder_info_init (PkdEncoderInfo *encoder_info)
 {
-	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (encoder_info,
+	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(encoder_info,
 	                                                 PKD_TYPE_ENCODER_INFO,
 	                                                 PkdEncoderInfoPrivate);
 }
