@@ -25,9 +25,22 @@
 /**
  * SECTION:pkd-manifest
  * @title: PkdManifest
- * @short_description: 
+ * @short_description: Data stream information manifest
  *
- * 
+ * #PkdManifest represents the potential types of information that may be
+ * delivered over a data stream.  It maps index ids to a string name
+ * and data type.  It should also contain the byte ordering of the host
+ * system creating the data.  The system can work in various ways depending
+ * on if you want extra overhead on the producer or consumer as to byte
+ * reordering.
+ *
+ * If there are less than 255 data fields in a manifest, extra compression
+ * can be taken in the data stream.  Instead of a full 4 bytes for the
+ * manifest index, a single byte may be used.  This means that for a single
+ * integer, only 5 bytes are required.
+ *
+ * However, this is mostly dominated by the choice of encoder to change
+ * the stream as it is passed to the client.
  */
 
 typedef struct
@@ -214,11 +227,11 @@ pkd_manifest_get_n_rows (PkdManifest *manifest)
  */
 GType
 pkd_manifest_get_row_type (PkdManifest *manifest,
-                          gint        row)
+                           gint         row)
 {
 	g_return_val_if_fail(manifest != NULL, G_TYPE_INVALID);
 	g_return_val_if_fail(manifest->rows != NULL, G_TYPE_INVALID);
-	g_return_val_if_fail(row > 0 && row <= manifest->rows->len, G_TYPE_INVALID);
+	g_return_val_if_fail(row && row <= manifest->rows->len, G_TYPE_INVALID);
 
 	return g_array_index(manifest->rows, PkdManifestRow, row - 1).type;
 }
