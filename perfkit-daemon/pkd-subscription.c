@@ -24,6 +24,28 @@
 
 #include "pkd-subscription.h"
 
+/**
+ * SECTION:pkd-subscription
+ * @title: PkdSubscription
+ * @short_description: Subscriptions to data streams
+ *
+ * #PkdSubscription encapsulates the work required to transfer data
+ * streams between the daemon and clients.  A subscription consists
+ * of a #PkdChannel to be observed and various buffering settings.
+ *
+ * The subscription receives events about data format changes and
+ * the data itself from the #PkdChannel it is subscribed to.  Information
+ * about the data stream is delivered as a #PkdManifest.  The samples
+ * are received as #PkdSample<!-- -->'s.  Whenever the format of the sample
+ * stream is changed, a new #PkdManifest is delivered prior to the new
+ * samples being delivered.
+ *
+ * The subscriptions internal #PkdEncoder converts the #PkdManifest<!-- -->'s
+ * and #PkdSample<!-- -->'s into buffers which can be transported to the
+ * client.  Various encoders can provide extra features like compression,
+ * encryption, or similar.
+ */
+
 #define SWAP_MANIFEST(s,m) G_STMT_START {  \
     if ((s)->manifest)                     \
         pkd_manifest_unref((s)->manifest); \
