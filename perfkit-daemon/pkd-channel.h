@@ -39,6 +39,19 @@ G_BEGIN_DECLS
 #define PKD_IS_CHANNEL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_TYPE_CHANNEL))
 #define PKD_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_TYPE_CHANNEL))
 #define PKD_CHANNEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_TYPE_CHANNEL, PkdChannelClass))
+#define PKD_CHANNEL_ERROR           (pkd_channel_error_quark())
+
+/**
+ * PkdChannelError:
+ * @PKD_CHANNEL_ERROR_STATE: The operation is invalid for the current state
+ *   of the channel.
+ *
+ * #PkdChannel error enumeration.
+ */
+typedef enum
+{
+	PKD_CHANNEL_ERROR_STATE,
+} PkdChannelError;
 
 typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
@@ -58,6 +71,7 @@ struct _PkdChannelClass
 };
 
 GType         pkd_channel_get_type        (void) G_GNUC_CONST;
+GQuark        pkd_channel_error_quark     (void) G_GNUC_CONST;
 PkdChannel*   pkd_channel_new             (const PkdSpawnInfo  *spawn_info);
 guint         pkd_channel_get_id          (PkdChannel          *channel);
 const gchar*  pkd_channel_get_target      (PkdChannel          *channel);

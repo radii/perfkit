@@ -57,6 +57,11 @@ struct _PkdSourceClass
 	gboolean (*conflicts) (PkdSource   *source,
 	                       PkdSource   *other,
 	                       GError     **error);
+
+	void     (*notify_started)  (PkdSource *source);
+	void     (*notify_stopped)  (PkdSource *source);
+	void     (*notify_paused)   (PkdSource *source);
+	void     (*notify_unpaused) (PkdSource *source);
 };
 
 GType     pkd_source_get_type         (void) G_GNUC_CONST;

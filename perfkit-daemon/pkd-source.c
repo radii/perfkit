@@ -146,6 +146,34 @@ pkd_source_get_id (PkdSource *source)
 	return source->priv->source_id;
 }
 
+void
+pkd_source_notify_started (PkdSource *source)
+{
+	if (PKD_SOURCE_GET_CLASS(source)->notify_started)
+		PKD_SOURCE_GET_CLASS(source)->notify_started(source);
+}
+
+void
+pkd_source_notify_stopped (PkdSource *source)
+{
+	if (PKD_SOURCE_GET_CLASS(source)->notify_stopped)
+		PKD_SOURCE_GET_CLASS(source)->notify_stopped(source);
+}
+
+void
+pkd_source_notify_paused (PkdSource *source)
+{
+	if (PKD_SOURCE_GET_CLASS(source)->notify_paused)
+		PKD_SOURCE_GET_CLASS(source)->notify_paused(source);
+}
+
+void
+pkd_source_notify_unpaused (PkdSource *source)
+{
+	if (PKD_SOURCE_GET_CLASS(source)->notify_unpaused)
+		PKD_SOURCE_GET_CLASS(source)->notify_unpaused(source);
+}
+
 static void
 pkd_source_finalize (GObject *object)
 {

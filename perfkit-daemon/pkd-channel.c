@@ -55,6 +55,20 @@ extern void pkd_sample_set_source_id          (PkdSample       *sample,
                                                gint             source_id);
 extern void pkd_manifest_set_source_id        (PkdManifest     *manifest,
                                                gint             source_id);
+extern void pkd_source_notify_started         (PkdSource       *source);
+extern void pkd_source_notify_stopped         (PkdSource       *source);
+extern void pkd_source_notify_paused          (PkdSource       *source);
+extern void pkd_source_notify_unpaused        (PkdSource       *source);
+
+enum
+{
+	STATE_0,
+	STATE_READY,
+	STATE_STARTED,
+	STATE_PAUSED,
+	STATE_STOPPED,
+	STATE_FAILED,
+};
 
 struct _PkdChannelPrivate
 {
@@ -62,6 +76,7 @@ struct _PkdChannelPrivate
 	PkdSpawnInfo  spawn_info;
 
 	GMutex       *mutex;
+	guint         state;
 	GPtrArray    *subs;
 	GPtrArray    *sources;
 	GTree        *indexed;
@@ -217,13 +232,22 @@ pkd_channel_add_source (PkdChannel    *channel,
                         PkdSourceInfo *source_info)
 {
 	PkdChannelPrivate *priv;
-	PkdSource *source;
+	PkdSource *source = NULL;
 	guint idx;
 
 	g_return_val_if_fail(PKD_IS_CHANNEL(channel), NULL);
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 
 	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	/*
+	 * Sources can only be added before pkd_channel_start() has been called.
+	 */
+	if (priv->state != STATE_READY) {
+		goto unlock;
+	}
 
 	/*
 	 * Create the new #PkdSource using the factory callback.
@@ -232,10 +256,8 @@ pkd_channel_add_source (PkdChannel    *channel,
 	if (!source) {
 		g_warning("%s: Error creating instance of %s from source plugin.",
 		          G_STRLOC, pkd_source_info_get_uid(source_info));
-		return NULL;
+		goto unlock;
 	}
-
-	g_mutex_lock(priv->mutex);
 
 	/*
 	 * Insert the newly created PkdSource into our GPtrArray for fast iteration
@@ -245,9 +267,10 @@ pkd_channel_add_source (PkdChannel    *channel,
 	idx = priv->sources->len;
 	g_tree_insert(priv->indexed, source, GINT_TO_POINTER(idx));
 
+unlock:
 	g_mutex_unlock(priv->mutex);
 
-	return NULL;
+	return source;
 }
 
 /**
@@ -269,7 +292,79 @@ gboolean
 pkd_channel_start (PkdChannel  *channel,
                    GError     **error)
 {
-	return TRUE;
+	PkdChannelPrivate *priv;
+	gboolean success = FALSE;
+	GError *local_error = NULL;
+	gchar **argv = NULL;
+	gint len;
+
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
+	g_return_val_if_fail(channel->priv->state == STATE_READY, FALSE);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	/*
+	 * Ensure we haven't yet been started.
+	 */
+	if (priv->state != STATE_READY) {
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Cannot start channel.  Channel already started."));
+		goto unlock;
+	}
+
+	/*
+	 * Spawn the inferior process if necessary.
+	 */
+	if (!priv->spawn_info.pid) {
+		len = g_strv_length(priv->spawn_info.args);
+		argv = g_malloc0(sizeof(gchar*) * (len + 2));
+		argv[0] = priv->spawn_info.target;
+		memcpy(&argv[1], priv->spawn_info.args, (sizeof(gchar*) * len));
+
+		if (!g_spawn_async(priv->spawn_info.working_dir,
+		                   argv,
+		                   priv->spawn_info.env,
+		                   G_SPAWN_SEARCH_PATH,
+		                   NULL,
+		                   NULL,
+		                   &priv->spawn_info.pid,
+		                   &local_error))
+		{
+			priv->state = STATE_FAILED;
+			g_warning(_("Error starting channel %d: %s"),
+			          priv->channel_id, local_error->message);
+			if (error) {
+				*error = local_error;
+			} else {
+				g_error_free(local_error);
+			}
+			goto unlock;
+		}
+	}
+
+	/*
+	 * Tick the state machine to STARTED.
+	 */
+	priv->state = STATE_STARTED;
+	success = TRUE;
+
+	/*
+	 * Notify the included data channels of the inferior starting up.
+	 */
+	g_ptr_array_foreach(priv->sources,
+	                    (GFunc)pkd_source_notify_started,
+	                    NULL);
+
+unlock:
+	g_mutex_unlock(priv->mutex);
+
+	if (argv) {
+		g_strfreev(argv);
+	}
+
+	return success;
 }
 
 /**
@@ -536,4 +631,11 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv->mutex = g_mutex_new();
 	channel->priv->indexed = g_tree_new(g_direct_equal);
 	channel->priv->channel_id = channel_id;
+	channel->priv->state = STATE_READY;
+}
+
+GQuark
+pkd_channel_error_quark (void)
+{
+	return g_quark_from_static_string("pkd-channel-error-quark");
 }
