@@ -22,15 +22,17 @@ test_PkdSampleWriter_basic (void)
 	m = pkd_manifest_new();
 	pkd_manifest_append(m, "ID", G_TYPE_INT);
 	pkd_manifest_append(m, "Bytes/Sec", G_TYPE_INT);
+	pkd_manifest_append(m, "Format", G_TYPE_STRING);
 
 	s = pkd_sample_new();
 	pkd_sample_writer_init(&sw, m, s);
 	pkd_sample_writer_integer(&sw, 1, 13);
 	pkd_sample_writer_integer(&sw, 2, 42);
+	pkd_sample_writer_string(&sw, 3, "kB/sec");
 	pkd_sample_writer_finish(&sw);
 	pkd_sample_get_data(s, &buf, &buflen);
 	g_assert(buf);
-	g_assert_cmpint(buflen, ==, 11);
+	g_assert_cmpint(buflen, ==, 19);
 
 	/* Ensure ID compression is enabled */
 	g_assert_cmpint(buf[0], ==, TRUE);
@@ -46,6 +48,12 @@ test_PkdSampleWriter_basic (void)
 
 	/* Ensure second sample in host format */
 	g_assert_cmpint(*((gint*)(buf + 7)), ==, 42);
+
+	/* Ensure next index */
+	g_assert_cmpint(buf[11], ==, 3);
+
+	/* Ensure inline string */
+	g_assert_cmpstr(&buf[12], ==, "kB/sec");
 }
 
 gint
