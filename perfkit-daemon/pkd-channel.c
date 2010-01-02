@@ -83,6 +83,7 @@ struct _PkdChannelPrivate
 	GPtrArray    *subs;       /* Array of subscriptions. */
 	GPtrArray    *sources;    /* Array of data sources. */
 	GTree        *indexed;    /* Pointer-to-index data source map. */
+	GTree        *manifests;  /* Pointer-to-manifest map. */
 };
 
 static guint channel_seq = 0;
@@ -512,6 +513,31 @@ pkd_channel_pause (PkdChannel  *channel,
 }
 
 /**
+ * pkd_channel_traverse_manifests_cb:
+ * @source: A #PkdSource
+ * @manifest: A #PkdManifest
+ * @channel: A #PkdChannel
+ *
+ * Internal method for use within a GTree foreach to notif all subscriptions
+ * of the current manifest.
+ *
+ * Side effects: The manifest is broadcasted to the subscriptions.
+ */
+static gboolean
+pkd_channel_traverse_manifests_cb (PkdSource   *source,
+                                   PkdManifest *manifest,
+                                   PkdChannel  *channel)
+{
+	PkdChannelPrivate *priv = channel->priv;
+
+	g_ptr_array_foreach(priv->subs,
+	                    (GFunc)pkd_subscription_deliver_manifest,
+	                    manifest);
+
+	return FALSE;
+}
+
+/**
  * pkd_channel_unpause:
  * @channel: A #PkdChannel.
  * @error: A location for a #GError or %NULL.
@@ -542,6 +568,13 @@ pkd_channel_unpause (PkdChannel  *channel,
 	switch (priv->state) {
 	case STATE_PAUSED:
 		priv->state = STATE_RUNNING;
+
+		/*
+		 * Notify subscriptions of the current manifests.
+		 */
+		g_tree_foreach(priv->manifests,
+		               (GTraverseFunc)pkd_channel_traverse_manifests_cb,
+		               channel);
 
 		/*
 		 * Notify sources to continue.
@@ -593,9 +626,9 @@ pkd_channel_deliver_sample (PkdChannel *channel,
 	/*
 	 * NOTES:
 	 *
-	 *   Can we look into dropping this into an Multi-Producer, Single Consumer
-	 *   Queue that ships the samples over to the subscription ever so often?
-	 *   it would be nice not to screw with the sample thread by introducing
+	 *   Can we look into dropping this into a Multi-Producer, Single Consumer
+	 *   Queue that ships the samples over to the subscription every so often?
+	 *   It would be nice not to screw with the sample thread by introducing
 	 *   our mutexes.  It could cause collateral damage between sources during
 	 *   contention.
 	 *
@@ -606,14 +639,15 @@ pkd_channel_deliver_sample (PkdChannel *channel,
 	g_mutex_lock(priv->mutex);
 
 	/*
-	 * TODO:
-	 *
-	 *   If the channel itself is paused, we should do something similar
-	 *   to what subscriptions are doing now.  Cache the most recent
-	 *   manifest and drop all samples.
-	 *
+	 * Drop the sample if we are not currently recording samples.
 	 */
+	if (priv->state != STATE_RUNNING) {
+		goto unlock;
+	}
 
+	/*
+	 * Pass the sample to all of the observing subscriptions.
+	 */
 	for (i = 0; i < priv->subs->len; i++) {
 		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
 		pkd_sample_set_source_id(sample, idx);
@@ -621,6 +655,7 @@ pkd_channel_deliver_sample (PkdChannel *channel,
 		                                sample);
 	}
 
+unlock:
 	g_mutex_unlock(priv->mutex);
 }
 
@@ -651,13 +686,41 @@ pkd_channel_deliver_manifest (PkdChannel  *channel,
 
 	g_mutex_lock(priv->mutex);
 
+	/*
+	 * NOTES:
+	 *
+	 *   We always store the most recent copy of the manifest for when
+	 *   subscriptions are added.  That way we can notify them of the
+	 *   current data manifest before we pass samples.
+	 */
+
+	/*
+	 * Look up the source index and store it in the manifest.
+	 */
+	idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+	pkd_manifest_set_source_id(manifest, idx);
+
+	/*
+	 * Store the manifest for future lookup.
+	 */
+	g_tree_insert(priv->manifests, source, pkd_manifest_ref(manifest));
+
+	/*
+	 * We are finished for now unless we are active.
+	 */
+	if (priv->state != STATE_RUNNING) {
+		goto unlock;
+	}
+
+	/*
+	 * Notify subscriptions of the manifest update.
+	 */
 	for (i = 0; i < priv->subs->len; i++) {
-		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
-		pkd_manifest_set_source_id(manifest, idx);
 		pkd_subscription_deliver_manifest(priv->subs->pdata[i],
 		                                  manifest);
 	}
 
+unlock:
 	g_mutex_unlock(priv->mutex);
 }
 
@@ -740,6 +803,13 @@ pkd_channel_class_init (PkdChannelClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkdChannelPrivate));
 }
 
+static gint
+pointer_compare (gconstpointer a,
+                 gconstpointer b)
+{
+	return (a == b) ? 0 : (a - b);
+}
+
 static void
 pkd_channel_init (PkdChannel *channel)
 {
@@ -759,7 +829,10 @@ pkd_channel_init (PkdChannel *channel)
 	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
-	channel->priv->indexed = g_tree_new(g_direct_equal);
+	channel->priv->indexed = g_tree_new(pointer_compare);
+	channel->priv->manifests = g_tree_new_full(
+		(GCompareDataFunc)pointer_compare, NULL, NULL,
+		(GDestroyNotify)pkd_manifest_unref);
 	channel->priv->channel_id = channel_id;
 	channel->priv->state = STATE_READY;
 }
