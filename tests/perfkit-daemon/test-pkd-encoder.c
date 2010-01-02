@@ -29,19 +29,21 @@ test_PkdEncoder_encode_manifest (void)
 	PkdManifest *m;
 	gchar *buf = NULL;
 	gsize len = 0;
+	gboolean host_nbo = (G_BYTE_ORDER == G_BIG_ENDIAN);
 
 	SETUP_MANIFEST(m);
 	g_assert(pkd_encoder_encode_manifest(NULL, m, &buf, &len));
 
-	g_assert_cmpint(len, ==, 14);
-	g_assert_cmpint(buf[0], ==, 3);           /* Source ID */
-	g_assert_cmpint(buf[1], ==, 1);           /* Key Compression Enabled */
-	g_assert_cmpint(buf[2], ==, 1);           /* Row 1 */
-	g_assert_cmpint(buf[3], ==, G_TYPE_UINT); /* Row 1 Type */
-	g_assert_cmpstr(&buf[4], ==, "bps");      /* Row 1 Name */
-	g_assert_cmpint(buf[8], ==, 2);           /* Row 2 */
-	g_assert_cmpint(buf[9], ==, G_TYPE_UINT); /* Row 2 Type */
-	g_assert_cmpstr(&buf[10], ==, "qps");     /* Row 2 Name */
+	g_assert_cmpint(len, ==, 15);
+	g_assert_cmpint(buf[0], ==, host_nbo);     /* Network Byte Order */
+	g_assert_cmpint(buf[1], ==, 3);            /* Source ID */
+	g_assert_cmpint(buf[2], ==, 1);            /* Key Compression Enabled */
+	g_assert_cmpint(buf[3], ==, 1);            /* Row 1 */
+	g_assert_cmpint(buf[4], ==, G_TYPE_UINT);  /* Row 1 Type */
+	g_assert_cmpstr(&buf[5], ==, "bps");       /* Row 1 Name */
+	g_assert_cmpint(buf[9], ==, 2);            /* Row 2 */
+	g_assert_cmpint(buf[10], ==, G_TYPE_UINT); /* Row 2 Type */
+	g_assert_cmpstr(&buf[11], ==, "qps");      /* Row 2 Name */
 }
 
 static void

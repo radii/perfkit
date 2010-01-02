@@ -155,6 +155,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	rows = pkd_manifest_get_n_rows(manifest);
 
 	/*
+	 * Include the Endianness.
+	 */
+	s++;
+
+	/*
 	 * Include the Source ID.
 	 */
 	s++;
@@ -188,6 +193,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	 */
 	*data = g_malloc(s);
 	*data_len = s;
+
+	/*
+	 * Add the endianness. 1 means Network-Byte-Order.
+	 */
+	(*data)[o++] = (pkd_manifest_get_byte_order(manifest) == G_BIG_ENDIAN);
 
 	/*
 	 * Add the Source ID.

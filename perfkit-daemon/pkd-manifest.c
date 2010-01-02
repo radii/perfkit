@@ -54,6 +54,7 @@ struct _PkdManifest
 {
 	GArray        *rows;        /* Array of PkdManifestRow */
 	gint           source_id;   /* Channel assigned Source Id */
+	guint          endian;      /* Data streams endianness */
 	volatile gint  ref_count;
 };
 
@@ -109,6 +110,7 @@ pkd_manifest_sized_new (gint size)
 
 	manifest = g_slice_new0(PkdManifest);
 	manifest->ref_count = 1;
+	manifest->endian = G_BYTE_ORDER;
 	manifest->rows = g_array_sized_new(FALSE,
 	                                   FALSE,
 	                                   sizeof(PkdManifestRow),
@@ -160,6 +162,46 @@ pkd_manifest_unref (PkdManifest *manifest)
 		pkd_manifest_destroy(manifest);
 		g_slice_free(PkdManifest, manifest);
 	}
+}
+
+/**
+ * pkd_manifest_get_byte_order:
+ * @manifest: A #PkdManifest
+ *
+ * Retrieves the byte-ordering for the data within the stream here-forward.
+ *
+ * Returns: Either G_BIG_ENDIAN or G_LITTLE_ENDIAN.
+ *
+ * Side effects: None.
+ */
+guint
+pkd_manifest_get_byte_order (PkdManifest *manifest)
+{
+	g_return_val_if_fail(manifest != NULL, 0);
+	return manifest->endian;
+}
+
+/**
+ * pkd_manifest_set_byte_order:
+ * @manifest: A #PkdManifest
+ * @byte_order: G_LITTLE_ENDIAN or G_BIG_ENDIAN
+ *
+ * Sets the expected endianness of value types in the data stream.  Encoders
+ * will use this value to make sure the client knows the byte encoding.
+ *
+ * The default is the host byte order.
+ *
+ * Side effects: None.
+ */
+void
+pkd_manifest_set_byte_order (PkdManifest *manifest,
+                             guint        byte_order)
+{
+	g_return_if_fail(manifest != NULL);
+	g_return_if_fail((byte_order == G_BIG_ENDIAN) ||
+	                 (byte_order == G_LITTLE_ENDIAN));
+
+	manifest->endian = byte_order;
 }
 
 /**
