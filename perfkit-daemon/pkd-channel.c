@@ -330,15 +330,31 @@ pkd_channel_start (PkdChannel  *channel,
 		goto unlock;
 	}
 
+	g_message("Starting channel %d.", pkd_channel_get_id(channel));
+
 	/*
 	 * Spawn the inferior process if necessary.
 	 */
 	if (!priv->spawn_info.pid) {
-		len = g_strv_length(priv->spawn_info.args);
-		argv = g_malloc0(sizeof(gchar*) * (len + 2));
-		argv[0] = priv->spawn_info.target;
-		memcpy(&argv[1], priv->spawn_info.args, (sizeof(gchar*) * len));
+		/*
+		 * Build the spawned argv.  Copy in arguments if needed.
+		 */
+		if (priv->spawn_info.args) {
+			len = g_strv_length(priv->spawn_info.args);
+			argv = g_malloc0(sizeof(gchar*) * (len + 2));
+			memcpy(&argv[1], priv->spawn_info.args, (sizeof(gchar*) * len));
+		} else {
+			argv = g_malloc0(sizeof(gchar*) * 2);
+		}
 
+		/*
+		 * Set the executable target.
+		 */
+		argv[0] = priv->spawn_info.target;
+
+		/*
+		 * Attempt to spawn the process.
+		 */
 		if (!g_spawn_async(priv->spawn_info.working_dir,
 		                   argv,
 		                   priv->spawn_info.env,
@@ -358,6 +374,10 @@ pkd_channel_start (PkdChannel  *channel,
 			}
 			goto unlock;
 		}
+
+		g_message("Channel %d started with process %u.",
+		          pkd_channel_get_id(channel),
+		          priv->spawn_info.pid);
 	}
 
 	/*
@@ -508,6 +528,8 @@ pkd_channel_pause (PkdChannel  *channel,
 	case STATE_RUNNING:
 		priv->state = STATE_PAUSED;
 
+		g_message("Pausing channel %d.", pkd_channel_get_id(channel));
+
 		/*
 		 * Notify sources that we have paused.
 		 */
@@ -580,6 +602,8 @@ pkd_channel_unpause (PkdChannel  *channel,
 	switch (priv->state) {
 	case STATE_PAUSED:
 		priv->state = STATE_RUNNING;
+
+		g_message("Unpausing channel %d.", pkd_channel_get_id(channel));
 
 		/*
 		 * Notify subscriptions of the current manifests.
