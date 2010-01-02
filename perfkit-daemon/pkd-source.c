@@ -147,10 +147,11 @@ pkd_source_get_id (PkdSource *source)
 }
 
 void
-pkd_source_notify_started (PkdSource *source)
+pkd_source_notify_started (PkdSource    *source,
+                           PkdSpawnInfo *spawn_info)
 {
 	if (PKD_SOURCE_GET_CLASS(source)->notify_started)
-		PKD_SOURCE_GET_CLASS(source)->notify_started(source);
+		PKD_SOURCE_GET_CLASS(source)->notify_started(source, spawn_info);
 }
 
 void

@@ -55,7 +55,8 @@ extern void pkd_sample_set_source_id          (PkdSample       *sample,
                                                gint             source_id);
 extern void pkd_manifest_set_source_id        (PkdManifest     *manifest,
                                                gint             source_id);
-extern void pkd_source_notify_started         (PkdSource       *source);
+extern void pkd_source_notify_started         (PkdSource       *source,
+                                               PkdSpawnInfo    *spawn_info);
 extern void pkd_source_notify_stopped         (PkdSource       *source);
 extern void pkd_source_notify_paused          (PkdSource       *source);
 extern void pkd_source_notify_unpaused        (PkdSource       *source);
@@ -392,7 +393,7 @@ pkd_channel_start (PkdChannel  *channel,
 	 */
 	g_ptr_array_foreach(priv->sources,
 	                    (GFunc)pkd_source_notify_started,
-	                    NULL);
+	                    &priv->spawn_info);
 
 unlock:
 	g_mutex_unlock(priv->mutex);
