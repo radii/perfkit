@@ -119,7 +119,19 @@ pkd_channel_get_id (PkdChannel *channel)
 PkdChannel*
 pkd_channel_new (const PkdSpawnInfo *spawn_info)
 {
-	return g_object_new(PKD_TYPE_CHANNEL, NULL);
+	PkdChannelPrivate *priv;
+	PkdChannel *channel;
+
+	channel = g_object_new(PKD_TYPE_CHANNEL, NULL);
+	priv = channel->priv;
+
+	priv->spawn_info.pid = spawn_info->pid;
+	priv->spawn_info.target = g_strdup(spawn_info->target);
+	priv->spawn_info.args = g_strdupv(spawn_info->args);
+	priv->spawn_info.env = g_strdupv(spawn_info->env);
+	priv->spawn_info.working_dir = g_strdup(spawn_info->working_dir);
+
+	return channel;
 }
 
 /**
