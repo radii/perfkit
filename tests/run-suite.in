@@ -48,6 +48,12 @@ def callManager(obj, method, *args, **kwargs):
                     dbus_interface='com.dronelabs.Perfkit.Manager',
                     **kwargs)
 
+def callChannel(obj, method, *args, **kwargs):
+    callable = getattr(obj, method)
+    return callable(*args,
+                    dbus_interface='com.dronelabs.Perfkit.Channel',
+                    **kwargs)
+
 def runDaemonTests():
     import dbus
 
@@ -61,6 +67,14 @@ def runDaemonTests():
     path = callManager(manager, 'CreateChannel',
                        0, '/bin/nc', "-l -p 10000".split(' '), [], '/')
     assert path == '/com/dronelabs/Perfkit/Channels/0'
+    channel = bus.get_object(_BUS_NAME, path)
+    assert channel
+
+    # Start the channel
+    callChannel(channel, 'Start')
+
+    # Stop the channel and kill it
+    callChannel(channel, 'Stop', True)
 
 def main():
     import time
