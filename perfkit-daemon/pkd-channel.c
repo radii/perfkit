@@ -72,14 +72,17 @@ enum
 
 struct _PkdChannelPrivate
 {
-	guint         channel_id;
-	PkdSpawnInfo  spawn_info;
+	guint         channel_id; /* Monotonic id for the channel. */
+	PkdSpawnInfo  spawn_info; /* Needed information for spawning process. */
+	gboolean      spawned;    /* Set when spawning so we only kill processes
+	                           * that we have spawned.
+	                           */
 
 	GMutex       *mutex;
-	guint         state;
-	GPtrArray    *subs;
-	GPtrArray    *sources;
-	GTree        *indexed;
+	guint         state;      /* Current channel state. */
+	GPtrArray    *subs;       /* Array of subscriptions. */
+	GPtrArray    *sources;    /* Array of data sources. */
+	GTree        *indexed;    /* Pointer-to-index data source map. */
 };
 
 static guint channel_seq = 0;
@@ -347,6 +350,7 @@ pkd_channel_start (PkdChannel  *channel,
 	/*
 	 * Tick the state machine to STARTED.
 	 */
+	priv->spawned = TRUE;
 	priv->state = STATE_STARTED;
 	success = TRUE;
 
@@ -390,7 +394,54 @@ pkd_channel_stop (PkdChannel  *channel,
                   gboolean     killpid,
                   GError     **error)
 {
-	return TRUE;
+	PkdChannelPrivate *priv;
+	gboolean result = TRUE;
+
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	switch (priv->state) {
+	case STATE_STARTED:
+	case STATE_PAUSED:
+		priv->state = STATE_STOPPED;
+
+		g_message("Stopping channel %d.", pkd_channel_get_id(channel));
+
+		/*
+		 * Notify sources of channel stopping.
+		 */
+		g_ptr_array_foreach(priv->sources,
+		                    (GFunc)pkd_source_notify_stopped,
+		                    NULL);
+
+		/*
+		 * Kill the process if needed.
+		 */
+		if (killpid && priv->spawned && priv->spawn_info.pid) {
+			g_message("Killing process %d.", priv->spawn_info.pid);
+			kill(priv->spawn_info.pid, SIGKILL);
+		}
+
+		break;
+	case STATE_READY:
+		result = FALSE;
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Channel has not yet been started."));
+		/* Fall through */
+	case STATE_STOPPED:
+	case STATE_FAILED:
+		goto unlock;
+	default:
+		g_assert_not_reached();
+	}
+
+unlock:
+	g_mutex_unlock(priv->mutex);
+
+	return result;
 }
 
 /**
