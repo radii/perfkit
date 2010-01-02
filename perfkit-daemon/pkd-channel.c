@@ -64,7 +64,7 @@ enum
 {
 	STATE_0,
 	STATE_READY,
-	STATE_STARTED,
+	STATE_RUNNING,
 	STATE_PAUSED,
 	STATE_STOPPED,
 	STATE_FAILED,
@@ -348,10 +348,10 @@ pkd_channel_start (PkdChannel  *channel,
 	}
 
 	/*
-	 * Tick the state machine to STARTED.
+	 * Tick the state machine to RUNNING.
 	 */
 	priv->spawned = TRUE;
-	priv->state = STATE_STARTED;
+	priv->state = STATE_RUNNING;
 	success = TRUE;
 
 	/*
@@ -404,7 +404,7 @@ pkd_channel_stop (PkdChannel  *channel,
 	g_mutex_lock(priv->mutex);
 
 	switch (priv->state) {
-	case STATE_STARTED:
+	case STATE_RUNNING:
 	case STATE_PAUSED:
 		priv->state = STATE_STOPPED;
 
@@ -464,6 +464,50 @@ gboolean
 pkd_channel_pause (PkdChannel  *channel,
                    GError     **error)
 {
+	PkdChannelPrivate *priv;
+	gboolean result = TRUE;
+
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	switch (priv->state) {
+	case STATE_READY:
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Cannot pause channel; not yet started."));
+		result = FALSE;
+		break;
+	case STATE_STOPPED:
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Cannot pause channel; channel stopped."));
+		result = FALSE;
+		break;
+	case STATE_FAILED:
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Cannot pause channel; channel failed to start."));
+		result = FALSE;
+		break;
+	case STATE_PAUSED:
+		/* Already paused. */
+		break;
+	case STATE_RUNNING:
+		priv->state = STATE_PAUSED;
+
+		/*
+		 * Notify sources that we have paused.
+		 */
+		g_ptr_array_foreach(priv->sources,
+		                    (GFunc)pkd_source_notify_paused,
+		                    NULL);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
+	g_mutex_unlock(priv->mutex);
+
 	return TRUE;
 }
 
@@ -486,7 +530,42 @@ gboolean
 pkd_channel_unpause (PkdChannel  *channel,
                      GError     **error)
 {
-	return TRUE;
+	PkdChannelPrivate *priv;
+	gboolean result = TRUE;
+
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+
+	switch (priv->state) {
+	case STATE_PAUSED:
+		priv->state = STATE_RUNNING;
+
+		/*
+		 * Notify sources to continue.
+		 */
+		g_ptr_array_foreach(priv->sources,
+		                    (GFunc)pkd_source_notify_unpaused,
+		                    NULL);
+
+		break;
+	case STATE_READY:
+	case STATE_RUNNING:
+	case STATE_STOPPED:
+	case STATE_FAILED:
+		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
+		            _("Cannot unpause channel; channel not paused."));
+		result = FALSE;
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
+	g_mutex_unlock(priv->mutex);
+
+	return result;
 }
 
 /**
