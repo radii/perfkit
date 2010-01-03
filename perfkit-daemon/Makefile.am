@@ -45,6 +45,7 @@ AM_CPPFLAGS =								\
 	-DPERFKIT_COMPILATION						\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\"				\
+	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	$(NULL)
@@ -87,6 +88,7 @@ libperfkit_daemon_la_SOURCES =						\
 	pkd-source.c							\
 	pkd-source-info.c						\
 	pkd-subscription.c						\
+	$(top_srcdir)/cut-n-paste/gdatetime.c				\
 	$(NULL)
 
 libperfkit_daemon_la_LIBADD = $(PERFKIT_DAEMON_LIBS)
