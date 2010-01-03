@@ -55,6 +55,7 @@ struct _PkdManifest
 	GArray        *rows;        /* Array of PkdManifestRow */
 	gint           source_id;   /* Channel assigned Source Id */
 	guint          endian;      /* Data streams endianness */
+	GTimeVal       tv;          /* Timing of manifest */
 	volatile gint  ref_count;
 };
 
@@ -115,6 +116,7 @@ pkd_manifest_sized_new (gint size)
 	                                   FALSE,
 	                                   sizeof(PkdManifestRow),
 	                                   size);
+	g_get_current_time(&manifest->tv);
 
 	return manifest;
 }
@@ -162,6 +164,42 @@ pkd_manifest_unref (PkdManifest *manifest)
 		pkd_manifest_destroy(manifest);
 		g_slice_free(PkdManifest, manifest);
 	}
+}
+
+/**
+ * pkd_manifest_get_timeval:
+ * @manifest: A #PkdManifest
+ * @tv: A #GTimeVal
+ *
+ * Stores the time of the manifest to @tv.
+ *
+ * Side effects: None.
+ */
+void
+pkd_manifest_get_timeval (PkdManifest *manifest,
+                          GTimeVal    *tv)
+{
+	g_return_if_fail(manifest != NULL);
+	g_return_if_fail(tv != NULL);
+
+	*tv = manifest->tv;
+}
+
+/**
+ * pkd_manifest_set_timeval:
+ * @manifest: A #PkdManifest
+ * @tv: A #GTimeVal
+ *
+ * Sets the time for when @manifest is the authority for the stream.
+ */
+void
+pkd_manifest_set_timeval (PkdManifest *manifest,
+                          GTimeVal    *tv)
+{
+	g_return_if_fail(manifest != NULL);
+	g_return_if_fail(tv != NULL);
+
+	manifest->tv = *tv;
 }
 
 /**

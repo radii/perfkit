@@ -34,6 +34,10 @@ PkdManifest*     pkd_manifest_ref            (PkdManifest  *manifest);
 void             pkd_manifest_unref          (PkdManifest  *manifest);
 gint             pkd_manifest_get_source_id  (PkdManifest  *manifest);
 guint            pkd_manifest_get_byte_order (PkdManifest  *manifest);
+void             pkd_manifest_get_timeval    (PkdManifest  *manifest,
+                                              GTimeVal     *tv);
+void             pkd_manifest_set_timeval    (PkdManifest  *manifest,
+                                              GTimeVal     *tv);
 guint            pkd_manifest_append         (PkdManifest  *manifest,
                                               const gchar  *name,
                                               GType         type);

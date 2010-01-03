@@ -19,6 +19,7 @@ TEST_PROGS +=								\
 AM_CPPFLAGS =								\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	-I$(top_srcdir)							\
+	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(NULL)
 

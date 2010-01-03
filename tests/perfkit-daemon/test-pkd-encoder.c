@@ -1,4 +1,5 @@
 #include <perfkit-daemon/perfkit-daemon.h>
+#include <gdatetime.h>
 #include <string.h>
 
 extern void pkd_manifest_set_source_id (PkdManifest *m, gint i);
@@ -30,20 +31,61 @@ test_PkdEncoder_encode_manifest (void)
 	gchar *buf = NULL;
 	gsize len = 0;
 	gboolean host_nbo = (G_BYTE_ORDER == G_BIG_ENDIAN);
+	GDateTime *dt;
+	GTimeVal tv;
+	gint tp, dp, dh, dm, ds;
+	guint tj, dj;
+	guint64 tu, du;
+	struct {
+		gint    period :  5;
+		guint   julian : 22;
+		guint64 usec   : 37;
+	} t = {0, 0, 0};
 
 	SETUP_MANIFEST(m);
 	g_assert(pkd_encoder_encode_manifest(NULL, m, &buf, &len));
 
-	g_assert_cmpint(len, ==, 15);
+	g_assert_cmpint(len, ==, 23);
 	g_assert_cmpint(buf[0], ==, host_nbo);     /* Network Byte Order */
 	g_assert_cmpint(buf[1], ==, 3);            /* Source ID */
 	g_assert_cmpint(buf[2], ==, 1);            /* Key Compression Enabled */
-	g_assert_cmpint(buf[3], ==, 1);            /* Row 1 */
-	g_assert_cmpint(buf[4], ==, G_TYPE_UINT);  /* Row 1 Type */
-	g_assert_cmpstr(&buf[5], ==, "bps");       /* Row 1 Name */
-	g_assert_cmpint(buf[9], ==, 2);            /* Row 2 */
-	g_assert_cmpint(buf[10], ==, G_TYPE_UINT); /* Row 2 Type */
-	g_assert_cmpstr(&buf[11], ==, "qps");      /* Row 2 Name */
+
+
+	/*
+	 * Verify the 64-bit timestamp.  I figured that since we are going
+	 * to include 64-bits for a timestamp, we should make pretty damn
+	 * good use of those bits.  See the PkdEncoder for more information.
+	 *
+	 * The timestamp structure is as follows:
+	 *
+	 *   julian period  :  5  ; The Julian Epoch (0 for current)
+	 *   julian day num : 22  ; The day within the julian period
+	 *   timekeeping    : 37  ; Timekeeping within day (in usec)
+	 *
+	 */
+	pkd_manifest_get_timeval(m, &tv);
+	dt = g_date_time_new_from_timeval(&tv);
+	g_date_time_get_julian(dt, &dp, &dj, &dh, &dm, &ds);
+	memcpy(&t, &buf[3], sizeof(t));
+	tp = t.period;
+	tj = t.julian;
+	tu = t.usec;
+	du = ((dh * 60 * 60) + (dm * 60) + ds) * G_TIME_SPAN_SECOND;
+	du += g_date_time_get_microsecond(dt);
+	g_assert_cmpint(tp, ==, dp);
+	g_assert_cmpint(tj, ==, dj);
+	g_assert_cmpint(tu, ==, du);
+	g_assert_cmpint(dh, ==, (du / G_TIME_SPAN_HOUR));
+	g_assert_cmpint(dm, ==, (du % G_TIME_SPAN_HOUR) / G_TIME_SPAN_MINUTE);
+	g_assert_cmpint(ds, ==, (du % G_TIME_SPAN_MINUTE) / G_TIME_SPAN_SECOND);
+	g_date_time_unref(dt);
+
+	g_assert_cmpint(buf[11], ==, 1);            /* Row 1 */
+	g_assert_cmpint(buf[12], ==, G_TYPE_UINT);  /* Row 1 Type */
+	g_assert_cmpstr(&buf[13], ==, "bps");       /* Row 1 Name */
+	g_assert_cmpint(buf[17], ==, 2);            /* Row 2 */
+	g_assert_cmpint(buf[18], ==, G_TYPE_UINT); /* Row 2 Type */
+	g_assert_cmpstr(&buf[19], ==, "qps");      /* Row 2 Name */
 }
 
 static void

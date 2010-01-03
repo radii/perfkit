@@ -21,6 +21,7 @@
 #endif
 
 #include <string.h>
+#include <gdatetime.h>
 
 #include "pkd-encoder.h"
 
@@ -171,6 +172,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	s++;
 
 	/*
+	 * Timestamp is 64-bits.
+	 */
+	s += 8;
+
+	/*
 	 * Iterate the types and names and determine our desired buffer size.
 	 */
 	for (i = 1; i <= rows; i++) {
@@ -208,6 +214,78 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	 * Mark if we have compressed Row IDs.
 	 */
 	(*data)[o++] = p;
+
+	/*
+	 * Add the manifest timestamp.  This conists of a fairly high-precision
+	 * 64-bits that still allow for storing historical events and long
+	 * distance future.  You probably think I'm crazy for doing this, but
+	 * since we have to use 64-bits anyway (for anything decent) we might
+	 * as well make damn good use of it.  Also, I'd like to use this encoding
+	 * for more than just performance data.
+	 *
+	 * So, we encode the timestamp in Julian format for the Solar calendar
+	 * and in microseconds (usec) for timekeeping within the day.  We can
+	 * go from about -100,000 BC to 100,000 AD.  That'll do pig.
+	 *
+	 * As for timekeeping, we support up to microseconds.  This is stored
+	 * using the lower 37-bits.  We need 43-bits to do 100-nano second ticks.
+	 * Not quite enough to do that using Julian days even if we drop the period.
+	 * Therefore, I like this for the time being.
+	 */
+	{
+		GTimeVal tv;
+		GDateTime *dt;
+		gint jp, jd, jh, jm, js;
+		guint64 usec;
+		struct {
+			gint    period :  5;
+			guint   julian : 22;
+			guint64 usec   : 37;
+		} t;
+
+		/*
+		 * Get the manifest authoritative start time.
+		 */
+		pkd_manifest_get_timeval(manifest, &tv);
+
+		/*
+		 * Convert to GDateTime for processing.
+		 */
+		dt = g_date_time_new_from_timeval(&tv);
+
+		/*
+		 * Retrieve the Julian period, day number, and timekeeping.
+		 */
+		g_date_time_get_julian(dt, &jp, &jd, &jh, &jm, &js);
+
+		/*
+		 * Calculate the microseconds since the start of day.
+		 */
+		usec = ((jh * 60 * 60) + (jm * 60) + js) * G_TIME_SPAN_SECOND;
+		usec += g_date_time_get_microsecond(dt);
+
+		/*
+		 * Store the calculated times into their bit-fields.
+		 */
+		t.period = jp;
+		t.julian = jd;
+		t.usec = usec;
+
+		/*
+		 * We are finished with the GDateTime, free it.
+		 */
+		g_date_time_unref(dt);
+
+		/*
+		 * Store the 64-bit date and timekeeping in the buffer.
+		 */
+		memcpy(&((*data)[o]), &t, sizeof(t));
+
+		/*
+		 * Increment our offset by 8.
+		 */
+		o += sizeof(t);
+	}
 
 	/*
 	 * Iterate the types and names and drop into the buffer.
