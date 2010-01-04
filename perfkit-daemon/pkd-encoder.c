@@ -42,6 +42,75 @@
  * encoding format for the default encoder.
  */
 
+enum
+{
+	VERSION_1 = 0x01,
+};
+
+static inline void
+pkd_encoder_encode_timeval (GTimeVal *tv,
+                            gchar    *buf)
+{
+	/*
+	 * Add the manifest timestamp.  This conists of a fairly high-precision
+	 * 64-bits that still allow for storing historical events and long
+	 * distance future.  You probably think I'm crazy for doing this, but
+	 * since we have to use 64-bits anyway (for anything decent) we might
+	 * as well make damn good use of it.  Also, I'd like to use this encoding
+	 * for more than just performance data.
+	 *
+	 * So, we encode the timestamp in Julian format for the Solar calendar
+	 * and in microseconds (usec) for timekeeping within the day.  We can
+	 * go from about -100,000 BC to 100,000 AD.  That'll do pig.
+	 *
+	 * As for timekeeping, we support up to microseconds.  This is stored
+	 * using the lower 37-bits.  We need 43-bits to do 100-nano second ticks.
+	 * Not quite enough to do that using Julian days even if we drop the period.
+	 * Therefore, I like this for the time being.
+	 */
+	GDateTime *dt;
+	gint jp, jd, jh, jm, js;
+	guint64 usec;
+	struct {
+		gint    period :  5;
+		guint   julian : 22;
+		guint64 usec   : 37;
+	} t;
+
+	/*
+	 * Convert to GDateTime for processing.
+	 */
+	dt = g_date_time_new_from_timeval(tv);
+
+	/*
+	 * Retrieve the Julian period, day number, and timekeeping.
+	 */
+	g_date_time_get_julian(dt, &jp, &jd, &jh, &jm, &js);
+
+	/*
+	 * Calculate the microseconds since the start of day.
+	 */
+	usec = ((jh * 60 * 60) + (jm * 60) + js) * G_TIME_SPAN_SECOND;
+	usec += g_date_time_get_microsecond(dt);
+
+	/*
+	 * Store the calculated times into their bit-fields.
+	 */
+	t.period = jp;
+	t.julian = jd;
+	t.usec = usec;
+
+	/*
+	 * We are finished with the GDateTime, free it.
+	 */
+	g_date_time_unref(dt);
+
+	/*
+	 * Store the 64-bit date and timekeeping in the buffer.
+	 */
+	memcpy(buf, &t, sizeof(t));
+}
+
 static gboolean
 pkd_encoder_real_encode_samples (PkdSample **samples,
                                  gint        n_samples,
@@ -51,9 +120,21 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
 	gchar *buf = NULL;
 	gsize s = 0, buflen = 0;
 	gint i;
+	GTimeVal tv;
 
 	g_return_val_if_fail(data != NULL, FALSE);
 	g_return_val_if_fail(data_len != NULL, FALSE);
+
+	/*
+	 * We pass through the data twice.  First iteration is so that we can
+	 * determine the total buffer size.  The second time we fill in the
+	 * new buffer.
+	 */
+
+	/*
+	 * Version Tag.
+	 */
+	s += 1;
 
 	for (i = 0; i < n_samples; i++) {
 		/*
@@ -67,15 +148,37 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
 		s++;
 
 		/*
+		 * Sample timestamp.
+		 *
+		 *   I'd really like to find a way to compress this down to at most
+		 *   4 bytes.  For example, if we set the desired resolution of the
+		 *   manifest to second intervals, this could be a difference of
+		 *   seconds since the manifest.  If the resolution is in usec then
+		 *   we will still need at least 37-bits for 1-days worth of time.
+		 *   However, we could also force a timeout on a manifest based on
+		 *   the desired precision.  That would allow us to have a known
+		 *   width requirement.
+		 */
+		s += 8;
+
+		/*
 		 * Sample Data.
 		 */
 		pkd_sample_get_data(samples[i], &buf, &buflen);
 		s += buflen;
 	}
 
+	/*
+	 * Allocate buffer for samples.
+	 */
 	*data_len = s;
 	(*data) = g_malloc(s);
 	s = 0;
+
+	/*
+	 * Version Tag.
+	 */
+	(*data)[s++] = VERSION_1;
 
 	for (i = 0; i < n_samples; i++) {
 		pkd_sample_get_data(samples[i], &buf, &buflen);
@@ -95,6 +198,13 @@ pkd_encoder_real_encode_samples (PkdSample **samples,
 		 * Source Identifier.
 		 */
 		(*data)[s++] = (gchar)(pkd_sample_get_source_id(samples[i]) & 0xFF);
+
+		/*
+		 * Sample timestamp.
+		 */
+		pkd_sample_get_timeval(samples[i], &tv);
+		pkd_encoder_encode_timeval(&tv, &((*data)[s]));
+		s += 8;
 
 		/*
 		 * Sample Data.
@@ -141,6 +251,7 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	GType type;
 	gsize s = 0, o = 0;
 	gboolean p;
+	GTimeVal tv;
 
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);
@@ -154,6 +265,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	 */
 
 	rows = pkd_manifest_get_n_rows(manifest);
+
+	/*
+	 * The version tag.
+	 */
+	s++;
 
 	/*
 	 * Include the Endianness.
@@ -201,6 +317,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	*data_len = s;
 
 	/*
+	 * Add the version tag.
+	 */
+	(*data)[o++] = VERSION_1;
+
+	/*
 	 * Add the endianness. 1 means Network-Byte-Order.
 	 */
 	(*data)[o++] = (pkd_manifest_get_byte_order(manifest) == G_BIG_ENDIAN);
@@ -216,76 +337,11 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	(*data)[o++] = p;
 
 	/*
-	 * Add the manifest timestamp.  This conists of a fairly high-precision
-	 * 64-bits that still allow for storing historical events and long
-	 * distance future.  You probably think I'm crazy for doing this, but
-	 * since we have to use 64-bits anyway (for anything decent) we might
-	 * as well make damn good use of it.  Also, I'd like to use this encoding
-	 * for more than just performance data.
-	 *
-	 * So, we encode the timestamp in Julian format for the Solar calendar
-	 * and in microseconds (usec) for timekeeping within the day.  We can
-	 * go from about -100,000 BC to 100,000 AD.  That'll do pig.
-	 *
-	 * As for timekeeping, we support up to microseconds.  This is stored
-	 * using the lower 37-bits.  We need 43-bits to do 100-nano second ticks.
-	 * Not quite enough to do that using Julian days even if we drop the period.
-	 * Therefore, I like this for the time being.
+	 * Get the manifest authoritative start time.
 	 */
-	{
-		GTimeVal tv;
-		GDateTime *dt;
-		gint jp, jd, jh, jm, js;
-		guint64 usec;
-		struct {
-			gint    period :  5;
-			guint   julian : 22;
-			guint64 usec   : 37;
-		} t;
-
-		/*
-		 * Get the manifest authoritative start time.
-		 */
-		pkd_manifest_get_timeval(manifest, &tv);
-
-		/*
-		 * Convert to GDateTime for processing.
-		 */
-		dt = g_date_time_new_from_timeval(&tv);
-
-		/*
-		 * Retrieve the Julian period, day number, and timekeeping.
-		 */
-		g_date_time_get_julian(dt, &jp, &jd, &jh, &jm, &js);
-
-		/*
-		 * Calculate the microseconds since the start of day.
-		 */
-		usec = ((jh * 60 * 60) + (jm * 60) + js) * G_TIME_SPAN_SECOND;
-		usec += g_date_time_get_microsecond(dt);
-
-		/*
-		 * Store the calculated times into their bit-fields.
-		 */
-		t.period = jp;
-		t.julian = jd;
-		t.usec = usec;
-
-		/*
-		 * We are finished with the GDateTime, free it.
-		 */
-		g_date_time_unref(dt);
-
-		/*
-		 * Store the 64-bit date and timekeeping in the buffer.
-		 */
-		memcpy(&((*data)[o]), &t, sizeof(t));
-
-		/*
-		 * Increment our offset by 8.
-		 */
-		o += sizeof(t);
-	}
+	pkd_manifest_get_timeval(manifest, &tv);
+	pkd_encoder_encode_timeval(&tv, &((*data)[o]));
+	o += 8;
 
 	/*
 	 * Iterate the types and names and drop into the buffer.

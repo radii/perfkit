@@ -55,12 +55,13 @@
 
 struct _PkdSample
 {
-	volatile gint  ref_count;
+	volatile gint ref_count;
 
-	gint   source_id;       /* Source identifier within the channel. */
-	gint   len;             /* Length of data within the sample. */
-	gchar *data;            /* Data buffer. Default is inline_data. */
-	gchar  inline_data[64]; /* Default inline buffer for @data. */
+	GTimeVal  tv;              /* Time of sample. */
+	gint      source_id;       /* Source identifier within the channel. */
+	gint      len;             /* Length of data within the sample. */
+	gchar    *data;            /* Data buffer. Default is inline_data. */
+	gchar     inline_data[64]; /* Default inline buffer for @data. */
 };
 
 static void
@@ -78,7 +79,7 @@ pkd_sample_destroy(PkdSample *sample)
  * Side effects: None.
  */
 PkdSample*
-pkd_sample_new(void)
+pkd_sample_new (void)
 {
 	PkdSample *sample;
 
@@ -86,6 +87,7 @@ pkd_sample_new(void)
 	sample->ref_count = 1;
 	sample->len = 0;
 	sample->data = &sample->inline_data[0];
+	g_get_current_time(&sample->tv);
 
 	return sample;
 }
@@ -101,7 +103,7 @@ pkd_sample_new(void)
  * Side effects: None.
  */
 PkdSample*
-pkd_sample_ref(PkdSample *sample)
+pkd_sample_ref (PkdSample *sample)
 {
 	g_return_val_if_fail(sample != NULL, NULL);
 	g_return_val_if_fail(sample->ref_count > 0, NULL);
@@ -121,7 +123,7 @@ pkd_sample_ref(PkdSample *sample)
  * Side effects: The structure is freed if reference count reaches zero.
  */
 void
-pkd_sample_unref(PkdSample *sample)
+pkd_sample_unref (PkdSample *sample)
 {
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(sample->ref_count > 0);
@@ -145,8 +147,8 @@ pkd_sample_unref(PkdSample *sample)
  */
 void
 pkd_sample_get_data (PkdSample  *sample,
-                    gchar    **data,
-                    gsize     *data_len)
+                     gchar     **data,
+                     gsize      *data_len)
 {
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(data != NULL);
@@ -186,6 +188,40 @@ pkd_sample_set_source_id (PkdSample *sample,
 	sample->source_id = source_id;
 }
 
+/**
+ * pkd_sample_get_timeval:
+ * @sample: A #PkdSample
+ * @tv: A #GTimeVal
+ *
+ * Retrieves the #GTimeVal for when the sample occurred.
+ */
+void
+pkd_sample_get_timeval (PkdSample *sample,
+                        GTimeVal  *tv)
+{
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(tv != NULL);
+
+	*tv = sample->tv;
+}
+
+/**
+ * pkd_sample_set_timeval:
+ * @sample: A #PkdSample
+ * @tv: A #GTimeVal
+ *
+ * Sets the timeval for when @sample occurred.
+ */
+void
+pkd_sample_set_timeval (PkdSample *sample,
+                        GTimeVal  *tv)
+{
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(tv != NULL);
+
+	sample->tv = *tv;
+}
+
 GType
 pkd_sample_get_type (void)
 {
@@ -218,8 +254,8 @@ pkd_sample_get_type (void)
  */
 void
 pkd_sample_writer_init (PkdSampleWriter *writer,
-                       PkdManifest     *manifest,
-                       PkdSample       *sample)
+                        PkdManifest     *manifest,
+                        PkdSample       *sample)
 {
 	GType type;
 	gsize size = 0;
