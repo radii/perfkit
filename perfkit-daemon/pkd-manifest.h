@@ -27,25 +27,37 @@ G_BEGIN_DECLS
 
 typedef struct _PkdManifest PkdManifest;
 
+typedef enum
+{
+	PKD_RESOLUTION_PRECISE,
+	PKD_RESOLUTION_USEC,
+	PKD_RESOLUTION_MSEC,
+	PKD_RESOLUTION_SECOND,
+	PKD_RESOLUTION_MINUTE,
+	PKD_RESOLUTION_HOUR,
+} PkdResolution;
+
 GType            pkd_manifest_get_type       (void) G_GNUC_CONST;
 PkdManifest*     pkd_manifest_new            (void);
-PkdManifest*     pkd_manifest_sized_new      (gint          size);
-PkdManifest*     pkd_manifest_ref            (PkdManifest  *manifest);
-void             pkd_manifest_unref          (PkdManifest  *manifest);
-gint             pkd_manifest_get_source_id  (PkdManifest  *manifest);
-guint            pkd_manifest_get_byte_order (PkdManifest  *manifest);
-void             pkd_manifest_get_timeval    (PkdManifest  *manifest,
-                                              GTimeVal     *tv);
-void             pkd_manifest_set_timeval    (PkdManifest  *manifest,
-                                              GTimeVal     *tv);
-guint            pkd_manifest_append         (PkdManifest  *manifest,
-                                              const gchar  *name,
-                                              GType         type);
-guint            pkd_manifest_get_n_rows     (PkdManifest  *manifest);
-GType            pkd_manifest_get_row_type   (PkdManifest  *manifest,
-                                              gint          row);
-const gchar*     pkd_manifest_get_row_name   (PkdManifest  *manifest,
-                                              gint          row);
+PkdManifest*     pkd_manifest_sized_new      (gint           size);
+PkdManifest*     pkd_manifest_ref            (PkdManifest   *manifest);
+void             pkd_manifest_unref          (PkdManifest   *manifest);
+gint             pkd_manifest_get_source_id  (PkdManifest   *manifest);
+PkdResolution    pkd_manifest_get_resolution (PkdManifest   *manifest);
+void             pkd_manifest_set_resolution (PkdManifest   *manifest,
+                                              PkdResolution  resolution);
+void             pkd_manifest_get_timeval    (PkdManifest   *manifest,
+                                              GTimeVal      *tv);
+void             pkd_manifest_set_timeval    (PkdManifest   *manifest,
+                                              GTimeVal      *tv);
+guint            pkd_manifest_append         (PkdManifest   *manifest,
+                                              const gchar   *name,
+                                              GType          type);
+guint            pkd_manifest_get_n_rows     (PkdManifest   *manifest);
+GType            pkd_manifest_get_row_type   (PkdManifest   *manifest,
+                                              gint           row);
+const gchar*     pkd_manifest_get_row_name   (PkdManifest   *manifest,
+                                              gint           row);
 
 G_END_DECLS
 

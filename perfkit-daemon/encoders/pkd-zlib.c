@@ -69,13 +69,15 @@ pkd_zlib_new (void)
 }
 
 static gboolean
-pkd_zlib_encode_samples (PkdEncoder  *encoder,
-                        PkdSample  **samples,
-                        gint        sample_len,
-                        gchar     **data,
-                        gsize      *dapkd_len)
+pkd_zlib_encode_samples (PkdEncoder    *encoder,
+                         PkdManifest   *manifest,
+                         PkdSample    **samples,
+                         gint          sample_len,
+                         gchar       **data,
+                         gsize        *dapkd_len)
 {
 	g_return_val_if_fail(encoder != NULL, FALSE);
+	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(samples != NULL, FALSE);
 	g_return_val_if_fail(sample_len > 0, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);

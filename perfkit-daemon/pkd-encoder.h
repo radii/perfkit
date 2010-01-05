@@ -43,6 +43,7 @@ struct _PkdEncoderIface
 	GTypeInterface parent;
 
 	gboolean (*encode_samples)  (PkdEncoder    *encoder,
+	                             PkdManifest   *manifest,
 	                             PkdSample    **sample,
 	                             gint           n_samples,
 	                             gchar        **data,
@@ -55,6 +56,7 @@ struct _PkdEncoderIface
 
 GType    pkd_encoder_get_type        (void) G_GNUC_CONST;
 gboolean pkd_encoder_encode_samples  (PkdEncoder     *encoder,
+                                      PkdManifest    *manifest,
                                       PkdSample     **samples,
                                       gint            n_samples,
                                       gchar         **data,

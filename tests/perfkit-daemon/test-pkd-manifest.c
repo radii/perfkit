@@ -13,7 +13,7 @@ test_PkdManifest_new (void)
 }
 
 static void
-test_PkdManifestWriter_basic (void)
+test_PkdManifest_basic (void)
 {
 	PkdManifest *m;
 	gint r, i;
@@ -57,7 +57,7 @@ main (gint   argc,
 
 	g_test_add_func("/PkdManifest/new", test_PkdManifest_new);
 	g_test_add_func("/PkdManifest/timeval", test_PkdManifest_timeval);
-	g_test_add_func("/PkdManifestWriter/basic", test_PkdManifestWriter_basic);
+	g_test_add_func("/PkdManifest/basic", test_PkdManifest_basic);
 
 	return g_test_run();
 }

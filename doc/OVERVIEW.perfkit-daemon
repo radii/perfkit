@@ -55,30 +55,37 @@ pkd-encoder-info.c - Metadata about an encoder plugin.
 pkd-spawn-info.c   - Information about how a process is spawned.
 pkd-config.c       - Access to the configuration file (daemon.conf).
 
+=========
 
-ENCODER EVELOPE FOR SAMPLE
+This is somewhat what the protocol buffer looks like.
 
-  +------------+---------------+--------+
-  | Length (4) | Source ID (1) | SAMPLE |
-  +------------+---------------+--------+
 
-SAMPLE
+  message ManifestColumn {
+    required uint32 id   = 1;
+    required uint32 type = 2;
+    optional string name = 3;
+  }
 
-                        [.....         Repeat           .....]
-  +---------------------+-----------------+------------------+
-  | Row Compression (1) | Row Index (1|4) | (Integer|String) |
-  +---------------------+-----------------+------------------+
-                        [.....                          .....]
+  enum Resolution {
+  	PRECISE = 0;
+  	MICROSECOND = 1;
+  	MILLISECOND = 2;
+  	SECOND = 3;
+  	MINUTE = 4;
+  	HOUR = 5;
+  }
 
-Integer
+  message Manifest {
+    optional int64 timestamp = 1;
+    optional Resolution resolution = 2;
+    optional int32 source = 3;
+    repeated ManifestColumn columns = 4;
+  }
 
-  +-----------+
-  | Value (4) |
-  +-----------+
+  message Sample {
+    optional int64 reltime = 1;
+    optional data buffer = 2;
+  }
 
-String
-
-  +-----------------------------+
-  | String (1 + strlen(String)) |
-  +-----------------------------+
+=========
 

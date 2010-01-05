@@ -30,18 +30,6 @@
 G_BEGIN_DECLS
 
 typedef struct _PkdSample PkdSample;
-typedef struct _PkdSampleWriter PkdSampleWriter;
-
-struct _PkdSampleWriter
-{
-	PkdManifest *manifest;
-	PkdSample   *sample;
-	gint         row_count;
-	gint         pos;
-	gint         extra;
-	gchar       *data;
-	gchar        inline_data[64];
-};
 
 GType       pkd_sample_get_type       (void) G_GNUC_CONST;
 PkdSample*  pkd_sample_new            (void);
@@ -55,19 +43,33 @@ void        pkd_sample_get_timeval    (PkdSample        *sample,
                                        GTimeVal         *tv);
 void        pkd_sample_set_timeval    (PkdSample        *sample,
                                        GTimeVal         *tv);
-void        pkd_sample_writer_init    (PkdSampleWriter  *writer,
-                                       PkdManifest      *manifest,
-                                       PkdSample        *sample);
-void        pkd_sample_writer_string  (PkdSampleWriter  *writer,
-                                       gint              index,
-                                       const gchar      *s);
-void        pkd_sample_writer_boolean (PkdSampleWriter  *writer,
-                                       gint              index,
+void        pkd_sample_append_boolean (PkdSample        *sample,
+                                       gint              field,
                                        gboolean          b);
-void        pkd_sample_writer_integer (PkdSampleWriter  *writer,
-                                       gint              index,
+void        pkd_sample_append_double  (PkdSample        *sample,
+                                       gint              field,
+                                       gdouble           d);
+void        pkd_sample_append_float   (PkdSample        *sample,
+                                       gint              field,
+                                       gfloat            f);
+void        pkd_sample_append_int     (PkdSample        *sample,
+                                       gint              field,
                                        gint              i);
-void        pkd_sample_writer_finish  (PkdSampleWriter  *writer);
+void        pkd_sample_append_int64   (PkdSample        *sample,
+                                       gint              field,
+                                       gint64            i);
+void        pkd_sample_append_string  (PkdSample        *sample,
+                                       gint              field,
+                                       const gchar      *s);
+void        pkd_sample_append_uint    (PkdSample        *sample,
+                                       gint              field,
+                                       guint             u);
+void        pkd_sample_append_uint64  (PkdSample        *sample,
+                                       gint              field,
+                                       guint64           u);
+void        pkd_sample_append_timeval (PkdSample        *sample,
+                                       gint              field,
+                                       GTimeVal         *tv);
 
 G_END_DECLS
 

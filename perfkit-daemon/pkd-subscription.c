@@ -290,7 +290,9 @@ pkd_subscription_flush_locked (PkdSubscription *sub)
 	/*
 	 * Encode the sample buffer.
 	 */
-	if (!pkd_encoder_encode_samples(encoder, samples, n_samples, &buf, &len)) {
+	if (!pkd_encoder_encode_samples(encoder, sub->manifest, samples,
+	                                n_samples, &buf, &len))
+	{
 	    g_error("%s: An error has occurred while encoding a buffer.  The "
 	            "encoder type is: %s.",
 	            G_STRLOC,

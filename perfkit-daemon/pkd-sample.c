@@ -20,6 +20,8 @@
 #include "config.h"
 #endif
 
+#include <egg-buffer.h>
+#include <egg-time.h>
 #include <string.h>
 
 #include "pkd-sample.h"
@@ -30,43 +32,24 @@
  * @short_description: Samples within a data stream
  *
  * #PkdSample represents a set of data from a particular sample within a
- * data stream.  It contains as little information as possible within
- * its buffer so that it requires little size overhead.  Data values contain
- * an integer (usually a single byte) representing the data type within
- * the active #PkdManifest followed by there data.
+ * data stream.  The internal format of this is a Google Protocol Buffer.
  *
- * More information on the serialization format can be found in the
- * OVERVIEW file in the source tree.
- *
- * Various #PkdEncoder<!-- -->'s can perform extra compression based on the
- * known information in the #PkdManifest.
- *
- * Only a few data types are supported but more will be added as needed.
+ * Use the helper methods to help build your data buffer.
  */
-
-#define PKD_SAMPLE_WRITER_INDEX(w,i) G_STMT_START {        \
-    if ((w)->row_count < 0xFF) {                           \
-        (w)->data[(w)->pos++] = (gchar)((i) & 0xFF);       \
-    } else {                                               \
-        memcpy(&(w)->data[(w)->pos], &(i), sizeof(gint));  \
-        (w)->pos += sizeof(gint);                          \
-    }                                                      \
-} G_STMT_END
 
 struct _PkdSample
 {
 	volatile gint ref_count;
 
-	GTimeVal  tv;              /* Time of sample. */
-	gint      source_id;       /* Source identifier within the channel. */
-	gint      len;             /* Length of data within the sample. */
-	gchar    *data;            /* Data buffer. Default is inline_data. */
-	gchar     inline_data[64]; /* Default inline buffer for @data. */
+	GTimeVal    tv;              /* Time of sample. */
+	gint        source_id;       /* Source identifier within the channel. */
+	EggBuffer  *buf;
 };
 
 static void
 pkd_sample_destroy(PkdSample *sample)
 {
+	egg_buffer_unref(sample->buf);
 }
 
 /**
@@ -85,8 +68,7 @@ pkd_sample_new (void)
 
 	sample = g_slice_new0(PkdSample);
 	sample->ref_count = 1;
-	sample->len = 0;
-	sample->data = &sample->inline_data[0];
+	sample->buf = egg_buffer_new();
 	g_get_current_time(&sample->tv);
 
 	return sample;
@@ -154,8 +136,7 @@ pkd_sample_get_data (PkdSample  *sample,
 	g_return_if_fail(data != NULL);
 	g_return_if_fail(data_len != NULL);
 
-	*data = sample->data;
-	*data_len = sample->len;
+	egg_buffer_get_buffer(sample->buf, data, data_len);
 }
 
 /**
@@ -222,6 +203,202 @@ pkd_sample_set_timeval (PkdSample *sample,
 	sample->tv = *tv;
 }
 
+/**
+ * pkd_sample_append_boolean:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @b: A #gboolean to append to the buffer.
+ *
+ * Appends the boolean value @b to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_boolean (PkdSample *sample,
+                           gint       field,
+                           gboolean   b)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_BOOLEAN);
+	egg_buffer_write_boolean(sample->buf, b);
+}
+
+/**
+ * pkd_sample_append_double:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @d: A #gdouble to append to the buffer.
+ *
+ * Appends the double value @d to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_double (PkdSample *sample,
+                          gint       field,
+                          gdouble    d)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_DOUBLE);
+	egg_buffer_write_double(sample->buf, d);
+}
+
+/**
+ * pkd_sample_append_float:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @f: A #gfloat to append to the buffer.
+ *
+ * Appends the float value @f to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_float (PkdSample *sample,
+                         gint       field,
+                         gfloat     f)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_FLOAT);
+	egg_buffer_write_float(sample->buf, f);
+}
+
+/**
+ * pkd_sample_append_int:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @i: A #gint to append to the buffer.
+ *
+ * Appends the integer value @i to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_int (PkdSample *sample,
+                       gint       field,
+                       gint       i)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_INT);
+	egg_buffer_write_int(sample->buf, i);
+}
+
+/**
+ * pkd_sample_append_int64:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @i: A #gint64 to append to the buffer.
+ *
+ * Appends the 64-bit integer value @i to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_int64 (PkdSample *sample,
+                         gint       field,
+                         gint64     i)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_INT64);
+	egg_buffer_write_int64(sample->buf, i);
+}
+
+/**
+ * pkd_sample_append_string:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @s: A string to append to the buffer.
+ *
+ * Appends the string @s to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_string (PkdSample   *sample,
+                          gint         field,
+                          const gchar *s)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_STRING);
+	egg_buffer_write_string(sample->buf, s);
+}
+
+/**
+ * pkd_sample_append_uint:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @u: A #guint to append to the buffer.
+ *
+ * Appends the unsigned integer @u to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_uint (PkdSample *sample,
+                        gint       field,
+                        guint      u)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_UINT);
+	egg_buffer_write_uint(sample->buf, u);
+}
+
+/**
+ * pkd_sample_append_uint64:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @u: A #guint64 to append to the buffer.
+ *
+ * Appends the 64-bit unsigned integer @u to the buffer.
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_uint64 (PkdSample *sample,
+                          gint       field,
+                          guint64    u)
+{
+	g_return_if_fail(sample != NULL);
+
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_UINT64);
+	egg_buffer_write_uint64(sample->buf, u);
+}
+
+/**
+ * pkd_sample_append_timeval:
+ * @sample: A #PkdSample.
+ * @field: The field within the manifest.
+ * @tv: A #GTimeVal to append to the buffer.
+ *
+ * Encodes @tv into the number of 100-nanosecond ticks since the Gregorian
+ * Epoch (January 1, 01).  The value is stored as a 64-bit unsigned and is
+ * guaranteed to take up no more than 10-bytes for the timeval alone.
+ *
+ * The field will take at least one addition byte (as always).
+ *
+ * Side effects: None.
+ */
+void
+pkd_sample_append_timeval (PkdSample *sample,
+                           gint       field,
+                           GTimeVal  *tv)
+{
+	guint64 ticks;
+
+	g_return_if_fail(sample != NULL);
+
+	g_time_val_to_ticks(tv, &ticks);
+	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_UINT64);
+	egg_buffer_write_uint64(sample->buf, ticks);
+}
+
 GType
 pkd_sample_get_type (void)
 {
@@ -236,266 +413,4 @@ pkd_sample_get_type (void)
 	}
 
 	return type_id;
-}
-
-/**
- * pkd_sample_writer_init:
- * @writer: A #PkdSampleWriter
- * @manifest: A #PkdManifest
- * @sample: A #PkdSample
- *
- * Initializes a #PkdSampleWriter structure for writing a new sample.  After
- * calling this method you should set the various fields for the sample
- * using pkd_sample_writer_integer(), pkd_sample_writer_boolean(), or
- * similar.  When all the desired fields are set, use pkd_sample_writer_finish()
- * to move the buffer to the sample.
- *
- * Side effects: None.
- */
-void
-pkd_sample_writer_init (PkdSampleWriter *writer,
-                        PkdManifest     *manifest,
-                        PkdSample       *sample)
-{
-	GType type;
-	gsize size = 0;
-	gint i;
-
-	writer->manifest = manifest;
-	writer->sample = sample;
-	writer->pos = 0;
-	writer->extra = 0;
-	writer->row_count = pkd_manifest_get_n_rows(manifest);
-	writer->data = &writer->inline_data[0];
-
-	/*
-	 * We use one-byte for row index if the row count is <= 0xFF.
-	 */
-	size += (writer->row_count < 0xFF) ?
-	        (writer->row_count)        :
-	        (writer->row_count * sizeof(gint));
-
-	/*
-	 * Calculate the total size needed for our creation buffer.  The following
-	 * table is used to calculate the amount of inline data.
-	 *
-	 * gint........: 4 bytes
-	 * guint.......: 4 bytes
-	 * glong.......: 4 bytes
-	 * gulong......: 4 bytes
-	 * gboolean....: 1 byte
-	 * gchar.......: 1 byte
-	 * gchararray..: sizeof gchar* (Inline Pointer)
-	 */
-	for (i = 1; i <= writer->row_count; i++) {
-		type = pkd_manifest_get_row_type(manifest, i);
-		switch (type) {
-		case G_TYPE_INT:
-		case G_TYPE_UINT:
-		case G_TYPE_LONG:
-		case G_TYPE_ULONG:
-			size += 4;
-			break;
-		case G_TYPE_CHAR:
-		case G_TYPE_BOOLEAN:
-			size++;
-			break;
-		case G_TYPE_STRING:
-			/*
-			 * For strings we store the pointer directly in the creation buffer
-			 * and expand it when pkd_sample_writer_finish() is called.
-			 */
-			size += sizeof(gchar*);
-			break;
-		default:
-			/*
-			 * NOTE:
-			 *   Eventually we could support serializers for complex types
-			 *   and look them up here.
-			 */
-			g_assert_not_reached();
-		}
-	}
-
-	/*
-	 * Either assign a new buffer that is big enough or clear the inline
-	 * buffer.
-	 */
-	if (size > sizeof(writer->inline_data)) {
-		writer->data = g_malloc0(size);
-	} else {
-		memset(writer->inline_data, 0, sizeof(writer->inline_data));
-	}
-
-	/*
-	 * Mark the first byte as Manifest Row Compression.
-	 */
-	writer->data[writer->pos++] = (writer->row_count < 0xFF);
-}
-
-/**
- * pkd_sample_writer_boolean:
- * @writer: A #PkdSampleWriter.
- * @idx: The index within the manifest.
- * @b: The boolean value.
- *
- * Writes a boolean value for a field in the manifest.
- *
- * Side effects: None.
- */
-void
-pkd_sample_writer_boolean (PkdSampleWriter *writer,
-                           gint             idx,
-                           gboolean         b)
-{
-	PKD_SAMPLE_WRITER_INDEX(writer, idx);
-	writer->data[writer->pos++] = b;
-}
-
-/**
- * pkd_sample_writer_string:
- * @writer: A #PkdSampleWriter
- * @idx: the manifest field index
- * @s: A string to append
- *
- * Adds the string to the sample.  @s must be a valid pointer until
- * pkd_sample_writer_finish() has been called.
- *
- * Side effects: None.
- */
-void
-pkd_sample_writer_string (PkdSampleWriter *writer,
-                          gint             idx,
-                          const gchar     *s)
-{
-	PKD_SAMPLE_WRITER_INDEX(writer, idx);
-
-	/*
-	 * Copy the pointer into the buffer for copying when
-	 * pkd_sample_writer_finish() is called.
-	 */
-	memcpy(&writer->data[writer->pos], &s, sizeof(gchar*));
-	writer->pos += sizeof(gchar*);
-
-	/*
-	 * Track how much extra space we need for the sample.  This
-	 * can be negative.
-	 */
-	writer->extra += ((strlen(s) + 1) - sizeof(gchar*));
-}
-
-/**
- * pkd_sample_writer_integer:
- * @writer: A #PkdSampleWriter
- * @idx: The manifest index
- * @i: an integer to encode
- *
- * Appends @i to the buffer used for building the sample.
- */
-void
-pkd_sample_writer_integer (PkdSampleWriter *writer,
-                           gint             idx,
-                           gint             i)
-{
-	/*
-	 * Add the manifest row index.
-	 */
-	PKD_SAMPLE_WRITER_INDEX(writer, idx);
-
-	/*
-	 * Copy the integer value.
-	 */
-	memcpy(&writer->data[writer->pos], &i, sizeof(gint));
-	writer->pos += sizeof(gint);
-}
-
-/**
- * pkd_sample_writer_finish:
- * @writer: A #PkdSampleWriter
- *
- * Completes the building of a #PkdSample and moves the buffer to the
- * #PkdSample instance.
- *
- * Side effects: None.
- */
-void
-pkd_sample_writer_finish (PkdSampleWriter *writer)
-{
-	PkdSample *s = writer->sample;
-	gint wo = 0, so = 0, c, idx, l;
-	gchar *str;
-	GType type;
-	gboolean comp;
-
-	/*
-	 * Calculate how much extra space is needed based on complex type
-	 * expansion such as strings.
-	 */
-	s->len = writer->pos + writer->extra;
-	c = writer->row_count;
-
-	/*
-	 * Allocate a buffer if needed for the samples data.
-	 */
-	if ((s->len + 1) <= sizeof(s->inline_data)) {
-		s->data = &s->inline_data[0];
-		memset(&s->inline_data[0], 0, sizeof(s->inline_data));
-	} else {
-		s->data = g_malloc0(s->len + 1);
-	}
-
-	/*
-	 * First byte denotes id-compression.  Id compression allows us to use a
-	 * single byte for the sample rather than a full integer of 4 bytes.
-	 */
-	s->data[so++] = comp = writer->data[wo++];
-
-	while (wo < writer->pos) {
-		/*
-		 * Get the manifest index.  Only use one byte if we are using
-		 * compressed manifest ids.
-		 */
-		if (comp) {
-			s->data[so++] = idx = writer->data[wo++];
-		} else {
-			memcpy(&idx, &writer->data[wo], sizeof(gint));
-			memcpy(&s->data[so], &writer->data[wo], sizeof(gint));
-			wo += sizeof(gint);
-			so += sizeof(gint);
-		}
-
-		/*
-		 * Get the row type so we can determine if we need to expand
-		 * a pointer type (string) or if its a shortened (byte) type.
-		 */
-		type = pkd_manifest_get_row_type(writer->manifest, idx);
-		switch (type) {
-		case G_TYPE_INT:
-		case G_TYPE_UINT:
-		case G_TYPE_LONG:
-		case G_TYPE_ULONG:
-			memcpy(&s->data[so], &writer->data[wo], sizeof(gint));
-			wo += sizeof(gint);
-			so += sizeof(gint);
-			break;
-		case G_TYPE_STRING:
-			memcpy(&str, &writer->data[wo], sizeof(gchar*));
-			l = strlen(str) + 1;
-			wo += sizeof(gchar*);
-			memcpy(&s->data[so], str, l);
-			so += l;
-			break;
-		case G_TYPE_BOOLEAN:
-			s->data[so++] = writer->data[wo++];
-			break;
-		default:
-			/*
-			 * NOTE:
-			 *
-			 *   Possibly expand complex types through custom serializers in
-			 *   the future.
-			 */
-			g_assert_not_reached();
-		}
-	}
 }

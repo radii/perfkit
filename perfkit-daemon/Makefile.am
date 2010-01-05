@@ -88,6 +88,7 @@ libperfkit_daemon_la_SOURCES =						\
 	pkd-source.c							\
 	pkd-source-info.c						\
 	pkd-subscription.c						\
+	$(top_srcdir)/cut-n-paste/egg-buffer.c				\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
 	$(NULL)
 

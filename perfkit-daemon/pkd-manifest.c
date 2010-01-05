@@ -52,11 +52,12 @@ typedef struct
 
 struct _PkdManifest
 {
+	volatile gint  ref_count;
+
 	GArray        *rows;        /* Array of PkdManifestRow */
 	gint           source_id;   /* Channel assigned Source Id */
-	guint          endian;      /* Data streams endianness */
 	GTimeVal       tv;          /* Timing of manifest */
-	volatile gint  ref_count;
+	PkdResolution  resolution;  /* Relative timestamp resolution */
 };
 
 static void
@@ -111,7 +112,6 @@ pkd_manifest_sized_new (gint size)
 
 	manifest = g_slice_new0(PkdManifest);
 	manifest->ref_count = 1;
-	manifest->endian = G_BYTE_ORDER;
 	manifest->rows = g_array_sized_new(FALSE,
 	                                   FALSE,
 	                                   sizeof(PkdManifestRow),
@@ -203,43 +203,42 @@ pkd_manifest_set_timeval (PkdManifest *manifest,
 }
 
 /**
- * pkd_manifest_get_byte_order:
- * @manifest: A #PkdManifest
+ * pkd_manifest_set_resolution:
+ * @manifest: A #PkdManifest.
+ * @resolution: A #PkdResolution.
  *
- * Retrieves the byte-ordering for the data within the stream here-forward.
- *
- * Returns: Either G_BIG_ENDIAN or G_LITTLE_ENDIAN.
- *
- * Side effects: None.
- */
-guint
-pkd_manifest_get_byte_order (PkdManifest *manifest)
-{
-	g_return_val_if_fail(manifest != NULL, 0);
-	return manifest->endian;
-}
-
-/**
- * pkd_manifest_set_byte_order:
- * @manifest: A #PkdManifest
- * @byte_order: G_LITTLE_ENDIAN or G_BIG_ENDIAN
- *
- * Sets the expected endianness of value types in the data stream.  Encoders
- * will use this value to make sure the client knows the byte encoding.
- *
- * The default is the host byte order.
+ * Sets the relative timestamp resolution for the manifest.  Setting this
+ * allows samples to track only there drift in time since the last manifest
+ * was sent.  If you only update on second intervals, then set this to
+ * PKD_RESOLUTION_SECOND and we can calculate our drift in seconds.  Since
+ * integers are encoded using variable width we can save many bytes in the
+ * samples timestamp (in many cases 9 bytes!).
  *
  * Side effects: None.
  */
 void
-pkd_manifest_set_byte_order (PkdManifest *manifest,
-                             guint        byte_order)
+pkd_manifest_set_resolution (PkdManifest   *manifest,
+                             PkdResolution  resolution)
 {
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail((byte_order == G_BIG_ENDIAN) ||
-	                 (byte_order == G_LITTLE_ENDIAN));
+	manifest->resolution = resolution;
+}
 
-	manifest->endian = byte_order;
+/**
+ * pkd_manifest_get_resolution:
+ * @manifest: A #PkdManifest.
+ *
+ * Retrieves the relative timestamp resolution.
+ *
+ * Returns: The resolution as a #PkdResolution.
+ *
+ * Side effects: None.
+ */
+PkdResolution
+pkd_manifest_get_resolution (PkdManifest *manifest)
+{
+	g_return_val_if_fail(manifest != NULL, 0);
+	return manifest->resolution;
 }
 
 /**

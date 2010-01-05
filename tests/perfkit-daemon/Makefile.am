@@ -30,6 +30,6 @@ AM_LDFLAGS =								\
 
 test_pkd_log_SOURCES = test-pkd-log.c
 test_pkd_plugins_SOURCES = test-pkd-plugins.c
-test_pkd_sample_SOURCES = test-pkd-sample.c
+test_pkd_sample_SOURCES = test-pkd-sample.c $(top_srcdir)/cut-n-paste/egg-buffer.c
 test_pkd_manifest_SOURCES = test-pkd-manifest.c
 test_pkd_encoder_SOURCES = test-pkd-encoder.c
