@@ -390,7 +390,7 @@ pkd_sample_append_timeval (PkdSample *sample,
                            gint       field,
                            GTimeVal  *tv)
 {
-	guint64 ticks;
+	gint64 ticks;
 
 	g_return_if_fail(sample != NULL);
 
