@@ -26,10 +26,12 @@
 #include <dbus/dbus-glib-lowlevel.h>
 
 #include "pkd-dbus.h"
+#include "pkd-dbus-glue.h"
 #include "pkd-dbus-manager.h"
 #include "pkd-channel-dbus.h"
 #include "pkd-encoder-info-dbus.h"
 #include "pkd-source-info-dbus.h"
+#include "pkd-source-dbus.h"
 
 G_DEFINE_TYPE (PkdDBus, pkd_dbus, PKD_TYPE_LISTENER)
 
@@ -93,6 +95,8 @@ pkd_dbus_start(PkdListener  *listener,
 	                                &dbus_glib_pkd_encoder_info_object_info);
 	dbus_g_object_type_install_info(PKD_TYPE_SOURCE_INFO,
 	                                &dbus_glib_pkd_source_info_object_info);
+	dbus_g_object_type_install_info(PKD_TYPE_SOURCE,
+	                                &dbus_glib_pkd_source_object_info);
 
 
 	/*
