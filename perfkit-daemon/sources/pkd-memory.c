@@ -54,7 +54,7 @@ const PkdStaticSourceInfo pkd_source_plugin = {
 struct _PkdMemoryPrivate
 {
 	PkdManifest *manifest;
-	GTimeSpan    span;
+	glong        span;
 	GMutex      *mutex;
 	GCond       *cond;
 	GPid         pid;
@@ -115,7 +115,7 @@ thread_func (gpointer data)
 	PkdManifest *m;
 	GPid pid;
 	GTimeVal tv;
-	GTimeSpan span;
+	glong span;
 	gboolean done = FALSE;
 	proc_pid_statm st;
 	PkdSample *s;
@@ -147,7 +147,7 @@ thread_func (gpointer data)
 		 * so there is less sampling drift.
 		 */
 		g_get_current_time(&tv);
-		g_time_val_add_span(&tv, &span);
+		g_time_val_add(&tv, span);
 
 		/*
 		 * Parse /proc/pid/statm for memory statistics.
@@ -179,7 +179,7 @@ thread_func (gpointer data)
 		/*
 		 * Check to see if we are done sampling.
 		 */
-		if (!(done = !priv->running))
+		if ((done = !priv->running))
 			goto unlock;
 
 		/*
@@ -232,7 +232,8 @@ pkd_memory_notify_start (PkdSource    *source,
 	priv->pid = spawn_info->pid;
 	priv->running = TRUE;
 
-	g_message("Starting memory thread.");
+	g_message("Starting memory monitor thread for source %d.",
+	          pkd_source_get_id(source));
 	g_thread_create(thread_func, source, FALSE, NULL);
 }
 
@@ -244,6 +245,10 @@ pkd_memory_finalize (GObject *object)
 	g_return_if_fail (PKD_IS_MEMORY (object));
 
 	priv = PKD_MEMORY (object)->priv;
+
+	if (priv->running) {
+		pkd_memory_notify_stopped(PKD_SOURCE(object));
+	}
 
 	g_mutex_free(priv->mutex);
 	g_cond_free(priv->cond);
@@ -272,7 +277,7 @@ pkd_memory_init (PkdMemory *memory)
 	memory->priv = G_TYPE_INSTANCE_GET_PRIVATE(memory,
 	                                           PKD_TYPE_MEMORY,
 	                                           PkdMemoryPrivate);
-	memory->priv->span = G_TIME_SPAN_SECOND;
+	memory->priv->span = G_USEC_PER_SEC;
 	memory->priv->mutex = g_mutex_new();
 	memory->priv->cond = g_cond_new();
 }
