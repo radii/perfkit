@@ -25,6 +25,7 @@
 #include <glib/gi18n.h>
 
 #include "pkd-channel.h"
+#include "pkd-pipeline.h"
 #include "pkd-spawn-info.h"
 #include "pkd-subscription.h"
 
@@ -60,6 +61,8 @@ extern void pkd_source_notify_started         (PkdSource       *source,
 extern void pkd_source_notify_stopped         (PkdSource       *source);
 extern void pkd_source_notify_paused          (PkdSource       *source);
 extern void pkd_source_notify_unpaused        (PkdSource       *source);
+extern void pkd_source_set_channel            (PkdSource       *source,
+                                               PkdChannel      *channel);
 
 enum
 {
@@ -277,6 +280,11 @@ pkd_channel_add_source (PkdChannel    *channel,
 	}
 
 	/*
+	 * Notify the source to deliver samples to us.
+	 */
+	pkd_source_set_channel(source, channel);
+
+	/*
 	 * Insert the newly created PkdSource into our GPtrArray for fast iteration
 	 * and our GTree for O(log n) worst-case index id lookups.
 	 */
@@ -286,6 +294,13 @@ pkd_channel_add_source (PkdChannel    *channel,
 
 unlock:
 	g_mutex_unlock(priv->mutex);
+
+	/*
+	 * Notify the pipeline that the source was created.
+	 */
+	if (source) {
+		pkd_pipeline_add_source(source);
+	}
 
 	return source;
 }
