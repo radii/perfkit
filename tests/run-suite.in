@@ -70,6 +70,10 @@ def runDaemonTests():
     channel = bus.get_object(_BUS_NAME, path)
     assert channel
 
+    # Add a memory source
+    callChannel(channel, 'AddSource',
+                '/com/dronelabs/Perfkit/Plugins/Sources/Memory')
+
     # Start the channel
     callChannel(channel, 'Start')
 
