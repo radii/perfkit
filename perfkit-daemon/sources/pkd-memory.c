@@ -20,6 +20,16 @@
 #include "config.h"
 #endif
 
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <egg-time.h>
+
 #include "pkd-memory.h"
 
 G_DEFINE_TYPE (PkdMemory, pkd_memory, PKD_TYPE_SOURCE)
@@ -43,7 +53,12 @@ const PkdStaticSourceInfo pkd_source_plugin = {
 
 struct _PkdMemoryPrivate
 {
-	gpointer dummy;
+	PkdManifest *manifest;
+	GTimeSpan    span;
+	GMutex      *mutex;
+	GCond       *cond;
+	GPid         pid;
+	gboolean     running;
 };
 
 /**
@@ -57,6 +72,126 @@ PkdSource*
 pkd_memory_new (void)
 {
 	return g_object_new (PKD_TYPE_MEMORY, NULL);
+}
+
+typedef struct
+{
+	gint size;
+	gint resident;
+	gint share;
+	gint text;
+	gint lib;
+	gint data;
+	gint dt;
+} proc_pid_statm;
+ 
+static gboolean
+proc_pid_statm_read (proc_pid_statm *pstat,
+                     GPid pid)
+{
+	gint fd;
+	gchar path[64];
+	gchar buffer[64];
+ 
+	memset (path, 0, sizeof (path));
+	snprintf (path, sizeof (path), "/proc/%d/statm", pid);
+
+	fd = open (path, O_RDONLY);
+	if (fd < 0)
+		return FALSE;
+	 
+	if (read (fd, buffer, sizeof (buffer) < 1)) {
+		close (fd);
+		return FALSE;
+	}
+	 
+	sscanf (buffer,
+	        "%d %d %d %d %d %d %d",
+	        &pstat->size,
+	        &pstat->resident,
+	        &pstat->share,
+	        &pstat->text,
+	        &pstat->lib,
+	        &pstat->data,
+	        &pstat->dt);
+
+	close (fd);
+
+	return TRUE;
+}
+
+static gpointer
+thread_func (gpointer data)
+{
+	PkdMemory *memory = data;
+	PkdMemoryPrivate *priv;
+	PkdManifest *m;
+	GPid pid;
+	GTimeVal tv;
+	GTimeSpan span;
+	gboolean done = FALSE;
+	proc_pid_statm st;
+	PkdSample *s;
+
+	g_assert(memory);
+
+	priv = memory->priv;
+	pid = priv->pid;
+	span = priv->span;
+
+	/*
+	 * Create our manifest.
+	 */
+	m = pkd_manifest_new();
+	pkd_manifest_append(m, "size", G_TYPE_UINT);
+	pkd_manifest_append(m, "resident", G_TYPE_UINT);
+	pkd_manifest_append(m, "share", G_TYPE_UINT);
+	pkd_manifest_append(m, "text", G_TYPE_UINT);
+	pkd_manifest_append(m, "data", G_TYPE_UINT);
+	pkd_source_deliver_manifest(data, m);
+
+	do {
+		g_get_current_time(&tv);
+		g_time_val_add_span(&tv, &span);
+
+		/*
+		 * Create our sample.
+		 */
+		if (proc_pid_statm_read(&st, pid)) {
+			s = pkd_sample_new();
+			pkd_sample_append_uint(s, 1, st.size);
+			pkd_sample_append_uint(s, 2, st.resident);
+			pkd_sample_append_uint(s, 3, st.share);
+			pkd_sample_append_uint(s, 4, st.text);
+			pkd_sample_append_uint(s, 5, st.data);
+			pkd_source_deliver_sample(data, s);
+		}
+
+		g_mutex_lock(priv->mutex);
+		if (!(done = !priv->running))
+			goto unlock;
+		g_cond_timed_wait(priv->cond, priv->mutex, &tv);
+		done = !priv->running;
+unlock:
+		g_mutex_unlock(priv->mutex);
+	} while (!done);
+
+	return NULL;
+}
+
+static void
+pkd_memory_notify_start (PkdSource    *source,
+                         PkdSpawnInfo *spawn_info)
+{
+	PkdMemoryPrivate *priv;
+
+	priv = PKD_MEMORY(source)->priv;
+	priv->pid = spawn_info->pid;
+	priv->running = TRUE;
+
+	g_message("Starting memory thread.");
+
+	g_thread_create(thread_func, source, FALSE, NULL);
 }
 
 static void
@@ -75,10 +210,14 @@ static void
 pkd_memory_class_init (PkdMemoryClass *klass)
 {
 	GObjectClass *object_class;
+	PkdSourceClass *source_class;
 
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = pkd_memory_finalize;
 	g_type_class_add_private(object_class, sizeof(PkdMemoryPrivate));
+
+	source_class = PKD_SOURCE_CLASS(klass);
+	source_class->notify_started = pkd_memory_notify_start;
 }
 
 static void
@@ -87,4 +226,7 @@ pkd_memory_init (PkdMemory *memory)
 	memory->priv = G_TYPE_INSTANCE_GET_PRIVATE(memory,
 	                                           PKD_TYPE_MEMORY,
 	                                           PkdMemoryPrivate);
+	memory->priv->span = G_TIME_SPAN_SECOND;
+	memory->priv->mutex = g_mutex_new();
+	memory->priv->cond = g_cond_new();
 }

@@ -36,6 +36,7 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\""perfkit-daemon"\"				\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"PerfkitDaemon\"				\
+	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	$(NULL)
