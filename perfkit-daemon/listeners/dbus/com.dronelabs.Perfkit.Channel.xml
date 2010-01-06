@@ -4,6 +4,21 @@
     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel"/>
 
     <!--
+        PkdChannel::AddSource()
+
+            Adds a source to the channel for instrumentation.  Channel must
+            not be started.
+
+        Returns: The new object path for the source.
+    -->
+    <method name="AddSource">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_add_source_dbus"/>
+        <arg name="source_info_path" type="o" direction="in"/>
+        <arg name="source_path" type="o" direction="out"/>
+    </method>
+
+    <!--
         PkdChannel::Start()
 
             Starts the PkdChannels profiling.  If necessary, a process is

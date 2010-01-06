@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.7NUL5U:1) */
+/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.UC855U:1) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
                                                             GValue       *return_value,
                                                             guint         n_param_values,
@@ -98,7 +98,56 @@ dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:BOOLEAN,POINTER (/tmp/dbus-binding-tool-c-marshallers.7NUL5U:2) */
+/* BOOLEAN:BOXED,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.UC855U:2) */
+extern void dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER_POINTER (GClosure     *closure,
+                                                                          GValue       *return_value,
+                                                                          guint         n_param_values,
+                                                                          const GValue *param_values,
+                                                                          gpointer      invocation_hint,
+                                                                          gpointer      marshal_data);
+void
+dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER_POINTER (GClosure     *closure,
+                                                              GValue       *return_value G_GNUC_UNUSED,
+                                                              guint         n_param_values,
+                                                              const GValue *param_values,
+                                                              gpointer      invocation_hint G_GNUC_UNUSED,
+                                                              gpointer      marshal_data)
+{
+  typedef gboolean (*GMarshalFunc_BOOLEAN__BOXED_POINTER_POINTER) (gpointer     data1,
+                                                                   gpointer     arg_1,
+                                                                   gpointer     arg_2,
+                                                                   gpointer     arg_3,
+                                                                   gpointer     data2);
+  register GMarshalFunc_BOOLEAN__BOXED_POINTER_POINTER callback;
+  register GCClosure *cc = (GCClosure*) closure;
+  register gpointer data1, data2;
+  gboolean v_return;
+
+  g_return_if_fail (return_value != NULL);
+  g_return_if_fail (n_param_values == 4);
+
+  if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer (param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer (param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (GMarshalFunc_BOOLEAN__BOXED_POINTER_POINTER) (marshal_data ? marshal_data : cc->callback);
+
+  v_return = callback (data1,
+                       g_marshal_value_peek_boxed (param_values + 1),
+                       g_marshal_value_peek_pointer (param_values + 2),
+                       g_marshal_value_peek_pointer (param_values + 3),
+                       data2);
+
+  g_value_set_boolean (return_value, v_return);
+}
+
+/* BOOLEAN:BOOLEAN,POINTER (/tmp/dbus-binding-tool-c-marshallers.UC855U:3) */
 extern void dbus_glib_marshal_pkd_channel_BOOLEAN__BOOLEAN_POINTER (GClosure     *closure,
                                                                     GValue       *return_value,
                                                                     guint         n_param_values,
@@ -151,17 +200,18 @@ G_END_DECLS
 
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pkd_channel_methods[] = {
-  { (GCallback) pkd_channel_start, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 0 },
-  { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__BOOLEAN_POINTER, 39 },
-  { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 89 },
-  { (GCallback) pkd_channel_unpause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 128 },
+  { (GCallback) pkd_channel_add_source_dbus, dbus_glib_marshal_pkd_channel_BOOLEAN__BOXED_POINTER_POINTER, 0 },
+  { (GCallback) pkd_channel_start, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 84 },
+  { (GCallback) pkd_channel_stop, dbus_glib_marshal_pkd_channel_BOOLEAN__BOOLEAN_POINTER, 123 },
+  { (GCallback) pkd_channel_pause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 173 },
+  { (GCallback) pkd_channel_unpause, dbus_glib_marshal_pkd_channel_BOOLEAN__POINTER, 212 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_channel_object_info = {
   0,
   dbus_glib_pkd_channel_methods,
-  4,
-"com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0killpid\0I\0b\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0\0",
+  5,
+"com.dronelabs.Perfkit.Channel\0AddSource\0S\0source_info_path\0I\0o\0source_path\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0killpid\0I\0b\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0\0",
 "\0",
 "\0"
 };
