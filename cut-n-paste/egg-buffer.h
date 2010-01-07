@@ -50,57 +50,57 @@ typedef enum
 
 GType          egg_buffer_get_type      (void) G_GNUC_CONST;
 EggBuffer*     egg_buffer_new           (void);
-EggBuffer*     egg_buffer_new_from_data (const gchar  *data,
-                                         gsize         len);
-EggBuffer*     egg_buffer_ref           (EggBuffer    *buffer);
-void           egg_buffer_unref         (EggBuffer    *buffer);
-void           egg_buffer_get_buffer    (EggBuffer    *buffer,
-                                         gchar       **data,
-                                         gsize        *len);
-gboolean       egg_buffer_read_boolean  (EggBuffer    *buffer,
-                                         gboolean     *b);
-gboolean       egg_buffer_read_data     (EggBuffer    *buffer,
-                                         gchar       **data,
-                                         gsize        *len);
-gboolean       egg_buffer_read_double   (EggBuffer    *buffer,
-                                         gdouble      *d);
-gboolean       egg_buffer_read_float    (EggBuffer    *buffer,
-                                         gfloat       *f);
-gboolean       egg_buffer_read_int      (EggBuffer    *buffer,
-                                         gint         *i);
-gboolean       egg_buffer_read_int64    (EggBuffer    *buffer,
-                                         gint64       *i);
-gboolean       egg_buffer_read_string   (EggBuffer    *buffer,
-                                         gchar       **s);
-gboolean       egg_buffer_read_tag      (EggBuffer    *buffer,
-                                         guint        *field,
-                                         EggBufferTag *tag);
-gboolean       egg_buffer_read_uint     (EggBuffer    *buffer,
-                                         guint        *i);
-gboolean       egg_buffer_read_uint64   (EggBuffer    *buffer,
-                                         guint64      *i);
-void           egg_buffer_write_boolean (EggBuffer    *buffer,
-                                         gboolean      b);
-void           egg_buffer_write_data    (EggBuffer    *buffer,
-                                         const gchar  *data,
-                                         gsize         len);
-void           egg_buffer_write_double  (EggBuffer    *buffer,
-                                         gdouble       d);
-void           egg_buffer_write_float   (EggBuffer    *buffer,
-                                         gfloat        f);
-void           egg_buffer_write_int     (EggBuffer    *buffer,
-                                         gint          i);
-void           egg_buffer_write_int64   (EggBuffer    *buffer,
-                                         gint64        i);
-void           egg_buffer_write_string  (EggBuffer    *buffer,
-                                         const gchar  *s);
-void           egg_buffer_write_tag     (EggBuffer    *buffer,
-                                         guint         field,
-                                         EggBufferTag  tag);
-void           egg_buffer_write_uint    (EggBuffer    *buffer,
-                                         guint         i);
-void           egg_buffer_write_uint64  (EggBuffer    *buffer,
-                                         guint64       i);
+EggBuffer*     egg_buffer_new_from_data (const guint8  *data,
+                                         gsize          len);
+EggBuffer*     egg_buffer_ref           (EggBuffer     *buffer);
+void           egg_buffer_unref         (EggBuffer     *buffer);
+void           egg_buffer_get_buffer    (EggBuffer     *buffer,
+                                         const guint8 **data,
+                                         gsize         *len);
+gboolean       egg_buffer_read_boolean  (EggBuffer     *buffer,
+                                         gboolean      *b);
+gboolean       egg_buffer_read_data     (EggBuffer     *buffer,
+                                         guint8       **data,
+                                         gsize         *len);
+gboolean       egg_buffer_read_double   (EggBuffer     *buffer,
+                                         gdouble       *d);
+gboolean       egg_buffer_read_float    (EggBuffer     *buffer,
+                                         gfloat        *f);
+gboolean       egg_buffer_read_int      (EggBuffer     *buffer,
+                                         gint          *i);
+gboolean       egg_buffer_read_int64    (EggBuffer     *buffer,
+                                         gint64        *i);
+gboolean       egg_buffer_read_string   (EggBuffer     *buffer,
+                                         gchar        **s);
+gboolean       egg_buffer_read_tag      (EggBuffer     *buffer,
+                                         guint         *field,
+                                         EggBufferTag  *tag);
+gboolean       egg_buffer_read_uint     (EggBuffer     *buffer,
+                                         guint         *i);
+gboolean       egg_buffer_read_uint64   (EggBuffer     *buffer,
+                                         guint64       *i);
+void           egg_buffer_write_boolean (EggBuffer     *buffer,
+                                         gboolean       b);
+void           egg_buffer_write_data    (EggBuffer     *buffer,
+                                         const guint8  *data,
+                                         gsize          len);
+void           egg_buffer_write_double  (EggBuffer     *buffer,
+                                         gdouble        d);
+void           egg_buffer_write_float   (EggBuffer     *buffer,
+                                         gfloat         f);
+void           egg_buffer_write_int     (EggBuffer     *buffer,
+                                         gint           i);
+void           egg_buffer_write_int64   (EggBuffer     *buffer,
+                                         gint64         i);
+void           egg_buffer_write_string  (EggBuffer     *buffer,
+                                         const gchar   *s);
+void           egg_buffer_write_tag     (EggBuffer     *buffer,
+                                         guint          field,
+                                         EggBufferTag   tag);
+void           egg_buffer_write_uint    (EggBuffer     *buffer,
+                                         guint          i);
+void           egg_buffer_write_uint64  (EggBuffer     *buffer,
+                                         guint64        i);
 
 inline gint
 egg_buffer_bytes_for_int (gint i)

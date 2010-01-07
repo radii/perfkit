@@ -45,14 +45,14 @@ struct _EggBuffer
 {
 	volatile gint ref_count;
 
-	GArray *ar;
-	gsize   pos;
+	GByteArray *ar;
+	gsize       pos;
 };
 
 static void
 egg_buffer_destroy (EggBuffer *buffer)
 {
-	g_array_unref(buffer->ar);
+	g_byte_array_unref(buffer->ar);
 }
 
 /**
@@ -70,7 +70,7 @@ egg_buffer_new (void)
 	EggBuffer *buffer;
 
 	buffer = g_slice_new0(EggBuffer);
-	buffer->ar = g_array_sized_new(FALSE, FALSE, sizeof(gchar), 32);
+	buffer->ar = g_byte_array_sized_new(32);
 	buffer->ref_count = 1;
 
 	return buffer;
@@ -89,15 +89,15 @@ egg_buffer_new (void)
  * Side effects: None.
  */
 EggBuffer*
-egg_buffer_new_from_data (const gchar *data,
-                          gsize        len)
+egg_buffer_new_from_data (const guint8 *data,
+                          gsize         len)
 {
 	EggBuffer *buffer;
 
 	buffer = g_slice_new0(EggBuffer);
 	buffer->ref_count = 1;
-	buffer->ar = g_array_sized_new(FALSE, FALSE, sizeof(gchar), len);
-	g_array_append_vals(buffer->ar, data, len);
+	buffer->ar = g_byte_array_sized_new(len);
+	g_byte_array_append(buffer->ar, data, len);
 
 	return buffer;
 }
@@ -145,7 +145,7 @@ void
 egg_buffer_write_uint (EggBuffer *buffer,
                        guint      i)
 {
-	gchar b;
+	guint8 b;
 
 	g_return_if_fail(buffer != NULL);
 
@@ -161,7 +161,7 @@ egg_buffer_write_uint (EggBuffer *buffer,
 
 	do {
 		b = ((i > 0x7F) << 7) | (i & 0x7F);
-		g_array_append_val(buffer->ar, b);
+		g_byte_array_append(buffer->ar, &b, 1);
 		i >>= 7;
 	} while (i > 0);
 }
@@ -179,13 +179,13 @@ void
 egg_buffer_write_uint64 (EggBuffer *buffer,
                          guint64    i)
 {
-	gchar b;
+	guint8 b;
 
 	g_return_if_fail(buffer != NULL);
 
 	do {
 		b = ((i > 0x7F) << 7) | (i & 0x7F);
-		g_array_append_val(buffer->ar, b);
+		g_byte_array_append(buffer->ar, &b, 1);
 		i >>= 7;
 	} while (i > 0);
 }
@@ -218,7 +218,7 @@ egg_buffer_write_string (EggBuffer   *buffer,
 	 * Write the string if needed.
 	 */
 	if (s) {
-		g_array_append_vals(buffer->ar, s, l);
+		g_byte_array_append(buffer->ar, (guint8 *)s, l);
 	}
 }
 
@@ -235,12 +235,12 @@ void
 egg_buffer_write_boolean (EggBuffer *buffer,
                           gboolean   b)
 {
-	gchar b_;
+	guint8 b_;
 
 	g_return_if_fail(buffer != NULL);
 
 	b_ = b ? 0x01 : 0x00;
-	g_array_append_val(buffer->ar, b_);
+	g_byte_array_append(buffer->ar, &b_, 1);
 }
 
 /**
@@ -264,7 +264,7 @@ egg_buffer_write_double (EggBuffer *buffer,
 	 * Doubles are stored as 64-bit blobs in Little-Endian format.
 	 */
 	d_ = GUINT64_TO_LE(d);
-	g_array_append_vals(buffer->ar, ((gchar *)&d_), 8);
+	g_byte_array_append(buffer->ar, ((guint8 *)&d_), 8);
 }
 
 /**
@@ -288,7 +288,7 @@ egg_buffer_write_float (EggBuffer *buffer,
 	 * Floats are stored as 32-bit blobs in Little-Endian format.
 	 */
 	f_ = GUINT32_TO_LE(f);
-	g_array_append_vals(buffer->ar, ((gchar *)&f_), 4);
+	g_byte_array_append(buffer->ar, ((guint8 *)&f_), 4);
 }
 
 /**
@@ -326,15 +326,15 @@ egg_buffer_write_tag (EggBuffer    *buffer,
  * Side effects: None.
  */
 void
-egg_buffer_write_data (EggBuffer   *buffer,
-                       const gchar *data,
-                       gsize        len)
+egg_buffer_write_data (EggBuffer    *buffer,
+                       const guint8 *data,
+                       gsize         len)
 {
 	g_return_if_fail(buffer != NULL);
 	g_return_if_fail(len <= G_MAXUINT);
 
 	egg_buffer_write_uint(buffer, len);
-	g_array_append_vals(buffer->ar, data, len);
+	g_byte_array_append(buffer->ar, data, len);
 }
 
 /**
@@ -347,9 +347,9 @@ egg_buffer_write_data (EggBuffer   *buffer,
  * modified or freed.
  */
 void
-egg_buffer_get_buffer (EggBuffer  *buffer,
-                       gchar     **data,
-                       gsize      *len)
+egg_buffer_get_buffer (EggBuffer     *buffer,
+                       const guint8 **data,
+                       gsize         *len)
 {
 	g_return_if_fail(buffer != NULL);
 	g_return_if_fail(data != NULL);
@@ -421,7 +421,7 @@ egg_buffer_read_uint (EggBuffer *buffer,
                       guint     *i)
 {
 	guint u = 0, o = 0;
-	gchar b = 0;
+	guint8 b = 0;
 
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(i != NULL, FALSE);
@@ -467,9 +467,9 @@ gboolean
 egg_buffer_read_uint64 (EggBuffer *buffer,
                         guint64   *i)
 {
-	guint64 u = 0;
 	guint o = 0;
-	gchar b = 0;
+	guint8 b = 0;
+	guint64 u = 0;
 
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(i != NULL, FALSE);
@@ -669,7 +669,8 @@ egg_buffer_read_tag (EggBuffer    *buffer,
  * @data: A location for the resulting data.
  * @len: A location for the resulting data length.
  *
- * Reads the upcoming data blob from the buffer.
+ * Reads the upcoming data blob from the buffer.  The caller should free the
+ * data returned with g_free() when it is no longer needed.
  *
  * Returns: %TRUE if successful; otherwise %FALSE.
  *
@@ -677,11 +678,11 @@ egg_buffer_read_tag (EggBuffer    *buffer,
  */
 gboolean
 egg_buffer_read_data (EggBuffer  *buffer,
-                      gchar     **data,
+                      guint8    **data,
                       gsize      *len)
 {
 	guint u = 0;
-	gchar *m;
+	guint8 *m;
 
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);
