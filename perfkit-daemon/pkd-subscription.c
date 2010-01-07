@@ -323,7 +323,7 @@ void
 pkd_subscription_deliver_sample (PkdSubscription *subscription,
                                  PkdSample       *sample)
 {
-	gchar *buf = NULL;
+	const guint8 *buf = NULL;
 	gsize buflen = 0;
 
 	g_return_if_fail(subscription != NULL);

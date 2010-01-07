@@ -16,7 +16,7 @@ test_PkdSample_append_string (void)
 {
 	EggBuffer *b;
 	PkdSample *s;
-	guchar *buf;
+	const guint8 *buf;
 	gsize len;
 	gint f;
 	guint t;
@@ -25,7 +25,7 @@ test_PkdSample_append_string (void)
 	s = pkd_sample_new();
 	pkd_sample_append_string(s, 3, "testing");
 	pkd_sample_append_string(s, 1, "buffer");
-	pkd_sample_get_data(s, (gchar **)&buf, &len);
+	pkd_sample_get_data(s, &buf, &len);
 	b = egg_buffer_new_from_data(buf, len);
 	egg_buffer_read_tag(b, &f, &t);
 	g_assert_cmpint(f, ==, 3);
@@ -46,7 +46,7 @@ test_PkdSample_append_int (void)
 {
 	EggBuffer *b;
 	PkdSample *s;
-	guchar *buf;
+	const guint8 *buf;
 	gsize len;
 	gint f, i;
 	guint t;
@@ -57,7 +57,7 @@ test_PkdSample_append_int (void)
 	pkd_sample_append_int(s, 3, 0);
 	pkd_sample_append_int(s, 4, G_MAXINT);
 	pkd_sample_append_int(s, 5, G_MININT);
-	pkd_sample_get_data(s, (gchar **)&buf, &len);
+	pkd_sample_get_data(s, &buf, &len);
 	b = egg_buffer_new_from_data(buf, len);
 
 	egg_buffer_read_tag(b, &f, &t);
@@ -99,7 +99,7 @@ test_PkdSample_append_uint (void)
 {
 	EggBuffer *b;
 	PkdSample *s;
-	guchar *buf;
+	const guint8 *buf;
 	gsize len;
 	gint f;
 	guint t, i;
@@ -109,7 +109,7 @@ test_PkdSample_append_uint (void)
 	pkd_sample_append_int(s, 2, 3);
 	pkd_sample_append_int(s, 3, 0);
 	pkd_sample_append_int(s, 4, G_MAXUINT);
-	pkd_sample_get_data(s, (gchar **)&buf, &len);
+	pkd_sample_get_data(s, &buf, &len);
 	b = egg_buffer_new_from_data(buf, len);
 
 	egg_buffer_read_tag(b, &f, &t);

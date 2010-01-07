@@ -128,9 +128,9 @@ pkd_sample_unref (PkdSample *sample)
  * Side effects: None.
  */
 void
-pkd_sample_get_data (PkdSample  *sample,
-                     gchar     **data,
-                     gsize      *data_len)
+pkd_sample_get_data (PkdSample     *sample,
+                     const guint8 **data,
+                     gsize         *data_len)
 {
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(data != NULL);

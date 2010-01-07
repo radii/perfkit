@@ -72,7 +72,7 @@ pkd_encoder_real_encode_samples (PkdManifest *manifest,
 	EggBuffer *buf;
 	GTimeVal mtv, tv;
 	gint64 rel;
-	gchar *tbuf;
+	const guint8 *tbuf;
 	gsize tlen;
 	gint i;
 
@@ -161,7 +161,7 @@ pkd_encoder_real_encode_manifest (PkdManifest  *manifest,
 	EggBuffer *buf, *mbuf, *ebuf;
 	GTimeVal tv;
 	gint64 ticks;
-	gchar *tbuf;
+	const guint8 *tbuf;
 	gsize tlen;
 	gint i, rows;
 

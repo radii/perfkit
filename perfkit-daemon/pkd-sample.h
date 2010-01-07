@@ -36,7 +36,7 @@ PkdSample*  pkd_sample_new            (void);
 PkdSample*  pkd_sample_ref            (PkdSample        *sample);
 void        pkd_sample_unref          (PkdSample        *sample);
 void        pkd_sample_get_data       (PkdSample        *sample,
-                                       gchar           **data,
+                                       const guint8    **data,
                                        gsize            *dapkd_len);
 gint        pkd_sample_get_source_id  (PkdSample        *sample);
 void        pkd_sample_get_timeval    (PkdSample        *sample,
