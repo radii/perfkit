@@ -34,23 +34,6 @@
 
 G_DEFINE_TYPE (PkdMemory, pkd_memory, PKD_TYPE_SOURCE)
 
-/**
- * SECTION:pkd-memory
- * @title: PkdMemory
- * @short_description: 
- *
- * 
- */
-
-const PkdStaticSourceInfo pkd_source_plugin = {
-	.uid         = "Memory",
-	.name        = "Memory Data Source",
-	.description = "This source provides information memory usage of a target "
-	               "process or the entire system.",
-	.version     = "0.1.0",
-	.factory     = pkd_memory_new,
-};
-
 struct _PkdMemoryPrivate
 {
 	PkdManifest *manifest;
@@ -287,3 +270,12 @@ pkd_memory_new (void)
 {
 	return g_object_new(PKD_TYPE_MEMORY, NULL);
 }
+
+const PkdStaticSourceInfo pkd_source_plugin = {
+	.uid         = "Memory",
+	.name        = "Memory Data Source",
+	.description = "This source provides information memory usage of a target "
+	               "process or the entire system.",
+	.version     = "0.1.0",
+	.factory     = pkd_memory_new,
+};
