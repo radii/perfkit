@@ -22,6 +22,7 @@
 
 #include <glib.h>
 #include <glib/gthread.h>
+#include <stdlib.h>
 
 #include "pkd-config.h"
 #include "pkd-pipeline.h"
@@ -156,7 +157,10 @@ pkd_pipeline_run (void)
 void
 pkd_pipeline_quit (void)
 {
-	g_return_if_fail(loop != NULL);
+	if (!loop || !g_main_loop_is_running(loop)) {
+		exit(EXIT_SUCCESS);
+	}
+
 	g_message("Stopping mainloop.");
 	g_main_loop_quit(loop);
 }
