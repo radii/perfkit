@@ -42,13 +42,11 @@ static gboolean pkd_dbus_manager_ping         (PkdDBusManager   *manager,
 
 G_DEFINE_TYPE (PkdDBusManager, pkd_dbus_manager, G_TYPE_OBJECT)
 
-/**
- * SECTION:pkd_dbus-manager
- * @title: PkdDBusManager
- * @short_description: 
- *
- * 
- */
+typedef struct {
+	DBusGConnection *conn;
+	PkdDBusManager  *manager;
+	DBusGProxy      *proxy;
+} SubInfo;
 
 gboolean
 pkd_dbus_manager_create_channel (PkdDBusManager  *manager,
@@ -89,7 +87,17 @@ manifest_cb (gchar    *buffer,
              gsize     buffer_size,
              gpointer  data)
 {
-	g_debug("Manifest CB");
+	SubInfo *info = data;
+	GByteArray *ar;
+
+	ar = g_byte_array_sized_new(buffer_size);
+	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
+
+	dbus_g_proxy_call_no_reply(info->proxy, "Manifest",
+	                           dbus_g_type_get_collection("GByteArray", G_TYPE_CHAR),
+	                           ar,
+	                           G_TYPE_INVALID,
+	                           G_TYPE_INVALID);
 }
 
 static void
@@ -97,7 +105,17 @@ sample_cb (gchar    *buffer,
            gsize     buffer_size,
            gpointer  data)
 {
-	g_debug("Sample CB");
+	SubInfo *info = data;
+	GByteArray *ar;
+
+	ar = g_byte_array_sized_new(buffer_size);
+	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
+
+	dbus_g_proxy_call_no_reply(info->proxy, "Sample",
+	                           dbus_g_type_get_collection("GByteArray", G_TYPE_CHAR),
+	                           ar,
+	                           G_TYPE_INVALID,
+	                           G_TYPE_INVALID);
 }
 
 gboolean
@@ -114,30 +132,68 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	PkdChannel *real_channel;
 	PkdEncoderInfo *real_encoder_info;
 	PkdSubscription *sub;
-	gpointer data = NULL;
+	SubInfo *data = NULL;
+	DBusGConnection *conn;
 
-	real_channel = (PkdChannel *)dbus_g_connection_lookup_g_object(pkd_dbus_get_connection(), channel);
-	if (!channel) {
+	g_message("%s", G_STRLOC);
+
+	g_return_val_if_fail(PKD_DBUS_IS_MANAGER(manager), FALSE);
+	g_return_val_if_fail(delivery_address != NULL, FALSE);
+	g_return_val_if_fail(delivery_path != NULL, FALSE);
+	g_return_val_if_fail(channel != NULL, FALSE);
+
+	conn = pkd_dbus_get_connection();
+	real_channel = (PkdChannel *)dbus_g_connection_lookup_g_object(conn, channel);
+	if (!real_channel) {
+		g_warning("Error locating channel: %s", channel);
 		/* TODO: Set error message */
 		return FALSE;
 	}
 
+	g_message("Registing subscription for %s.", channel);
+
 	/* Okay if this is NULL */
-	real_encoder_info = (PkdEncoderInfo *)dbus_g_connection_lookup_g_object(pkd_dbus_get_connection(), encoder_info);
+	real_encoder_info = (PkdEncoderInfo *)dbus_g_connection_lookup_g_object(conn, encoder_info);
+
+	data = g_slice_new0(SubInfo);
+	data->conn = dbus_g_connection_open(delivery_address, NULL);
+	if (!data->conn) {
+		goto error;
+	}
+	data->manager = manager;
+	data->proxy = dbus_g_proxy_new_for_peer(data->conn, delivery_path,
+	                                        "com.dronelabs.Perfkit.Subscription");
 
 	/* subscribe to the channel */
-	sub = pkd_subscription_new(real_channel, real_encoder_info, buffer_size, buffer_timeout, manifest_cb, data, sample_cb, data);
+	sub = pkd_subscription_new(real_channel,
+	                           real_encoder_info,
+	                           buffer_size,
+	                           buffer_timeout,
+	                           manifest_cb,
+	                           data,
+	                           sample_cb,
+	                           data);
 	if (!sub) {
 		/* TODO: Set error message */
-		return FALSE;
+		goto error;
 	}
 
 	/* notify the pipeline of the subscription */
 	pkd_pipeline_add_subscription(sub);
 
-	*subscription = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d", pkd_subscription_get_id(sub));
+	*subscription = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	                                pkd_subscription_get_id(sub));
 
 	return TRUE;
+
+error:
+	g_message("Error registering new subscription via DBus.");
+	if (data->proxy);
+		g_object_unref(data->proxy);
+	if (data->conn)
+		dbus_g_connection_unref(data->conn);
+	g_slice_free(SubInfo, data);
+	return FALSE;
 }
 
 gboolean
