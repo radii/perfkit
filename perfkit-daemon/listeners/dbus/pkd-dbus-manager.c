@@ -158,6 +158,7 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	data = g_slice_new0(SubInfo);
 	data->conn = dbus_g_connection_open(delivery_address, NULL);
 	if (!data->conn) {
+		g_warning("Error opening connection to DBus address.");
 		goto error;
 	}
 	data->manager = manager;
@@ -175,6 +176,7 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	                           data);
 	if (!sub) {
 		/* TODO: Set error message */
+		g_warning("Error creating subscription.");
 		goto error;
 	}
 
@@ -187,6 +189,9 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	return TRUE;
 
 error:
+	g_set_error(error, PKD_DBUS_MANAGER_ERROR,
+	            PKD_DBUS_MANAGER_ERROR_SUBSCRIPTION,
+	            _("Could not register subscription."));
 	g_message("Error registering new subscription via DBus.");
 	if (data->proxy);
 		g_object_unref(data->proxy);
@@ -194,6 +199,12 @@ error:
 		dbus_g_connection_unref(data->conn);
 	g_slice_free(SubInfo, data);
 	return FALSE;
+}
+
+GQuark
+pkd_dbus_manager_error_quark (void)
+{
+	return g_quark_from_static_string("pkd-dbus-manager-error-quark");
 }
 
 gboolean

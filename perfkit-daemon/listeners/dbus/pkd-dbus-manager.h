@@ -30,6 +30,12 @@ G_BEGIN_DECLS
 #define PKD_DBUS_IS_MANAGER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PKD_DBUS_TYPE_MANAGER))
 #define PKD_DBUS_IS_MANAGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PKD_DBUS_TYPE_MANAGER))
 #define PKD_DBUS_MANAGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PKD_DBUS_TYPE_MANAGER, PkdDBusManagerClass))
+#define PKD_DBUS_MANAGER_ERROR           (pkd_dbus_manager_error_quark())
+
+typedef enum
+{
+	PKD_DBUS_MANAGER_ERROR_SUBSCRIPTION,
+} PkdDBusManagerError;
 
 typedef struct _PkdDBusManager        PkdDBusManager;
 typedef struct _PkdDBusManagerClass   PkdDBusManagerClass;
@@ -49,6 +55,7 @@ struct _PkdDBusManagerClass
 };
 
 GType    pkd_dbus_manager_get_type            (void) G_GNUC_CONST;
+GQuark   pkd_dbus_manager_error_quark         (void) G_GNUC_CONST;
 gboolean pkd_dbus_manager_create_channel      (PkdDBusManager  *manager,
                                                GPid             pid,
                                                const gchar     *target,
