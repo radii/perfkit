@@ -23,6 +23,15 @@ get_manager_proxy (void)
 	                                 "com.dronelabs.Perfkit.Manager");
 }
 
+static DBusGProxy*
+get_channel_proxy (const gchar *path)
+{
+	return dbus_g_proxy_new_for_name(get_conn(),
+	                                 "com.dronelabs.Perfkit",
+	                                 path,
+	                                 "com.dronelabs.Perfkit.Channel");
+}
+
 static void
 test_TestSuite_manager_ping (void)
 {
@@ -72,9 +81,58 @@ test_TestSuite_create_channel (void)
 		g_error("%s", error->message);
 
 	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Channels/0");
-
 	g_free(path);
+	g_object_unref(proxy);
+}
 
+static void
+test_TestSuite_add_source (void)
+{
+	DBusGProxy *proxy;
+	gchar *path = NULL;
+	GError *error = NULL;
+
+	#define MEM_INFO "/com/dronelabs/Perfkit/Plugins/Sources/Memory"
+
+	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	if (!dbus_g_proxy_call(proxy, "AddSource", &error,
+	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(MEM_INFO),
+	                       G_TYPE_INVALID,
+	                       DBUS_TYPE_G_OBJECT_PATH, &path,
+	                       G_TYPE_INVALID))
+	    g_error("%s", error->message);
+
+	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Sources/0");
+	g_free(path);
+	g_object_unref(proxy);
+}
+
+static void
+test_TestSuite_start (void)
+{
+	DBusGProxy *proxy;
+	GError *error = NULL;
+
+	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	if (!dbus_g_proxy_call(proxy, "Start", &error,
+	                       G_TYPE_INVALID,
+	                       G_TYPE_INVALID))
+	    g_error("%s", error->message);
+	g_object_unref(proxy);
+}
+
+static void
+test_TestSuite_stop (void)
+{
+	DBusGProxy *proxy;
+	GError *error = NULL;
+
+	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	if (!dbus_g_proxy_call(proxy, "Stop", &error,
+	                       G_TYPE_BOOLEAN, TRUE,
+	                       G_TYPE_INVALID,
+	                       G_TYPE_INVALID))
+	    g_error("%s", error->message);
 	g_object_unref(proxy);
 }
 
@@ -125,6 +183,12 @@ main (gint   argc,
 	                test_TestSuite_manager_ping);
 	g_test_add_func("/TestSuite/create_channel",
 	                test_TestSuite_create_channel);
+	g_test_add_func("/TestSuite/add_source",
+	                test_TestSuite_add_source);
+	g_test_add_func("/TestSuite/start",
+	                test_TestSuite_start);
+	g_test_add_func("/TestSuite/stop",
+	                test_TestSuite_stop);
 	g_test_add_func("/TestSuite/sample_delivery",
 	                test_TestSuite_sample_delivery);
 
