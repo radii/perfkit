@@ -136,6 +136,34 @@ test_TestSuite_stop (void)
 	g_object_unref(proxy);
 }
 
+static void
+test_TestSuite_subscription (void)
+{
+	DBusGProxy *proxy;
+	GError *error = NULL;
+	gchar *path = NULL;
+
+	#define UNIX_PATH "unix:path=/tmp/test-suite.socket"
+	#define SUB_PATH "/Subscription/0"
+	#define CHANNEL_PATH "/com/dronelabs/Perfkit/Channels/0"
+
+	proxy = get_manager_proxy();
+	if (!dbus_g_proxy_call(proxy, "CreateSubscription", &error,
+	                       G_TYPE_STRING, g_strdup(UNIX_PATH),
+	                       G_TYPE_STRING, g_strdup(SUB_PATH),
+	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(CHANNEL_PATH),
+	                       G_TYPE_UINT, 0,
+	                       G_TYPE_UINT, 0,
+	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup("/"),
+	                       G_TYPE_INVALID,
+	                       DBUS_TYPE_G_OBJECT_PATH, &path,
+	                       G_TYPE_INVALID))
+	    g_error("%s", error->message);
+	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Subscriptions/0");
+	g_free(path);
+	g_object_unref(path);
+}
+
 gint
 main (gint   argc,
       gchar *argv[])
@@ -145,6 +173,7 @@ main (gint   argc,
 		"./perfkit-daemon",
 		"--stdout",
 		"-c", "daemon.conf",
+		"-l", "/tmp/test-suite.log",
 		NULL };
 	static gchar *env[] = {
 		"PERFKIT_SOURCES_DIR=./sources/.libs",
@@ -187,6 +216,8 @@ main (gint   argc,
 	                test_TestSuite_add_source);
 	g_test_add_func("/TestSuite/start",
 	                test_TestSuite_start);
+	g_test_add_func("/TestSuite/subscription",
+	                test_TestSuite_subscription);
 	g_test_add_func("/TestSuite/stop",
 	                test_TestSuite_stop);
 	g_test_add_func("/TestSuite/sample_delivery",
