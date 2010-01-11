@@ -237,12 +237,12 @@ test_TestSuite_subscription (void)
 	                       G_TYPE_STRING, g_strdup(SUB_PATH),
 	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(CHANNEL_PATH),
 	                       G_TYPE_UINT, 0,
-	                       G_TYPE_UINT, 0,
+	                       G_TYPE_ULONG, 2000, /* 2 Seconds */
 	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup("/"),
 	                       G_TYPE_INVALID,
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
-	    g_error("%s", error->message);
+		g_error("%s", error->message);
 	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Subscriptions/0");
 	subproxy = get_sub_proxy(path);
 	if (!dbus_g_proxy_call(subproxy, "Enable", &error,
@@ -258,7 +258,7 @@ test_TestSuite_subscription (void)
 	g_main_loop_run(loop);
 
 	g_assert_cmpint(m_count, ==, 1);
-	g_assert_cmpint(s_count, >=, 4);
+	g_assert_cmpint(s_count, >=, 2);
 	g_assert_cmpint(c_count, ==, 2);
 }
 

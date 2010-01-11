@@ -25,6 +25,8 @@
 #include "pkd-pipeline.h"
 #include "pkd-subscription.h"
 
+#define G_MSEC_PER_SEC (1000)
+
 /**
  * SECTION:pkd-subscription
  * @title: PkdSubscription
@@ -53,13 +55,11 @@
     (s)->manifest = pkd_manifest_ref((m)); \
 } G_STMT_END
 
-/*
- * Internal callbacks to notify channels of subscription.
- */
 extern void pkd_channel_add_subscription    (PkdChannel      *channel,
                                              PkdSubscription *sub);
 extern void pkd_channel_remove_subscription (PkdChannel      *channel,
                                              PkdSubscription *sub);
+static void pkd_subscription_flush_locked   (PkdSubscription *sub);
 
 struct _PkdSubscription
 {
@@ -80,6 +80,7 @@ struct _PkdSubscription
 	gboolean         disabled;       /* Subscription is disabled (default) */
 	gsize            buflen;         /* Current buffer length */
 	PkdManifest     *manifest;       /* Our current manifest */
+	gboolean         finished;       /* Subscription has completed */
 };
 
 static guint subscription_seq = 0;
@@ -97,6 +98,27 @@ pkd_subscription_destroy (PkdSubscription *sub)
 	}
 
 	memset(sub, 0, sizeof(*sub));
+}
+
+static gboolean
+pkd_subscription_timeout_cb (PkdSubscription *sub)
+{
+	/*
+	 * If we finished, stop the func and drop our reference.
+	 */
+	if (sub->finished) {
+		pkd_subscription_unref(sub);
+		return FALSE;
+	}
+
+	/*
+	 * Flush the subscriptions buffers.
+	 */
+	g_mutex_lock(sub->mutex);
+	pkd_subscription_flush_locked(sub);
+	g_mutex_unlock(sub->mutex);
+
+	return TRUE;
 }
 
 /**
@@ -122,7 +144,7 @@ PkdSubscription*
 pkd_subscription_new (PkdChannel      *channel,
                       PkdEncoderInfo  *encoder_info,
                       gsize            buffer_max,
-                      glong            buffer_timeout,
+                      gulong           buffer_timeout,
                       PkdManifestFunc  manifest_func,
                       gpointer         manifest_data,
                       PkdSampleFunc    sample_func,
@@ -167,6 +189,22 @@ pkd_subscription_new (PkdChannel      *channel,
 	 * Notify the channel of the subscription.
 	 */
 	pkd_channel_add_subscription(channel, sub);
+
+	/*
+	 * Setup flush timeout if needed.  We try to reduce the CPU wake-up
+	 * overhead if the timeout is requested on a whole second.
+	 */
+	if (buffer_timeout > 0) {
+		if ((buffer_timeout % G_MSEC_PER_SEC) == 0) {
+			g_timeout_add_seconds(buffer_timeout / G_MSEC_PER_SEC,
+			                      (GSourceFunc)pkd_subscription_timeout_cb,
+			                      pkd_subscription_ref(sub));
+		} else {
+			g_timeout_add(buffer_timeout,
+			              (GSourceFunc)pkd_subscription_timeout_cb,
+			              pkd_subscription_ref(sub));
+		}
+	}
 
 	return sub;
 }
@@ -243,6 +281,14 @@ pkd_subscription_get_id (PkdSubscription *subscription)
 static inline gboolean
 pkd_subscription_needs_flush_locked (PkdSubscription *sub)
 {
+	/*
+	 * We don't need to flush if we have a time-based buffer and no size
+	 * based buffer.
+	 */
+	if (sub->timeout && !sub->bufsize) {
+		return FALSE;
+	}
+
 	/*
 	 * If there is nothing in the queue, prevent costly flush path.
 	 */

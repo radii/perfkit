@@ -67,7 +67,7 @@ typedef struct _PkdSubscription PkdSubscription;
 PkdSubscription* pkd_subscription_new         (PkdChannel      *channel,
                                                PkdEncoderInfo  *encoder_info,
                                                gsize            buffer_max,
-                                               glong            buffer_timeout,
+                                               gulong           buffer_timeout,
                                                PkdManifestFunc  manifest_func,
                                                gpointer         manifest_data,
                                                PkdSampleFunc    sample_func,
