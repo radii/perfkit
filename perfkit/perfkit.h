@@ -23,6 +23,8 @@
 
 #include "pk-channel.h"
 #include "pk-connection.h"
+#include "pk-encoder.h"
+#include "pk-encoder-info.h"
 #include "pk-manager.h"
 #include "pk-manifest.h"
 #include "pk-protocol.h"
