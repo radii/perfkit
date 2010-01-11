@@ -1,4 +1,4 @@
-/* pk-source-info.c
+/* pk-encoder-info.c
  *
  * Copyright (C) 2010 Christian Hergert
  *
@@ -21,56 +21,49 @@
 #endif
 
 #include "pk-connection.h"
-#include "pk-source-info.h"
+#include "pk-encoder-info.h"
 
-G_DEFINE_TYPE(PkSourceInfo, pk_source_info, G_TYPE_OBJECT)
+G_DEFINE_TYPE (PkEncoderInfo, pk_encoder_info, G_TYPE_OBJECT)
 
 /**
- * SECTION:pk-source_info
- * @title: PkSourceInfo
+ * SECTION:pk-encoder_info
+ * @title: PkEncoderInfo
  * @short_description: 
  *
  * 
  */
 
-struct _PkSourceInfoPrivate
+struct _PkEncoderInfoPrivate
 {
 	PkConnection *conn;
 };
 
-enum
-{
-	PROP_0,
-	PROP_CONN,
-};
-
 static void
-pk_source_info_finalize (GObject *object)
+pk_encoder_info_finalize (GObject *object)
 {
-	G_OBJECT_CLASS(pk_source_info_parent_class)->finalize(object);
+	PkEncoderInfoPrivate *priv;
+
+	g_return_if_fail (PK_IS_ENCODER_INFO (object));
+
+	priv = PK_ENCODER_INFO (object)->priv;
+
+	G_OBJECT_CLASS (pk_encoder_info_parent_class)->finalize (object);
 }
 
 static void
-pk_source_info_dispose (GObject *object)
-{
-	G_OBJECT_CLASS(pk_source_info_parent_class)->dispose(object);
-}
-
-static void
-pk_source_info_class_init (PkSourceInfoClass *klass)
+pk_encoder_info_class_init (PkEncoderInfoClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pk_source_info_finalize;
-	object_class->dispose = pk_source_info_dispose;
-	g_type_class_add_private(object_class, sizeof(PkSourceInfoPrivate));
+	object_class->finalize = pk_encoder_info_finalize;
+	g_type_class_add_private (object_class, sizeof (PkEncoderInfoPrivate));
 }
 
 static void
-pk_source_info_init (PkSourceInfo *source_info)
+pk_encoder_info_init (PkEncoderInfo *encoder_info)
 {
-	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(source_info,
-	                                                PK_TYPE_SOURCE_INFO,
-	                                                PkSourceInfoPrivate);
+	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (encoder_info,
+	                                                  PK_TYPE_ENCODER_INFO,
+	                                                  PkEncoderInfoPrivate);
 }

@@ -1,4 +1,4 @@
-/* pk-source-info.c
+/* pk-subscription.c
  *
  * Copyright (C) 2010 Christian Hergert
  *
@@ -21,56 +21,43 @@
 #endif
 
 #include "pk-connection.h"
-#include "pk-source-info.h"
+#include "pk-subscription.h"
 
-G_DEFINE_TYPE(PkSourceInfo, pk_source_info, G_TYPE_OBJECT)
+G_DEFINE_TYPE (PkSubscription, pk_subscription, G_TYPE_OBJECT)
 
 /**
- * SECTION:pk-source_info
- * @title: PkSourceInfo
+ * SECTION:pk-subscription
+ * @title: PkSubscription
  * @short_description: 
  *
  * 
  */
 
-struct _PkSourceInfoPrivate
+struct _PkSubscriptionPrivate
 {
 	PkConnection *conn;
 };
 
-enum
-{
-	PROP_0,
-	PROP_CONN,
-};
-
 static void
-pk_source_info_finalize (GObject *object)
+pk_subscription_finalize (GObject *object)
 {
-	G_OBJECT_CLASS(pk_source_info_parent_class)->finalize(object);
+	G_OBJECT_CLASS(pk_subscription_parent_class)->finalize(object);
 }
 
 static void
-pk_source_info_dispose (GObject *object)
-{
-	G_OBJECT_CLASS(pk_source_info_parent_class)->dispose(object);
-}
-
-static void
-pk_source_info_class_init (PkSourceInfoClass *klass)
+pk_subscription_class_init (PkSubscriptionClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pk_source_info_finalize;
-	object_class->dispose = pk_source_info_dispose;
-	g_type_class_add_private(object_class, sizeof(PkSourceInfoPrivate));
+	object_class->finalize = pk_subscription_finalize;
+	g_type_class_add_private(object_class, sizeof(PkSubscriptionPrivate));
 }
 
 static void
-pk_source_info_init (PkSourceInfo *source_info)
+pk_subscription_init (PkSubscription *subscription)
 {
-	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(source_info,
-	                                                PK_TYPE_SOURCE_INFO,
-	                                                PkSourceInfoPrivate);
+	subscription->priv = G_TYPE_INSTANCE_GET_PRIVATE(subscription,
+	                                                 PK_TYPE_SUBSCRIPTION,
+	                                                 PkSubscriptionPrivate);
 }

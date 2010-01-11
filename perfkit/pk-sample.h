@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit/perfkit.h> can be included directly."
+#endif
+
 #ifndef __PK_SAMPLE_H__
 #define __PK_SAMPLE_H__
 
@@ -27,10 +31,10 @@ G_BEGIN_DECLS
 
 typedef struct _PkSample PkSample;
 
-GType        pk_sample_get_type   (void) G_GNUC_CONST;
-PkSample*    pk_sample_ref        (PkSample *sample);
-void         pk_sample_unref      (PkSample *sample);
-GArray*      pk_sample_get_array  (PkSample *sample);
+GType         pk_sample_get_type   (void) G_GNUC_CONST;
+PkSample*     pk_sample_new        (void);
+PkSample*     pk_sample_ref        (PkSample *sample);
+void          pk_sample_unref      (PkSample *sample);
 
 G_END_DECLS
 

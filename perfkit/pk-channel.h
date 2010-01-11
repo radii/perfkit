@@ -1,6 +1,6 @@
 /* pk-channel.h
  *
- * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2010 Christian Hergert
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,39 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit/perfkit.h> can be included directly."
+#endif
+
 #ifndef __PK_CHANNEL_H__
 #define __PK_CHANNEL_H__
 
 #include <glib-object.h>
 
-#include "pk-sample.h"
-
 G_BEGIN_DECLS
 
-#define PK_TYPE_CHANNEL            (pk_channel_get_type ())
+#define PK_TYPE_CHANNEL            (pk_channel_get_type())
 #define PK_CHANNEL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_CHANNEL, PkChannel))
 #define PK_CHANNEL_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_CHANNEL, PkChannel const))
 #define PK_CHANNEL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PK_TYPE_CHANNEL, PkChannelClass))
 #define PK_IS_CHANNEL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PK_TYPE_CHANNEL))
 #define PK_IS_CHANNEL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PK_TYPE_CHANNEL))
 #define PK_CHANNEL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PK_TYPE_CHANNEL, PkChannelClass))
-
-/**
- * PkChannelState:
- * @PK_CHANNEL_READY:
- * @PK_CHANNEL_STARTED:
- * @PK_CHANNEL_PAUSED:
- * @PK_CHANNEL_STOPPED:
- *
- * The "PkChannelState" enumeration.
- */
-typedef enum
-{
-	PK_CHANNEL_READY,
-	PK_CHANNEL_STARTED,
-	PK_CHANNEL_PAUSED,
-	PK_CHANNEL_STOPPED,
-} PkChannelState;
 
 typedef struct _PkChannel        PkChannel;
 typedef struct _PkChannelClass   PkChannelClass;
@@ -67,35 +52,7 @@ struct _PkChannelClass
 	GObjectClass parent_class;
 };
 
-GType          pk_channel_get_type    (void) G_GNUC_CONST;
-gint           pk_channel_get_id      (PkChannel    *channel);
-gchar*         pk_channel_get_target  (PkChannel    *channel);
-void           pk_channel_set_target  (PkChannel    *channel,
-                                       const gchar  *target);
-gchar**        pk_channel_get_args    (PkChannel    *channel);
-void           pk_channel_set_args    (PkChannel    *channel,
-                                       gchar       **args);
-gchar*         pk_channel_get_dir     (PkChannel    *channel);
-void           pk_channel_set_dir     (PkChannel    *channel,
-                                       const gchar  *dir);
-gchar**        pk_channel_get_env     (PkChannel    *channel);
-void           pk_channel_set_env     (PkChannel    *channel,
-                                       gchar       **env);
-GPid           pk_channel_get_pid     (PkChannel    *channel);
-void           pk_channel_set_pid     (PkChannel    *channel,
-                                       GPid          pid);
-PkChannelState pk_channel_get_state   (PkChannel    *channel);
-gboolean       pk_channel_start       (PkChannel    *channel,
-                                       GError      **error);
-gboolean       pk_channel_stop        (PkChannel    *channel,
-                                       GError      **error);
-gboolean       pk_channel_pause       (PkChannel    *channel,
-                                       GError      **error);
-gboolean       pk_channel_unpause     (PkChannel    *channel,
-                                       GError      **error);
-void           pk_channel_emit_sample (PkChannel    *channel,
-                                       PkSample     *sample);
-void           pk_channel_subscribe   (PkChannel    *channel);
+GType pk_channel_get_type (void) G_GNUC_CONST;
 
 G_END_DECLS
 

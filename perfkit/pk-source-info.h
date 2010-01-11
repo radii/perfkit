@@ -1,6 +1,6 @@
 /* pk-source-info.h
  *
- * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2010 Christian Hergert
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,12 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit/perfkit.h> can be included directly."
+#endif
+
 #ifndef __PK_SOURCE_INFO_H__
 #define __PK_SOURCE_INFO_H__
 
 #include <glib-object.h>
-
-#include "pk-source.h"
 
 G_BEGIN_DECLS
 
@@ -50,10 +52,7 @@ struct _PkSourceInfoClass
 	GObjectClass parent_class;
 };
 
-GType     pk_source_info_get_type (void) G_GNUC_CONST;
-gchar*    pk_source_info_get_uid  (PkSourceInfo *source_info);
-gchar*    pk_source_info_get_name (PkSourceInfo *source_info);
-PkSource* pk_source_info_create   (PkSourceInfo *source_info);
+GType pk_source_info_get_type (void) G_GNUC_CONST;
 
 G_END_DECLS
 

@@ -19,15 +19,19 @@
 #ifndef __PERFKIT_H__
 #define __PERFKIT_H__
 
-#include <glib-object.h>
+#define __PERFKIT_INSIDE__
 
 #include "pk-channel.h"
-#include "pk-channels.h"
 #include "pk-connection.h"
+#include "pk-manager.h"
+#include "pk-manifest.h"
+#include "pk-protocol.h"
 #include "pk-sample.h"
 #include "pk-source.h"
 #include "pk-source-info.h"
-#include "pk-sources.h"
+#include "pk-subscription.h"
 #include "pk-version.h"
+
+#undef __PERFKIT_INSIDE__
 
 #endif /* __PERFKIT_H__ */

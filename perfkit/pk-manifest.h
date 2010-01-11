@@ -1,6 +1,6 @@
-/* pk-source-info-priv.h
+/* pk-manifest.h
  *
- * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2010 Christian Hergert
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,18 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PK_SOURCE_INFO_PRIV_H__
-#define __PK_SOURCE_INFO_PRIV_H__
+#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit/perfkit.h> can be included directly."
+#endif
+
+#ifndef __PK_MANIFEST_H__
+#define __PK_MANIFEST_H__
 
 #include <glib-object.h>
 
-#include "pk-connection.h"
-#include "pk-source-info.h"
-
 G_BEGIN_DECLS
 
-PkSourceInfo* pk_source_info_new (PkConnection *conn, const gchar *uid);
+#define PK_TYPE_MANIFEST (pk_manifest_get_type())
+
+typedef struct _PkManifest PkManifest;
+
+GType           pk_manifest_get_type   (void) G_GNUC_CONST;
+PkManifest*     pk_manifest_new        (void);
+PkManifest*     pk_manifest_ref        (PkManifest *manifest);
+void            pk_manifest_unref      (PkManifest *manifest);
 
 G_END_DECLS
 
-#endif /* __PK_SOURCE_INFO_PRIV_H__ */
+#endif /* __PK_MANIFEST_H__ */

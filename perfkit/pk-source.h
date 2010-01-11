@@ -1,6 +1,6 @@
 /* pk-source.h
  *
- * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2010 Christian Hergert
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,11 +21,9 @@
 
 #include <glib-object.h>
 
-#include "pk-channel.h"
-
 G_BEGIN_DECLS
 
-#define PK_TYPE_SOURCE            (pk_source_get_type ())
+#define PK_TYPE_SOURCE            (pk_source_get_type())
 #define PK_SOURCE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_SOURCE, PkSource))
 #define PK_SOURCE_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_SOURCE, PkSource const))
 #define PK_SOURCE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PK_TYPE_SOURCE, PkSourceClass))
@@ -50,10 +48,7 @@ struct _PkSourceClass
 	GObjectClass parent_class;
 };
 
-GType  pk_source_get_type    (void) G_GNUC_CONST;
-gint   pk_source_get_id      (PkSource  *source);
-void   pk_source_set_channel (PkSource  *source,
-                              PkChannel *channel);
+GType pk_source_get_type (void) G_GNUC_CONST;
 
 G_END_DECLS
 
