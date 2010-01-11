@@ -1,10 +1,5 @@
 Thorough testing of Channel Start/Stop/Pause/Unpause.
 
-End-to-End testing of Manifest and Sample Delivery.
-
-Samples need a timestamp associated with them.  This could even be a drift
-since the last manifest for size compression.
-
 DBus listener needs to be finished.  This especially includes delivery
 support via the private socket.
 
