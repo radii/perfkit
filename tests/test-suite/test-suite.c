@@ -68,11 +68,6 @@ test_TestSuite_manager_ping (void)
 }
 
 static void
-test_TestSuite_sample_delivery (void)
-{
-}
-
-static void
 test_TestSuite_create_channel (void)
 {
 	static gchar *nc_args[] = { "-l", "-p", "10000", NULL };
@@ -326,8 +321,6 @@ main (gint   argc,
 	                test_TestSuite_subscription);
 	g_test_add_func("/TestSuite/stop",
 	                test_TestSuite_stop);
-	g_test_add_func("/TestSuite/sample_delivery",
-	                test_TestSuite_sample_delivery);
 
 	/* Kill the daemon */
 	res = g_test_run();
