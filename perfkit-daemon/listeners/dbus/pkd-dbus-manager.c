@@ -30,6 +30,7 @@
 
 #include "pkd-dbus.h"
 #include "pkd-dbus-manager.h"
+#include "pkd-dbus-subscription.h"
 
 static gboolean pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
                                                gchar          ***paths,
@@ -90,11 +91,13 @@ manifest_cb (gchar    *buffer,
 	SubInfo *info = data;
 	GByteArray *ar;
 
+	g_message("%s", G_STRLOC);
+
 	ar = g_byte_array_sized_new(buffer_size);
 	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
 
 	dbus_g_proxy_call_no_reply(info->proxy, "Manifest",
-	                           dbus_g_type_get_collection("GByteArray", G_TYPE_CHAR),
+	                           dbus_g_type_get_collection("GArray", G_TYPE_CHAR),
 	                           ar,
 	                           G_TYPE_INVALID,
 	                           G_TYPE_INVALID);
@@ -108,11 +111,13 @@ sample_cb (gchar    *buffer,
 	SubInfo *info = data;
 	GByteArray *ar;
 
+	g_message("%s", G_STRLOC);
+
 	ar = g_byte_array_sized_new(buffer_size);
 	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
 
 	dbus_g_proxy_call_no_reply(info->proxy, "Sample",
-	                           dbus_g_type_get_collection("GByteArray", G_TYPE_CHAR),
+	                           dbus_g_type_get_collection("GArray", G_TYPE_CHAR),
 	                           ar,
 	                           G_TYPE_INVALID,
 	                           G_TYPE_INVALID);
@@ -135,12 +140,12 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	SubInfo *data = NULL;
 	DBusGConnection *conn;
 
-	g_message("%s", G_STRLOC);
-
 	g_return_val_if_fail(PKD_DBUS_IS_MANAGER(manager), FALSE);
 	g_return_val_if_fail(delivery_address != NULL, FALSE);
 	g_return_val_if_fail(delivery_path != NULL, FALSE);
 	g_return_val_if_fail(channel != NULL, FALSE);
+
+	g_message("DBus listener received subscription request.");
 
 	conn = pkd_dbus_get_connection();
 	real_channel = (PkdChannel *)dbus_g_connection_lookup_g_object(conn, channel);
@@ -186,6 +191,10 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 	*subscription = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
 	                                pkd_subscription_get_id(sub));
 
+	dbus_g_connection_register_g_object(conn,
+	                                    *subscription,
+	                                    G_OBJECT(pkd_dbus_subscription_new(sub)));
+
 	return TRUE;
 
 error:
@@ -193,7 +202,7 @@ error:
 	            PKD_DBUS_MANAGER_ERROR_SUBSCRIPTION,
 	            _("Could not register subscription."));
 	g_message("Error registering new subscription via DBus.");
-	if (data->proxy);
+	if (data->proxy)
 		g_object_unref(data->proxy);
 	if (data->conn)
 		dbus_g_connection_unref(data->conn);

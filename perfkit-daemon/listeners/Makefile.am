@@ -45,6 +45,7 @@ AM_CPPFLAGS =								\
 NOINST_H_FILES =							\
 	pkd-dbus.h							\
 	dbus/pkd-dbus-manager.h						\
+	dbus/pkd-dbus-subscription.h					\
 	dbus/pkd-channel-dbus.h						\
 	$(NULL)
 
@@ -52,6 +53,7 @@ dbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
 	pkd-dbus.c							\
 	dbus/pkd-dbus-manager.c						\
+	dbus/pkd-dbus-subscription.c					\
 	$(NULL)
 
 dbus_la_LIBADD =							\

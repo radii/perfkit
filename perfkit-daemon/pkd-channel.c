@@ -776,6 +776,15 @@ unlock:
 	g_mutex_unlock(priv->mutex);
 }
 
+static gboolean
+deliver_manifest_to_sub (gpointer key,
+                         gpointer value,
+                         gpointer data)
+{
+	pkd_subscription_deliver_manifest(data, value);
+	return FALSE;
+}
+
 /**
  * pkd_channel_add_subscription:
  * @channel: A #PkdChannel
@@ -797,7 +806,19 @@ pkd_channel_add_subscription (PkdChannel      *channel,
 	priv = channel->priv;
 
 	g_mutex_lock(priv->mutex);
+
+	/*
+	 * Store subscription reference.
+	 */
 	g_ptr_array_add(priv->subs, pkd_subscription_ref(subscription));
+
+	/*
+	 * Notify subscription of current manifests.
+	 */
+	if ((priv->state & (STATE_RUNNING | STATE_PAUSED)) != 0) {
+		g_tree_foreach(priv->manifests, deliver_manifest_to_sub, subscription);
+	}
+
 	g_mutex_unlock(priv->mutex);
 }
 

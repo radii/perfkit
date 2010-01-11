@@ -441,7 +441,10 @@ pkd_subscription_deliver_manifest_locked (PkdSubscription *subscription,
 	encoder = subscription->encoder;
 	if (!pkd_encoder_encode_manifest(encoder, manifest, &buf, &buflen)) {
 		/*
-		 * Fatal error: cannot encode the data stream.
+		 * XXX: Fatal error: cannot encode the data stream.
+		 *
+		 *   This should simply kill the subscription in case of failure.
+		 *
 		 */
 	    g_error("%s: An error has occurred while encoding a buffer.  The "
 	            "encoder type is: %s.",
