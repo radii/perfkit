@@ -52,8 +52,13 @@ struct _PkEncoderClass
 	GObjectClass parent_class;
 };
 
-GType pk_encoder_get_type (void) G_GNUC_CONST;
-PkEncoder *pk_encoder_new      (void);
+GType    pk_encoder_get_type         (void) G_GNUC_CONST;
+gboolean pk_encoder_set_prop_by_name (PkEncoder    *encoder,
+                                      const gchar  *name,
+                                      const GValue *value);
+gboolean pk_encoder_get_prop_by_name (PkEncoder    *encoder,
+                                      const gchar  *name,
+                                      GValue       *value);
 
 G_END_DECLS
 
