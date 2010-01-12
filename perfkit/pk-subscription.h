@@ -25,6 +25,9 @@
 
 #include <glib-object.h>
 
+#include "pk-encoder.h"
+#include "pk-manifest.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_SUBSCRIPTION            (pk_subscription_get_type())
@@ -52,7 +55,11 @@ struct _PkSubscriptionClass
 	GObjectClass parent_class;
 };
 
-GType pk_subscription_get_type (void) G_GNUC_CONST;
+GType       pk_subscription_get_type      (void) G_GNUC_CONST;
+PkManifest* pk_subscription_get_manifest  (PkSubscription *subscription);
+void        pk_subscription_enable        (PkSubscription *subscription);
+void        pk_subscription_disable       (PkSubscription *subscription);
+PkEncoder*  pk_subscription_get_encoder   (PkSubscription *subscription);
 
 G_END_DECLS
 
