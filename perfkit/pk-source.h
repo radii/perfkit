@@ -48,7 +48,13 @@ struct _PkSourceClass
 	GObjectClass parent_class;
 };
 
-GType pk_source_get_type (void) G_GNUC_CONST;
+GType    pk_source_get_type         (void) G_GNUC_CONST;
+gboolean pk_source_set_prop_by_name (PkSource     *source,
+                                     const gchar  *name,
+                                     const GValue *value);
+gboolean pk_source_get_prop_by_name (PkSource     *source,
+                                     const gchar  *name,
+                                     GValue       *value);
 
 G_END_DECLS
 
