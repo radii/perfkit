@@ -54,6 +54,10 @@ struct _PkConnectionClass
 
 GType         pk_connection_get_type     (void) G_GNUC_CONST;
 PkConnection* pk_connection_new_from_uri (const gchar *uri);
+gboolean      pk_connection_connect      (PkConnection  *connection,
+                                          GError       **error);
+void          pk_connection_disconnect   (PkConnection  *connection);
+gboolean      pk_connection_is_connected (PkConnection  *connection);
 
 G_END_DECLS
 
