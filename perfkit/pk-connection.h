@@ -25,8 +25,6 @@
 
 #include <glib-object.h>
 
-#include "pk-protocol.h"
-
 G_BEGIN_DECLS
 
 #define PK_TYPE_CONNECTION            (pk_connection_get_type())
@@ -54,7 +52,8 @@ struct _PkConnectionClass
 	GObjectClass parent_class;
 };
 
-GType pk_connection_get_type (void) G_GNUC_CONST;
+GType         pk_connection_get_type     (void) G_GNUC_CONST;
+PkConnection* pk_connection_new_from_uri (const gchar *uri);
 
 G_END_DECLS
 

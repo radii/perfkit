@@ -20,9 +20,11 @@
 #include "config.h"
 #endif
 
+#include <gmodule.h>
+
 #include "pk-dbus.h"
 
-G_DEFINE_TYPE(PkDbus, pk_dbus, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_PROTOCOL)
 
 struct _PkDbusPrivate
 {
@@ -48,5 +50,13 @@ pk_dbus_class_init (PkDbusClass *klass)
 static void
 pk_dbus_init (PkDbus *dbus)
 {
-	dbus->priv = G_TYPE_INSTANCE_GET_PRIVATE(dbus, PK_TYPE_DBUS, PkDbusPrivate);
+	dbus->priv = G_TYPE_INSTANCE_GET_PRIVATE(dbus,
+	                                         PK_TYPE_DBUS,
+	                                         PkDbusPrivate);
+}
+
+G_MODULE_EXPORT GType
+pk_protocol_plugin (void)
+{
+	return PK_TYPE_DBUS;
 }

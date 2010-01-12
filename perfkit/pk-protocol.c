@@ -22,6 +22,8 @@
 
 #include "pk-protocol.h"
 
+G_DEFINE_TYPE(PkProtocol, pk_protocol, G_TYPE_OBJECT)
+
 /**
  * SECTION:pk-protocol
  * @title: PkProtocol
@@ -30,30 +32,101 @@
  * 
  */
 
-GType
-pk_protocol_get_type (void)
+struct _PkProtocolPrivate
 {
-	static GType type_id = 0;
+	gchar *uri;
+};
 
-	if (g_once_init_enter((gsize *)&type_id)) {
-		const GTypeInfo g_type_info = { 
-			sizeof (PkProtocolIface),
-			NULL, /* base_init      */
-			NULL, /* base_finalize  */
-			NULL, /* class_init     */
-			NULL, /* class_finalize */
-			NULL, /* class_data     */
-			0,    /* instance_size  */
-			0,    /* n_preallocs    */
-			NULL, /* instance_init  */
-			NULL  /* value_table    */
-		};  
+enum
+{
+	PROP_0,
+	PROP_URI,
+};
 
-		GType _type_id = g_type_register_static (G_TYPE_INTERFACE, "PkProtocol",
-		                                         &g_type_info, 0); 
-		g_type_interface_add_prerequisite (_type_id, G_TYPE_OBJECT);
-		g_once_init_leave((gsize *)&type_id, _type_id);
-	}   
+/**
+ * pk_protocol_get_uri:
+ * @protocol: A #PkProtocol
+ *
+ * Retrieves the uri of the protocol.
+ *
+ * Returns: the uri string.
+ */
+const gchar*
+pk_protocol_get_uri (PkProtocol *protocol)
+{
+	g_return_val_if_fail(PK_IS_PROTOCOL(protocol), NULL);
+	return protocol->priv->uri;
+}
 
-	return type_id;
+static void
+pk_protocol_set_property (GObject      *object,
+                          guint         prop_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_URI:
+		PK_PROTOCOL(object)->priv->uri = g_value_dup_string(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pk_protocol_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_URI:
+		g_value_set_string(value, PK_PROTOCOL(object)->priv->uri);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pk_protocol_finalize (GObject *object)
+{
+	PkProtocolPrivate *priv = PK_PROTOCOL(object)->priv;
+
+	g_free(priv->uri);
+
+	G_OBJECT_CLASS (pk_protocol_parent_class)->finalize (object);
+}
+
+static void
+pk_protocol_class_init (PkProtocolClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pk_protocol_finalize;
+	object_class->set_property = pk_protocol_set_property;
+	object_class->get_property = pk_protocol_get_property;
+	g_type_class_add_private (object_class, sizeof (PkProtocolPrivate));
+
+	/**
+	 * PkProtocol:uri:
+	 *
+	 * The "uri" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_URI,
+	                                g_param_spec_string("uri",
+	                                                    "uri",
+	                                                    "Protocol Uri",
+	                                                    NULL,
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+}
+
+static void
+pk_protocol_init (PkProtocol *protocol)
+{
+	protocol->priv = G_TYPE_INSTANCE_GET_PRIVATE(protocol,
+	                                             PK_TYPE_PROTOCOL,
+	                                             PkProtocolPrivate);
 }

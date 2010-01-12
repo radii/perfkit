@@ -16,61 +16,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
-#error "Only <perfkit/perfkit.h> can be included directly."
-#endif
-
 #ifndef __PK_PROTOCOL_H__
 #define __PK_PROTOCOL_H__
 
 #include <glib-object.h>
 
-#include "pk-channel.h"
-#include "pk-encoder-info.h"
-#include "pk-subscription.h"
-
 G_BEGIN_DECLS
 
-#define PK_TYPE_PROTOCOL             (pk_protocol_get_type())
-#define PK_PROTOCOL(o)               (G_TYPE_CHECK_INSTANCE_CAST((o),    PK_TYPE_PROTOCOL, PkProtocol))
-#define PK_IS_PROTOCOL(o)            (G_TYPE_CHECK_INSTANCE_TYPE((o),    PK_TYPE_PROTOCOL))
-#define PK_PROTOCOL_GET_INTERFACE(o) (G_TYPE_INSTANCE_GET_INTERFACE((o), PK_TYPE_PROTOCOL, PkProtocolIface))
+#define PK_TYPE_PROTOCOL            (pk_protocol_get_type())
+#define PK_PROTOCOL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_PROTOCOL, PkProtocol))
+#define PK_PROTOCOL_CONST(obj)      (G_TYPE_CHECK_INSTANCE_CAST ((obj), PK_TYPE_PROTOCOL, PkProtocol const))
+#define PK_PROTOCOL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  PK_TYPE_PROTOCOL, PkProtocolClass))
+#define PK_IS_PROTOCOL(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), PK_TYPE_PROTOCOL))
+#define PK_IS_PROTOCOL_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PK_TYPE_PROTOCOL))
+#define PK_PROTOCOL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PK_TYPE_PROTOCOL, PkProtocolClass))
 
-typedef struct _PkProtocol      PkProtocol;
-typedef struct _PkProtocolIface PkProtocolIface;
+typedef struct _PkProtocol        PkProtocol;
+typedef struct _PkProtocolClass   PkProtocolClass;
+typedef struct _PkProtocolPrivate PkProtocolPrivate;
 
-struct _PkProtocolIface
+struct _PkProtocol
 {
-	GTypeInterface parent;
+	GObject parent;
 
-	/*
-	 * Manager RPCs.
-	 */
-	gboolean (*manager_ping)         (PkProtocol *protocol,
-	                                  GTimeVal   *tv);
-	GList*   (*manager_get_channels) (PkProtocol *protocol);
+	/*< private >*/
+	PkProtocolPrivate *priv;
 };
 
-GType           pk_protocol_get_type             (void) G_GNUC_CONST;
+struct _PkProtocolClass
+{
+	GObjectClass parent_class;
+};
 
-/*
- * Manager RPCs.
- */
-gboolean        pk_protocol_manager_ping                (PkProtocol       *protocol,
-                                                         GTimeVal         *tv);
-GList*          pk_protocol_manager_get_channels        (PkProtocol       *protocol);
-PkChannel*      pk_protocol_manager_create_channel      (PkProtocol       *protocol,
-                                                         GPid              pid,
-                                                         const gchar      *target,
-                                                         gchar           **args,
-                                                         gchar           **env,
-                                                         const gchar      *working_dir,
-                                                         GError          **error);
-PkSubscription* pk_protocol_manager_create_subscription (PkProtocol       *protocol,
-                                                         PkChannel        *channel,
-                                                         gulong            buffer_size,
-                                                         gulong            buffer_timeout,
-                                                         PkEncoderInfo    *encoder_info);
+GType        pk_protocol_get_type (void) G_GNUC_CONST;
+const gchar* pk_protocol_get_uri  (PkProtocol *protocol);
 
 G_END_DECLS
 

@@ -1,1 +1,1 @@
-SUBDIRS = perfkit-daemon test-suite
+SUBDIRS = perfkit-daemon perfkit test-suite

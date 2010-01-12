@@ -1,4 +1,4 @@
-dbus_LTLIBRARIES = dbus.la
+dbus_LTLIBRARIES = libdbus.la
 dbusdir = $(libdir)/perfkit/protocols
 
 WARNINGS =								\
@@ -42,18 +42,18 @@ NOINST_H_FILES =							\
 	pk-dbus.h							\
 	$(NULL)
 
-dbus_la_SOURCES =							\
+libdbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
 	pk-dbus.c							\
 	$(NULL)
 
-dbus_la_LIBADD =							\
+libdbus_la_LIBADD =							\
 	$(PERFKIT_LIBS)							\
 	$(DBUS_LIBS)							\
 	$(top_builddir)/perfkit/libperfkit-1.0.la			\
 	$(NULL)
 
-dbus_la_LDFLAGS =							\
+libdbus_la_LDFLAGS =							\
 	-export-dynamic							\
 	-export-symbols-regex "^pk_.*"					\
 	-module								\
