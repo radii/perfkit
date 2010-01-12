@@ -52,7 +52,11 @@ struct _PkEncoderInfoClass
 	GObjectClass parent_class;
 };
 
-GType pk_encoder_info_get_type (void) G_GNUC_CONST;
+GType        pk_encoder_info_get_type        (void) G_GNUC_CONST;
+const gchar* pk_encoder_info_get_uid         (PkEncoderInfo *encoder_info);
+const gchar* pk_encoder_info_get_name        (PkEncoderInfo *encoder_info);
+const gchar* pk_encoder_info_get_description (PkEncoderInfo *encoder_info);
+const gchar* pk_encoder_info_get_version     (PkEncoderInfo *encoder_info);
 
 G_END_DECLS
 
