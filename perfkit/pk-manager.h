@@ -25,6 +25,10 @@
 
 #include <glib-object.h>
 
+#include "pk-channel.h"
+#include "pk-encoder-info.h"
+#include "pk-subscription.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_MANAGER            (pk_manager_get_type())
@@ -35,6 +39,7 @@ G_BEGIN_DECLS
 #define PK_IS_MANAGER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  PK_TYPE_MANAGER))
 #define PK_MANAGER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PK_TYPE_MANAGER, PkManagerClass))
 
+typedef struct _PkSpawnInfo      PkSpawnInfo;
 typedef struct _PkManager        PkManager;
 typedef struct _PkManagerClass   PkManagerClass;
 typedef struct _PkManagerPrivate PkManagerPrivate;
@@ -52,8 +57,28 @@ struct _PkManagerClass
 	GObjectClass parent_class;
 };
 
-GType    pk_manager_get_type (void) G_GNUC_CONST;
-gboolean pk_manager_ping     (PkManager *manager, GTimeVal *tv);
+struct _PkSpawnInfo
+{
+	GPid    pid;
+	gchar  *target;
+	gchar **args;
+	gchar **env;
+	gchar  *working_dir;
+};
+
+GType           pk_manager_get_type            (void) G_GNUC_CONST;
+gboolean        pk_manager_ping                (PkManager      *manager,
+                                                GTimeVal       *tv);
+PkChannel*      pk_manager_create_channel      (PkManager      *manager,
+                                                PkSpawnInfo    *spawn_info,
+                                                GError        **error);
+PkSubscription* pk_manager_create_subscription (PkManager      *manager,
+                                                PkChannel      *channel,
+                                                gsize           buffer_size,
+                                                gulong          buffer_timeout,
+                                                PkEncoderInfo  *encoder_info);
+GList*          pk_manager_get_channels        (PkManager      *manager);
+GList*          pk_manager_get_processes       (PkManager      *manager);
 
 G_END_DECLS
 
