@@ -23,7 +23,7 @@
 #include "pk-connection.h"
 #include "pk-manager.h"
 
-G_DEFINE_TYPE (PkManager, pk_manager, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
 
 /**
  * SECTION:pk-manager

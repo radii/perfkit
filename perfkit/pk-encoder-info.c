@@ -23,7 +23,7 @@
 #include "pk-connection.h"
 #include "pk-encoder-info.h"
 
-G_DEFINE_TYPE (PkEncoderInfo, pk_encoder_info, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkEncoderInfo, pk_encoder_info, G_TYPE_OBJECT)
 
 /**
  * SECTION:pk-encoder_info
@@ -41,13 +41,13 @@ struct _PkEncoderInfoPrivate
 static void
 pk_encoder_info_finalize (GObject *object)
 {
-	PkEncoderInfoPrivate *priv;
+	G_OBJECT_CLASS(pk_encoder_info_parent_class)->finalize(object);
+}
 
-	g_return_if_fail (PK_IS_ENCODER_INFO (object));
-
-	priv = PK_ENCODER_INFO (object)->priv;
-
-	G_OBJECT_CLASS (pk_encoder_info_parent_class)->finalize (object);
+static void
+pk_encoder_info_dispose (GObject *object)
+{
+	G_OBJECT_CLASS(pk_encoder_info_parent_class)->dispose(object);
 }
 
 static void
@@ -57,13 +57,14 @@ pk_encoder_info_class_init (PkEncoderInfoClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_encoder_info_finalize;
-	g_type_class_add_private (object_class, sizeof (PkEncoderInfoPrivate));
+	object_class->dispose = pk_encoder_info_dispose;
+	g_type_class_add_private(object_class, sizeof(PkEncoderInfoPrivate));
 }
 
 static void
 pk_encoder_info_init (PkEncoderInfo *encoder_info)
 {
-	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE (encoder_info,
-	                                                  PK_TYPE_ENCODER_INFO,
-	                                                  PkEncoderInfoPrivate);
+	encoder_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(encoder_info,
+	                                                 PK_TYPE_ENCODER_INFO,
+	                                                 PkEncoderInfoPrivate);
 }

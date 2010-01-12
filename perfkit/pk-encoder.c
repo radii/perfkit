@@ -20,13 +20,10 @@
 #include "config.h"
 #endif
 
-#include <glib.h>
-#include <glib-object.h>
-#include <glib/gi18n.h>
-
+#include "pk-connection.h"
 #include "pk-encoder.h"
 
-G_DEFINE_TYPE (PkEncoder, pk_encoder, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkEncoder, pk_encoder, G_TYPE_OBJECT)
 
 /**
  * SECTION:pk-encoder
@@ -38,16 +35,8 @@ G_DEFINE_TYPE (PkEncoder, pk_encoder, G_TYPE_OBJECT)
 
 struct _PkEncoderPrivate
 {
-    gpointer dummy;
+	PkConnection *conn;
 };
-
-/*
- *-----------------------------------------------------------------------------
- *
- * Public Methods
- *
- *-----------------------------------------------------------------------------
- */
 
 /**
  * pk_encoder_new:
@@ -62,24 +51,16 @@ pk_encoder_new (void)
 	return g_object_new (PK_TYPE_ENCODER, NULL);
 }
 
-/*
- *-----------------------------------------------------------------------------
- *
- * Class Methods
- *
- *-----------------------------------------------------------------------------
- */
-
 static void
 pk_encoder_finalize (GObject *object)
 {
-	PkEncoderPrivate *priv;
+	G_OBJECT_CLASS(pk_encoder_parent_class)->finalize(object);
+}
 
-	g_return_if_fail (PK_IS_ENCODER (object));
-
-	priv = PK_ENCODER (object)->priv;
-
-	G_OBJECT_CLASS (pk_encoder_parent_class)->finalize (object);
+static void
+pk_encoder_dispose (GObject *object)
+{
+	G_OBJECT_CLASS(pk_encoder_parent_class)->dispose(object);
 }
 
 static void
@@ -89,13 +70,14 @@ pk_encoder_class_init (PkEncoderClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_encoder_finalize;
-	g_type_class_add_private (object_class, sizeof (PkEncoderPrivate));
+	object_class->dispose = pk_encoder_dispose;
+	g_type_class_add_private(object_class, sizeof(PkEncoderPrivate));
 }
 
 static void
 pk_encoder_init (PkEncoder *encoder)
 {
-	encoder->priv = G_TYPE_INSTANCE_GET_PRIVATE (encoder,
-	                                             PK_TYPE_ENCODER,
-	                                             PkEncoderPrivate);
+	encoder->priv = G_TYPE_INSTANCE_GET_PRIVATE(encoder,
+	                                            PK_TYPE_ENCODER,
+	                                            PkEncoderPrivate);
 }

@@ -23,7 +23,7 @@
 #include "pk-connection.h"
 #include "pk-subscription.h"
 
-G_DEFINE_TYPE (PkSubscription, pk_subscription, G_TYPE_OBJECT)
+G_DEFINE_TYPE(PkSubscription, pk_subscription, G_TYPE_OBJECT)
 
 /**
  * SECTION:pk-subscription
@@ -45,12 +45,19 @@ pk_subscription_finalize (GObject *object)
 }
 
 static void
+pk_subscription_dispose (GObject *object)
+{
+	G_OBJECT_CLASS(pk_subscription_parent_class)->dispose(object);
+}
+
+static void
 pk_subscription_class_init (PkSubscriptionClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_subscription_finalize;
+	object_class->dispose = pk_subscription_dispose;
 	g_type_class_add_private(object_class, sizeof(PkSubscriptionPrivate));
 }
 

@@ -53,7 +53,7 @@ pk_source_finalize (GObject *object)
 static void
 pk_source_dispose (GObject *object)
 {
-	G_OBJECT_CLASS(pk_source_parent_class)->finalize(object);
+	G_OBJECT_CLASS(pk_source_parent_class)->dispose(object);
 }
 
 static void
