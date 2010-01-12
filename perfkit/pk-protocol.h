@@ -46,10 +46,16 @@ struct _PkProtocol
 struct _PkProtocolClass
 {
 	GObjectClass parent_class;
+
+	gboolean (*manager_ping) (PkProtocol *protocol, GTimeVal *tv);
+	GList* (*manager_get_channels) (PkProtocol *protocol);
 };
 
 GType        pk_protocol_get_type (void) G_GNUC_CONST;
 const gchar* pk_protocol_get_uri  (PkProtocol *protocol);
+
+gboolean pk_protocol_manager_ping (PkProtocol *protocol, GTimeVal *tv);
+GList* pk_protocol_manager_get_channels (PkProtocol *protocol);
 
 G_END_DECLS
 

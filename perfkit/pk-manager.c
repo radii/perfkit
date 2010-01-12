@@ -22,6 +22,7 @@
 
 #include "pk-connection.h"
 #include "pk-manager.h"
+#include "pk-protocol.h"
 
 G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
 
@@ -36,6 +37,7 @@ G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
 struct _PkManagerPrivate
 {
 	PkConnection *conn;
+	PkProtocol *proto;
 };
 
 enum
@@ -62,7 +64,7 @@ pk_manager_ping (PkManager *manager,
 {
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
 
-	return FALSE;
+	return pk_protocol_manager_ping(manager->priv->proto, tv);
 }
 
 /**
@@ -88,7 +90,7 @@ pk_manager_get_channels (PkManager *manager)
 {
 	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
 
-	return NULL;
+	return pk_protocol_manager_get_channels(manager->priv->proto);
 }
 
 static void
@@ -109,9 +111,12 @@ pk_manager_set_property (GObject        *object,
                          const GValue   *value,
                          GParamSpec     *pspec)
 {
+	PkManagerPrivate *priv = PK_MANAGER(object)->priv;
+
 	switch (property_id) {
 	case PROP_CONN:
-		PK_MANAGER(object)->priv->conn = g_object_ref(g_value_get_object(value));
+		priv->conn = g_object_ref(g_value_get_object(value));
+		g_object_get(priv->conn, "protocol", &priv->proto, NULL);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);

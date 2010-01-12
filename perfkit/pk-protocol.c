@@ -58,6 +58,21 @@ pk_protocol_get_uri (PkProtocol *protocol)
 	return protocol->priv->uri;
 }
 
+gboolean
+pk_protocol_manager_ping (PkProtocol *protocol,
+                          GTimeVal   *tv)
+{
+	g_return_val_if_fail(PK_IS_PROTOCOL(protocol), FALSE);
+	return PK_PROTOCOL_GET_CLASS(protocol)->manager_ping(protocol, tv);
+}
+
+GList*
+pk_protocol_manager_get_channels (PkProtocol *protocol)
+{
+	g_return_val_if_fail(PK_IS_PROTOCOL(protocol), NULL);
+	return PK_PROTOCOL_GET_CLASS(protocol)->manager_get_channels(protocol);
+}
+
 static void
 pk_protocol_set_property (GObject      *object,
                           guint         prop_id,
