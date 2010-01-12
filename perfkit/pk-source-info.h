@@ -52,7 +52,11 @@ struct _PkSourceInfoClass
 	GObjectClass parent_class;
 };
 
-GType pk_source_info_get_type (void) G_GNUC_CONST;
+GType        pk_source_info_get_type        (void) G_GNUC_CONST;
+const gchar* pk_source_info_get_uid         (PkSourceInfo *source_info);
+const gchar* pk_source_info_get_name        (PkSourceInfo *source_info);
+const gchar* pk_source_info_get_description (PkSourceInfo *source_info);
+const gchar* pk_source_info_get_version     (PkSourceInfo *source_info);
 
 G_END_DECLS
 
