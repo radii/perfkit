@@ -37,7 +37,7 @@ typedef struct _PkDbusPrivate PkDbusPrivate;
 
 struct _PkDbus
 {
-	PkProtocol parent;
+	PkConnection parent;
 
 	/*< private >*/
 	PkDbusPrivate *priv;
@@ -45,7 +45,7 @@ struct _PkDbus
 
 struct _PkDbusClass
 {
-	PkProtocolClass parent_class;
+	PkConnectionClass parent_class;
 };
 
 GType pk_dbus_get_type (void) G_GNUC_CONST;

@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "pk-connection.h"
-#include "pk-protocol.h"
 
 G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
@@ -38,17 +37,17 @@ G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
-	PkProtocol *protocol;
+	gchar *uri;
 };
 
 enum
 {
 	PROP_0,
-	PROP_PROTOCOL,
+	PROP_URI,
 };
 
 static GType
-get_protocol_type (const gchar *uri)
+get_connection_type (const gchar *uri)
 {
 	GType (*plugin) (void);
 	gboolean colon_found = FALSE;
@@ -61,7 +60,7 @@ get_protocol_type (const gchar *uri)
 	g_return_val_if_fail(uri != NULL, G_TYPE_INVALID);
 
 	/*
-	 * Get the protocol type "type://".
+	 * Get the connection type "type://".
 	 */
 	memset(type_name, 0, sizeof(type_name));
 	m = MIN(sizeof(type_name), strlen(uri));
@@ -86,17 +85,17 @@ get_protocol_type (const gchar *uri)
 	}
 
 	/*
-	 * Determine the protocol path.
+	 * Determine the connection path.
 	 */
-	if (g_getenv("PK_PROTOCOLS_DIR") != NULL) {
-		path = g_module_build_path(g_getenv("PK_PROTOCOLS_DIR"),
+	if (g_getenv("PK_CONNECTIONS_DIR") != NULL) {
+		path = g_module_build_path(g_getenv("PK_CONNECTIONS_DIR"),
 		                           type_name);
 	} else {
 		path = g_module_build_path(PACKAGE_LIB_DIR
 		                           G_DIR_SEPARATOR_S
 		                           "perfkit"
 		                           G_DIR_SEPARATOR_S
-		                           "protocols",
+		                           "connections",
 		                           type_name);
 	}
 
@@ -109,9 +108,9 @@ get_protocol_type (const gchar *uri)
 	}
 
 	/*
-	 * Lookup the "pk_protocol_plugin" symbol.
+	 * Lookup the "pk_connection_plugin" symbol.
 	 */
-	g_module_symbol(module, "pk_protocol_plugin", (gpointer *)&plugin);
+	g_module_symbol(module, "pk_connection_plugin", (gpointer *)&plugin);
 	if (!plugin) {
 		goto cleanup;
 	}
@@ -130,7 +129,7 @@ cleanup:
  * pk_connection_new_from_uri:
  * @uri: the uri of the agent
  *
- * Creates a new instance of #PkConnection using @uri.  If the protocol
+ * Creates a new instance of #PkConnection using @uri.  If the connection
  * specified cannot be provided, %NULL is returned.
  *
  * Returns: the newly created #PkConnection or %NULL.
@@ -139,38 +138,35 @@ PkConnection*
 pk_connection_new_from_uri(const gchar *uri)
 {
 	PkConnection *conn;
-	PkProtocol *proto;
-	GType proto_type;
+	GType conn_type;
 
 	/*
-	 * Get the protocol type from the uri.
+	 * Get the connection type from the uri.
 	 */
-	proto_type = get_protocol_type(uri);
-	if (!g_type_is_a(proto_type, PK_TYPE_PROTOCOL)) {
-		g_warning("Protocol plugin did not return a PkProtocol.");
+	conn_type = get_connection_type(uri);
+	if (!g_type_is_a(conn_type, PK_TYPE_CONNECTION)) {
+		g_warning("Connection plugin did not return a PkConnection.");
 		return NULL;
 	}
 
 	/*
-	 * Instantiate the protocol.
+	 * Instantiate the connection.
 	 */
-	proto = g_object_new(proto_type, "uri", uri, NULL);
-	if (!proto) {
-		g_warning("Could not create new instance of %s.",
-		          g_type_name(proto_type));
-		return NULL;
-	}
-
-	/*
-	 * Create an instance of the connection.
-	 */
-	conn = g_object_new(PK_TYPE_CONNECTION, "protocol", proto, NULL);
+	conn = g_object_new(conn_type, "uri", uri, NULL);
 	if (!conn) {
-		g_warning("Could not create new instance of PkConnection.");
-		g_object_unref(proto);
+		g_warning("Could not create new instance of %s.",
+		          g_type_name(conn_type));
+		return NULL;
 	}
 
 	return conn;
+}
+
+const gchar*
+pk_connection_get_uri (PkConnection *connection)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
+	return connection->priv->uri;
 }
 
 static void
@@ -180,8 +176,8 @@ pk_connection_get_property (GObject    *object,
                             GParamSpec *pspec)
 {
 	switch (prop_id) {
-	case PROP_PROTOCOL:
-		g_value_set_object(value, PK_CONNECTION(object)->priv->protocol);
+	case PROP_URI:
+		g_value_set_string(value, pk_connection_get_uri((gpointer)object));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -195,8 +191,8 @@ pk_connection_set_property (GObject      *object,
                             GParamSpec   *pspec)
 {
 	switch (prop_id) {
-	case PROP_PROTOCOL:
-		PK_CONNECTION(object)->priv->protocol = g_value_dup_object(value);
+	case PROP_URI:
+		PK_CONNECTION(object)->priv->uri = g_value_dup_string(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -206,16 +202,16 @@ pk_connection_set_property (GObject      *object,
 static void
 pk_connection_finalize (GObject *object)
 {
+	PkConnectionPrivate *priv = PK_CONNECTION(object)->priv;
+
+	g_free(priv->uri);
+
 	G_OBJECT_CLASS(pk_connection_parent_class)->finalize(object);
 }
 
 static void
 pk_connection_dispose (GObject *object)
 {
-	PkConnectionPrivate *priv = PK_CONNECTION(object)->priv;
-
-	g_object_unref(priv->protocol);
-
 	G_OBJECT_CLASS(pk_connection_parent_class)->dispose(object);
 }
 
@@ -232,16 +228,16 @@ pk_connection_class_init (PkConnectionClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkConnectionPrivate));
 
 	/**
-	 * PkConnection:protocol:
+	 * PkConnection:uri:
 	 *
-	 * The "protocol" property.
+	 * The "uri" property.
 	 */
 	g_object_class_install_property(object_class,
-	                                PROP_PROTOCOL,
-	                                g_param_spec_object("protocol",
-	                                                    "protocol",
-	                                                    "protocol",
-	                                                    PK_TYPE_PROTOCOL,
+	                                PROP_URI,
+	                                g_param_spec_string("uri",
+	                                                    "uri",
+	                                                    "uri",
+	                                                    NULL,
 	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 

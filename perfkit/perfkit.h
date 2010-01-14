@@ -27,7 +27,6 @@
 #include "pk-encoder-info.h"
 #include "pk-manager.h"
 #include "pk-manifest.h"
-#include "pk-protocol.h"
 #include "pk-sample.h"
 #include "pk-source.h"
 #include "pk-source-info.h"

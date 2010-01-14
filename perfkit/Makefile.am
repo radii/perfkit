@@ -1,4 +1,4 @@
-SUBDIRS = . protocols
+SUBDIRS = . connections
 
 lib_LTLIBRARIES = libperfkit-1.0.la
 
@@ -38,7 +38,6 @@ INST_H_FILES =								\
 	pk-encoder-info.h						\
 	pk-manager.h							\
 	pk-manifest.h							\
-	pk-protocol.h							\
 	pk-sample.h							\
 	pk-source.h							\
 	pk-source-info.h						\
@@ -57,7 +56,6 @@ libperfkit_1_0_la_SOURCES =						\
 	pk-encoder-info.c						\
 	pk-manager.c							\
 	pk-manifest.c							\
-	pk-protocol.c							\
 	pk-sample.c							\
 	pk-source.c							\
 	pk-source-info.c						\

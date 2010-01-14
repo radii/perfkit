@@ -14,7 +14,7 @@ gint
 main (gint   argc,
       gchar *argv[])
 {
-	g_setenv("PK_PROTOCOLS_DIR", PK_PROTOCOLS_DIR, FALSE);
+	g_setenv("PK_CONNECTIONS_DIR", PK_CONNECTIONS_DIR, FALSE);
 
 	g_type_init();
 	g_test_init(&argc, &argv, NULL);

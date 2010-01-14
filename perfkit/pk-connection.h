@@ -50,6 +50,13 @@ struct _PkConnection
 struct _PkConnectionClass
 {
 	GObjectClass parent_class;
+
+	gboolean (*manager_ping) (PkConnection  *connection,
+	                          GTimeVal      *tv,
+	                          GError       **error);
+	gboolean (*manager_get_channels) (PkConnection  *connection,
+	                                  GList        **channels,
+	                                  GError       **error);
 };
 
 GType         pk_connection_get_type     (void) G_GNUC_CONST;

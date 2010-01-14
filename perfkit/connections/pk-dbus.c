@@ -26,7 +26,7 @@
 #include "pk-dbus.h"
 #include "pk-manager-dbus.h"
 
-G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_PROTOCOL)
+G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_CONNECTION)
 
 struct _PkDbusPrivate
 {
@@ -35,18 +35,18 @@ struct _PkDbusPrivate
 };
 
 static gboolean
-pk_dbus_manager_ping (PkProtocol *protocol,
-                      GTimeVal   *tv)
+pk_dbus_manager_ping (PkConnection  *connection,
+                      GTimeVal      *tv,
+                      GError       **error)
 {
-	PkDbusPrivate *priv = PK_DBUS(protocol)->priv;
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
 	gchar *str = NULL;
 	gboolean res;
 
-	res = com_dronelabs_Perfkit_Manager_ping(priv->manager, &str, NULL);
+	res = com_dronelabs_Perfkit_Manager_ping(priv->manager, &str, error);
 	if (res) {
 		g_time_val_from_iso8601(str, tv);
 	}
-
 	return res;
 }
 
@@ -60,14 +60,14 @@ static void
 pk_dbus_class_init (PkDbusClass *klass)
 {
 	GObjectClass *object_class;
-	PkProtocolClass *proto_class;
+	PkConnectionClass *conn_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_dbus_finalize;
 	g_type_class_add_private(object_class, sizeof(PkDbusPrivate));
 
-	proto_class = PK_PROTOCOL_CLASS(klass);
-	proto_class->manager_ping = pk_dbus_manager_ping;
+	conn_class = PK_CONNECTION_CLASS(klass);
+	conn_class->manager_ping = pk_dbus_manager_ping;
 }
 
 static void
@@ -79,7 +79,7 @@ pk_dbus_init (PkDbus *dbus)
 }
 
 G_MODULE_EXPORT GType
-pk_protocol_plugin (void)
+pk_connection_plugin (void)
 {
 	return PK_TYPE_DBUS;
 }

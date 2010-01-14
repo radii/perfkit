@@ -68,7 +68,8 @@ struct _PkSpawnInfo
 
 GType           pk_manager_get_type            (void) G_GNUC_CONST;
 gboolean        pk_manager_ping                (PkManager      *manager,
-                                                GTimeVal       *tv);
+                                                GTimeVal       *tv,
+                                                GError        **error);
 PkChannel*      pk_manager_create_channel      (PkManager      *manager,
                                                 PkSpawnInfo    *spawn_info,
                                                 GError        **error);
@@ -77,7 +78,9 @@ PkSubscription* pk_manager_create_subscription (PkManager      *manager,
                                                 gsize           buffer_size,
                                                 gulong          buffer_timeout,
                                                 PkEncoderInfo  *encoder_info);
-GList*          pk_manager_get_channels        (PkManager      *manager);
+gboolean        pk_manager_get_channels        (PkManager      *manager,
+                                                GList         **channels,
+                                                GError        **error);
 GList*          pk_manager_get_processes       (PkManager      *manager);
 
 G_END_DECLS

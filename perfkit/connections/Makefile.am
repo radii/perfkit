@@ -1,5 +1,5 @@
 dbus_LTLIBRARIES = libdbus.la
-dbusdir = $(libdir)/perfkit/protocols
+dbusdir = $(libdir)/perfkit/connections
 
 WARNINGS =								\
 	-Wall								\

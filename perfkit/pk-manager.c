@@ -22,7 +22,6 @@
 
 #include "pk-connection.h"
 #include "pk-manager.h"
-#include "pk-protocol.h"
 
 G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
 
@@ -34,10 +33,13 @@ G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
  * 
  */
 
+#define RPC(m,n,...)                               \
+    PK_CONNECTION_GET_CLASS((m)->priv->conn)->     \
+        manager_##n((m)->priv->conn, __VA_ARGS__)
+
 struct _PkManagerPrivate
 {
 	PkConnection *conn;
-	PkProtocol *proto;
 };
 
 enum
@@ -46,12 +48,13 @@ enum
 	PROP_CONN,
 };
 
+
 /**
  * pk_manager_ping:
  * @manager: A #PkManager
  * @tv: The time at which the agent responded.
  *
- * Pings the remote agent over the connections RPC protocol.  The time at
+ * Pings the remote agent via the configured connection.  The time at
  * which the agent responded is stored in @tv.
  *
  * Return value: %TRUE if successful; otherwise %FALSE.
@@ -59,17 +62,19 @@ enum
  * Side effects: None.
  */
 gboolean
-pk_manager_ping (PkManager *manager,
-                 GTimeVal  *tv)
+pk_manager_ping (PkManager  *manager,
+                 GTimeVal   *tv,
+                 GError    **error)
 {
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
-
-	return pk_protocol_manager_ping(manager->priv->proto, tv);
+	return RPC(manager, ping, tv, error);
 }
 
 /**
  * pk_manager_get_channels:
  * @manager: A #PkManager
+ * @channels: A location for a #GList.
+ * @error: A location for a #GError or %NULL.
  *
  * Retrieves a list of channels from the remote agent.  The list returned is
  * a copy and the #PkChannel instances are reference counted.
@@ -85,12 +90,13 @@ pk_manager_ping (PkManager *manager,
  *
  * Side effects: None.
  */
-GList*
-pk_manager_get_channels (PkManager *manager)
+gboolean
+pk_manager_get_channels (PkManager  *manager,
+                         GList     **channels,
+                         GError    **error)
 {
-	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
-
-	return pk_protocol_manager_get_channels(manager->priv->proto);
+	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
+	return RPC(manager, get_channels, channels, error);
 }
 
 static void
@@ -116,7 +122,6 @@ pk_manager_set_property (GObject        *object,
 	switch (property_id) {
 	case PROP_CONN:
 		priv->conn = g_object_ref(g_value_get_object(value));
-		g_object_get(priv->conn, "protocol", &priv->proto, NULL);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -160,7 +165,7 @@ pk_manager_class_init (PkManagerClass *klass)
 	                                PROP_CONN,
 	                                g_param_spec_object("connection",
 	                                                    "connection",
-	                                                    "Perfkit server connection",
+	                                                    "Perfkit connection",
 	                                                    PK_TYPE_CONNECTION,
 	                                                    G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }

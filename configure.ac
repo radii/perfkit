@@ -137,7 +137,7 @@ AC_OUTPUT([
 	doc/reference/perfkit/Makefile
 	doc/reference/perfkit/version.xml
 	perfkit/Makefile
-	perfkit/protocols/Makefile
+	perfkit/connections/Makefile
 	perfkit/pk-version.h
 
 	doc/reference/perfkit-gui/Makefile
