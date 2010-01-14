@@ -32,7 +32,7 @@
 
 struct _PkManifest
 {
-    volatile gint ref_count;
+	volatile gint ref_count;
 };
 
 static void

@@ -56,10 +56,10 @@ struct _PkSubscriptionClass
 };
 
 GType       pk_subscription_get_type      (void) G_GNUC_CONST;
-PkManifest* pk_subscription_get_manifest  (PkSubscription *subscription);
-void        pk_subscription_enable        (PkSubscription *subscription);
-void        pk_subscription_disable       (PkSubscription *subscription);
 PkEncoder*  pk_subscription_get_encoder   (PkSubscription *subscription);
+PkManifest* pk_subscription_get_manifest  (PkSubscription *subscription);
+gboolean    pk_subscription_enable        (PkSubscription *subscription, GError **error);
+gboolean    pk_subscription_disable       (PkSubscription *subscription, GError **error);
 
 G_END_DECLS
 
