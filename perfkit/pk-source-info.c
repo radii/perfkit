@@ -35,18 +35,79 @@ G_DEFINE_TYPE(PkSourceInfo, pk_source_info, G_TYPE_OBJECT)
 
 struct _PkSourceInfoPrivate
 {
-	PkConnection *conn;
+	gchar *uid;
+	gchar *name;
+	gchar *description;
+	gchar *version;
 };
 
 enum
 {
 	PROP_0,
-	PROP_CONN,
+	PROP_UID,
+	PROP_NAME,
+	PROP_VERSION,
+	PROP_DESCRIPTION,
 };
+
+static void
+pk_source_info_get_property (GObject    *object,
+                             guint       prop_id,
+                             GValue     *value,
+                             GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_UID:
+		g_value_set_string (value, pk_source_info_get_uid (PK_SOURCE_INFO (object)));
+		break;
+	case PROP_NAME:
+		g_value_set_string (value, pk_source_info_get_name (PK_SOURCE_INFO (object)));
+		break;
+	case PROP_VERSION:
+		g_value_set_string (value, pk_source_info_get_version (PK_SOURCE_INFO (object)));
+		break;
+	case PROP_DESCRIPTION:
+		g_value_set_string (value, pk_source_info_get_description (PK_SOURCE_INFO (object)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pk_source_info_set_property (GObject      *object,
+                             guint         prop_id,
+                             const GValue *value,
+                             GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_UID:
+		PK_SOURCE_INFO(object)->priv->uid = g_value_dup_string(value);
+		break;
+	case PROP_NAME:
+		PK_SOURCE_INFO(object)->priv->name = g_value_dup_string(value);
+		break;
+	case PROP_VERSION:
+		PK_SOURCE_INFO(object)->priv->version = g_value_dup_string(value);
+		break;
+	case PROP_DESCRIPTION:
+		PK_SOURCE_INFO(object)->priv->description = g_value_dup_string(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
 
 static void
 pk_source_info_finalize (GObject *object)
 {
+	PkSourceInfoPrivate *priv = PK_SOURCE_INFO(object)->priv;
+
+	g_free(priv->uid);
+	g_free(priv->description);
+	g_free(priv->name);
+	g_free(priv->version);
+
 	G_OBJECT_CLASS(pk_source_info_parent_class)->finalize(object);
 }
 
@@ -64,7 +125,61 @@ pk_source_info_class_init (PkSourceInfoClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_source_info_finalize;
 	object_class->dispose = pk_source_info_dispose;
+	object_class->get_property = pk_source_info_get_property;
+	object_class->set_property = pk_source_info_set_property;
 	g_type_class_add_private(object_class, sizeof(PkSourceInfoPrivate));
+
+	/**
+	 * PkSourceInfo:uid:
+	 *
+	 * The "uid" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_UID,
+	                                g_param_spec_string("uid",
+	                                                    "uid",
+	                                                    "The uid property",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
+	 * PkSourceInfo:name:
+	 *
+	 * The "name" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_NAME,
+	                                g_param_spec_string("name",
+	                                                    "name",
+	                                                    "The name property",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
+	 * PkSourceInfo:version:
+	 *
+	 * The "version" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_VERSION,
+	                                g_param_spec_string("version",
+	                                                    "version",
+	                                                    "The version property",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+
+	/**
+	 * PkSourceInfo:description:
+	 *
+	 * The "description" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_DESCRIPTION,
+	                                g_param_spec_string("description",
+	                                                    "description",
+	                                                    "The description property",
+	                                                    NULL,
+	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -73,4 +188,76 @@ pk_source_info_init (PkSourceInfo *source_info)
 	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(source_info,
 	                                                PK_TYPE_SOURCE_INFO,
 	                                                PkSourceInfoPrivate);
+}
+
+/**
+ * pk_source_info_get_uid:
+ * @source_info: A #PkSourceInfo
+ *
+ * Retrieves the "uid" property.
+ *
+ * Return value: a string containing the "uid" property or %NULL.
+ *   The value should not be modified or freed.
+ *
+ * Side effects: None.
+ */
+ G_CONST_RETURN gchar*
+pk_source_info_get_uid (PkSourceInfo *source_info)
+{
+	g_return_val_if_fail (PK_IS_SOURCE_INFO (source_info), NULL);
+	return source_info->priv->uid;
+}
+
+/**
+ * pk_source_info_get_name:
+ * @source_info: A #PkSourceInfo
+ *
+ * Retrieves the "name" property.
+ *
+ * Return value: a string containing the "name" property or %NULL.
+ *   The value should not be modified or freed.
+ *
+ * Side effects: None.
+ */
+ G_CONST_RETURN gchar*
+pk_source_info_get_name (PkSourceInfo *source_info)
+{
+	g_return_val_if_fail (PK_IS_SOURCE_INFO (source_info), NULL);
+	return source_info->priv->name;
+}
+
+/**
+ * pk_source_info_get_version:
+ * @source_info: A #PkSourceInfo
+ *
+ * Retrieves the "version" property.
+ *
+ * Return value: a string containing the "version" property or %NULL.
+ *   The value should not be modified or freed.
+ *
+ * Side effects: None.
+ */
+ G_CONST_RETURN gchar*
+pk_source_info_get_version (PkSourceInfo *source_info)
+{
+	g_return_val_if_fail (PK_IS_SOURCE_INFO (source_info), NULL);
+	return source_info->priv->version;
+}
+
+/**
+ * pk_source_info_get_description:
+ * @source_info: A #PkSourceInfo
+ *
+ * Retrieves the "description" property.
+ *
+ * Return value: a string containing the "description" property or %NULL.
+ *   The value should not be modified or freed.
+ *
+ * Side effects: None.
+ */
+G_CONST_RETURN gchar*
+pk_source_info_get_description (PkSourceInfo *source_info)
+{
+	g_return_val_if_fail (PK_IS_SOURCE_INFO (source_info), NULL);
+	return source_info->priv->description;
 }
