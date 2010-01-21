@@ -78,6 +78,8 @@ PkSubscription* pk_manager_create_subscription (PkManager      *manager,
                                                 gsize           buffer_size,
                                                 gulong          buffer_timeout,
                                                 PkEncoderInfo  *encoder_info);
+PkChannel*      pk_manager_get_channel         (PkManager      *manager,
+                                                gint            channel);
 gboolean        pk_manager_get_channels        (PkManager      *manager,
                                                 GList         **channels,
                                                 GError        **error);

@@ -25,6 +25,7 @@
 
 #include "pk-dbus.h"
 #include "pk-manager-dbus.h"
+#include "pk-channel-dbus.h"
 
 G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_CONNECTION)
 
@@ -33,6 +34,21 @@ struct _PkDbusPrivate
 	DBusGConnection *dbus;
 	DBusGProxy      *manager;
 };
+
+static inline DBusGProxy*
+channel_proxy_new(DBusGConnection *conn,
+                  gint             channel_id)
+{
+	DBusGProxy *proxy;
+	gchar *path;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d", channel_id);
+    proxy = dbus_g_proxy_new_for_name(conn, "com.dronelabs.Perfkit", path,
+                                      "com.dronelabs.Perfkit.Channel");
+    g_free(path);
+
+    return proxy;
+}
 
 static gboolean
 pk_dbus_manager_ping (PkConnection  *connection,
@@ -48,6 +64,33 @@ pk_dbus_manager_ping (PkConnection  *connection,
 		g_time_val_from_iso8601(str, tv);
 	}
 	return res;
+}
+
+static PkChannelState
+pk_dbus_channel_get_state (PkConnection  *connection,
+                           gint           channel_id,
+                           GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	PkChannelState state = 0;
+	DBusGProxy *proxy;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	com_dronelabs_Perfkit_Channel_get_state(proxy, channel_id, (gint *)&state, error);
+	g_object_unref(proxy);
+
+	return state;
+}
+
+static gboolean
+pk_dbus_connect (PkConnection  *connection,
+                 GError       **error)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+
+	priv->dbus = dbus_g_bus_get(DBUS_BUS_SESSION, error);
+
+	return (priv->dbus != NULL);
 }
 
 static void
@@ -67,7 +110,9 @@ pk_dbus_class_init (PkDbusClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkDbusPrivate));
 
 	conn_class = PK_CONNECTION_CLASS(klass);
+	conn_class->connect = pk_dbus_connect;
 	conn_class->manager_ping = pk_dbus_manager_ping;
+	conn_class->channel_get_state = pk_dbus_channel_get_state;
 }
 
 static void

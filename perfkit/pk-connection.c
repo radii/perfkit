@@ -37,6 +37,7 @@ G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
+	PkManager *manager;
 	gchar *uri;
 };
 
@@ -169,6 +170,149 @@ pk_connection_get_uri (PkConnection *connection)
 	return connection->priv->uri;
 }
 
+PkManager*
+pk_connection_get_manager (PkConnection *connection)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
+	return connection->priv->manager;
+}
+
+gboolean
+pk_connection_connect (PkConnection  *connection,
+                       GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->connect(connection, error);
+}
+
+gboolean
+pk_connection_channel_get_target (PkConnection   *connection,
+                                  gint            channel_id,
+                                  gchar         **target,
+                                  GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_target(connection,
+	                                                               channel_id,
+	                                                               target,
+	                                                               error);
+}
+
+gboolean
+pk_connection_channel_get_working_dir (PkConnection   *connection,
+                                       gint            channel_id,
+                                       gchar         **working_dir,
+                                       GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_working_dir(connection,
+	                                                                    channel_id,
+	                                                                    working_dir,
+	                                                                    error);
+}
+
+gboolean
+pk_connection_channel_get_args (PkConnection   *connection,
+                                gint            channel_id,
+                                gchar        ***args,
+                                GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_args(connection,
+	                                                             channel_id,
+	                                                             args,
+	                                                             error);
+}
+
+gboolean
+pk_connection_channel_get_env (PkConnection   *connection,
+                               gint            channel_id,
+                               gchar        ***env,
+                               GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_env(connection,
+	                                                            channel_id,
+	                                                            env,
+	                                                            error);
+}
+
+gboolean
+pk_connection_channel_get_pid (PkConnection   *connection,
+                               gint            channel_id,
+                               GPid           *pid,
+                               GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_pid(connection,
+	                                                            channel_id,
+	                                                            pid,
+	                                                            error);
+}
+
+gboolean
+pk_connection_manager_create_channel (PkConnection   *connection,
+                                      PkSpawnInfo    *spawn_info,
+                                      gint           *channel_id,
+                                      GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_create_channel(
+			connection, spawn_info, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_start (PkConnection  *connection,
+                             gint           channel_id,
+                             GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_start(
+			connection, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_stop (PkConnection  *connection,
+                            gint           channel_id,
+                            gboolean       killpid,
+                            GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_stop(
+			connection, channel_id, killpid, error);
+}
+
+gboolean
+pk_connection_channel_pause (PkConnection  *connection,
+                             gint           channel_id,
+                             GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_pause(
+			connection, channel_id, error);
+}
+
+gboolean
+pk_connection_channel_unpause (PkConnection  *connection,
+                               gint           channel_id,
+                               GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_unpause(
+			connection, channel_id, error);
+}
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,
@@ -247,4 +391,7 @@ pk_connection_init (PkConnection *connection)
 	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE(connection,
 	                                               PK_TYPE_CONNECTION,
 	                                               PkConnectionPrivate);
+	connection->priv->manager = g_object_new(PK_TYPE_MANAGER,
+	                                         "connection", connection,
+	                                         NULL);
 }

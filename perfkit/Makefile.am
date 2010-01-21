@@ -32,6 +32,7 @@ BUILD_SOURCES = pk-version.h
 INST_H_FILES =								\
 	$(BUILD_SOURCES)						\
 	perfkit.h							\
+	perfkit-lowlevel.h						\
 	pk-channel.h							\
 	pk-connection.h							\
 	pk-encoder.h							\

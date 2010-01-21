@@ -25,6 +25,8 @@
 
 #include <glib-object.h>
 
+#include "pk-manager.h"
+
 G_BEGIN_DECLS
 
 #define PK_TYPE_CONNECTION            (pk_connection_get_type())
@@ -51,12 +53,68 @@ struct _PkConnectionClass
 {
 	GObjectClass parent_class;
 
-	gboolean (*manager_ping) (PkConnection  *connection,
-	                          GTimeVal      *tv,
-	                          GError       **error);
-	gboolean (*manager_get_channels) (PkConnection  *connection,
-	                                  GList        **channels,
-	                                  GError       **error);
+	gboolean       (*connect)                 (PkConnection  *connection,
+	                                           GError       **error);
+	void           (*disconnect)              (PkConnection  *connection);
+
+	gboolean       (*manager_ping)            (PkConnection  *connection,
+	                                           GTimeVal      *tv,
+	                                           GError       **error);
+
+	gboolean       (*manager_create_channel)  (PkConnection  *connection,
+	                                           PkSpawnInfo   *spawn_info,
+	                                           gint          *channel_id,
+	                                           GError       **error);
+
+	gboolean       (*manager_get_channels)    (PkConnection  *connection,
+	                                           GList        **channels,
+	                                           GError       **error);
+
+	gboolean       (*channel_get_target)      (PkConnection  *connection,
+	                                           gint           channel_id,
+	                                           gchar        **target,
+	                                           GError       **error);
+
+	gboolean       (*channel_get_working_dir) (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           gchar         **working_dir,
+	                                           GError        **error);
+
+	gboolean       (*channel_get_pid)         (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           GPid           *pid,
+	                                           GError        **error);
+
+	gboolean       (*channel_get_env)         (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           gchar        ***env,
+	                                           GError        **error);
+
+	gboolean       (*channel_get_args)        (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           gchar        ***args,
+	                                           GError        **error);
+
+	PkChannelState (*channel_get_state)       (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           GError        **error);
+
+	gboolean       (*channel_start)           (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           GError        **error);
+
+	gboolean       (*channel_stop)            (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           gboolean        killpid,
+	                                           GError        **error);
+
+	gboolean       (*channel_pause)           (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           GError        **error);
+
+	gboolean       (*channel_unpause)         (PkConnection   *connection,
+	                                           gint            channel_id,
+	                                           GError        **error);
 };
 
 GType         pk_connection_get_type     (void) G_GNUC_CONST;
@@ -65,6 +123,7 @@ gboolean      pk_connection_connect      (PkConnection  *connection,
                                           GError       **error);
 void          pk_connection_disconnect   (PkConnection  *connection);
 gboolean      pk_connection_is_connected (PkConnection  *connection);
+PkManager*    pk_connection_get_manager  (PkConnection  *connection);
 
 G_END_DECLS
 

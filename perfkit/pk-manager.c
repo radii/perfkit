@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include "perfkit-lowlevel.h"
 #include "pk-connection.h"
 #include "pk-manager.h"
 
@@ -97,6 +98,46 @@ pk_manager_get_channels (PkManager  *manager,
 {
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
 	return RPC(manager, get_channels, channels, error);
+}
+
+PkChannel*
+pk_manager_get_channel (PkManager *manager,
+                        gint       channel_id)
+{
+	PkManagerPrivate *priv;
+
+	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
+
+	priv = manager->priv;
+
+	return g_object_new(PK_TYPE_CHANNEL,
+	                    "connection", priv->conn,
+	                    "id", channel_id,
+	                    NULL);
+}
+
+PkChannel*
+pk_manager_create_channel (PkManager    *manager,
+                           PkSpawnInfo  *spawn_info,
+                           GError      **error)
+{
+	PkManagerPrivate *priv;
+	gint channel_id = 0;
+
+	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
+
+	priv = manager->priv;
+
+	if (!pk_connection_manager_create_channel(priv->conn,
+	                                          spawn_info,
+	                                          &channel_id,
+	                                          NULL))
+	    return NULL;
+
+	return g_object_new(PK_TYPE_CHANNEL,
+	                    "connection", priv->conn,
+	                    "id", channel_id,
+	                    NULL);
 }
 
 static void
