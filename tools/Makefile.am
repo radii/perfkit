@@ -1,4 +1,5 @@
-bin_PROGRAMS = perfkit-shell perfkit-support
+#bin_PROGRAMS = perfkit-shell perfkit-support
+bin_PROGRAMS = perfkit-shell
 
 
 WARNINGS =								\
@@ -44,20 +45,23 @@ perfkit_shell_LDFLAGS =							\
 
 perfkit_shell_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
 
+test-shell:
+	PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs ./perfkit-shell
+
 
 #
 # perfkit-support
 #
 
-perfkit_support_SOURCES =						\
-	perfkit-support.c						\
-	$(NULL)
-
-perfkit_support_LDFLAGS =						\
-	$(PERFKIT_TOOLS_LIBS)						\
-	-lreadline							\
-	$(NULL)
-
-perfkit_support_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
-
-
+#
+#perfkit_support_SOURCES =						\
+#	perfkit-support.c						\
+#	$(NULL)
+#
+#perfkit_support_LDFLAGS =						\
+#	$(PERFKIT_TOOLS_LIBS)						\
+#	-lreadline							\
+#	$(NULL)
+#
+#perfkit_support_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
+#
