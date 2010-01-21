@@ -53,6 +53,25 @@ typedef enum
 	PKD_CHANNEL_ERROR_STATE,
 } PkdChannelError;
 
+/**
+ * PkdChannelState:
+ * @PKD_CHANNEL_READY: 
+ * @PKD_CHANNEL_RUNNING:
+ * @PKD_CHANNEL_PAUSED:
+ * @PKD_CHANNEL_STOPPED:
+ * @PKD_CHANNEL_FAILED: 
+ *
+ * The #PkdChannel state enumeration.
+ */
+typedef enum
+{
+	PKD_CHANNEL_READY    = 1,
+	PKD_CHANNEL_RUNNING  = 2,
+	PKD_CHANNEL_PAUSED   = 3,
+	PKD_CHANNEL_STOPPED  = 4,
+	PKD_CHANNEL_FAILED   = 5,
+} PkdChannelState;
+
 typedef struct _PkdChannel        PkdChannel;
 typedef struct _PkdChannelClass   PkdChannelClass;
 typedef struct _PkdChannelPrivate PkdChannelPrivate;
@@ -70,26 +89,27 @@ struct _PkdChannelClass
 	GObjectClass parent_class;
 };
 
-GType         pkd_channel_get_type        (void) G_GNUC_CONST;
-GQuark        pkd_channel_error_quark     (void) G_GNUC_CONST;
-PkdChannel*   pkd_channel_new             (const PkdSpawnInfo  *spawn_info);
-guint         pkd_channel_get_id          (PkdChannel          *channel);
-const gchar*  pkd_channel_get_target      (PkdChannel          *channel);
-const gchar*  pkd_channel_get_working_dir (PkdChannel          *channel);
-gchar**       pkd_channel_get_args        (PkdChannel          *channel);
-gchar**       pkd_channel_get_env         (PkdChannel          *channel);
-GPid          pkd_channel_get_pid         (PkdChannel          *channel);
-gboolean      pkd_channel_start           (PkdChannel          *channel,
-                                           GError             **error);
-gboolean      pkd_channel_stop            (PkdChannel          *channel,
-                                           gboolean             killpid,
-                                           GError             **error);
-gboolean      pkd_channel_pause           (PkdChannel          *channel,
-                                           GError             **error);
-gboolean      pkd_channel_unpause         (PkdChannel          *channel,
-                                           GError             **error);
-PkdSource*    pkd_channel_add_source      (PkdChannel          *channel,
-                                           PkdSourceInfo       *source_info);
+GType           pkd_channel_get_type        (void) G_GNUC_CONST;
+GQuark          pkd_channel_error_quark     (void) G_GNUC_CONST;
+PkdChannel*     pkd_channel_new             (const PkdSpawnInfo  *spawn_info);
+guint           pkd_channel_get_id          (PkdChannel          *channel);
+PkdChannelState pkd_channel_get_state       (PkdChannel          *channel);
+const gchar*    pkd_channel_get_target      (PkdChannel          *channel);
+const gchar*    pkd_channel_get_working_dir (PkdChannel          *channel);
+gchar**         pkd_channel_get_args        (PkdChannel          *channel);
+gchar**         pkd_channel_get_env         (PkdChannel          *channel);
+GPid            pkd_channel_get_pid         (PkdChannel          *channel);
+gboolean        pkd_channel_start           (PkdChannel          *channel,
+                                             GError             **error);
+gboolean        pkd_channel_stop            (PkdChannel          *channel,
+                                             gboolean             killpid,
+                                             GError             **error);
+gboolean        pkd_channel_pause           (PkdChannel          *channel,
+                                             GError             **error);
+gboolean        pkd_channel_unpause         (PkdChannel          *channel,
+                                             GError             **error);
+PkdSource*      pkd_channel_add_source      (PkdChannel          *channel,
+                                             PkdSourceInfo       *source_info);
 
 G_END_DECLS
 

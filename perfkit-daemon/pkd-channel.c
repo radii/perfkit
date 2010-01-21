@@ -64,16 +64,6 @@ extern void pkd_source_notify_unpaused        (PkdSource       *source);
 extern void pkd_source_set_channel            (PkdSource       *source,
                                                PkdChannel      *channel);
 
-enum
-{
-	STATE_0,
-	STATE_READY,
-	STATE_RUNNING,
-	STATE_PAUSED,
-	STATE_STOPPED,
-	STATE_FAILED,
-};
-
 struct _PkdChannelPrivate
 {
 	guint         channel_id; /* Monotonic id for the channel. */
@@ -265,7 +255,7 @@ pkd_channel_add_source (PkdChannel    *channel,
 	/*
 	 * Sources can only be added before pkd_channel_start() has been called.
 	 */
-	if (priv->state != STATE_READY) {
+	if (priv->state != PKD_CHANNEL_READY) {
 		goto unlock;
 	}
 
@@ -331,7 +321,7 @@ pkd_channel_start (PkdChannel  *channel,
 	gint len;
 
 	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
-	g_return_val_if_fail(channel->priv->state == STATE_READY, FALSE);
+	g_return_val_if_fail(channel->priv->state == PKD_CHANNEL_READY, FALSE);
 
 	priv = channel->priv;
 
@@ -340,7 +330,7 @@ pkd_channel_start (PkdChannel  *channel,
 	/*
 	 * Ensure we haven't yet been started.
 	 */
-	if (priv->state != STATE_READY) {
+	if (priv->state != PKD_CHANNEL_READY) {
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Cannot start channel.  Channel already started."));
 		goto unlock;
@@ -380,7 +370,7 @@ pkd_channel_start (PkdChannel  *channel,
 		                   &priv->spawn_info.pid,
 		                   &local_error))
 		{
-			priv->state = STATE_FAILED;
+			priv->state = PKD_CHANNEL_FAILED;
 			g_warning(_("Error starting channel %d: %s"),
 			          priv->channel_id, local_error->message);
 			if (error) {
@@ -400,7 +390,7 @@ pkd_channel_start (PkdChannel  *channel,
 	 * Tick the state machine to RUNNING.
 	 */
 	priv->spawned = TRUE;
-	priv->state = STATE_RUNNING;
+	priv->state = PKD_CHANNEL_RUNNING;
 	success = TRUE;
 
 	/*
@@ -453,9 +443,9 @@ pkd_channel_stop (PkdChannel  *channel,
 	g_mutex_lock(priv->mutex);
 
 	switch (priv->state) {
-	case STATE_RUNNING:
-	case STATE_PAUSED:
-		priv->state = STATE_STOPPED;
+	case PKD_CHANNEL_RUNNING:
+	case PKD_CHANNEL_PAUSED:
+		priv->state = PKD_CHANNEL_STOPPED;
 
 		g_message("Stopping channel %d.", pkd_channel_get_id(channel));
 
@@ -475,13 +465,13 @@ pkd_channel_stop (PkdChannel  *channel,
 		}
 
 		break;
-	case STATE_READY:
+	case PKD_CHANNEL_READY:
 		result = FALSE;
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Channel has not yet been started."));
 		/* Fall through */
-	case STATE_STOPPED:
-	case STATE_FAILED:
+	case PKD_CHANNEL_STOPPED:
+	case PKD_CHANNEL_FAILED:
 		goto unlock;
 	default:
 		g_assert_not_reached();
@@ -523,26 +513,26 @@ pkd_channel_pause (PkdChannel  *channel,
 	g_mutex_lock(priv->mutex);
 
 	switch (priv->state) {
-	case STATE_READY:
+	case PKD_CHANNEL_READY:
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; not yet started."));
 		result = FALSE;
 		break;
-	case STATE_STOPPED:
+	case PKD_CHANNEL_STOPPED:
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; channel stopped."));
 		result = FALSE;
 		break;
-	case STATE_FAILED:
+	case PKD_CHANNEL_FAILED:
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; channel failed to start."));
 		result = FALSE;
 		break;
-	case STATE_PAUSED:
+	case PKD_CHANNEL_PAUSED:
 		/* Already paused. */
 		break;
-	case STATE_RUNNING:
-		priv->state = STATE_PAUSED;
+	case PKD_CHANNEL_RUNNING:
+		priv->state = PKD_CHANNEL_PAUSED;
 
 		g_message("Pausing channel %d.", pkd_channel_get_id(channel));
 
@@ -616,8 +606,8 @@ pkd_channel_unpause (PkdChannel  *channel,
 	g_mutex_lock(priv->mutex);
 
 	switch (priv->state) {
-	case STATE_PAUSED:
-		priv->state = STATE_RUNNING;
+	case PKD_CHANNEL_PAUSED:
+		priv->state = PKD_CHANNEL_RUNNING;
 
 		g_message("Unpausing channel %d.", pkd_channel_get_id(channel));
 
@@ -636,10 +626,10 @@ pkd_channel_unpause (PkdChannel  *channel,
 		                    NULL);
 
 		break;
-	case STATE_READY:
-	case STATE_RUNNING:
-	case STATE_STOPPED:
-	case STATE_FAILED:
+	case PKD_CHANNEL_READY:
+	case PKD_CHANNEL_RUNNING:
+	case PKD_CHANNEL_STOPPED:
+	case PKD_CHANNEL_FAILED:
 		g_set_error(error, PKD_CHANNEL_ERROR, PKD_CHANNEL_ERROR_STATE,
 		            _("Cannot unpause channel; channel not paused."));
 		result = FALSE;
@@ -693,7 +683,7 @@ pkd_channel_deliver_sample (PkdChannel *channel,
 	/*
 	 * Drop the sample if we are not currently recording samples.
 	 */
-	if (priv->state != STATE_RUNNING) {
+	if (priv->state != PKD_CHANNEL_RUNNING) {
 		goto unlock;
 	}
 
@@ -760,7 +750,7 @@ pkd_channel_deliver_manifest (PkdChannel  *channel,
 	/*
 	 * We are finished for now unless we are active.
 	 */
-	if (priv->state != STATE_RUNNING) {
+	if (priv->state != PKD_CHANNEL_RUNNING) {
 		goto unlock;
 	}
 
@@ -815,7 +805,7 @@ pkd_channel_add_subscription (PkdChannel      *channel,
 	/*
 	 * Notify subscription of current manifests.
 	 */
-	if ((priv->state & (STATE_RUNNING | STATE_PAUSED)) != 0) {
+	if ((priv->state & (PKD_CHANNEL_RUNNING | PKD_CHANNEL_PAUSED)) != 0) {
 		g_tree_foreach(priv->manifests, deliver_manifest_to_sub, subscription);
 	}
 
@@ -847,6 +837,23 @@ pkd_channel_remove_subscription (PkdChannel      *channel,
 		pkd_subscription_unref(subscription);
 	}
 	g_mutex_unlock(priv->mutex);
+}
+
+PkdChannelState
+pkd_channel_get_state (PkdChannel *channel)
+{
+	PkdChannelPrivate *priv;
+	PkdChannelState state;
+
+	g_return_val_if_fail(PKD_IS_CHANNEL(channel), 0);
+
+	priv = channel->priv;
+
+	g_mutex_lock(priv->mutex);
+	state = priv->state;
+	g_mutex_unlock(priv->mutex);
+
+	return state;
 }
 
 static void
@@ -907,7 +914,7 @@ pkd_channel_init (PkdChannel *channel)
 		(GCompareDataFunc)pointer_compare, NULL, NULL,
 		(GDestroyNotify)pkd_manifest_unref);
 	channel->priv->channel_id = channel_id;
-	channel->priv->state = STATE_READY;
+	channel->priv->state = PKD_CHANNEL_READY;
 }
 
 GQuark

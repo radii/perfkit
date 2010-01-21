@@ -68,5 +68,17 @@
     -->
     <method name="Unpause">
     </method>
+
+    <!--
+        PkdChannel::GetState()
+
+            Retrieves the state of a channel.
+
+        Returns: True on success.
+    -->
+    <method name="GetState">
+        <arg name="channel_id" type="i" direction="in"/>
+        <arg name="state" type="i" direction="out"/>
+    </method>
   </interface>
 </node>
