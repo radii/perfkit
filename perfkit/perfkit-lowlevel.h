@@ -23,43 +23,87 @@
 
 G_BEGIN_DECLS
 
-gboolean pk_connection_channel_get_target      (PkConnection   *connection,
-                                                gint            channel_id,
-                                                gchar         **target,
-                                                GError        **error);
-gboolean pk_connection_channel_get_working_dir (PkConnection   *connection,
-                                                gint            channel_id,
-                                                gchar         **target,
-                                                GError        **error);
-gboolean pk_connection_channel_get_args        (PkConnection   *connection,
-                                                gint            channel_id,
-                                                gchar        ***args,
-                                                GError        **error);
-gboolean pk_connection_channel_get_env         (PkConnection   *connection,
-                                                gint            channel_id,
-                                                gchar        ***env,
-                                                GError        **error);
-gboolean pk_connection_channel_get_pid         (PkConnection   *connection,
-                                                gint            channel_id,
-                                                GPid           *pid,
-                                                GError        **error);
-gboolean pk_connection_channel_start           (PkConnection   *connection,
-                                                gint            channel_id,
-                                                GError        **error);
-gboolean pk_connection_channel_stop            (PkConnection   *connection,
-                                                gint            channel_id,
-                                                gboolean        killpid,
-                                                GError        **error);
-gboolean pk_connection_channel_pause           (PkConnection   *connection,
-                                                gint            channel_id,
-                                                GError        **error);
-gboolean pk_connection_channel_unpause         (PkConnection   *connection,
-                                                gint            channel_id,
-                                                GError        **error);
-gboolean pk_connection_manager_create_channel  (PkConnection   *connection,
-                                                PkSpawnInfo    *spawn_info,
-                                                gint           *channel_id,
-                                                GError        **error);
+gboolean
+pk_connection_channel_get_target (PkConnection   *connection,
+                                  gint            channel_id,
+                                  gchar         **target,
+                                  GError        **error);
+
+gboolean
+pk_connection_channel_get_state (PkConnection    *connection,
+                                 gint             channel_id,
+                                 PkChannelState  *state,
+                                 GError         **error);
+
+gboolean
+pk_connection_channel_get_working_dir (PkConnection   *connection,
+                                       gint            channel_id,
+                                       gchar         **target,
+                                       GError        **error);
+
+gboolean
+pk_connection_channel_get_args (PkConnection   *connection,
+                                gint            channel_id,
+                                gchar        ***args,
+                                GError        **error);
+
+gboolean
+pk_connection_channel_get_env (PkConnection   *connection,
+                               gint            channel_id,
+                               gchar        ***env,
+                               GError        **error);
+
+gboolean
+pk_connection_channel_get_pid (PkConnection   *connection,
+                               gint            channel_id,
+                               GPid           *pid,
+                               GError        **error);
+
+gboolean
+pk_connection_channel_start (PkConnection   *connection,
+                             gint            channel_id,
+                             GError        **error);
+
+gboolean
+pk_connection_channel_stop (PkConnection   *connection,
+                            gint            channel_id,
+                            gboolean        killpid,
+                            GError        **error);
+
+gboolean
+pk_connection_channel_pause (PkConnection   *connection,
+                             gint            channel_id,
+                             GError        **error);
+
+gboolean
+pk_connection_channel_unpause (PkConnection   *connection,
+                               gint            channel_id,
+                               GError        **error);
+
+gboolean
+pk_connection_manager_create_channel (PkConnection   *connection,
+                                      PkSpawnInfo    *spawn_info,
+                                      gint           *channel_id,
+                                      GError        **error);
+
+gboolean
+pk_connection_manager_get_channels (PkConnection  *connection,
+                                    gint         **channels,
+                                    gint          *n_channels,
+                                    GError       **error);
+
+gboolean
+pk_connection_manager_ping (PkConnection    *connection,
+                            GTimeVal        *tv,
+                            GError         **error);
+
+gboolean
+pk_connection_manager_create_subscription (PkConnection    *connection,
+                                           PkChannel       *channel,
+                                           gsize            buffer_size,
+                                           gulong           buffer_timeout,
+                                           PkEncoderInfo   *encoder_info,
+                                           GError         **error);
 
 G_END_DECLS
 

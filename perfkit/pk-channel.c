@@ -21,8 +21,6 @@
 #endif
 
 #include "perfkit-lowlevel.h"
-#include "pk-channel.h"
-#include "pk-connection.h"
 
 G_DEFINE_TYPE(PkChannel, pk_channel, G_TYPE_OBJECT)
 
@@ -36,8 +34,13 @@ G_DEFINE_TYPE(PkChannel, pk_channel, G_TYPE_OBJECT)
 
 struct _PkChannelPrivate
 {
-	PkConnection *conn;
-	gint id;
+	PkConnection  *conn;
+	gint           id;
+	gchar         *target;
+	gchar         *working_dir;
+	gchar        **args;
+	gchar        **env;
+	GPid           pid;
 };
 
 enum
@@ -63,17 +66,15 @@ PkChannelState
 pk_channel_get_state (PkChannel *channel)
 {
 	PkChannelPrivate *priv;
-	PkConnectionClass *klass;
-	PkChannelState state;
+	PkChannelState state = 0;
 	GError *error = NULL;
 
 	g_return_val_if_fail(PK_IS_CHANNEL(channel), 0);
 
 	priv = channel->priv;
-	klass = PK_CONNECTION_GET_CLASS(priv->conn);
 
-	if (0 == (state = klass->channel_get_state(priv->conn, priv->id, &error))) {
-		g_warning("%s", error->message);
+	if (!pk_connection_channel_get_state(priv->conn, priv->id, &state, &error)) {
+		g_printerr("%s\n", error->message);
 		g_error_free(error);
 		return 0;
 	}
@@ -95,17 +96,22 @@ pk_channel_get_state (PkChannel *channel)
 G_CONST_RETURN gchar*
 pk_channel_get_target (PkChannel *channel)
 {
-	gchar *target = NULL;
+	PkChannelPrivate *priv;
 
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
 
-	/* leaks */
-	pk_connection_channel_get_target(channel->priv->conn,
-	                                 channel->priv->id,
-	                                 &target,
-	                                 NULL);
+	priv = channel->priv;
 
-	return target;
+	if (!priv->target) {
+		if (!pk_connection_channel_get_target(priv->conn,
+											  priv->id,
+											  &priv->target,
+											  NULL)) {
+			return NULL;
+		}
+	}
+
+	return priv->target;
 }
 
 /**
@@ -122,17 +128,22 @@ pk_channel_get_target (PkChannel *channel)
 G_CONST_RETURN gchar*
 pk_channel_get_working_dir (PkChannel *channel)
 {
-	gchar *dir = NULL;
+	PkChannelPrivate *priv;
 
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
 
-	/* leaks */
-	pk_connection_channel_get_working_dir(channel->priv->conn,
-	                                      channel->priv->id,
-	                                      &dir,
-	                                      NULL);
+	priv = channel->priv;
 
-	return dir;
+	if (!priv->working_dir) {
+		if (!pk_connection_channel_get_working_dir(priv->conn,
+		                                           priv->id,
+		                                           &priv->working_dir,
+		                                           NULL)) {
+		    return NULL;
+		}
+	}
+
+	return priv->working_dir;
 }
 
 /**
@@ -149,17 +160,22 @@ pk_channel_get_working_dir (PkChannel *channel)
 gchar**
 pk_channel_get_args (PkChannel *channel)
 {
-	gchar **args = NULL;
+	PkChannelPrivate *priv;
 
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
 
-	/* leaks */
-	pk_connection_channel_get_args(channel->priv->conn,
-	                               channel->priv->id,
-	                               &args,
-	                               NULL);
+	priv = channel->priv;
 
-	return args;
+	if (!priv->args) {
+		if (!pk_connection_channel_get_args(priv->conn,
+		                                    priv->id,
+		                                    &priv->args,
+		                                    NULL)) {
+		    return NULL;
+		}
+	}
+
+	return priv->args;
 }
 
 /**
@@ -176,17 +192,22 @@ pk_channel_get_args (PkChannel *channel)
 gchar**
 pk_channel_get_env (PkChannel *channel)
 {
-	gchar **env = NULL;
+	PkChannelPrivate *priv;
 
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), NULL);
 
-	/* leaks */
-	pk_connection_channel_get_env(channel->priv->conn,
-	                              channel->priv->id,
-	                              &env,
-	                              NULL);
+	priv = channel->priv;
 
-	return env;
+	if (!priv->env) {
+		if (!pk_connection_channel_get_env(priv->conn,
+		                                   priv->id,
+		                                   &priv->env,
+		                                   NULL)) {
+		    return NULL;
+		}
+	}
+
+	return priv->env;
 }
 
 /**
@@ -202,16 +223,22 @@ pk_channel_get_env (PkChannel *channel)
 GPid
 pk_channel_get_pid (PkChannel *channel)
 {
-	GPid pid = 0;
+	PkChannelPrivate *priv;
 
 	g_return_val_if_fail (PK_IS_CHANNEL (channel), 0);
 
-	pk_connection_channel_get_pid(channel->priv->conn,
-	                              channel->priv->id,
-	                              &pid,
-	                              NULL);
+	priv = channel->priv;
 
-	return pid;
+	if (!priv->pid) {
+		if (!pk_connection_channel_get_pid(priv->conn,
+		                                   priv->id,
+		                                   &priv->pid,
+		                                   NULL)) {
+		    return 0;
+		}
+	}
+
+	return priv->pid;
 }
 
 gboolean

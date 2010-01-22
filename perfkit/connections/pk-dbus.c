@@ -66,20 +66,24 @@ pk_dbus_manager_ping (PkConnection  *connection,
 	return res;
 }
 
-static PkChannelState
-pk_dbus_channel_get_state (PkConnection  *connection,
-                           gint           channel_id,
-                           GError       **error)
+static gboolean
+pk_dbus_channel_get_state (PkConnection    *connection,
+                           gint             channel_id,
+                           PkChannelState  *state,
+                           GError         **error)
 {
 	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
-	PkChannelState state = 0;
 	DBusGProxy *proxy;
+	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	com_dronelabs_Perfkit_Channel_get_state(proxy, channel_id, (gint *)&state, error);
+	result = com_dronelabs_Perfkit_Channel_get_state(proxy,
+	                                                 channel_id,
+	                                                 (gint *)state,
+	                                                 error);
 	g_object_unref(proxy);
 
-	return state;
+	return result;
 }
 
 static gboolean

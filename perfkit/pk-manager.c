@@ -96,8 +96,34 @@ pk_manager_get_channels (PkManager  *manager,
                          GList     **channels,
                          GError    **error)
 {
+	PkManagerPrivate *priv;
+	GList *list = NULL;
+	gint n_channels = 0;
+	gint *ichannels = NULL;
+	gint i;
+
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
-	return RPC(manager, get_channels, channels, error);
+
+	priv = manager->priv;
+
+	if (!pk_connection_manager_get_channels(priv->conn,
+	                                        &ichannels,
+	                                        &n_channels,
+	                                        error)) {
+	    return FALSE;
+	}
+
+	for (i = 0; i < n_channels; i++) {
+		list = g_list_prepend(list,
+		                      g_object_new(PK_TYPE_CHANNEL,
+		                                   "connection", priv->conn,
+		                                   "id", ichannels[i],
+		                                   NULL));
+	}
+
+	*channels = list;
+
+	return TRUE;
 }
 
 PkChannel*
