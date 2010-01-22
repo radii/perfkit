@@ -22,6 +22,8 @@
 
 #include <gmodule.h>
 #include <dbus/dbus-glib.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "pk-dbus.h"
 #include "pk-manager-dbus.h"
@@ -93,8 +95,80 @@ pk_dbus_connect (PkConnection  *connection,
 	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
 
 	priv->dbus = dbus_g_bus_get(DBUS_BUS_SESSION, error);
+	priv->manager = dbus_g_proxy_new_for_name(priv->dbus,
+			"com.dronelabs.Perfkit",
+			"/com/dronelabs/Perfkit/Manager",
+			"com.dronelabs.Perfkit.Manager");
 
-	return (priv->dbus != NULL);
+	return TRUE;
+}
+
+static gboolean
+pk_dbus_manager_get_channels (PkConnection  *connection,
+                              gint         **channels,
+                              gint          *n_channels,
+                              GError       **error)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+	gchar **sc = NULL;
+	gint l, i;
+
+	g_return_val_if_fail(channels != NULL, FALSE);
+	g_return_val_if_fail(n_channels != NULL, FALSE);
+
+	if (!com_dronelabs_Perfkit_Manager_get_channels(priv->manager, &sc, error))
+	    return FALSE;
+
+	if (!sc) {
+		*channels = NULL;
+		*n_channels = 0;
+		return TRUE;
+	}
+
+	if ((l = g_strv_length(sc)) == 0) {
+		*channels = NULL;
+		*n_channels = 0;
+	} else {
+		*channels = g_malloc0(sizeof(gint) * l);
+		*n_channels = l;
+
+		for (i = 0; i < l; i++) {
+			sscanf(sc[i], "/com/dronelabs/Perfkit/Channels/%d", &(*channels)[i]);
+		}
+	}
+
+	g_strfreev(sc);
+
+	return TRUE;
+}
+
+static gboolean
+pk_dbus_manager_create_channel (PkConnection  *connection,
+                                PkSpawnInfo   *spawn_info,
+                                gint          *channel_id,
+                                GError       **error)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+	gchar *path = NULL;
+
+	g_return_val_if_fail(spawn_info != NULL, FALSE);
+	g_return_val_if_fail(channel_id != NULL, FALSE);
+
+	if (com_dronelabs_Perfkit_Manager_create_channel(priv->manager,
+	                                                 spawn_info->pid,
+	                                                 spawn_info->target,
+	                                                 (const gchar **)spawn_info->args,
+	                                                 (const gchar **)spawn_info->env,
+	                                                 spawn_info->working_dir,
+	                                                 &path,
+	                                                 error))
+	{
+		sscanf(path, "/com/dronelabs/Perfkit/Channels/%d", channel_id);
+		g_free(path);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void
@@ -117,6 +191,8 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->connect = pk_dbus_connect;
 	conn_class->manager_ping = pk_dbus_manager_ping;
 	conn_class->channel_get_state = pk_dbus_channel_get_state;
+	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
+	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 }
 
 static void

@@ -300,6 +300,46 @@ pk_channel_dispose (GObject *object)
 }
 
 static void
+pk_channel_set_property (GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
+{
+	PkChannelPrivate *priv = ((PkChannel *)object)->priv;
+
+	switch (prop_id) {
+	case PROP_ID:
+		priv->id = g_value_get_int(value);
+		break;
+	case PROP_CONN:
+		priv->conn = g_value_dup_object(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pk_channel_get_property (GObject    *object,
+                         guint       prop_id,
+                         GValue     *value,
+                         GParamSpec *pspec)
+{
+	PkChannelPrivate *priv = ((PkChannel *)object)->priv;
+
+	switch (prop_id) {
+	case PROP_ID:
+		g_value_set_int(value, priv->id);
+		break;
+	case PROP_CONN:
+		g_value_set_object(value, priv->conn);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
 pk_channel_class_init (PkChannelClass *klass)
 {
 	GObjectClass *object_class;
@@ -307,6 +347,8 @@ pk_channel_class_init (PkChannelClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_channel_finalize;
 	object_class->dispose = pk_channel_dispose;
+	object_class->set_property = pk_channel_set_property;
+	object_class->get_property = pk_channel_get_property;
 	g_type_class_add_private (object_class, sizeof (PkChannelPrivate));
 
 	/**
@@ -321,6 +363,24 @@ pk_channel_class_init (PkChannelClass *klass)
 	                                                      "The target property",
 	                                                      NULL,
 	                                                      G_PARAM_READABLE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_CONN,
+	                                g_param_spec_object("connection",
+	                                                    "connection",
+	                                                    "Connection",
+	                                                    PK_TYPE_CONNECTION,
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(object_class,
+	                                PROP_ID,
+	                                g_param_spec_int("id",
+	                                                 "id",
+	                                                 "Id",
+	                                                 0,
+	                                                 G_MAXINT,
+	                                                 0,
+	                                                 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void

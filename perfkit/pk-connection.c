@@ -163,6 +163,30 @@ pk_connection_new_from_uri(const gchar *uri)
 	return conn;
 }
 
+gboolean
+pk_connection_channel_get_state (PkConnection    *connection,
+                                 gint             channel_id,
+                                 PkChannelState  *state,
+                                 GError         **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_get_state(
+			connection, channel_id, state, error);
+}
+
+gboolean
+pk_connection_manager_get_channels (PkConnection  *connection,
+                                    gint         **channels,
+                                    gint          *n_channels,
+                                    GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_get_channels(
+			connection, channels, n_channels, error);
+}
+
 const gchar*
 pk_connection_get_uri (PkConnection *connection)
 {
