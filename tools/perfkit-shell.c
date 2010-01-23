@@ -32,18 +32,32 @@
 #include "egg-fmt.h"
 #include "egg-line.h"
 
-#define PK_SHELL_ERROR (g_quark_from_static_string("pk-shell-error"))
-#define PK_SHELL_ERROR_URI (1)
+/*
+ * Local error codes.
+ */
+#define PK_SHELL_ERROR (pk_shell_error_quark())
+static GQuark pk_shell_error_quark (void) G_GNUC_CONST;
+enum
+{
+	PK_SHELL_ERROR_URI,
+};
 
+/*
+ * Global state.
+ */
 static EggFmtFunc    formatter  = NULL;
 static PkConnection *connection = NULL;
 static gboolean      opt_csv    = FALSE;
 
+/*
+ * Command line arguments.
+ */
 static GOptionEntry entries[] = {
 	{ "csv", 'c', 0, G_OPTION_ARG_NONE, &opt_csv,
 	  N_("Output comma-separated values"), NULL },
 	{ NULL }
 };
+
 
 /*
  *----------------------------------------------------------------------------
@@ -141,6 +155,23 @@ pk_shell_connect (const gchar  *uri,   // IN
 	return TRUE;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_missing_cb --
+ *
+ *    Callback when entered command does not exist.
+ *
+ * Returns:
+ *    None.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static void
 pk_shell_missing_cb (EggLine     *line,      // IN
                      const gchar *command,   // IN
@@ -148,6 +179,23 @@ pk_shell_missing_cb (EggLine     *line,      // IN
 {
 	g_printerr (_("Command not found: %s\n"), command);
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_util_channels_iter --
+ *
+ *    EggFmtIterNext implementation for iterating through a list of channels.
+ *
+ * Returns:
+ *    TRUE if there are more items; otherwise FALSE.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static gboolean
 pk_util_channels_iter (EggFmtIter *iter,
@@ -275,9 +323,22 @@ pk_util_source_infos_iter (EggFmtIter *iter,
 }
 #endif
 
-/**************************************************************************
- *                        Perfkit Shell Commands                          *
- **************************************************************************/
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_quit --
+ *
+ *    Quit command callback.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_quit (EggLine  *line,
@@ -288,6 +349,23 @@ pk_shell_cmd_quit (EggLine  *line,
 	egg_line_quit (line);
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_ls --
+ *
+ *    ls command callback.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_ls (EggLine  *line,
@@ -330,6 +408,23 @@ pk_shell_cmd_ls (EggLine  *line,
 	return result;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_cd --
+ *
+ *    Changes working directory of process.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_cd (EggLine  *line,
                  gint      argc,
@@ -344,6 +439,23 @@ pk_shell_cmd_cd (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_version --
+ *
+ *    Displays the version of the library protocol.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_version (EggLine  *line,
                       gint      argc,
@@ -356,6 +468,23 @@ pk_shell_cmd_version (EggLine  *line,
 	g_print ("Protocol:  %s\n", PK_VERSION_S);
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_help --
+ *
+ *    Displays help text for a given command.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_help (EggLine  *line,
@@ -382,6 +511,23 @@ pk_shell_cmd_help (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_load --
+ *
+ *    Loads a series of commands from an input file.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_load (EggLine  *line,
                    gint      argc,
@@ -395,6 +541,23 @@ pk_shell_cmd_load (EggLine  *line,
 
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_sleep --
+ *
+ *    Sleeps for a given period of time.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_sleep (EggLine  *line,
@@ -414,6 +577,23 @@ pk_shell_cmd_sleep (EggLine  *line,
 
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_list --
+ *
+ *    Lists the avaialble channels on the daemon.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_channel_list (EggLine  *line,
@@ -465,6 +645,23 @@ finish:
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_add --
+ *
+ *    Add a new channel on the daemon.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_channel_add (EggLine  *line,
                           gint      argc,
@@ -496,6 +693,23 @@ pk_shell_cmd_channel_add (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_start --
+ *
+ *    Start the given channels.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_channel_start (EggLine  *line,
                             gint      argc,
@@ -523,6 +737,23 @@ pk_shell_cmd_channel_start (EggLine  *line,
 
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_stop --
+ *
+ *    Stop the given channels.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_channel_stop (EggLine  *line,
@@ -552,6 +783,23 @@ pk_shell_cmd_channel_stop (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_pause --
+ *
+ *    Pause the given channels.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_channel_pause (EggLine  *line,
                             gint      argc,
@@ -580,6 +828,23 @@ pk_shell_cmd_channel_pause (EggLine  *line,
 
 	return EGG_LINE_STATUS_OK;
 }
+
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_unpause --
+ *
+ *    Unpause the given channels.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static EggLineStatus
 pk_shell_cmd_channel_unpause (EggLine  *line,
@@ -669,9 +934,11 @@ pk_shell_cmd_channel_get (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
+	PkChannelState state = 0;
 	GError *lerror = NULL;
 	gint i, channel_id;
 	gchar *v_str;
+	GPid pid = 0;
 
 	if (argc < 2) {
 		return EGG_LINE_STATUS_BAD_ARGS;
@@ -716,6 +983,36 @@ pk_shell_cmd_channel_get (EggLine  *line,
 				g_free(v_str);
 			}
 		}
+		else if (g_str_equal (argv [1], "pid")) {
+			pk_connection_channel_get_pid(connection, channel_id, &pid, NULL);
+			g_print("pid: %d\n", (gint)pid);
+		}
+		else if (g_str_equal (argv [1], "state")) {
+			pk_connection_channel_get_state(connection,
+			                                channel_id,
+			                                &state,
+			                                NULL);
+			switch (state) {
+			case PK_CHANNEL_READY:
+				g_print ("READY\n");
+				break;
+			case PK_CHANNEL_STOPPED:
+				g_print ("STOPPED\n");
+				break;
+			case PK_CHANNEL_PAUSED:
+				g_print ("PAUSED\n");
+				break;
+			case PK_CHANNEL_RUNNING:
+				g_print ("STARTED\n");
+				break;
+			case PK_CHANNEL_FAILED:
+				g_print ("FAILED\n");
+				break;
+			default:
+				g_warn_if_reached ();
+				break;
+			}
+		}
 	}
 
 	/*
@@ -733,31 +1030,7 @@ pk_shell_cmd_channel_get (EggLine  *line,
 		g_strfreev (tmpv);
 		g_free (tmp);
 	}
-	else if (g_str_equal (argv [1], "pid")) {
-		g_print ("%u\n", pk_channel_get_pid (channel));
-	}
-	else if (g_str_equal (argv [1], "state")) {
-		switch (pk_channel_get_state (channel)) {
-		case PK_CHANNEL_READY:
-			g_print ("READY\n");
-			break;
-		case PK_CHANNEL_STOPPED:
-			g_print ("STOPPED\n");
-			break;
-		case PK_CHANNEL_PAUSED:
-			g_print ("PAUSED\n");
-			break;
-		case PK_CHANNEL_RUNNING:
-			g_print ("STARTED\n");
-			break;
-		case PK_CHANNEL_FAILED:
-			g_print ("FAILED\n");
-			break;
-		default:
-			g_warn_if_reached ();
-			break;
-		}
-	}
+
 	*/
 
 	return EGG_LINE_STATUS_OK;
@@ -1028,4 +1301,10 @@ main (gint   argc,
 	}
 
 	return EXIT_SUCCESS;
+}
+
+static GQuark
+pk_shell_error_quark (void)
+{
+	return g_quark_from_static_string("pk-shell-error-quark");
 }
