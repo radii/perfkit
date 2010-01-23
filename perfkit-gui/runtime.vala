@@ -89,7 +89,7 @@ namespace PerfkitGui {
 
 		public static void run() {
 			/* create connection to localhost */
-			var conn = new Perfkit.Connection.for_uri("dbus://");
+			var conn = new Perfkit.Connection.from_uri("dbus://");
 			assert(conn != null);
 			Connections.add(conn);
 

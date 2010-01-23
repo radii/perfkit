@@ -34,7 +34,7 @@ namespace Perfkit {
 		public signal void connected ();
 		public signal void disconnected ();
 
-		public Connection.for_uri (string uri);
+		public Connection.from_uri (string uri);
 		public Channels get_channels();
 		public Sources get_sources();
 

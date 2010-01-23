@@ -34,4 +34,6 @@ perfkit_gui_VALAFLAGS = \
 	--vapidir=$(top_srcdir)/bindings/vala
 
 test:
-	PERFKIT_GUI_UIDIR=$(srcdir)/views $(builddir)/perfkit-gui
+	PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
+	PERFKIT_GUI_UIDIR=$(srcdir)/views \
+	$(builddir)/perfkit-gui
