@@ -23,19 +23,20 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <glib-object.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 
 #include <perfkit/perfkit.h>
-#include <perfkit-daemon/perfkit-daemon.h>
+#include <perfkit/perfkit-lowlevel.h>
 
 #include "egg-fmt.h"
 #include "egg-line.h"
 
+#define PK_SHELL_ERROR (g_quark_from_static_string("pk-shell-error"))
+#define PK_SHELL_ERROR_URI (1)
+
 static EggFmtFunc    formatter  = NULL;
 static PkConnection *connection = NULL;
-static PkManager    *manager    = NULL;
 static gboolean      opt_csv    = FALSE;
 
 static GOptionEntry entries[] = {
@@ -44,13 +45,25 @@ static GOptionEntry entries[] = {
 	{ NULL }
 };
 
-/**************************************************************************
- *                          Utility Functions                             *
- **************************************************************************/
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_util_parse_int --
+ *
+ *     Parses an integer from @str with proper condition checking.
+ *
+ * Returns:
+ *     TRUE if successful; otherwise FALSE.
+ *
+ * Side Effects:
+ *     None.
+ *
+ *----------------------------------------------------------------------------
+ */
 
 static gboolean
-pk_util_parse_int (const gchar *str,
-                   gint        *v_int)
+pk_util_parse_int (const gchar *str,    // IN
+                   gint        *v_int)  // OUT
 {
 	gchar *ptr;
 	gint   val;
@@ -74,39 +87,64 @@ pk_util_parse_int (const gchar *str,
 	return TRUE;
 }
 
-static gboolean
-pk_shell_connect (const gchar  *uri,
-                  GError      **error)
-{
-	PkConnection *_connection;
-	PkManager *_manager;
 
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_connect --
+ *
+ *     Connects the shell to the server found at @uri.
+ *
+ * Returns:
+ *     TRUE if successful; otherwise FALSE.
+ *
+ * Side effects:
+ *     The current connection is closed.
+ *
+ *----------------------------------------------------------------------------
+ */
+
+static gboolean
+pk_shell_connect (const gchar  *uri,   // IN
+                  GError      **error) // OUT
+{
 	g_return_val_if_fail (uri != NULL, FALSE);
 
-	_connection = pk_connection_new_from_uri (uri);
+	/*
+	 * Close previous connection if needed.
+	 */
+	if (connection) {
+		pk_connection_disconnect(connection);
+		g_object_unref(connection);
+		connection = NULL;
+	}
 
-	if (!pk_connection_connect (_connection, error)) {
-		g_object_ref(_connection);
+	/*
+	 * Create connection instance.
+	 */
+	connection = pk_connection_new_from_uri (uri);
+	if (!connection) {
+		g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_URI,
+		            "Invalid URI");
 		return FALSE;
 	}
 
-	_manager = pk_connection_get_manager(_connection);
-
-	if (connection)
-		g_object_unref (connection);
-	connection = _connection;
-
-	if (manager)
-		g_object_unref(manager);
-	manager = _manager;
+	/*
+	 * Connect to the daemon.
+	 */
+	if (!pk_connection_connect(connection, error)) {
+		g_object_unref(connection);
+		connection = NULL;
+		return FALSE;
+	}
 
 	return TRUE;
 }
 
 static void
-pk_shell_missing_cb (EggLine     *line,
-                     const gchar *command,
-                     gpointer     user_data)
+pk_shell_missing_cb (EggLine     *line,      // IN
+                     const gchar *command,   // IN
+                     gpointer     user_data) // IN
 {
 	g_printerr (_("Command not found: %s\n"), command);
 }
@@ -115,53 +153,50 @@ static gboolean
 pk_util_channels_iter (EggFmtIter *iter,
                        gpointer    user_data)
 {
-	PkChannel *channel;
-	GList     *list;
-	gint       i;
+	gint i, channel_id, v_int;
+	gchar *v_str, **v_strv;
+	PkChannelState state;
+	struct {
+		gint n_channels;
+		gint *channels;
+		gint offset;
+	} *s = user_data;
 
-	if (!user_data)
+	if (!user_data || s->offset >= s->n_channels) {
 		return FALSE;
-
-	/* initialize our iter */
-	if (!iter->user_data2) {
-		iter->user_data2 = user_data;
-		iter->user_data = user_data;
 	}
 
-	/* we are finished if the list is empty */
-	if (!iter->user_data)
-		return FALSE;
-
-	list = iter->user_data;
-	channel = list->data;
-
-	if (!channel)
-		return FALSE;
+	channel_id = s->channels[s->offset++];
 
 	/* load the data into the columns */
 	for (i = 0; i < iter->n_columns; i++) {
-		if (0 == g_ascii_strcasecmp (iter->column_names [i], "id")) {
-			g_value_set_int (&iter->column_values [i],
-			                 pk_channel_get_id (channel));
+		if (0 == g_ascii_strcasecmp(iter->column_names[i], "id")) {
+			g_value_set_int(&iter->column_values[i], channel_id);
 		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "pid")) {
-			g_value_set_int (&iter->column_values [i],
-			                 pk_channel_get_pid (channel));
+		else if (0 == g_ascii_strcasecmp(iter->column_names[i], "pid")) {
+			v_int = 0;
+			pk_connection_channel_get_pid(connection, channel_id, &v_int, NULL);
+			g_value_set_int(&iter->column_values [i], v_int);
 		}
 		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "target")) {
-			g_value_set_string (&iter->column_values [i],
-			                    pk_channel_get_target (channel));
+			v_str = NULL;
+			pk_connection_channel_get_target(connection, channel_id, &v_str, NULL);
+			g_value_take_string (&iter->column_values [i], v_str);
 		}
 		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "directory")) {
-			g_value_set_string (&iter->column_values [i],
-			                    pk_channel_get_working_dir (channel));
+			v_str = NULL;
+			pk_connection_channel_get_working_dir(connection, channel_id, &v_str, NULL);
+			g_value_take_string (&iter->column_values [i], v_str);
 		}
 		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "arguments")) {
-			g_value_take_boxed (&iter->column_values [i],
-			                    pk_channel_get_args (channel));
+			v_strv = NULL;
+			pk_connection_channel_get_args(connection, channel_id, &v_strv, NULL);
+			g_value_take_boxed (&iter->column_values [i], v_strv);
 		}
 		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "state")) {
-			switch (pk_channel_get_state (channel)) {
+			state = 0;
+			pk_connection_channel_get_state(connection, channel_id, &state, NULL);
+			switch (state) {
 			case PK_CHANNEL_READY:
 				g_value_set_string (&iter->column_values [i], "READY");
 				break;
@@ -186,9 +221,6 @@ pk_util_channels_iter (EggFmtIter *iter,
 			g_warn_if_reached ();
 		}
 	}
-
-	/* move to the next position */
-	iter->user_data = g_list_next (iter->user_data);
 
 	return TRUE;
 }
@@ -322,7 +354,6 @@ pk_shell_cmd_version (EggLine  *line,
 	 *       and retrieve the remote version.
 	 */
 	g_print ("Protocol:  %s\n", PK_VERSION_S);
-	g_print ("Daemon:    %s\n", PKD_VERSION_S);
 	return EGG_LINE_STATUS_OK;
 }
 
@@ -391,30 +422,45 @@ pk_shell_cmd_channel_list (EggLine  *line,
                            GError  **error)
 {
 	EggFmtIter  iter;
-	GList      *list;
+	struct {
+		gint n_channels;
+		gint *channels;
+		gint offset;
+	} s = {0,0};
 
-	if (!pk_manager_get_channels(manager, &list, NULL)) {
-		g_error("Error communicating to daemon.\n");
+	/*
+	 * Get list of channels from daemon.
+	 */
+	if (!pk_connection_manager_get_channels(connection,
+	                                        &s.channels,
+	                                        &s.n_channels,
+	                                        error)) {
+	    return EGG_LINE_STATUS_FAILURE;
 	}
 
-	if (!g_list_length(list)) {
-	   g_print ("No channels where found.\n");
-	   return EGG_LINE_STATUS_OK;
-   }
+	if (!s.n_channels) {
+	   g_print(_("No channels where found.\n"));
+	   goto finish;
+	}
 
-	egg_fmt_iter_init (&iter,
-	                   pk_util_channels_iter,
-	                   "ID", G_TYPE_INT,
-	                   "PID", G_TYPE_INT,
-	                   "State", G_TYPE_STRING,
-	                   "Target", G_TYPE_STRING,
-	                   "Arguments", G_TYPE_STRV,
-	                   "Directory", G_TYPE_STRING,
-	                   NULL);
-	formatter (&iter, list, NULL);
+	/*
+	 * Write channel information to console.
+	 */
+	egg_fmt_iter_init(&iter,
+	                  pk_util_channels_iter,
+	                  "ID", G_TYPE_INT,
+	                  "PID", G_TYPE_INT,
+	                  "State", G_TYPE_STRING,
+	                  "Target", G_TYPE_STRING,
+	                  "Arguments", G_TYPE_STRV,
+	                  "Directory", G_TYPE_STRING,
+	                  NULL);
+	formatter(&iter, &s, NULL);
 
-	g_list_foreach (list, (GFunc)g_object_unref, NULL);
-	g_list_free (list);
+finish:
+	if (s.channels) {
+		g_free(s.channels);
+	}
 
 	return EGG_LINE_STATUS_OK;
 }
@@ -425,15 +471,27 @@ pk_shell_cmd_channel_add (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
-	PkChannel *channel;
 	PkSpawnInfo info = {0};
+	gint channel = 0;
 
+	/*
+	 * Build channel information.
+	 * TODO: Parse from args.
+	 */
 	info.target = (gchar *)"/bin/nc";
 	info.working_dir = (gchar *)"/";
 
-	channel = pk_manager_create_channel(manager, &info, NULL);
-	g_print ("Added channel %d.\n", pk_channel_get_id (channel));
-	g_object_unref (channel);
+	/*
+	 * Create channel
+	 */
+	if (!pk_connection_manager_create_channel(connection,
+	                                          &info,
+	                                          &channel,
+	                                          error)) {
+	    return EGG_LINE_STATUS_FAILURE;
+	}
+
+	g_print("Added channel %d.\n", channel);
 
 	return EGG_LINE_STATUS_OK;
 }
@@ -444,18 +502,22 @@ pk_shell_cmd_channel_start (EggLine  *line,
                             gchar   **argv,
                             GError  **error)
 {
-	PkChannel *channel;
-	gint       i,
-	           v_int = 0;
+	GError *lerror = NULL;
+	gint i, v_int;
 
-	if (argc < 1)
-		return EGG_LINE_STATUS_OK;
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
 
 	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int (argv [i], &v_int)) {
-			channel = pk_manager_get_channel(manager, v_int);
-			pk_channel_start (channel, NULL);
-			g_object_unref (channel);
+		if (pk_util_parse_int(argv[i], &v_int)) {
+			if (!pk_connection_channel_start(connection, v_int, &lerror)) {
+				g_printerr("%s\n", lerror->message);
+				g_error_free(lerror);
+				lerror = NULL;
+			} else {
+				g_print("Channel %d started.\n", v_int);
+			}
 		}
 	}
 
@@ -468,18 +530,22 @@ pk_shell_cmd_channel_stop (EggLine  *line,
                            gchar   **argv,
                            GError  **error)
 {
-	PkChannel *channel;
-	gint       i,
-	           v_int = 0;
+	GError *lerror = NULL;
+	gint i, v_int = 0;
 
-	if (argc < 1)
-		return EGG_LINE_STATUS_OK;
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
 
 	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int (argv [i], &v_int)) {
-			channel = pk_manager_get_channel(manager, v_int);
-			pk_channel_stop (channel, TRUE, NULL);
-			g_object_unref (channel);
+		if (pk_util_parse_int(argv [i], &v_int)) {
+			if (!pk_connection_channel_stop(connection, v_int, TRUE, &lerror)) {
+				g_printerr("%s.\n", lerror->message);
+				g_error_free(lerror);
+				lerror = NULL;
+			} else {
+				g_print("Channel %d stopped.\n", v_int);
+			}
 		}
 	}
 
@@ -492,18 +558,23 @@ pk_shell_cmd_channel_pause (EggLine  *line,
                             gchar   **argv,
                             GError  **error)
 {
-	PkChannel *channel;
-	gint       i,
-	           v_int = 0;
+	GError *lerror = NULL;
+	gint i, v_int = 0;
 
-	if (argc < 1)
-		return EGG_LINE_STATUS_OK;
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
 
 	for (i = 0; i < argc; i++) {
 		if (pk_util_parse_int (argv [i], &v_int)) {
-			channel = pk_manager_get_channel(manager, v_int);
-			pk_channel_pause (channel, NULL);
-			g_object_unref (channel);
+			if (!pk_connection_channel_pause(connection, v_int, &lerror)) {
+				g_printerr("Error pausing channel %d: %s.\n",
+				           v_int, lerror->message);
+				g_error_free(lerror);
+				lerror = NULL;
+			} else {
+				g_print("Paused channel %d.\n", v_int);
+			}
 		}
 	}
 
@@ -516,18 +587,23 @@ pk_shell_cmd_channel_unpause (EggLine  *line,
                               gchar   **argv,
                               GError  **error)
 {
-	PkChannel *channel;
-	gint       i,
-	           v_int = 0;
+	GError *lerror = NULL;
+	gint i, v_int = 0;
 
-	if (argc < 1)
-		return EGG_LINE_STATUS_OK;
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
 
 	for (i = 0; i < argc; i++) {
 		if (pk_util_parse_int (argv [i], &v_int)) {
-			channel = pk_manager_get_channel(manager, v_int);
-			pk_channel_unpause (channel, NULL);
-			g_object_unref (channel);
+			if (!pk_connection_channel_unpause(connection, v_int, &lerror)) {
+				g_printerr("Error pausing channel %d: %s.\n",
+				           v_int, lerror->message);
+				g_error_free(lerror);
+				lerror = NULL;
+			} else {
+				g_print("Channel %d paused.\n", v_int);
+			}
 		}
 	}
 
@@ -593,29 +669,56 @@ pk_shell_cmd_channel_get (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
-	PkChannel  *channel;
-	gint        channel_id = 0;
-	gchar      *tmp,
-	          **tmpv;
+	GError *lerror = NULL;
+	gint i, channel_id;
+	gchar *v_str;
 
-	if (argc < 2)
+	if (argc < 2) {
 		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!pk_util_parse_int (argv [0], &channel_id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!g_str_equal (argv [1], "target") &&
-	    !g_str_equal (argv [1], "args") &&
-	    !g_str_equal (argv [1], "env") &&
-	    !g_str_equal (argv [1], "pid") &&
-	    !g_str_equal (argv [1], "state"))
-	    return EGG_LINE_STATUS_BAD_ARGS;
-
-	channel = pk_manager_get_channel(manager, channel_id);
-
-	if (g_str_equal (argv [1], "target")) {
-		g_print ("%s\n", pk_channel_get_target (channel));
 	}
+
+	if (!pk_util_parse_int (argv[0], &channel_id)) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	for (i = 1; i < argc; i++) {
+		if (!g_str_equal (argv[i], "target") &&
+	        !g_str_equal (argv[i], "args") &&
+	        !g_str_equal (argv[i], "env") &&
+	        !g_str_equal (argv[i], "pid") &&
+	        !g_str_equal (argv[i], "state")) {
+	        g_printerr("Invalid property: %s.\n", argv[i]);
+	        continue;
+		}
+
+		if (g_str_equal(argv[i], "target")) {
+			if (!pk_connection_channel_get_target(connection,
+			                                      channel_id,
+			                                      &v_str,
+			                                      &lerror)) {
+			    g_printerr("Error fetching target: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			} else {
+				g_print("target: %s\n", v_str);
+				g_free(v_str);
+			}
+		} else if (g_str_equal(argv[i], "dir")) {
+			if (!pk_connection_channel_get_working_dir(connection,
+			                                           channel_id,
+			                                           &v_str,
+			                                           &lerror)) {
+			    g_printerr("Error fetching dir: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			} else {
+				g_print("working-dir: %s\n", v_str);
+				g_free(v_str);
+			}
+		}
+	}
+
+	/*
 	else if (g_str_equal (argv [1], "args")) {
 		tmpv = pk_channel_get_args (channel);
 		tmp = g_strjoinv (" ", tmpv);
@@ -655,8 +758,7 @@ pk_shell_cmd_channel_get (EggLine  *line,
 			break;
 		}
 	}
-
-	g_object_unref (channel);
+	*/
 
 	return EGG_LINE_STATUS_OK;
 }
