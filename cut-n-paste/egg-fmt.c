@@ -218,10 +218,17 @@ egg_fmt_table (EggFmtIter *iter,
 		strings = liter->data;
 
 		for (i = 0; i < iter->n_columns; i++) {
-			len = widths [i] - strlen (strings [i]);
-			g_fprintf (file, "| %s ", strings [i]);
-			for (j = 0; j < len; j++)
-				g_fprintf (file, " ");
+			if (!strings [i]) {
+				g_fprintf (file, "| ");
+				for (j = 0; j < widths [i]; j++)
+					g_fprintf (file, " ");
+			}
+			else {
+				len = widths [i] - strlen (strings [i]);
+				g_fprintf (file, "| %s ", strings [i]);
+				for (j = 0; j < len; j++)
+					g_fprintf (file, " ");
+			}
 		}
 
 		g_fprintf (file, "|\n");
