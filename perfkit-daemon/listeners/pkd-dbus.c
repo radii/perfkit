@@ -24,10 +24,12 @@
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <perfkit-daemon/perfkit-daemon.h>
 
 #include "pkd-dbus.h"
 #include "pkd-dbus-glue.h"
 #include "pkd-dbus-manager.h"
+#include "pkd-channel-glue.h"
 #include "pkd-channel-dbus.h"
 #include "pkd-encoder-info-dbus.h"
 #include "pkd-source-info-dbus.h"
