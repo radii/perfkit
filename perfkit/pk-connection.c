@@ -210,6 +210,14 @@ pk_connection_connect (PkConnection  *connection,
 	return PK_CONNECTION_GET_CLASS(connection)->connect(connection, error);
 }
 
+void
+pk_connection_disconnect (PkConnection *connection)
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	PK_CONNECTION_GET_CLASS(connection)->disconnect(connection);
+}
+
 gboolean
 pk_connection_channel_get_target (PkConnection   *connection,
                                   gint            channel_id,

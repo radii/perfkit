@@ -80,9 +80,164 @@ pk_dbus_channel_get_state (PkConnection    *connection,
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
 	result = com_dronelabs_Perfkit_Channel_get_state(proxy,
-	                                                 channel_id,
 	                                                 (gint *)state,
 	                                                 error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_get_pid (PkConnection  *connection,
+                         gint           channel_id,
+                         GPid          *pid,
+                         GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_get_pid(proxy,
+	                                               (gint *)pid,
+	                                               error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_get_target (PkConnection  *connection,
+                            gint           channel_id,
+                            gchar        **target,
+                            GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_get_target(proxy,
+	                                                  target,
+	                                                  error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_get_working_dir (PkConnection  *connection,
+                                 gint           channel_id,
+                                 gchar        **working_dir,
+                                 GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_get_working_dir(proxy,
+	                                                       working_dir,
+	                                                       error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_get_args (PkConnection   *connection,
+                          gint            channel_id,
+                          gchar        ***args,
+                          GError        **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_get_args(proxy, args, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_get_env (PkConnection   *connection,
+                         gint            channel_id,
+                         gchar        ***env,
+                         GError        **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_get_env(proxy, env, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_start (PkConnection  *connection,
+                       gint           channel_id,
+                       GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_start(proxy, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_stop (PkConnection  *connection,
+                      gint           channel_id,
+                      gboolean       killpid,
+                      GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_stop(proxy, killpid, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_pause (PkConnection  *connection,
+                       gint           channel_id,
+                       GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_pause(proxy, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
+pk_dbus_channel_unpause (PkConnection  *connection,
+                         gint           channel_id,
+                         GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_unpause(proxy, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -101,6 +256,20 @@ pk_dbus_connect (PkConnection  *connection,
 			"com.dronelabs.Perfkit.Manager");
 
 	return TRUE;
+}
+
+static void
+pk_dbus_disconnect (PkConnection *connection)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+
+	if (priv->manager) {
+		g_object_unref(priv->manager);
+	}
+
+	if (priv->dbus) {
+		dbus_g_connection_unref(priv->dbus);
+	}
 }
 
 static gboolean
@@ -189,8 +358,18 @@ pk_dbus_class_init (PkDbusClass *klass)
 
 	conn_class = PK_CONNECTION_CLASS(klass);
 	conn_class->connect = pk_dbus_connect;
+	conn_class->disconnect = pk_dbus_disconnect;
 	conn_class->manager_ping = pk_dbus_manager_ping;
 	conn_class->channel_get_state = pk_dbus_channel_get_state;
+	conn_class->channel_get_pid = pk_dbus_channel_get_pid;
+	conn_class->channel_get_target = pk_dbus_channel_get_target;
+	conn_class->channel_get_working_dir = pk_dbus_channel_get_working_dir;
+	conn_class->channel_get_args = pk_dbus_channel_get_args;
+	conn_class->channel_get_env = pk_dbus_channel_get_env;
+	conn_class->channel_start = pk_dbus_channel_start;
+	conn_class->channel_stop = pk_dbus_channel_stop;
+	conn_class->channel_pause = pk_dbus_channel_pause;
+	conn_class->channel_unpause = pk_dbus_channel_unpause;
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 }
