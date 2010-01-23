@@ -356,7 +356,7 @@ pkd_channel_start (PkdChannel  *channel,
 		/*
 		 * Set the executable target.
 		 */
-		argv[0] = priv->spawn_info.target;
+		argv[0] = g_strdup(priv->spawn_info.target);
 
 		/*
 		 * Attempt to spawn the process.
