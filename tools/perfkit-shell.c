@@ -536,8 +536,13 @@ pk_shell_cmd_load (EggLine  *line,
 {
 	gint i;
 
-	for (i = 0; i < argc; i++)
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	for (i = 0; i < argc; i++) {
 		egg_line_execute_file (line, argv [i]);
+	}
 
 	return EGG_LINE_STATUS_OK;
 }
