@@ -673,15 +673,39 @@ pk_shell_cmd_channel_add (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
-	PkSpawnInfo info = {0};
+	PkSpawnInfo info;
 	gint channel = 0;
+	gint i;
+
+	memset(&info, 0, sizeof(info));
 
 	/*
-	 * Build channel information.
-	 * TODO: Parse from args.
+	 * Assign StartInfo properties.
 	 */
-	info.target = (gchar *)"/bin/nc";
-	info.working_dir = (gchar *)"/";
+	for (i = 0; (i + 1) < argc; i++) {
+		if (g_strcmp0(argv[i], "target") == 0) {
+			info.target = argv[++i];
+		}
+		else if (g_strcmp0(argv[i], "dir") == 0) {
+			info.working_dir = argv[++i];
+		}
+		else if (g_strcmp0(argv[i], "--") == 0) {
+			info.args = &argv[++i];
+			i += g_strv_length(&argv[i]);
+		}
+		else {
+			g_printerr("Invalid property: %s\n", argv[i]);
+			return EGG_LINE_STATUS_OK;
+		}
+	}
+
+	/*
+	 * Make sure we have required fields.
+	 */
+	if (!info.target && !info.pid) {
+		g_printerr("Missing PID or Target.\n");
+		return EGG_LINE_STATUS_OK;
+	}
 
 	/*
 	 * Create channel
