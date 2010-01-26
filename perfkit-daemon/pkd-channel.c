@@ -295,6 +295,24 @@ unlock:
 	return source;
 }
 
+static void
+pkd_channel_inferior_exited (GPid        pid,
+                             gint        status,
+                             PkdChannel *channel)
+{
+	g_return_if_fail(PKD_IS_CHANNEL(channel));
+
+	/*
+	 * TODO:
+	 *
+	 *    We should look at status and store it so that we can provide that
+	 *    information to profiler user interfaces.
+	 */
+
+	pkd_channel_stop(channel, FALSE, NULL);
+	g_object_unref(channel);
+}
+
 /**
  * pkd_channel_start:
  * @channel: A #PkdChannel
@@ -317,8 +335,9 @@ pkd_channel_start (PkdChannel  *channel,
 	PkdChannelPrivate *priv;
 	gboolean success = FALSE;
 	GError *local_error = NULL;
+	const gchar *working_dir;
 	gchar **argv = NULL;
-	gint len;
+	gint len, i;
 
 	g_return_val_if_fail(PKD_IS_CHANNEL(channel), FALSE);
 	g_return_val_if_fail(channel->priv->state == PKD_CHANNEL_READY, FALSE);
@@ -361,12 +380,20 @@ pkd_channel_start (PkdChannel  *channel,
 		argv[0] = g_strdup(priv->spawn_info.target);
 
 		/*
+		 * Determine the working directory.
+		 */
+		working_dir = priv->spawn_info.working_dir;
+		if (!working_dir || strlen(working_dir) == 0) {
+			working_dir = g_get_tmp_dir();
+		}
+
+		/*
 		 * Attempt to spawn the process.
 		 */
-		if (!g_spawn_async(priv->spawn_info.working_dir,
+		if (!g_spawn_async(working_dir,
 		                   argv,
 		                   priv->spawn_info.env,
-		                   G_SPAWN_SEARCH_PATH,
+		                   G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
 		                   NULL,
 		                   NULL,
 		                   &priv->spawn_info.pid,
@@ -382,6 +409,13 @@ pkd_channel_start (PkdChannel  *channel,
 			}
 			goto unlock;
 		}
+
+		/*
+		 * Setup callback to reap child and stop the channel.
+		 */
+		g_child_watch_add(priv->spawn_info.pid,
+		                  (GChildWatchFunc)pkd_channel_inferior_exited,
+		                  g_object_ref(channel));
 
 		g_message("Channel %d started with process %u.",
 		          pkd_channel_get_id(channel),
