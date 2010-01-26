@@ -674,10 +674,12 @@ pk_shell_cmd_channel_add (EggLine  *line,
                           GError  **error)
 {
 	PkSpawnInfo info;
+	GPtrArray *env;
 	gint channel = 0;
 	gint i;
 
 	memset(&info, 0, sizeof(info));
+	env = g_ptr_array_new();
 
 	/*
 	 * Assign StartInfo properties.
@@ -693,18 +695,27 @@ pk_shell_cmd_channel_add (EggLine  *line,
 			info.args = &argv[++i];
 			i += g_strv_length(&argv[i]);
 		}
+		else if (g_strcmp0(argv[i], "pid") == 0) {
+			pk_util_parse_int(argv[++i], (gint *)&info.pid);
+		}
+		else if (g_strcmp0(argv[i], "env") == 0) {
+			g_ptr_array_add(env, argv[++i]);
+		}
 		else {
 			g_printerr("Invalid property: %s\n", argv[i]);
 			return EGG_LINE_STATUS_OK;
 		}
 	}
 
+	g_ptr_array_add(env, NULL);
+	info.env = (gchar **)env->pdata;
+
 	/*
 	 * Make sure we have required fields.
 	 */
 	if (!info.target && !info.pid) {
 		g_printerr("Missing PID or Target.\n");
-		return EGG_LINE_STATUS_OK;
+		goto finish;
 	}
 
 	/*
@@ -718,6 +729,9 @@ pk_shell_cmd_channel_add (EggLine  *line,
 	}
 
 	g_print("Added channel %d.\n", channel);
+
+finish:
+	g_ptr_array_unref(env);
 
 	return EGG_LINE_STATUS_OK;
 }
