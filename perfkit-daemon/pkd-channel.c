@@ -348,7 +348,9 @@ pkd_channel_start (PkdChannel  *channel,
 		if (priv->spawn_info.args) {
 			len = g_strv_length(priv->spawn_info.args);
 			argv = g_malloc0(sizeof(gchar*) * (len + 2));
-			memcpy(&argv[1], priv->spawn_info.args, (sizeof(gchar*) * len));
+			for (i = 0; i < len; i++) {
+				argv[i + 1] = g_strdup(priv->spawn_info.args[i]);
+			}
 		} else {
 			argv = g_malloc0(sizeof(gchar*) * 2);
 		}
