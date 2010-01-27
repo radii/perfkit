@@ -1183,120 +1183,6 @@ pk_shell_iter_channel (EggLine   *line,
 	return channel_commands;
 }
 
-static EggLineStatus
-pk_shell_cmd_source_types (EggLine  *line,
-                           gint      argc,
-                           gchar   **argv,
-                           GError  **error)
-{
-	/*
-	EggFmtIter  iter;
-	GList      *list;
-
-	list = pk_sources_get_source_types (sources);
-	if (!g_list_length (list)) {
-	   g_printerr ("No source types where found.\n"
-	               "Try installing some plugins.\n");
-	   return EGG_LINE_STATUS_OK;
-   }
-
-	egg_fmt_iter_init (&iter,
-	                   pk_util_source_infos_iter,
-	                   "UID", G_TYPE_STRING,
-	                   "Name", G_TYPE_STRING,
-	                   NULL);
-	formatter (&iter, list, NULL);
-
-	g_list_foreach (list, (GFunc)g_object_unref, NULL);
-	g_list_free (list);
-	*/
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineStatus
-pk_shell_cmd_source_add (EggLine  *line,
-                         gint      argc,
-                         gchar   **argv,
-                         GError  **error)
-{
-	/*
-	PkSource *source = NULL;
-	GList *list, *iter;
-	gchar *name;
-
-	if (argc != 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	list = pk_sources_get_source_types (sources);
-	for (iter = list; iter; iter = iter->next) {
-		name = pk_source_info_get_uid (iter->data);
-		if (g_ascii_strcasecmp (argv [0], name) == 0) {
-			source = pk_source_info_create (iter->data);
-			g_free (name);
-			break;
-		}
-		g_free (name);
-	}
-
-	g_list_foreach (list, (GFunc)g_object_unref, NULL);
-	g_list_free (list);
-
-	if (source) {
-		g_print (_("Created source %d of type \"%s\".\n"),
-		         pk_source_get_id (source),
-		         argv [0]);
-		g_object_unref (source);
-	}
-	else {
-		g_printerr (_("Could not create data source typed \"%s\".\n"),
-		            argv [0]);
-	}
-	*/
-
-	return EGG_LINE_STATUS_OK;
-}
-
-/*
-static EggLineStatus
-pk_shell_cmd_source_attach (EggLine  *line,
-                            gint      argc,
-                            gchar   **argv,
-                            GError  **error)
-{
-	PkChannel  *channel    = NULL;
-	PkSource   *source     = NULL;
-	gint        source_id  = 0,
-	            channel_id = 0;
-
-	if (argc != 2)
-		return EGG_LINE_STATUS_BAD_ARGS;
-	else if (!pk_util_parse_int (argv [0], &source_id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-	else if (!pk_util_parse_int (argv [1], &channel_id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	channel = pk_manager_get_channel(manager, channel_id);
-	if (!channel)
-		goto error;
-
-	source = pk_manager_get_source(manager, source_id);
-	if (!source)
-		goto error;
-
-	pk_source_set_channel (source, channel);
-
-error:
-	if (channel)
-		g_object_unref (channel);
-
-	if (source)
-		g_object_unref (source);
-
-	return EGG_LINE_STATUS_OK;
-}
-*/
-
 
 /*
  *----------------------------------------------------------------------------
@@ -1349,30 +1235,6 @@ pk_shell_cmd_ping (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
-
-static EggLineCommand source_commands[] = {
-	{ "types", NULL, pk_shell_cmd_source_types,
-	  N_("List available source types"),
-	  "source types" },
-	{ "add", NULL, pk_shell_cmd_source_add,
-	  N_("Add a data source"),
-	  "source add [TYPE]" },
-	/*
-	{ "attach", NULL, pk_shell_cmd_source_attach,
-	  N_("Attach a source to a data channel"),
-	  "source attach [SOURCE] [CHANNEL]" },
-	*/
-	{ NULL }
-};
-
-static EggLineCommand*
-pk_shell_iter_source (EggLine   *line,
-                      gint      *argc,
-                      gchar   ***argv)
-{
-	return source_commands;
-}
-
 static EggLineCommand commands[] = {
 	{ "quit", NULL, pk_shell_cmd_quit,
 	  N_("Quit perfkit-shell"), "quit" },
@@ -1393,7 +1255,7 @@ static EggLineCommand commands[] = {
 	  "help [COMMAND]..." },
 	{ "load", NULL, pk_shell_cmd_load,
 	  N_("Load commands from a file"),
-	  "source [FILENAME]..." },
+	  "load [FILENAME]..." },
 	{ "sleep", NULL, pk_shell_cmd_sleep,
 	  N_("Delay for a specified amount of time"),
 	  "sleep [SECONDS]" },
@@ -1412,9 +1274,6 @@ static EggLineCommand commands[] = {
 	     "  start   - Start the channel recording\n"
 	     "  stop    - Stop the channel recording\n"),
 	  "channel [COMMAND]" },
-	{ "source", pk_shell_iter_source, NULL,
-	  N_("Manage perfkit data sources"),
-	  "source [COMMAND]" },
 	{ NULL }
 };
 
