@@ -31,6 +31,7 @@
 
 #include "egg-fmt.h"
 #include "egg-line.h"
+#include "egg-time.h"
 
 /*
  * Local error codes.
@@ -1285,6 +1286,59 @@ error:
 }
 */
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_ping --
+ *
+ *    Pings the perfkit daemon and displays the network latency.
+ *
+ * Returns:
+ *    Command exit code.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
+static EggLineStatus
+pk_shell_cmd_ping (EggLine  *line,
+                   gint      argc,
+                   gchar   **argv,
+                   GError  **error)
+{
+	GTimeVal tv;
+	GTimeVal ltv;
+	GError *lerror = NULL;
+	gchar *v_str;
+	GTimeSpan rel;
+
+	g_print("\n  Pinging \"%s\" ...\n\n",
+	        pk_connection_get_uri(connection));
+
+	g_get_current_time(&ltv);
+
+	if (!pk_connection_manager_ping(connection, &tv, &lerror)) {
+		g_printerr("    ERROR: %s.\n", lerror->message);
+		g_error_free(lerror);
+		lerror = NULL;
+	}
+	else {
+		v_str = g_time_val_to_iso8601(&tv);
+		g_print("    %s (%lu.%lu)\n\n", v_str, tv.tv_sec, tv.tv_usec);
+		g_free(v_str);
+		g_time_val_diff(&tv, &ltv, &rel);
+		g_print("    Latency: %lu.%06lu\n\n",
+		        rel / G_TIME_SPAN_SECOND,
+		        rel % G_TIME_SPAN_SECOND);
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+
 static EggLineCommand source_commands[] = {
 	{ "types", NULL, pk_shell_cmd_source_types,
 	  N_("List available source types"),
@@ -1317,6 +1371,9 @@ static EggLineCommand commands[] = {
 	{ "cd", NULL, pk_shell_cmd_cd,
 	  N_("Change working directory"),
 	  "cd [DIRECTORY]..." },
+	{ "ping", NULL, pk_shell_cmd_ping,
+	  N_("Ping the perfkit-daemon"),
+	  "ping" },
 	{ "version", NULL, pk_shell_cmd_version,
 	  N_("Display version information"),
 	  "version" },
