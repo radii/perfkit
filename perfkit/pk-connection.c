@@ -345,6 +345,18 @@ pk_connection_channel_unpause (PkConnection  *connection,
 			connection, channel_id, error);
 }
 
+gboolean
+pk_connection_manager_ping (PkConnection  *connection,
+                            GTimeVal      *tv,
+                            GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(tv != NULL, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_ping(
+			connection, tv, error);
+}
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,
