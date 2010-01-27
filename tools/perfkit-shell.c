@@ -971,6 +971,23 @@ pk_shell_cmd_channel_set (EggLine  *line,
 }
 */
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_get --
+ *
+ *    Get a properties of a channel.
+ *
+ * Returns:
+ *    Command exit status.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
 static EggLineStatus
 pk_shell_cmd_channel_get (EggLine  *line,
                           gint      argc,
@@ -980,22 +997,29 @@ pk_shell_cmd_channel_get (EggLine  *line,
 	PkChannelState state = 0;
 	GError *lerror = NULL;
 	gint i, channel_id;
-	gchar *v_str;
+	gchar *v_str, **v_strv;
 	GPid pid = 0;
 
 	if (argc < 2) {
 		return EGG_LINE_STATUS_BAD_ARGS;
 	}
 
-	if (!pk_util_parse_int (argv[0], &channel_id)) {
+	/*
+	 * Get the channel identifier.
+	 */
+	if (!pk_util_parse_int(argv[0], &channel_id)) {
 		return EGG_LINE_STATUS_BAD_ARGS;
 	}
 
+	/*
+	 * Iterate the rest of the property names and print their value.
+	 */
 	for (i = 1; i < argc; i++) {
 		if (!g_str_equal (argv[i], "target") &&
 	        !g_str_equal (argv[i], "args") &&
 	        !g_str_equal (argv[i], "env") &&
 	        !g_str_equal (argv[i], "pid") &&
+	        !g_str_equal (argv[i], "dir") &&
 	        !g_str_equal (argv[i], "state")) {
 	        g_printerr("Invalid property: %s.\n", argv[i]);
 	        continue;
@@ -1022,59 +1046,89 @@ pk_shell_cmd_channel_get (EggLine  *line,
 			    g_error_free(lerror);
 			    lerror = NULL;
 			} else {
-				g_print("working-dir: %s\n", v_str);
+				g_print("dir: %s\n", v_str);
 				g_free(v_str);
 			}
 		}
-		else if (g_str_equal (argv [1], "pid")) {
-			pk_connection_channel_get_pid(connection, channel_id, &pid, NULL);
-			g_print("pid: %d\n", (gint)pid);
+		else if (g_str_equal(argv[i], "pid")) {
+			if (!pk_connection_channel_get_pid(connection,
+			                                   channel_id,
+			                                   &pid,
+			                                   &lerror)) {
+			    g_printerr("Error fetching pid: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			} else {
+				g_print("pid: %d\n", (gint)pid);
+			}
 		}
-		else if (g_str_equal (argv [1], "state")) {
-			pk_connection_channel_get_state(connection,
-			                                channel_id,
-			                                &state,
-			                                NULL);
+		else if (g_str_equal(argv[i], "state")) {
+			if (!pk_connection_channel_get_state(connection,
+			                                     channel_id,
+			                                     &state,
+			                                     &lerror)) {
+			    g_printerr("Error fetching state: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			    continue;
+			}
+
+			g_print("state: ");
+
 			switch (state) {
 			case PK_CHANNEL_READY:
-				g_print ("READY\n");
+				g_print("READY\n");
 				break;
 			case PK_CHANNEL_STOPPED:
-				g_print ("STOPPED\n");
+				g_print("STOPPED\n");
 				break;
 			case PK_CHANNEL_PAUSED:
-				g_print ("PAUSED\n");
+				g_print("PAUSED\n");
 				break;
 			case PK_CHANNEL_RUNNING:
-				g_print ("STARTED\n");
+				g_print("STARTED\n");
 				break;
 			case PK_CHANNEL_FAILED:
-				g_print ("FAILED\n");
+				g_print("FAILED\n");
 				break;
 			default:
-				g_warn_if_reached ();
+				g_print("UNKNOWN\n");
 				break;
 			}
 		}
-	}
+		else if (g_str_equal(argv[i], "args")) {
+			if (!pk_connection_channel_get_args(connection,
+			                                    channel_id,
+			                                    &v_strv,
+			                                    &lerror)) {
+			    g_printerr("Error fetching args: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			    continue;
+			}
 
-	/*
-	else if (g_str_equal (argv [1], "args")) {
-		tmpv = pk_channel_get_args (channel);
-		tmp = g_strjoinv (" ", tmpv);
-		g_print ("%s\n", tmp);
-		g_strfreev (tmpv);
-		g_free (tmp);
-	}
-	else if (g_str_equal (argv [1], "env")) {
-		tmpv = pk_channel_get_env (channel);
-		tmp = g_strjoinv (" ", tmpv);
-		g_print ("%s\n", tmp);
-		g_strfreev (tmpv);
-		g_free (tmp);
-	}
+			v_str = g_strjoinv(" ", v_strv);
+			g_print("args: %s\n", v_str);
+			g_strfreev(v_strv);
+			g_free(v_str);
+		}
+		else if (g_str_equal(argv[i], "env")) {
+			if (!pk_connection_channel_get_env(connection,
+			                                   channel_id,
+			                                   &v_strv,
+			                                   &lerror)) {
+			    g_printerr("Error fetching env: %s.\n", lerror->message);
+			    g_error_free(lerror);
+			    lerror = NULL;
+			    continue;
+			}
 
-	*/
+			v_str = g_strjoinv (" ", v_strv);
+			g_print ("env: %s\n", v_str);
+			g_strfreev (v_strv);
+			g_free (v_str);
+		}
+	}
 
 	return EGG_LINE_STATUS_OK;
 }
