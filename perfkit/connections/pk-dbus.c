@@ -69,6 +69,16 @@ pk_dbus_manager_ping (PkConnection  *connection,
 }
 
 static gboolean
+pk_dbus_manager_get_version (PkConnection  *connection,
+                             gchar        **version,
+                             GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+
+	return com_dronelabs_Perfkit_Manager_get_version(priv->manager, version, error);
+}
+
+static gboolean
 pk_dbus_channel_get_state (PkConnection    *connection,
                            gint             channel_id,
                            PkChannelState  *state,
@@ -372,6 +382,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->channel_unpause = pk_dbus_channel_unpause;
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
+	conn_class->manager_get_version = pk_dbus_manager_get_version;
 }
 
 static void

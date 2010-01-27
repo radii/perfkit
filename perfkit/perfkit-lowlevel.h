@@ -98,6 +98,11 @@ pk_connection_manager_ping (PkConnection    *connection,
                             GError         **error);
 
 gboolean
+pk_connection_manager_get_version (PkConnection  *connection,
+                                   gchar        **version,
+                                   GError       **error);
+
+gboolean
 pk_connection_manager_create_subscription (PkConnection    *connection,
                                            PkChannel       *channel,
                                            gsize            buffer_size,

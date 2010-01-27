@@ -140,6 +140,10 @@ struct _PkConnectionClass
 	                                               GTimeVal        *tv,
 	                                               GError         **error);
 
+	gboolean       (*manager_get_version)         (PkConnection    *connection,
+	                                               gchar          **version,
+	                                               GError         **error);
+
 	gboolean       (*manager_create_subscription) (PkConnection    *connection,
 	                                               PkChannel       *channel,
 	                                               gsize            buffer_size,

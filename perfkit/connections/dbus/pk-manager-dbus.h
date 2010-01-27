@@ -211,6 +211,44 @@ com_dronelabs_Perfkit_Manager_get_channels_async (DBusGProxy *proxy, com_dronela
   stuff->userdata = userdata;
   return dbus_g_proxy_begin_call (proxy, "GetChannels", com_dronelabs_Perfkit_Manager_get_channels_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
 }
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+gboolean
+com_dronelabs_Perfkit_Manager_get_version (DBusGProxy *proxy, char ** OUT_version, GError **error)
+
+{
+  return dbus_g_proxy_call (proxy, "GetVersion", error, G_TYPE_INVALID, G_TYPE_STRING, OUT_version, G_TYPE_INVALID);
+}
+
+typedef void (*com_dronelabs_Perfkit_Manager_get_version_reply) (DBusGProxy *proxy, char * OUT_version, GError *error, gpointer userdata);
+
+static void
+com_dronelabs_Perfkit_Manager_get_version_async_callback (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+{
+  DBusGAsyncData *data = (DBusGAsyncData*) user_data;
+  GError *error = NULL;
+  char * OUT_version;
+  dbus_g_proxy_end_call (proxy, call, &error, G_TYPE_STRING, &OUT_version, G_TYPE_INVALID);
+  (*(com_dronelabs_Perfkit_Manager_get_version_reply)data->cb) (proxy, OUT_version, error, data->userdata);
+  return;
+}
+
+static
+#ifdef G_HAVE_INLINE
+inline
+#endif
+DBusGProxyCall*
+com_dronelabs_Perfkit_Manager_get_version_async (DBusGProxy *proxy, com_dronelabs_Perfkit_Manager_get_version_reply callback, gpointer userdata)
+
+{
+  DBusGAsyncData *stuff;
+  stuff = g_slice_new (DBusGAsyncData);
+  stuff->cb = G_CALLBACK (callback);
+  stuff->userdata = userdata;
+  return dbus_g_proxy_begin_call (proxy, "GetVersion", com_dronelabs_Perfkit_Manager_get_version_async_callback, stuff, _dbus_glib_async_data_free, G_TYPE_INVALID);
+}
 #endif /* defined DBUS_GLIB_CLIENT_WRAPPERS_com_dronelabs_Perfkit_Manager */
 
 G_END_DECLS
