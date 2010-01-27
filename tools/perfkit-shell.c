@@ -930,59 +930,6 @@ pk_shell_cmd_channel_unpause (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
-/*
-static EggLineStatus
-pk_shell_cmd_channel_set (EggLine  *line,
-                          gint      argc,
-                          gchar   **argv,
-                          GError  **error)
-{
-	PkChannel     *channel;
-	gint           channel_id = 0,
-	               v_int      = 0;
-	EggLineStatus  result     = EGG_LINE_STATUS_OK;
-
-	if (argc < 3)
-		return EGG_LINE_STATUS_BAD_ARGS;
-	else if (!pk_util_parse_int (argv [0], &channel_id))
-		return EGG_LINE_STATUS_BAD_ARGS;
-	else if (!g_str_equal ("target", argv [1]) &&
-	         !g_str_equal ("args", argv [1]) &&
-	         !g_str_equal ("env", argv [1]) &&
-	         !g_str_equal ("dir", argv [1]) &&
-	         !g_str_equal ("pid", argv [1]))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	channel = pk_manager_get_channel(manager, channel_id);
-
-	if (g_str_equal ("target", argv [1])) {
-		pk_channel_set_target (channel, argv [2]);
-	}
-	else if (g_str_equal ("args", argv [1])) {
-		pk_channel_set_args (channel, &argv [2]);
-	}
-	else if (g_str_equal ("env", argv [1])) {
-		pk_channel_set_env (channel, &argv [2]);
-	}
-	else if (g_str_equal ("dir", argv [1])) {
-		pk_channel_set_dir (channel, argv [2]);
-	}
-	else if (g_str_equal ("pid", argv [1])) {
-		if (!pk_util_parse_int (argv [2], &v_int))
-			result = EGG_LINE_STATUS_BAD_ARGS;
-		else
-			pk_channel_set_pid (channel, (GPid)v_int);
-	}
-	else {
-		g_warn_if_reached ();
-	}
-
-	g_object_unref (channel);
-
-	return result;
-}
-*/
-
 
 /*
  *----------------------------------------------------------------------------
@@ -1167,11 +1114,6 @@ static EggLineCommand channel_commands[] = {
 	{ "get", NULL, pk_shell_cmd_channel_get,
 	  N_("Retrieve channel properties"),
 	  "channel get [CHANNEL] [pid|target|args|env|state]" },
-	/*
-	{ "set", NULL, pk_shell_cmd_channel_set,
-	  N_("Set channel properties"),
-	  "channel set [CHANNEL] [pid|target|args|env] [VALUE]" },
-	*/
 	{ NULL }
 };
 
