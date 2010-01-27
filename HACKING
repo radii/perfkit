@@ -87,16 +87,6 @@ perfkit-daemon
   perfkit-daemon plugins.  Good examples of a data sources would be memory
   profilers, network bandwidth monitors, or cpu recorders.
 
-  Perfkit daemon provides an abstraction called "Channels".  A channel is a
-  collection of data sources which are aggregated together.  They can be
-  accessed in aggregate from a client connecting to the daemons RPC
-  mechanism.
-
-  Plugins for perfkit-daemon are provided using the Ethos plugin library.
-  More information on Ethos can be found at:
-
-    http://git.dronelabs.com/ethos
-
   Data sources, when recording, create "Samples".  Samples are nuggets of
   information about the inferior process (the target).  They can contain
   arbitrary information and are backhauled to interested clients through
@@ -121,39 +111,21 @@ perfkit-daemon
 libperfkit-1.0
 ==============
 
-  NOTE:
-         THIS IS PENDING A REWRITE TO MATCH THE NEW DAEMON DESIGN
-         --------------------------------------------------------
-
   Libperfkit is a shared library that reduces the complexity in talking to
   a remote perfkit-daemon.  It provides a transport abstraction so the
   physical transport used is not the problem of the client.  The standard
   connection used is DBUS for local profiling.  You can use the library
   to create a new connection as such:
 
-    PkConnection *conn = pk_connection_new_for_uri ("dbus://");
+    PkConnection *conn = pk_connection_new_from_uri ("dbus://");
 
   Currently, only DBUS is supported.
 
-  Proxy objects are provided for access services of the remote
-  perfkit-daemon.  The PkChannels class provides access to the Channels
-  service (which is available over DBUS).  Using your newly created
-  connection, you can get access to this service.
-
-    PkChannels *channels = pk_connection_get_channels (conn);
-
-  If you intend on storing a reference to this GObject, you should reference
-  it with g_object_ref();
-
-  Using this channels proxy, you can create new channels and manipulate
-  them as if they were in your local process.  For example, to create a
-  new Channel:
-
-    PkChannel *channel = pk_channels_add (channels);
-
-  When you are done with the channel, you should unreference it:
-
-    g_object_unref (channel);
+  You have two ways of using libperfkit.  You can use the lowlevel API
+  which is lightweight and direct.  Alternatively, you can use the object
+  model API which creates proxy objects for the remote daemon.  This might
+  be more friendly to GUI developers as GObject properties can be binded
+  to Gtk objects like GtkCellRenderers.
 
   The basic format of the shared library follows the semantics of the
   perfkit-daemon.
@@ -161,29 +133,25 @@ libperfkit-1.0
     / PkConnection
     |
     |   Abstracts the transport protocol used to talk to the daemon.
-    |   Currently, DBUS is supported.
+    |   Currently, DBUS is supported.  Provides all RPCs via the
+    |   <perfkit/perfkit-lowlevel.h> API.
     |
-    +- PkChannels
+    +- PkManager
     |
-    |  Gives you access to the Channels service within the perfkit-daemon.
-    |  This includes creating, removing, and finding channels.
+    |  Highlevel abstraction for managing a daemon on the opposite end-point
+    |  of the connection.  Gives access of locating objects and various
+    |  accounting information.
     |
     +--- PkChannel
        |
        |  Proxy for an individual channel found on the remote perfkit-daemon.
        |  Provides access to manipulate the channel.  Also can start, stop,
        |  pause, unpause, and receive samplse from the channel.
-       |
-    +- PkSources
-    |
-    |  Gives you access to the Sources service within the perfkit-daemon.
-    |  This includes creating, removing, and finding sources.
-    |
+    
     +--- PkSource
        |
        |  Proxy for an individual source found on the remote perfkit-daemon.
        |  Provides access to manipulate the source.
-       |
 
   Profiling sample delivery is a critical path in the lifecycle of the
   perfkit-daemon and client.  Perfkit, by default, uses the DBUS for
@@ -219,16 +187,18 @@ perfkit-support
 Milestone I.
 ============
 
- * Spawning a new process with arguments.
+ * Spawning a new process with arguments. [DONE]
  * Ability for data sources to alter environment variables prior to process
    spawning.
  * Data sources for:
-   - System Memory
+   - System Memory [DONE]
    - System CPU
    - GLib Memory Allocations
- * Ability to set sampling frequencies.
+   - GLib signal emissions
+ * Ability to set sampling frequencies. This is done per source.
  * Console shell to manipulate commands and monitor on the fly.
  * Start on user interface using Gtk with plugins using Ethos.
+ * Initial libperfkit API [MOSTLY DONE].
 
 Milestone II.
 =============
@@ -241,6 +211,7 @@ Milestone II.
  * API Review.
  * Security Review.
  * Python bindings.
+ * Lots more data sources.
 
 Milestone III.
 ==============
