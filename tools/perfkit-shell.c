@@ -463,10 +463,21 @@ pk_shell_cmd_version (EggLine  *line,
                       gchar   **argv,
                       GError  **error)
 {
-	/* TODO: Add Admin Service to the Daemon
-	 *       and retrieve the remote version.
-	 */
-	g_print ("Protocol:  %s\n", PK_VERSION_S);
+	GError *lerror = NULL;
+	gchar *ver = NULL;
+
+	g_print("Protocol...:  %s\n", PK_VERSION_S);
+
+	if (!pk_connection_manager_get_version(connection, &ver, &lerror)) {
+		g_printerr("Error fetching server version: %s\n", lerror->message);
+		g_error_free(lerror);
+		lerror = NULL;
+	}
+	else {
+		g_print("Daemon.....:  %s\n", ver);
+		g_free(ver);
+	}
+
 	return EGG_LINE_STATUS_OK;
 }
 
