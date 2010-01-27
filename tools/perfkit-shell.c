@@ -1092,6 +1092,57 @@ pk_shell_cmd_channel_get (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+
+/*
+ *----------------------------------------------------------------------------
+ *
+ * pk_shell_cmd_channel_add_source --
+ *
+ *    Add a source to a channel.
+ *
+ * Returns:
+ *    Command exit code.
+ *
+ * Side effects:
+ *    None.
+ *
+ *----------------------------------------------------------------------------
+ */
+
+static EggLineStatus
+pk_shell_cmd_channel_add_source(EggLine  *line,
+                                gint      argc,
+                                gchar   **argv,
+                                GError  **error)
+{
+	GError *lerror = NULL;
+	gint channel_id = 0, source_id = 0;
+
+	if (argc < 2) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_util_parse_int(argv[0], &channel_id)) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_connection_channel_add_source(connection,
+	                                      channel_id,
+	                                      argv[1],
+	                                      &source_id,
+	                                      &lerror)) {
+	    g_printerr("ERROR: %s.\n", lerror->message);
+	    g_error_free(lerror);
+	    lerror = NULL;
+	}
+	else {
+		g_print("Source %d created.\n", source_id);
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+
 static EggLineCommand channel_commands[] = {
 	{ "list", NULL, pk_shell_cmd_channel_list,
 	  N_("List perfkit channels"),
@@ -1114,6 +1165,9 @@ static EggLineCommand channel_commands[] = {
 	{ "get", NULL, pk_shell_cmd_channel_get,
 	  N_("Retrieve channel properties"),
 	  "channel get [CHANNEL] [pid|target|args|env|state]" },
+	{ "add-source", NULL, pk_shell_cmd_channel_add_source,
+	  N_("Add a source to the channel"),
+	  "channel add-source [CHANNEL] [SOURCE-TYPE]" },
 	{ NULL }
 };
 
