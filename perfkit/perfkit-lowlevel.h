@@ -117,6 +117,11 @@ pk_connection_manager_create_subscription (PkConnection    *connection,
                                            PkEncoderInfo   *encoder_info,
                                            GError         **error);
 
+gboolean
+pk_connection_manager_get_source_infos (PkConnection   *connection,
+                                        gchar        ***source_infos,
+                                        GError        **error);
+
 G_END_DECLS
 
 #endif /* __PERFKIT_LOWLEVEL_H__ */

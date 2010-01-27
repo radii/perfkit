@@ -370,6 +370,18 @@ pk_connection_manager_get_version (PkConnection  *connection,
 }
 
 gboolean
+pk_connection_manager_get_source_infos (PkConnection   *connection,
+                                        gchar        ***encoder_infos,
+                                        GError        **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(encoder_infos != NULL, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_get_source_infos(
+			connection, encoder_infos, error);
+}
+
+gboolean
 pk_connection_channel_add_source (PkConnection  *connection,
                                   gint           channel_id,
                                   const gchar   *source_type,

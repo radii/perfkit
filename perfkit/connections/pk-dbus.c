@@ -351,6 +351,18 @@ pk_dbus_manager_create_channel (PkConnection  *connection,
 }
 
 static gboolean
+pk_dbus_manager_get_source_infos (PkConnection   *connection,
+                                   gchar        ***source_infos,
+                                   GError        **error)
+{
+	g_warn_if_reached();
+
+	*source_infos = NULL;
+
+	return TRUE;
+}
+
+static gboolean
 pk_dbus_channel_add_source (PkConnection  *connection,
                             gint           channel_id,
                             const gchar   *source_type,
@@ -413,6 +425,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;
+	conn_class->manager_get_source_infos = pk_dbus_manager_get_source_infos;
 	conn_class->channel_add_source = pk_dbus_channel_add_source;
 }
 

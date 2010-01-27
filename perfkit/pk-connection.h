@@ -158,6 +158,10 @@ struct _PkConnectionClass
 	                                               PkEncoderInfo   *encoder_info,
 	                                               GError         **error);
 
+	gboolean       (*manager_get_source_infos)    (PkConnection    *connection,
+	                                               gchar         ***encoder_infos,
+	                                               GError         **error);
+
 	/*
 	 * Source Operations.
 	 */
