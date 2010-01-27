@@ -67,6 +67,13 @@ struct _PkConnectionClass
     /*
      * Channel Operations.
      */
+
+    gboolean       (*channel_add_source)          (PkConnection     *connection,
+	                                               gint              channel_id,
+	                                               const gchar      *source_type,
+	                                               gint             *source_id,
+	                                               GError          **error);
+
 	gboolean       (*channel_get_target)          (PkConnection     *connection,
 	                                               gint              channel_id,
 	                                               gchar           **target,

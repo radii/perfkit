@@ -369,6 +369,22 @@ pk_connection_manager_get_version (PkConnection  *connection,
 			connection, version, error);
 }
 
+gboolean
+pk_connection_channel_add_source (PkConnection  *connection,
+                                  gint           channel_id,
+                                  const gchar   *source_type,
+                                  gint          *source_id,
+                                  GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(channel_id >= 0, FALSE);
+	g_return_val_if_fail(source_type != NULL, FALSE);
+	g_return_val_if_fail(source_id != NULL, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_add_source(
+			connection, channel_id, source_type, source_id, error);
+}
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,

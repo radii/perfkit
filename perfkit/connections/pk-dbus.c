@@ -350,6 +350,36 @@ pk_dbus_manager_create_channel (PkConnection  *connection,
 	return FALSE;
 }
 
+static gboolean
+pk_dbus_channel_add_source (PkConnection  *connection,
+                            gint           channel_id,
+                            const gchar   *source_type,
+                            gint          *source_id,
+                            GError       **error)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+	DBusGProxy *proxy;
+	gchar *path = NULL, *spath;
+	gboolean res;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	spath = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+	                        source_type);
+	res = com_dronelabs_Perfkit_Channel_add_source(proxy, spath, &path, error);
+	g_object_unref(proxy);
+	g_free(spath);
+
+	if (res) {
+		if (sscanf(path, "/com/dronelabs/Perfkit/Sources/%d", source_id) != 1) {
+			res = FALSE;
+		}
+	}
+
+	g_free(path);
+
+	return res;
+}
+
 static void
 pk_dbus_finalize (GObject *object)
 {
@@ -383,6 +413,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;
+	conn_class->channel_add_source = pk_dbus_channel_add_source;
 }
 
 static void

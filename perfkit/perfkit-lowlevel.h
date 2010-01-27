@@ -24,6 +24,13 @@
 G_BEGIN_DECLS
 
 gboolean
+pk_connection_channel_add_source (PkConnection  *connection,
+                                  gint           channel_id,
+                                  const gchar   *source_type,
+                                  gint          *source_id,
+                                  GError       **error);
+
+gboolean
 pk_connection_channel_get_target (PkConnection   *connection,
                                   gint            channel_id,
                                   gchar         **target,
