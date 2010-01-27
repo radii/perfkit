@@ -163,6 +163,7 @@ gboolean      pk_connection_connect      (PkConnection  *connection,
 void          pk_connection_disconnect   (PkConnection  *connection);
 gboolean      pk_connection_is_connected (PkConnection  *connection);
 PkManager*    pk_connection_get_manager  (PkConnection  *connection);
+const gchar*  pk_connection_get_uri      (PkConnection  *connection);
 
 G_END_DECLS
 
