@@ -83,5 +83,16 @@
             <arg name="channels" type="as" direction="out"/>
         </method>
 
+        <!--
+            Manager::GetVersion()
+
+                Retrieves the version of the daemon.
+
+            Returns: A string containing the version.
+        -->
+        <method name="GetVersion">
+            <arg name="version" type="s" direction="out"/>
+        </method>
+
     </interface>
 </node>

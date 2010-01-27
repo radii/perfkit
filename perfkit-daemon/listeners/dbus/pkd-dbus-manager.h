@@ -76,6 +76,9 @@ gboolean pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 gboolean pkd_dbus_manager_get_processes       (PkdDBusManager  *manager,
                                                GPtrArray      **processes,
                                                GError         **error);
+gboolean pkd_dbus_manager_get_version         (PkdDBusManager  *manager,
+                                               gchar          **version,
+                                               GError         **error);
 
 G_END_DECLS
 

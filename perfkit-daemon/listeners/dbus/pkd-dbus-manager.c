@@ -210,6 +210,15 @@ error:
 	return FALSE;
 }
 
+gboolean
+pkd_dbus_manager_get_version (PkdDBusManager  *manager,
+                              gchar          **version,
+                              GError         **error)
+{
+	*version = g_strdup(PKD_VERSION_S);
+	return TRUE;
+}
+
 GQuark
 pkd_dbus_manager_error_quark (void)
 {
