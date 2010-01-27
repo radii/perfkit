@@ -1228,8 +1228,8 @@ pk_shell_cmd_ping (EggLine  *line,
 		g_free(v_str);
 		g_time_val_diff(&tv, &ltv, &rel);
 		g_print("    Latency: %lu.%06lu\n\n",
-		        rel / G_TIME_SPAN_SECOND,
-		        rel % G_TIME_SPAN_SECOND);
+		        (gulong)(rel / G_TIME_SPAN_SECOND),
+		        (gulong)(rel % G_TIME_SPAN_SECOND));
 	}
 
 	return EGG_LINE_STATUS_OK;
