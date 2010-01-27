@@ -1,19 +1,6 @@
 <?xml version="1.0" ?>
 <node>
-  <interface name="com.dronelabs.Perfkit.Source">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source"/>
-    <!-- Properties -->
-
-    <!-- Property Methods -->
-    <method name="SetChannel">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_set_channel_dbus"/>
-      <arg name="path" type="s" direction="in"/>
-    </method>
-    <method name="GetChannel">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_get_channel_dbus"/>
-      <arg name="path" type="s" direction="out"/>
-    </method>
-
-    <!-- Methods -->
-  </interface>
+    <interface name="com.dronelabs.Perfkit.Source">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source"/>
+    </interface>
 </node>

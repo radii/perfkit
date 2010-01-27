@@ -1,10 +1,28 @@
 <?xml version="1.0" ?>
 <node>
-  <interface name="com.dronelabs.Perfkit.Subscription">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_subscription"/>
+    <interface name="com.dronelabs.Perfkit.Subscription">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_dbus_subscription"/>
 
-    <method name="Deliver">
-      <arg name="buffer" type="ay" direction="in"/>
-    </method>
-  </interface>
+        <!--
+            PkdDbusSubscription::Enable
+
+                Enable a subscription; allowing data to flow.
+
+            Returns: None.
+        -->
+        <method name="Enable">
+        </method>
+
+        <!--
+            PkdDbusSubscription::Disable
+            @drain: drain all buffers before disabling
+
+                Disables the subscription from receiving future data until enable is called.
+
+            Returns: None.
+        -->
+        <method name="Disable">
+            <arg name="drain" type="b" direction="in"/>
+        </method>
+    </interface>
 </node>

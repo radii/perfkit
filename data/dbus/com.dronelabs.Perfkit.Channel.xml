@@ -3,75 +3,148 @@
   <interface name="com.dronelabs.Perfkit.Channel">
     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel"/>
 
-    <!-- Properties -->
-    <property name="Dir" type="s" access="readwrite" />
-    <property name="Args" type="as" access="readwrite" />
-    <property name="Target" type="s" access="readwrite" />
-    <property name="Env" type="as" access="readwrite" />
-    <property name="Pid" type="u" access="readwrite" />
+    <!--
+        PkdChannel::AddSource()
 
-    <method name="GetTarget">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_target_dbus"/>
-      <arg name="target" type="s" direction="out"/>
-    </method>
-    <method name="SetTarget">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_target_dbus"/>
-      <arg name="target" type="s" direction="in"/>
-    </method>
-    <method name="GetArgs">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_args_dbus"/>
-      <arg name="args" type="as" direction="out"/>
-    </method>
-    <method name="SetArgs">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_args_dbus"/>
-      <arg name="args" type="as" direction="in"/>
-    </method>
-    <method name="GetPid">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_pid_dbus"/>
-      <arg name="pid" type="u" direction="out"/>
-    </method>
-    <method name="SetPid">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_pid_dbus"/>
-      <arg name="pid" type="u" direction="in"/>
-    </method>
-    <method name="GetEnv">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_env_dbus"/>
-      <arg name="env" type="as" direction="out"/>
-    </method>
-    <method name="SetEnv">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_env_dbus"/>
-      <arg name="env" type="as" direction="in"/>
-    </method>
-    <method name="GetDir">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_dir_dbus"/>
-      <arg name="dir" type="s" direction="out"/>
-    </method>
-    <method name="SetDir">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_set_dir_dbus"/>
-      <arg name="dir" type="s" direction="in"/>
+            Adds a source to the channel for instrumentation.  Channel must
+            not be started.
+
+        Returns: The new object path for the source.
+    -->
+    <method name="AddSource">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_add_source_dbus"/>
+        <arg name="source_info_path" type="o" direction="in"/>
+        <arg name="source_path" type="o" direction="out"/>
     </method>
 
-    <!-- Methods -->
+    <!--
+        PkdChannel::Start()
+
+            Starts the PkdChannels profiling.  If necessary, a process is
+            spawned.
+
+        Returns: True on success.
+    -->
     <method name="Start">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_start"/>
     </method>
+
+    <!--
+        PkdChannel::Stop()
+        @killpid: True if the inferior process should be killed.
+
+            Stops the PkdChannels profiling.  Attached data sources are
+            notified to stop as well.  This method terminates any future
+            state changes to the channe.
+
+        Returns: None.
+    -->
     <method name="Stop">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_stop"/>
+        <arg name="killpid" type="b" direction="in"/>
     </method>
+
+    <!--
+        PkdChannel::Pause()
+
+            Pauses a PkdChannels profiling.  Attached data sources are
+            notified to stop producing samples.  If the source does not
+            support pausing the samples will be dropped.
+
+        Returns: True on success.
+    -->
     <method name="Pause">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_pause"/>
     </method>
+
+    <!--
+        PkdChannel::Unpause()
+
+            Unpauses a PkdChannels profiling.  Attached data sources
+            are notified to wake up and continue producing samples.
+            If any source manifests have changed during the time the
+            channel was paused, they will be delivered to the
+            subscribed clients.
+
+        Returns: True on success.
+    -->
     <method name="Unpause">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_unpause"/>
     </method>
+
+    <!--
+        PkdChannel::GetState()
+
+            Retrieves the state of a channel.
+
+        Returns: True on success.
+    -->
     <method name="GetState">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_get_state_dbus"/>
-      <arg name="state" type="u" direction="out"/>
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_state_dbus"/>
+        <arg name="state" type="i" direction="out"/>
     </method>
-    <method name="Subscribe">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel_subscribe_dbus"/>
-      <arg name="address" type="s" direction="in"/>
-      <arg name="path" type="s" direction="in"/>
+
+    <!--
+        PkdChannel::GetPid()
+
+            Retrieves the pid of the channels target.
+
+        Returns: True on success.
+    -->
+    <method name="GetPid">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_pid_dbus"/>
+        <arg name="pid" type="i" direction="out"/>
+    </method>
+
+    <!--
+        PkdChannel::GetTarget()
+
+            Retrieves the target of the channel.
+
+        Returns: True on success.
+    -->
+    <method name="GetTarget">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_target_dbus"/>
+        <arg name="target" type="s" direction="out"/>
+    </method>
+
+    <!--
+        PkdChannel::GetWorkingDir()
+
+            Retrieves the working-dir of the channel.
+
+        Returns: True on success.
+    -->
+    <method name="GetWorkingDir">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_working_dir_dbus"/>
+        <arg name="working_dir" type="s" direction="out"/>
+    </method>
+
+    <!--
+        PkdChannel::GetArgs()
+
+            Retrieves the target arguments of the channel.
+
+        Returns: True on success.
+    -->
+    <method name="GetArgs">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_args_dbus"/>
+        <arg name="args" type="as" direction="out"/>
+    </method>
+
+    <!--
+        PkdChannel::GetEnv()
+
+            Retrieves the environment of the channel.
+
+        Returns: True on success
+    -->
+    <method name="GetEnv">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_get_env_dbus"/>
+        <arg name="env" type="as" direction="out"/>
     </method>
   </interface>
 </node>

@@ -1,21 +1,11 @@
 <?xml version="1.0" ?>
 <node>
-  <interface name="com.dronelabs.Perfkit.SourceInfo">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info"/>
+    <interface name="com.dronelabs.Perfkit.SourceInfo">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info"/>
 
-    <method name="GetUid">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info_get_uid_dbus"/>
-      <arg name="uid" type="s" direction="out"/>
-    </method>
-
-    <method name="GetName">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info_get_name_dbus"/>
-      <arg name="name" type="s" direction="out"/>
-    </method>
-
-    <method name="Create">
-      <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source_info_create_dbus"/>
-      <arg name="path" type="o" direction="out"/>
-    </method>
-  </interface>
+        <property name="Uid" type="s" access="read"/>
+        <property name="Name" type="s" access="read"/>
+        <property name="Description" type="s" access="read"/>
+        <property name="Version" type="s" access="read"/>
+    </interface>
 </node>

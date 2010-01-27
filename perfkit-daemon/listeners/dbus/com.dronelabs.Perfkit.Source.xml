@@ -1,6 +1,0 @@
-<?xml version="1.0" ?>
-<node>
-    <interface name="com.dronelabs.Perfkit.Source">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source"/>
-    </interface>
-</node>
