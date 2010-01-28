@@ -393,7 +393,10 @@ pkd_channel_start (PkdChannel  *channel,
 		if (!g_spawn_async(working_dir,
 		                   argv,
 		                   priv->spawn_info.env,
-		                   G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL | G_SPAWN_DO_NOT_REAP_CHILD,
+		                   G_SPAWN_SEARCH_PATH |
+		                   G_SPAWN_STDERR_TO_DEV_NULL |
+		                   G_SPAWN_STDOUT_TO_DEV_NULL |
+		                   G_SPAWN_DO_NOT_REAP_CHILD,
 		                   NULL,
 		                   NULL,
 		                   &priv->spawn_info.pid,
