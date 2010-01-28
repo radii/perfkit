@@ -45,6 +45,7 @@ void   pkd_pipeline_add_listener        (PkdListener     *listener);
 void   pkd_pipeline_add_source          (PkdSource       *source);
 void   pkd_pipeline_add_source_info     (PkdSourceInfo   *source_info);
 void   pkd_pipeline_add_subscription    (PkdSubscription *subscription);
+void   pkd_pipeline_remove_channel      (PkdChannel      *channel);
 GList* pkd_pipeline_get_channels        (void);
 GList* pkd_pipeline_get_encoder_plugins (void);
 GList* pkd_pipeline_get_source_plugins  (void);

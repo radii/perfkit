@@ -94,5 +94,16 @@
             <arg name="version" type="s" direction="out"/>
         </method>
 
+        <!--
+            Manager::RemoveChannel()
+
+                Removes a channel from the pipeline.
+
+            Returns: None.
+        -->
+        <method name="RemoveChannel">
+            <arg name="path" type="o" direction="in"/>
+        </method>
+
     </interface>
 </node>

@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:UINT,STRING,BOXED,BOXED,STRING,POINTER,POINTER */
+/* BOOLEAN:UINT,STRING,BOXED,BOXED,STRING,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.PJ0D7U:1) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER (GClosure     *closure,
                                                                                                         GValue       *return_value,
                                                                                                         guint         n_param_values,
@@ -110,7 +110,54 @@ dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINT
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:STRING,STRING,BOXED,UINT,UINT,BOXED,POINTER,POINTER */
+/* BOOLEAN:BOXED,POINTER (/tmp/dbus-binding-tool-c-marshallers.PJ0D7U:2) */
+extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__BOXED_POINTER (GClosure     *closure,
+                                                                       GValue       *return_value,
+                                                                       guint         n_param_values,
+                                                                       const GValue *param_values,
+                                                                       gpointer      invocation_hint,
+                                                                       gpointer      marshal_data);
+void
+dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__BOXED_POINTER (GClosure     *closure,
+                                                           GValue       *return_value G_GNUC_UNUSED,
+                                                           guint         n_param_values,
+                                                           const GValue *param_values,
+                                                           gpointer      invocation_hint G_GNUC_UNUSED,
+                                                           gpointer      marshal_data)
+{
+  typedef gboolean (*GMarshalFunc_BOOLEAN__BOXED_POINTER) (gpointer     data1,
+                                                           gpointer     arg_1,
+                                                           gpointer     arg_2,
+                                                           gpointer     data2);
+  register GMarshalFunc_BOOLEAN__BOXED_POINTER callback;
+  register GCClosure *cc = (GCClosure*) closure;
+  register gpointer data1, data2;
+  gboolean v_return;
+
+  g_return_if_fail (return_value != NULL);
+  g_return_if_fail (n_param_values == 3);
+
+  if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer (param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer (param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (GMarshalFunc_BOOLEAN__BOXED_POINTER) (marshal_data ? marshal_data : cc->callback);
+
+  v_return = callback (data1,
+                       g_marshal_value_peek_boxed (param_values + 1),
+                       g_marshal_value_peek_pointer (param_values + 2),
+                       data2);
+
+  g_value_set_boolean (return_value, v_return);
+}
+
+/* BOOLEAN:STRING,STRING,BOXED,UINT,UINT,BOXED,POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.PJ0D7U:3) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER (GClosure     *closure,
                                                                                                              GValue       *return_value,
                                                                                                              guint         n_param_values,
@@ -169,7 +216,7 @@ dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:POINTER,POINTER */
+/* BOOLEAN:POINTER,POINTER (/tmp/dbus-binding-tool-c-marshallers.PJ0D7U:4) */
 extern void dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER (GClosure     *closure,
                                                                          GValue       *return_value,
                                                                          guint         n_param_values,
@@ -228,13 +275,14 @@ static const DBusGMethodInfo dbus_glib_pkd_dbus_manager_methods[] = {
   { (GCallback) pkd_dbus_manager_get_processes, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 344 },
   { (GCallback) pkd_dbus_manager_get_channels, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 414 },
   { (GCallback) pkd_dbus_manager_get_version, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__POINTER_POINTER, 477 },
+  { (GCallback) pkd_dbus_manager_remove_channel, dbus_glib_marshal_pkd_dbus_manager_BOOLEAN__BOXED_POINTER, 537 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_dbus_manager_object_info = {
   0,
   dbus_glib_pkd_dbus_manager_methods,
-  6,
-"com.dronelabs.Perfkit.Manager\0Ping\0S\0time\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0com.dronelabs.Perfkit.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Manager\0GetVersion\0S\0version\0O\0F\0N\0s\0\0\0",
+  7,
+"com.dronelabs.Perfkit.Manager\0Ping\0S\0time\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0com.dronelabs.Perfkit.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Manager\0GetVersion\0S\0version\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0RemoveChannel\0S\0path\0I\0o\0\0\0",
 "\0",
 "\0"
 };

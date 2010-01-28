@@ -242,6 +242,9 @@ pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
 	gchar **cpaths;
 	gint i;
 
+	g_return_val_if_fail(PKD_DBUS_IS_MANAGER(manager), FALSE);
+	g_return_val_if_fail(paths != NULL, FALSE);
+
 	channels = pkd_pipeline_get_channels();
 	cpaths = g_malloc0(sizeof(gchar*) * (g_list_length(channels) + 1));
 
@@ -253,6 +256,28 @@ pkd_dbus_manager_get_channels (PkdDBusManager   *manager,
 	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
 	g_list_free(channels);
 	*paths = cpaths;
+
+	return TRUE;
+}
+
+
+gboolean
+pkd_dbus_manager_remove_channel (PkdDBusManager  *manager,
+                                 const gchar     *path,
+                                 GError         **error)
+{
+	PkdDBusManagerPrivate *priv;
+	PkdChannel *channel;
+
+	g_return_val_if_fail(PKD_DBUS_IS_MANAGER(manager), FALSE);
+	g_return_val_if_fail(path != NULL, FALSE);
+
+	priv = manager->priv;
+
+	channel = (PkdChannel *)dbus_g_connection_lookup_g_object(pkd_dbus_get_connection(), path);
+	if (channel) {
+		pkd_pipeline_remove_channel(channel);
+	}
 
 	return TRUE;
 }

@@ -460,3 +460,50 @@ pkd_pipeline_get_source_plugins (void)
 
 	return list;
 }
+
+/**
+ * pkd_pipeline_remove_channel:
+ * @channel: A #PkdChannel
+ *
+ * Removes a channel from the pipeline.
+ *
+ * Side effects:
+ *    Channel is stopped if needed.
+ */
+void
+pkd_pipeline_remove_channel (PkdChannel *channel)
+{
+	gboolean found;
+	GError *error = NULL;
+
+	g_return_if_fail(PKD_IS_CHANNEL(channel));
+
+	g_message("Removing channel %d.", pkd_channel_get_id(channel));
+
+	/*
+	 * Remove the channel from the list.
+	 */
+	G_LOCK(channels);
+	found = (g_list_find(channels, channel) != NULL);
+	channels = g_list_remove(channels, channel);
+	G_UNLOCK(channels);
+
+	/*
+	 * If we removed it from the list, we need to ensure the channel
+	 * has stopped and then loose our reference.
+	 *
+	 * XXX:
+	 *
+	 *   We should create a policy for killing the process or not.
+	 *
+	 */
+	if (found) {
+		if (!pkd_channel_stop(channel, FALSE, &error)) {
+			g_warning("%s", error->message);
+			g_error_free(error);
+		}
+		g_message("Channel %d removed.", pkd_channel_get_id(channel));
+		g_object_unref(channel);
+	}
+
+}
