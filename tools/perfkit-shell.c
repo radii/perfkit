@@ -1143,6 +1143,40 @@ pk_shell_cmd_channel_add_source(EggLine  *line,
 }
 
 
+static EggLineStatus
+pk_shell_cmd_channel_remove (EggLine  *line,
+                             gint      argc,
+                             gchar   **argv,
+                             GError  **error)
+{
+	gint channel_id = 0;
+	GError *lerror = NULL;
+
+	if (argc != 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_util_parse_int(argv[0], &channel_id)) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (channel_id < 0) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_connection_manager_remove_channel(connection,
+	                                          channel_id,
+	                                          &lerror)) {
+	    g_printerr("ERROR: %s\n", lerror->message);
+	    g_error_free(lerror);
+	} else {
+		g_print("Removed channel %d.\n", channel_id);
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+
 static EggLineCommand channel_commands[] = {
 	{ "list", NULL, pk_shell_cmd_channel_list,
 	  N_("List perfkit channels"),
@@ -1168,6 +1202,9 @@ static EggLineCommand channel_commands[] = {
 	{ "add-source", NULL, pk_shell_cmd_channel_add_source,
 	  N_("Add a source to the channel"),
 	  "channel add-source [CHANNEL] [SOURCE-TYPE]" },
+	{ "remove", NULL, pk_shell_cmd_channel_remove,
+	  N_("Remove a channel"),
+	  "channel remove [CHANNEL]" },
 	{ NULL }
 };
 
@@ -1260,15 +1297,16 @@ static EggLineCommand commands[] = {
 	     "\n"
 	     "Commands:\n"
 	     "\n"
-	     "  add     - Add a new channel\n"
-	     "  get     - Get channel properties\n"
-	     "  list    - List available channels\n"
-	     "  pause   - Pause a channel\n"
-	     "  unpause - Unpause a paused channel\n"
-	     "  remove  - Remove a channel\n"
-	     "  set     - Set channel properties\n"
-	     "  start   - Start the channel recording\n"
-	     "  stop    - Stop the channel recording\n"),
+	     "  add           - Add a new channel\n"
+	     "  add-source    - Add a new source to the channel\n"
+	     "  get           - Get channel properties\n"
+	     "  list          - List available channels\n"
+	     "  pause         - Pause a channel\n"
+	     "  unpause       - Unpause a paused channel\n"
+	     "  remove        - Remove a channel\n"
+	     "  set           - Set channel properties\n"
+	     "  start         - Start the channel recording\n"
+	     "  stop          - Stop the channel recording\n"),
 	  "channel [COMMAND]" },
 	{ NULL }
 };
