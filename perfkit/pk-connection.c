@@ -301,6 +301,17 @@ pk_connection_manager_create_channel (PkConnection   *connection,
 }
 
 gboolean
+pk_connection_manager_remove_channel (PkConnection  *connection,
+                                      gint           channel_id,
+                                      GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_remove_channel(
+			connection, channel_id, error);
+}
+
+gboolean
 pk_connection_channel_start (PkConnection  *connection,
                              gint           channel_id,
                              GError       **error)

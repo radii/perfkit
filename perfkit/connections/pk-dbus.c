@@ -268,6 +268,24 @@ pk_dbus_connect (PkConnection  *connection,
 	return TRUE;
 }
 
+static gboolean
+pk_dbus_manager_remove_channel (PkConnection  *connection,
+                                gint           channel_id,
+                                GError       **error)
+{
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+	gboolean ret;
+	gchar *path;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d", channel_id);
+	ret = com_dronelabs_Perfkit_Manager_remove_channel(priv->manager,
+	                                                   path,
+	                                                   error);
+	g_free(path);
+
+	return ret;
+}
+
 static void
 pk_dbus_disconnect (PkConnection *connection)
 {
@@ -422,11 +440,12 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->channel_stop = pk_dbus_channel_stop;
 	conn_class->channel_pause = pk_dbus_channel_pause;
 	conn_class->channel_unpause = pk_dbus_channel_unpause;
+	conn_class->channel_add_source = pk_dbus_channel_add_source;
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;
 	conn_class->manager_get_source_infos = pk_dbus_manager_get_source_infos;
-	conn_class->channel_add_source = pk_dbus_channel_add_source;
+	conn_class->manager_remove_channel = pk_dbus_manager_remove_channel;
 }
 
 static void
