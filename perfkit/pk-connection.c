@@ -408,6 +408,20 @@ pk_connection_channel_add_source (PkConnection  *connection,
 			connection, channel_id, source_type, source_id, error);
 }
 
+gboolean
+pk_connection_channel_remove_source (PkConnection  *connection,
+                                     gint           channel_id,
+                                     gint           source_id,
+                                     GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(channel_id >= 0, FALSE);
+	g_return_val_if_fail(source_id >= 0, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->channel_remove_source(
+			connection, channel_id, source_id, error);
+}
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,

@@ -121,6 +121,11 @@ struct _PkConnectionClass
 	                                               gint             channel_id,
 	                                               GError         **error);
 
+	gboolean       (*channel_remove_source)       (PkConnection    *connection,
+	                                               gint             channel_id,
+	                                               gint             source_id,
+	                                               GError         **error);
+
 	/*
 	 * Encoder Operations.
 	 */

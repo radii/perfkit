@@ -895,6 +895,14 @@ pkd_channel_get_state (PkdChannel *channel)
 	return state;
 }
 
+gboolean
+pkd_channel_remove_source (PkdChannel  *channel,
+                           gint         source_id,
+                           GError     **error)
+{
+	return TRUE;
+}
+
 static void
 pkd_channel_finalize (GObject *object)
 {

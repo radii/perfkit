@@ -110,6 +110,9 @@ gboolean        pkd_channel_unpause         (PkdChannel          *channel,
                                              GError             **error);
 PkdSource*      pkd_channel_add_source      (PkdChannel          *channel,
                                              PkdSourceInfo       *source_info);
+gboolean        pkd_channel_remove_source   (PkdChannel          *channel,
+                                             gint                 source_id,
+                                             GError             **error);
 
 G_END_DECLS
 

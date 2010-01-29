@@ -254,6 +254,23 @@ pk_dbus_channel_unpause (PkConnection  *connection,
 }
 
 static gboolean
+pk_dbus_channel_remove_source (PkConnection  *connection,
+                               gint           channel_id,
+                               gint           source_id,
+                               GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gboolean result;
+
+	proxy = channel_proxy_new(priv->dbus, channel_id);
+	result = com_dronelabs_Perfkit_Channel_remove_source(proxy, source_id, error);
+	g_object_unref(proxy);
+
+	return result;
+}
+
+static gboolean
 pk_dbus_connect (PkConnection  *connection,
                  GError       **error)
 {
@@ -441,6 +458,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->channel_pause = pk_dbus_channel_pause;
 	conn_class->channel_unpause = pk_dbus_channel_unpause;
 	conn_class->channel_add_source = pk_dbus_channel_add_source;
+	conn_class->channel_remove_source = pk_dbus_channel_remove_source;
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;

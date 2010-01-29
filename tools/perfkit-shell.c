@@ -1177,6 +1177,42 @@ pk_shell_cmd_channel_remove (EggLine  *line,
 }
 
 
+static EggLineStatus
+pk_shell_cmd_channel_remove_source (EggLine  *line,
+                                    gint      argc,
+                                    gchar   **argv,
+                                    GError  **error)
+{
+	gint channel_id, source_id;
+	GError *lerror = NULL;
+
+	if (argc != 2) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_util_parse_int(argv[0], &channel_id) ||
+	    !pk_util_parse_int(argv[1], &source_id)) {
+	    return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (channel_id < 0 || source_id < 0) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_connection_channel_remove_source(connection,
+	                                         channel_id,
+	                                         source_id,
+	                                         &lerror)) {
+	    g_printerr("ERROR: %s\n", lerror->message);
+	    g_error_free(lerror);
+	} else {
+		g_print("Removed source %d from channel %d.\n", source_id, channel_id);
+	}
+
+	return EGG_LINE_STATUS_OK;
+}
+
+
 static EggLineCommand channel_commands[] = {
 	{ "list", NULL, pk_shell_cmd_channel_list,
 	  N_("List perfkit channels"),
@@ -1205,6 +1241,9 @@ static EggLineCommand channel_commands[] = {
 	{ "remove", NULL, pk_shell_cmd_channel_remove,
 	  N_("Remove a channel"),
 	  "channel remove [CHANNEL]" },
+	{ "remove-source", NULL, pk_shell_cmd_channel_remove_source,
+		N_("Remove a source from channel"),
+		"channel remove-source [CHANNEL] [SOURCE]" },
 	{ NULL }
 };
 

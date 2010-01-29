@@ -127,6 +127,12 @@ pk_connection_manager_remove_channel (PkConnection  *connection,
                                       gint           channel_id,
                                       GError       **error);
 
+gboolean
+pk_connection_channel_remove_source (PkConnection  *connection,
+                                     gint           channel_id,
+                                     gint           source_id,
+                                     GError       **error);
+
 G_END_DECLS
 
 #endif /* __PERFKIT_LOWLEVEL_H__ */

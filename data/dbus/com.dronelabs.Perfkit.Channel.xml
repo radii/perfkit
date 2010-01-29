@@ -146,5 +146,18 @@
             value="pkd_channel_get_env_dbus"/>
         <arg name="env" type="as" direction="out"/>
     </method>
+
+    <!--
+        PkdChannel::RemoveSource()
+
+            Removes a source from a channel.
+
+        Returns: True on success
+    -->
+    <method name="RemoveSource">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+            value="pkd_channel_remove_source"/>
+        <arg name="source_id" type="i" direction="in"/>
+    </method>
   </interface>
 </node>
