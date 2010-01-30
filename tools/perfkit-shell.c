@@ -1212,6 +1212,72 @@ pk_shell_cmd_channel_remove_source (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+static void
+monitor_on_manifest (PkManifest *manifest,
+                     gpointer    user_data)
+{
+}
+
+static void
+monitor_on_sample (PkSample *sample,
+                   gpointer  user_data)
+{
+}
+
+static EggLineStatus
+pk_shell_cmd_channel_monitor (EggLine  *line,
+                              gint      argc,
+                              gchar   **argv,
+                              GError  **error)
+{
+	GMainLoop *loop;
+	gint channel_id, sub_id;
+
+	if (argc < 1) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	if (!pk_util_parse_int(argv[0], &channel_id)) {
+		return EGG_LINE_STATUS_BAD_ARGS;
+	}
+
+	/* Create main loop */
+	loop = g_main_loop_new(NULL, FALSE);
+
+	/* Create subscription to channel */
+	if (!pk_connection_manager_create_subscription(connection,
+	                                               channel_id,
+	                                               0,
+	                                               G_TIME_SPAN_SECOND,
+	                                               NULL,
+	                                               &sub_id,
+	                                               error)) {
+		return EGG_LINE_STATUS_FAILURE;
+	}
+
+	/* Set subscription callbacks */
+	pk_connection_subscription_set_handlers(connection,
+	                                        sub_id,
+	                                        monitor_on_manifest,
+	                                        monitor_on_sample,
+	                                        NULL);
+
+	if (!pk_connection_subscription_enable(connection, sub_id, error)) {
+		return EGG_LINE_STATUS_FAILURE;
+	}
+
+	/* Start main loop */
+	g_main_loop_run(loop);
+
+	/*
+	if (!pk_connection_subscription_disable(connection, sub_id, error)) {
+		return EGG_LINE_STATUS_FAILURE;
+	}
+	*/
+
+	return EGG_LINE_STATUS_OK;
+}
+
 
 static EggLineCommand channel_commands[] = {
 	{ "list", NULL, pk_shell_cmd_channel_list,
@@ -1244,6 +1310,9 @@ static EggLineCommand channel_commands[] = {
 	{ "remove-source", NULL, pk_shell_cmd_channel_remove_source,
 		N_("Remove a source from channel"),
 		"channel remove-source [CHANNEL] [SOURCE]" },
+	{ "monitor", NULL, pk_shell_cmd_channel_monitor,
+	    N_("Monitor samples from a channel."),
+	    "channel monitor [CHANNEL]" },
 	{ NULL }
 };
 
