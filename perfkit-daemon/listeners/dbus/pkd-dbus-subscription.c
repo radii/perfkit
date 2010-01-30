@@ -34,7 +34,7 @@ PkdDbusSubscription*
 pkd_dbus_subscription_new (PkdSubscription *sub)
 {
 	PkdDbusSubscription *d_sub;
-	
+
 	d_sub = g_object_new (PKD_DBUS_TYPE_SUBSCRIPTION, NULL);
 	d_sub->priv->sub = pkd_subscription_ref(sub);
 
