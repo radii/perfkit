@@ -20,10 +20,11 @@
 #include "config.h"
 #endif
 
-#include <gmodule.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <glib/gstdio.h>
+#include <gmodule.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -314,28 +315,37 @@ handle_msg (DBusConnection *conn,
 	PkManifest *manifest = NULL;
 	PkSample *sample = NULL;
 	gint sub_id = 0;
-	guint8 *buffer = NULL;
+	const guint8 *buffer = NULL;
 	gsize length = 0;
-	DBusMessageIter iter;
+	DBusMessageIter iter, ar_iter;
 
-	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription"))
+	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription")) {
+		g_warning("Not subscription interface.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
 
 	if (sscanf(dbus_message_get_path(msg), "/Subscriptions/%d", &sub_id) != 1) {
+		g_warning("Not subscription bound.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
 	if (!dbus_message_iter_init(msg, &iter)) {
+		g_warning("No mem for iter.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
 	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+		g_warning("Arg not array.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
-	/*
-	 * TODO: HOW THE FUCK DO I GET AN ARRAY FROM THIS SHIT?
-	 */
+	if (dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_BYTE) {
+		g_warning("Element not byte.");
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	dbus_message_iter_recurse(&iter, &ar_iter);
+	dbus_message_iter_get_fixed_array(&ar_iter, &buffer, (gint *)&length);
 
 	switch (get_msg_type(msg)) {
 	case MSG_MANIFEST:
@@ -377,7 +387,7 @@ pk_dbus_manager_ensure_delivery_server (PkDbus  *dbus,
 {
 	PkDbusPrivate *priv = dbus->priv;
 	gboolean result = TRUE;
-	gchar *addr;
+	gchar *addr, *path, *dir;
 	DBusError derror;
 
 	G_LOCK(delivery_socket);
@@ -389,12 +399,30 @@ pk_dbus_manager_ensure_delivery_server (PkDbus  *dbus,
 	/*
 	 * Create path to subscription server.
 	 */
-	addr = g_strdup_printf("unix:path=%s/perfkit-%s/%lu-%p.socket",
+	path = g_strdup_printf("%s/perfkit-%s/%lu-%p.socket",
 	                       g_get_tmp_dir(),
 	                       g_get_user_name(),
 	                       (gulong)getpid(),
 	                       dbus);
-	priv->sub_addr = addr;
+	addr = g_strdup_printf("unix:path=%s", path);
+	g_debug("Registering socket: %s", addr);
+
+	/*
+	 * Make sure directory exists.
+	 */
+	dir = g_dirname(path);
+	if (!g_file_test(dir, G_FILE_TEST_IS_DIR)) {
+		if (g_mkdir(dir, 0700) != 0) {
+			g_warning("Could not create temporary directory: %s", dir);
+			result = FALSE;
+			g_free(dir);
+			g_free(path);
+			g_free(addr);
+			goto unlock;
+		}
+	}
+	g_free(dir);
+	g_free(path);
 
 	/*
 	 * Create D-BUS server.
@@ -468,6 +496,8 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 		encoder_path = g_strdup_printf(
 				"/com/dronelabs/Perfkit/Plugins/Encoders/%s",
 				encoder_info_uid);
+	} else {
+		encoder_path = g_strdup("/");
 	}
 	channel_path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
 	                               channel_id);
