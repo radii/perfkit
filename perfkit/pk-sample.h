@@ -31,10 +31,12 @@ G_BEGIN_DECLS
 
 typedef struct _PkSample PkSample;
 
-GType         pk_sample_get_type   (void) G_GNUC_CONST;
-PkSample*     pk_sample_new        (void);
-PkSample*     pk_sample_ref        (PkSample *sample);
-void          pk_sample_unref      (PkSample *sample);
+GType         pk_sample_get_type      (void) G_GNUC_CONST;
+PkSample*     pk_sample_new           (void);
+PkSample*     pk_sample_new_from_data (const guint8 *data,
+                                       gsize         length);
+PkSample*     pk_sample_ref           (PkSample     *sample);
+void          pk_sample_unref         (PkSample     *sample);
 
 G_END_DECLS
 

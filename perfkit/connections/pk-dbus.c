@@ -21,13 +21,20 @@
 #endif
 
 #include <gmodule.h>
+#include <dbus/dbus.h>
 #include <dbus/dbus-glib.h>
+#include <dbus/dbus-glib-lowlevel.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <perfkit/perfkit-lowlevel.h>
 
 #include "pk-dbus.h"
 #include "pk-manager-dbus.h"
 #include "pk-channel-dbus.h"
+#include "pk-subscription-dbus.h"
 
 G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_CONNECTION)
 
@@ -35,6 +42,9 @@ struct _PkDbusPrivate
 {
 	DBusGConnection *dbus;
 	DBusGProxy      *manager;
+	DBusServer      *sub_server;
+	gchar           *sub_addr;
+	DBusGConnection *sub_conn;
 };
 
 static inline DBusGProxy*
@@ -270,6 +280,242 @@ pk_dbus_channel_remove_source (PkConnection  *connection,
 	return result;
 }
 
+G_LOCK_DEFINE(delivery_socket);
+
+#define PK_DBUS_ERROR (g_quark_from_static_string("pk-dbus-error-quark"))
+#define PK_DBUS_ERROR_UNKNOWN (1)
+#define HAS_INTERFACE(m,i)   (g_strcmp0(i, dbus_message_get_interface(m)) == 0)
+#define IS_MEMBER_NAMED(m,i) (g_strcmp0(i, dbus_message_get_member(m)) == 0)
+#define IS_SIGNATURE(m,i)    (g_strcmp0(i, dbus_message_get_signature(m)) == 0)
+
+enum
+{
+	MSG_UNKNOWN,
+	MSG_MANIFEST,
+	MSG_SAMPLE,
+};
+
+static inline gint
+get_msg_type (DBusMessage *msg)
+{
+	if (IS_MEMBER_NAMED(msg, "Manifest"))
+		return MSG_MANIFEST;
+	else if (IS_MEMBER_NAMED(msg, "Sample"))
+		return MSG_SAMPLE;
+	return MSG_UNKNOWN;
+}
+
+static DBusHandlerResult
+handle_msg (DBusConnection *conn,
+            DBusMessage    *msg,
+            void           *data)
+{
+	PkConnection *pk_conn = data;
+	PkManifest *manifest = NULL;
+	PkSample *sample = NULL;
+	gint sub_id = 0;
+	guint8 *buffer = NULL;
+	gsize length = 0;
+	DBusMessageIter iter;
+
+	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription"))
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+	if (sscanf(dbus_message_get_path(msg), "/Subscriptions/%d", &sub_id) != 1) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	if (!dbus_message_iter_init(msg, &iter)) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	/*
+	 * TODO: HOW THE FUCK DO I GET AN ARRAY FROM THIS SHIT?
+	 */
+
+	switch (get_msg_type(msg)) {
+	case MSG_MANIFEST:
+		manifest = pk_manifest_new_from_data(buffer, length);
+		pk_connection_subscription_deliver_manifest(pk_conn, sub_id, manifest);
+		break;
+	case MSG_SAMPLE:
+		sample = pk_sample_new_from_data(buffer, length);
+		pk_connection_subscription_deliver_sample(pk_conn, sub_id, sample);
+		break;
+	default:
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static DBusObjectPathVTable subs_vtable = { 
+	NULL,
+	handle_msg,
+};
+
+static void
+pk_dbus_on_new_sub (DBusServer     *server,
+                    DBusConnection *connection,
+                    gpointer        data)
+{
+	dbus_connection_ref(connection);
+	dbus_connection_setup_with_g_main(connection, NULL);
+	dbus_connection_register_fallback(connection,
+	                                  "/Subscriptions",
+	                                  &subs_vtable,
+	                                  data);
+}
+
+static gboolean
+pk_dbus_manager_ensure_delivery_server (PkDbus  *dbus,
+                                        GError **error)
+{
+	PkDbusPrivate *priv = dbus->priv;
+	gboolean result = TRUE;
+	gchar *addr;
+	DBusError derror;
+
+	G_LOCK(delivery_socket);
+
+	if (priv->sub_server) {
+		goto unlock;
+	}
+
+	/*
+	 * Create path to subscription server.
+	 */
+	addr = g_strdup_printf("unix:path=%s/perfkit-%s/%lu-%p.socket",
+	                       g_get_tmp_dir(),
+	                       g_get_user_name(),
+	                       (gulong)getpid(),
+	                       dbus);
+	priv->sub_addr = addr;
+
+	/*
+	 * Create D-BUS server.
+	 */
+	dbus_error_init(&derror);
+	priv->sub_server = dbus_server_listen(addr, &derror);
+	if (!priv->sub_server) {
+		g_set_error(error, PK_DBUS_ERROR, PK_DBUS_ERROR_UNKNOWN,
+		            "Error enabling delivery D-BUS server: %s",
+		            derror.message);
+		dbus_error_free(&derror);
+		result = FALSE;
+		goto unlock;
+	}
+
+	/*
+	 * Attach D-BUS to main loop for event delivery.
+	 */
+	dbus_server_setup_with_g_main(priv->sub_server, g_main_context_default());
+
+	/*
+	 * Set new connection handler.
+	 */
+	dbus_server_set_new_connection_function(priv->sub_server,
+	                                        pk_dbus_on_new_sub,
+	                                        g_object_ref(dbus),
+	                                        (DBusFreeFunction)g_object_unref);
+
+	/*
+	 * Open the connection and listen for events.
+	 */
+	priv->sub_conn = dbus_g_connection_open(addr, NULL);
+
+unlock:
+	G_UNLOCK(delivery_socket);
+
+	return result;
+}
+
+static guint sub_seq = 0;
+
+static gboolean
+pk_dbus_manager_create_subscription (PkConnection  *connection,
+                                     gint           channel_id,
+                                     gsize          buffer_size,
+                                     gulong         buffer_timeout,
+                                     const gchar   *encoder_info_uid,
+                                     gint          *subscription_id,
+                                     GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	gboolean result = FALSE;
+	gchar *channel_path = NULL,
+	      *encoder_path = NULL,
+	      *sub_path;
+	guint  sub_id;
+
+	/*
+	 * Setup delivery unix socket if needed.
+	 */
+	if (!pk_dbus_manager_ensure_delivery_server (PK_DBUS(connection), error)) {
+		return FALSE;
+	}
+
+	sub_id = g_atomic_int_exchange_and_add((gint *)&sub_seq, 1);
+
+	/*
+	 * Setup EncoderInfo and Channel paths.
+	 */
+	if (encoder_info_uid) {
+		encoder_path = g_strdup_printf(
+				"/com/dronelabs/Perfkit/Plugins/Encoders/%s",
+				encoder_info_uid);
+	}
+	channel_path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	                               channel_id);
+	sub_path = g_strdup_printf("/Subscriptions/%d", sub_id);
+
+	if (!com_dronelabs_Perfkit_Manager_create_subscription(priv->manager,
+	                                                       priv->sub_addr,
+	                                                       sub_path,
+	                                                       channel_path,
+	                                                       buffer_size,
+	                                                       buffer_timeout,
+	                                                       encoder_path,
+	                                                       &sub_path,
+	                                                       error)) {
+	    goto cleanup;
+	}
+
+	result = TRUE;
+
+cleanup:
+	g_free(channel_path);
+	g_free(encoder_path);
+	g_free(sub_path);
+	return result;
+}
+
+static gboolean
+pk_dbus_subscription_enable (PkConnection  *connection,
+                             gint           subscription_id,
+                             GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gchar *path;
+	gboolean ret;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	                       subscription_id);
+	proxy = dbus_g_proxy_new_for_name(priv->dbus,
+	                                  "com.dronelabs.Perfkit",
+	                                  path,
+	                                  "com.dronelabs.Perfkit.Subscription");
+	g_free(path);
+	ret = com_dronelabs_Perfkit_Subscription_enable(proxy, error);
+	g_object_unref(proxy);
+	return ret;
+}
+
 static gboolean
 pk_dbus_connect (PkConnection  *connection,
                  GError       **error)
@@ -461,9 +707,11 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->channel_remove_source = pk_dbus_channel_remove_source;
 	conn_class->manager_get_channels = pk_dbus_manager_get_channels;
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
+	conn_class->manager_create_subscription = pk_dbus_manager_create_subscription;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;
 	conn_class->manager_get_source_infos = pk_dbus_manager_get_source_infos;
 	conn_class->manager_remove_channel = pk_dbus_manager_remove_channel;
+	conn_class->subscription_enable = pk_dbus_subscription_enable;
 }
 
 static void

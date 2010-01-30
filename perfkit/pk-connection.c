@@ -39,6 +39,7 @@ struct _PkConnectionPrivate
 {
 	PkManager *manager;
 	gchar *uri;
+	GHashTable *subs;
 };
 
 enum
@@ -301,6 +302,24 @@ pk_connection_manager_create_channel (PkConnection   *connection,
 }
 
 gboolean
+pk_connection_manager_create_subscription (PkConnection  *connection,
+                                           gint           channel_id,
+                                           gsize          buffer_size,
+                                           gulong         buffer_timeout,
+                                           const gchar   *encoder_info_uid,
+                                           gint          *subscription_id,
+                                           GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(channel_id >= 0, FALSE);
+	g_return_val_if_fail(subscription_id != NULL, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->manager_create_subscription(
+			connection, channel_id, buffer_size, buffer_timeout,
+			encoder_info_uid, subscription_id, error);
+}
+
+gboolean
 pk_connection_manager_remove_channel (PkConnection  *connection,
                                       gint           channel_id,
                                       GError       **error)
@@ -422,6 +441,90 @@ pk_connection_channel_remove_source (PkConnection  *connection,
 			connection, channel_id, source_id, error);
 }
 
+typedef struct
+{
+	gint           sub_id;
+	PkManifestFunc manifest_func;
+	PkSampleFunc   sample_func;
+	gpointer       user_data;
+} Sub;
+
+gboolean
+pk_connection_subscription_set_handlers (PkConnection   *connection,
+                                         gint            subscription_id,
+                                         PkManifestFunc  manifest_func,
+                                         PkSampleFunc    sample_func,
+                                         gpointer        user_data)
+{
+	Sub *sub;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(subscription_id >= 0, FALSE);
+	g_return_val_if_fail(manifest_func != NULL, FALSE);
+	g_return_val_if_fail(sample_func != NULL, FALSE);
+
+	sub = g_slice_new0(Sub);
+	sub->sub_id = subscription_id;
+	sub->manifest_func = manifest_func;
+	sub->sample_func = sample_func;
+	sub->user_data = user_data;
+
+	g_hash_table_insert(connection->priv->subs,
+	                    &sub->sub_id, sub);
+
+	return TRUE;
+}
+
+void
+pk_connection_subscription_deliver_manifest (PkConnection *connection,
+                                             gint          subscription_id,
+                                             PkManifest   *manifest)
+{
+	PkConnectionPrivate *priv;
+	Sub *sub;
+
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(manifest != NULL);
+
+	priv = connection->priv;
+
+	if (NULL != (sub = g_hash_table_lookup(priv->subs, &subscription_id))) {
+		sub->manifest_func(manifest, sub->user_data);
+	}
+}
+
+void
+pk_connection_subscription_deliver_sample (PkConnection *connection,
+                                           gint          subscription_id,
+                                           PkSample     *sample)
+{
+	PkConnectionPrivate *priv;
+	Sub *sub;
+
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(sample != NULL);
+
+	priv = connection->priv;
+
+	if (NULL != (sub = g_hash_table_lookup(priv->subs, &subscription_id))) {
+		sub->sample_func(sample, sub->user_data);
+	}
+}
+
+gboolean
+pk_connection_subscription_enable (PkConnection  *connection,
+                                   gint           subscription_id,
+                                   GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(subscription_id >= 0, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->subscription_enable(
+			connection, subscription_id, error);
+}
+
+
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,
@@ -495,6 +598,12 @@ pk_connection_class_init (PkConnectionClass *klass)
 }
 
 static void
+sub_free (gpointer data)
+{
+	g_slice_free(Sub, data);
+}
+
+static void
 pk_connection_init (PkConnection *connection)
 {
 	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE(connection,
@@ -503,4 +612,6 @@ pk_connection_init (PkConnection *connection)
 	connection->priv->manager = g_object_new(PK_TYPE_MANAGER,
 	                                         "connection", connection,
 	                                         NULL);
+	connection->priv->subs = g_hash_table_new_full(g_int_hash, g_int_equal,
+	                                               NULL, sub_free);
 }

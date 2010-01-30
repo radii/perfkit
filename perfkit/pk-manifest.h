@@ -31,10 +31,12 @@ G_BEGIN_DECLS
 
 typedef struct _PkManifest PkManifest;
 
-GType           pk_manifest_get_type   (void) G_GNUC_CONST;
-PkManifest*     pk_manifest_new        (void);
-PkManifest*     pk_manifest_ref        (PkManifest *manifest);
-void            pk_manifest_unref      (PkManifest *manifest);
+GType           pk_manifest_get_type      (void) G_GNUC_CONST;
+PkManifest*     pk_manifest_new           (void);
+PkManifest*     pk_manifest_new_from_data (const guint8 *data,
+                                           gsize         length);
+PkManifest*     pk_manifest_ref           (PkManifest *manifest);
+void            pk_manifest_unref         (PkManifest *manifest);
 
 G_END_DECLS
 

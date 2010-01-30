@@ -111,10 +111,11 @@ pk_connection_manager_get_version (PkConnection  *connection,
 
 gboolean
 pk_connection_manager_create_subscription (PkConnection    *connection,
-                                           PkChannel       *channel,
+                                           gint             channel_id,
                                            gsize            buffer_size,
                                            gulong           buffer_timeout,
-                                           PkEncoderInfo   *encoder_info,
+                                           const gchar     *encoder_info_uid,
+                                           gint            *subscription_id,
                                            GError         **error);
 
 gboolean
@@ -132,6 +133,33 @@ pk_connection_channel_remove_source (PkConnection  *connection,
                                      gint           channel_id,
                                      gint           source_id,
                                      GError       **error);
+
+gboolean
+pk_connection_subscription_set_handlers (PkConnection   *connection,
+                                         gint            subscription_id,
+                                         PkManifestFunc  manifest_func,
+                                         PkSampleFunc    sample_func,
+                                         gpointer        user_data);
+
+void
+pk_connection_subscription_deliver_sample (PkConnection *connection,
+                                           gint          subscription_id,
+                                           PkSample     *sample);
+
+void
+pk_connection_subscription_deliver_manifest (PkConnection *connection,
+                                             gint          subscription_id,
+                                             PkManifest   *manifest);
+
+gboolean
+pk_connection_subscription_enable (PkConnection  *connection,
+                                   gint           subscription_id,
+                                   GError       **error);
+
+gboolean
+pk_connection_subscription_disable (PkConnection  *connection,
+                                    gint           subscription_id,
+                                    GError       **error);
 
 G_END_DECLS
 

@@ -26,6 +26,8 @@
 #include <glib-object.h>
 
 #include "pk-manager.h"
+#include "pk-manifest.h"
+#include "pk-sample.h"
 
 G_BEGIN_DECLS
 
@@ -40,6 +42,9 @@ G_BEGIN_DECLS
 typedef struct _PkConnection        PkConnection;
 typedef struct _PkConnectionClass   PkConnectionClass;
 typedef struct _PkConnectionPrivate PkConnectionPrivate;
+
+typedef void (*PkManifestFunc) (PkManifest *manifest, gpointer user_data);
+typedef void (*PkSampleFunc) (PkSample *sample, gpointer user_data);
 
 struct _PkConnection
 {
@@ -157,10 +162,11 @@ struct _PkConnectionClass
 	                                               GError         **error);
 
 	gboolean       (*manager_create_subscription) (PkConnection    *connection,
-	                                               PkChannel       *channel,
+	                                               gint             channel,
 	                                               gsize            buffer_size,
 	                                               gulong           buffer_timeout,
-	                                               PkEncoderInfo   *encoder_info,
+	                                               const gchar     *encoder_info_uid,
+	                                               gint            *subscription_id,
 	                                               GError         **error);
 
 	gboolean       (*manager_get_source_infos)    (PkConnection    *connection,
@@ -169,6 +175,20 @@ struct _PkConnectionClass
 
 	gboolean       (*manager_remove_channel)      (PkConnection    *connection,
 	                                               gint             channel_id,
+	                                               GError         **error);
+
+	/*
+	 * Subscription RPCs.
+	 */
+
+	gboolean       (*subscription_set_handlers)   (PkConnection    *connection,
+	                                               gint             subscription_id,
+	                                               PkManifestFunc   manifest,
+	                                               PkSampleFunc     sample,
+	                                               gpointer         data);
+
+	gboolean       (*subscription_enable)         (PkConnection    *connection,
+	                                               gint             subscription_id,
 	                                               GError         **error);
 
 	/*
@@ -182,6 +202,7 @@ struct _PkConnectionClass
 
 GType         pk_connection_get_type     (void) G_GNUC_CONST;
 PkConnection* pk_connection_new_from_uri (const gchar *uri);
+guint         pk_connection_hash         (PkConnection  *connection);
 gboolean      pk_connection_connect      (PkConnection  *connection,
                                           GError       **error);
 void          pk_connection_disconnect   (PkConnection  *connection);
