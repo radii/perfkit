@@ -91,8 +91,6 @@ manifest_cb (gchar    *buffer,
 	SubInfo *info = data;
 	GByteArray *ar;
 
-	g_message("%s", G_STRLOC);
-
 	ar = g_byte_array_sized_new(buffer_size);
 	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
 
@@ -110,8 +108,6 @@ sample_cb (gchar    *buffer,
 {
 	SubInfo *info = data;
 	GByteArray *ar;
-
-	g_message("%s", G_STRLOC);
 
 	ar = g_byte_array_sized_new(buffer_size);
 	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);

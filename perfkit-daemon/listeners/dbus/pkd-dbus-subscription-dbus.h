@@ -53,7 +53,7 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
-/* BOOLEAN:POINTER (/tmp/dbus-binding-tool-c-marshallers.DE565U:1) */
+/* BOOLEAN:POINTER */
 extern void dbus_glib_marshal_pkd_dbus_subscription_BOOLEAN__POINTER (GClosure     *closure,
                                                                       GValue       *return_value,
                                                                       guint         n_param_values,
@@ -98,7 +98,7 @@ dbus_glib_marshal_pkd_dbus_subscription_BOOLEAN__POINTER (GClosure     *closure,
   g_value_set_boolean (return_value, v_return);
 }
 
-/* BOOLEAN:BOOLEAN,POINTER (/tmp/dbus-binding-tool-c-marshallers.DE565U:2) */
+/* BOOLEAN:BOOLEAN,POINTER */
 extern void dbus_glib_marshal_pkd_dbus_subscription_BOOLEAN__BOOLEAN_POINTER (GClosure     *closure,
                                                                               GValue       *return_value,
                                                                               guint         n_param_values,

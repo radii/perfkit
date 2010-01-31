@@ -405,7 +405,6 @@ pk_dbus_manager_ensure_delivery_server (PkDbus  *dbus,
 	                       (gulong)getpid(),
 	                       dbus);
 	addr = g_strdup_printf("unix:path=%s", path);
-	g_debug("Registering socket: %s", addr);
 
 	/*
 	 * Make sure directory exists.
@@ -455,6 +454,11 @@ pk_dbus_manager_ensure_delivery_server (PkDbus  *dbus,
 	 * Open the connection and listen for events.
 	 */
 	priv->sub_conn = dbus_g_connection_open(addr, NULL);
+	priv->sub_addr = addr;
+
+	if (!priv->sub_conn) {
+		g_warning("Error creating callback connection.");
+	}
 
 unlock:
 	G_UNLOCK(delivery_socket);
@@ -477,7 +481,8 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	gboolean result = FALSE;
 	gchar *channel_path = NULL,
 	      *encoder_path = NULL,
-	      *sub_path;
+	      *sub_path     = NULL,
+	      *sub_handle   = NULL;
 	guint  sub_id;
 
 	/*
@@ -510,14 +515,21 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	                                                       buffer_size,
 	                                                       buffer_timeout,
 	                                                       encoder_path,
-	                                                       &sub_path,
+	                                                       &sub_handle,
 	                                                       error)) {
 	    goto cleanup;
+	}
+
+	if (sscanf(sub_handle,
+	           "/com/dronelabs/Perfkit/Subscriptions/%d",
+	           subscription_id) != 1) {
+		goto cleanup;
 	}
 
 	result = TRUE;
 
 cleanup:
+	g_free(sub_handle);
 	g_free(channel_path);
 	g_free(encoder_path);
 	g_free(sub_path);

@@ -61,6 +61,7 @@ libperfkit_1_0_la_SOURCES =						\
 	pk-source.c							\
 	pk-source-info.c						\
 	pk-subscription.c						\
+	$(top_srcdir)/cut-n-paste/egg-buffer.c				\
 	$(NULL)
 
 libperfkit_1_0_la_CPPFLAGS =						\
@@ -72,6 +73,7 @@ libperfkit_1_0_la_CPPFLAGS =						\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Perfkit\"					\
 	-DPERFKIT_COMPILATION						\
+	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_CFLAGS)						\
 	$(NULL)

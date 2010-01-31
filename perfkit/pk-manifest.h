@@ -31,12 +31,29 @@ G_BEGIN_DECLS
 
 typedef struct _PkManifest PkManifest;
 
-GType           pk_manifest_get_type      (void) G_GNUC_CONST;
-PkManifest*     pk_manifest_new           (void);
-PkManifest*     pk_manifest_new_from_data (const guint8 *data,
-                                           gsize         length);
-PkManifest*     pk_manifest_ref           (PkManifest *manifest);
-void            pk_manifest_unref         (PkManifest *manifest);
+typedef enum
+{
+	PK_RESOLUTION_PRECISE,
+	PK_RESOLUTION_USEC,
+	PK_RESOLUTION_MSEC,
+	PK_RESOLUTION_SECOND,
+	PK_RESOLUTION_MINUTE,
+	PK_RESOLUTION_HOUR,
+} PkResolution;
+
+GType           pk_manifest_get_type       (void) G_GNUC_CONST;
+PkManifest*     pk_manifest_new_from_data  (const guint8 *data,
+                                            gsize         length);
+PkManifest*     pk_manifest_ref            (PkManifest *manifest);
+void            pk_manifest_unref          (PkManifest *manifest);
+PkResolution    pk_manifest_get_resolution (PkManifest *manifest);
+gint            pk_manifest_get_n_rows     (PkManifest *manifest);
+GType           pk_manifest_get_row_type   (PkManifest *manifest,
+                                            gint        row);
+const gchar*    pk_manifest_get_row_name   (PkManifest *manifest,
+                                            gint        row);
+void            pk_manifest_get_timeval    (PkManifest *manifest,
+                                            GTimeVal   *tv);
 
 G_END_DECLS
 

@@ -45,6 +45,8 @@ gboolean
 pkd_dbus_subscription_enable (PkdDbusSubscription  *sub,
                               GError              **error)
 {
+	g_return_val_if_fail(PKD_DBUS_IS_SUBSCRIPTION(sub), FALSE);
+
 	pkd_subscription_enable(sub->priv->sub);
 	return TRUE;
 }

@@ -1231,7 +1231,7 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
                               GError  **error)
 {
 	GMainLoop *loop;
-	gint channel_id, sub_id;
+	gint channel_id, sub_id = 0;
 
 	if (argc < 1) {
 		return EGG_LINE_STATUS_BAD_ARGS;
