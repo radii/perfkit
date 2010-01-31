@@ -766,6 +766,22 @@ egg_buffer_read_float (EggBuffer *buffer,
 	return FALSE;
 }
 
+/**
+ * egg_buffer_get_pos:
+ * @buffer: An #EggBuffer
+ *
+ * Retrieves the current offset in the buffer.
+ *
+ * Returns: the position in the buffer.
+ */
+gsize
+egg_buffer_get_pos (EggBuffer *buffer)
+{
+	g_return_val_if_fail(buffer != NULL, 0);
+
+	return buffer->pos;
+}
+
 GType
 egg_buffer_get_type (void)
 {

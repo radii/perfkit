@@ -54,6 +54,7 @@ EggBuffer*     egg_buffer_new_from_data (const guint8  *data,
                                          gsize          len);
 EggBuffer*     egg_buffer_ref           (EggBuffer     *buffer);
 void           egg_buffer_unref         (EggBuffer     *buffer);
+gsize          egg_buffer_get_pos       (EggBuffer     *buffer);
 void           egg_buffer_get_buffer    (EggBuffer     *buffer,
                                          const guint8 **data,
                                          gsize         *len);
