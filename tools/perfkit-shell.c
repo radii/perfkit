@@ -1216,12 +1216,31 @@ static void
 monitor_on_manifest (PkManifest *manifest,
                      gpointer    user_data)
 {
+	const gchar *name;
+	gint i, rows, len = 0;
+
+	rows = pk_manifest_get_n_rows(manifest);
+
+	for (i = 1; i <= rows; i++) {
+		name = pk_manifest_get_row_name(manifest, i);
+		g_print("%s,", name);
+		len += 1 + (name ? strlen(name) : 6);
+	}
+
+	g_print("\n");
+
+	for (i = 0; i < len; i++) {
+		g_print("-");
+	}
+
+	g_print("\n");
 }
 
 static void
 monitor_on_sample (PkSample *sample,
                    gpointer  user_data)
 {
+	g_debug("%s", G_STRLOC);
 }
 
 static EggLineStatus
@@ -1248,7 +1267,7 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	if (!pk_connection_manager_create_subscription(connection,
 	                                               channel_id,
 	                                               0,
-	                                               G_TIME_SPAN_SECOND,
+	                                               0,
 	                                               NULL,
 	                                               &sub_id,
 	                                               error)) {
