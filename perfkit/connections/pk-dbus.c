@@ -48,6 +48,9 @@ struct _PkDbusPrivate
 	DBusGConnection *sub_conn;
 };
 
+static GArray *sub_map = NULL;
+static guint sub_seq = 0;
+
 static inline DBusGProxy*
 channel_proxy_new(DBusGConnection *conn,
                   gint             channel_id)
@@ -329,6 +332,13 @@ handle_msg (DBusConnection *conn,
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
 
+	if (sub_id > sub_map->len) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	/* get the converted sub identifier */
+	sub_id = g_array_index(sub_map, gint, sub_id);
+
 	if (!dbus_message_iter_init(msg, &iter)) {
 		g_warning("No mem for iter.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -466,8 +476,6 @@ unlock:
 	return result;
 }
 
-static guint sub_seq = 0;
-
 static gboolean
 pk_dbus_manager_create_subscription (PkConnection  *connection,
                                      gint           channel_id,
@@ -484,6 +492,10 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	      *sub_path     = NULL,
 	      *sub_handle   = NULL;
 	guint  sub_id;
+
+	if (!sub_map) {
+		sub_map = g_array_new(FALSE, FALSE, sizeof(gint));
+	}
 
 	/*
 	 * Setup delivery unix socket if needed.
@@ -525,6 +537,8 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	           subscription_id) != 1) {
 		goto cleanup;
 	}
+
+	g_array_append_val(sub_map, *subscription_id);
 
 	result = TRUE;
 

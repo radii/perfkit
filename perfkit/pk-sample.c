@@ -20,6 +20,8 @@
 #include "config.h"
 #endif
 
+#include <egg-buffer.h>
+
 #include "pk-sample.h"
 
 /**
@@ -29,6 +31,8 @@
  *
  * 
  */
+
+static gboolean decode (PkSample *sample, EggBuffer *buffer);
 
 struct _PkSample
 {
@@ -49,13 +53,44 @@ pk_sample_destroy (PkSample *sample)
  *
  * Side effects: None.
  */
-PkSample*
+static PkSample*
 pk_sample_new (void)
 {
 	PkSample *sample;
 
 	sample = g_slice_new0(PkSample);
 	sample->ref_count = 1;
+
+	return sample;
+}
+
+/**
+ * pk_sample_new_from_data:
+ * @data: a buffer of data.
+ * @length: the length of the buffer.
+ *
+ * Creates a new #PkSample from a buffer of data.
+ *
+ * Returns: the #PkSample if successful; otherwise NULL.
+ *
+ * Side effects: None.
+ */
+PkSample*
+pk_sample_new_from_data (const guint8 *data,
+                         gsize         length)
+{
+	PkSample *sample;
+	EggBuffer *buffer;
+
+	sample = pk_sample_new();
+	buffer = egg_buffer_new_from_data(data, length);
+
+	if (!decode(sample, buffer)) {
+		pk_sample_unref(sample);
+		sample = NULL;
+	}
+
+	egg_buffer_unref(buffer);
 
 	return sample;
 }
@@ -119,4 +154,11 @@ pk_sample_get_type (void)
 	}
 
 	return type_id;
+}
+
+static gboolean
+decode (PkSample  *sample,
+        EggBuffer *buffer)
+{
+	return TRUE;
 }

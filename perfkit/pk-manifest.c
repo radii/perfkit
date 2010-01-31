@@ -48,8 +48,9 @@ struct _PkManifest
 
 typedef struct
 {
-	gchar *name;
+	gint   id;
 	GType  type;
+	gchar *name;
 } PkManifestRow;
 
 static void
@@ -263,63 +264,145 @@ pk_manifest_get_type (void)
 	return type_id;
 }
 
+static gint
+sort_func (gconstpointer a,
+           gconstpointer b)
+{
+	const PkManifestRow *row_a = a,
+	                    *row_b = b;
+
+	return (row_a->id == row_b->id) ? 0 : row_a->id - row_b->id;
+}
 
 static gboolean
 decode (PkManifest *manifest,
         EggBuffer  *buffer)
 {
-	guint field;
-	guint tag;
+	guint field, tag, u32, len;
 	guint64 u64;
-	guint u32;
-
-	g_debug("%d", __LINE__);
+	gsize end;
+	gint i;
 
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(buffer != NULL, FALSE);
 
 	/* timestamp */
-	egg_buffer_read_tag(buffer, &field, &tag);
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
 	if (tag != EGG_BUFFER_UINT64 || field != 1) {
 		g_debug("%d", __LINE__);
 		return FALSE;
 	}
-	egg_buffer_read_uint64(buffer, &u64);
+	if (!egg_buffer_read_uint64(buffer, &u64)) {
+		return FALSE;
+	}
 	g_time_val_from_ticks(&manifest->tv, (GTimeSpan *)&u64);
 
 	/* resolution */
-	egg_buffer_read_tag(buffer, &field, &tag);
-	if (tag != EGG_BUFFER_UINT || field != 2) {
-		g_debug("%d", __LINE__);
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
 		return FALSE;
 	}
-	egg_buffer_read_uint(buffer, &u32);
+	if (tag != EGG_BUFFER_UINT || field != 2) {
+		return FALSE;
+	}
+	if (!egg_buffer_read_uint(buffer, &u32)) {
+		return FALSE;
+	}
 	if (u32 > PK_RESOLUTION_HOUR) {
-		g_debug("%d", __LINE__);
 		return FALSE;
 	}
 	manifest->resolution = u32;
 
 	/* source */
-	egg_buffer_read_tag(buffer, &field, &tag);
-	if (tag != EGG_BUFFER_UINT || field != 3) {
-		g_debug("%d", __LINE__);
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
 		return FALSE;
 	}
-	egg_buffer_read_uint(buffer, &u32);
+	if (tag != EGG_BUFFER_UINT || field != 3) {
+		return FALSE;
+	}
+	if (!egg_buffer_read_uint(buffer, &u32)) {
+		return FALSE;
+	}
 	manifest->source_id = u32;
 
 	/* columns */
-	egg_buffer_read_tag(buffer, &field, &tag);
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
 	if (tag != EGG_BUFFER_REPEATED || field != 4) {
-		g_debug("%d", __LINE__);
 		return FALSE;
 	}
 
 	/* len of data */
+	if (!egg_buffer_read_uint(buffer, &len)) {
+		return FALSE;
+	}
 
-	g_debug("Manifest parsed %lu.%lu.", manifest->tv.tv_sec,
-			manifest->tv.tv_usec);
+	/* determine end of buffer */
+	end = egg_buffer_get_pos(buffer) + len;
+
+	/* get manifest rows */
+	while (egg_buffer_get_pos(buffer) < end) {
+		PkManifestRow row;
+		gchar *name;
+		guint row_id;
+		GType row_type;
+
+		/* row data length */
+		if (!egg_buffer_read_uint(buffer, &u32)) {
+			return FALSE;
+		}
+
+		/* row id */
+		if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+			return FALSE;
+		}
+		if (field != 1 || tag != EGG_BUFFER_UINT) {
+			return FALSE;
+		}
+		if (!egg_buffer_read_uint(buffer, &row_id)) {
+			return FALSE;
+		}
+
+		/* row type */
+		if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+			return FALSE;
+		}
+		if (field != 2 || tag != EGG_BUFFER_ENUM) {
+			return FALSE;
+		}
+		if (!egg_buffer_read_uint(buffer, &row_type)) {
+			return FALSE;
+		}
+
+		/* row name */
+		if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+			return FALSE;
+		}
+		if (field != 3 || tag != EGG_BUFFER_STRING) {
+			return FALSE;
+		}
+		if (!egg_buffer_read_string(buffer, &name)) {
+			return FALSE;
+		}
+
+		row.id = row_id;
+		row.type = row_type;
+		row.name = name;
+
+		g_array_append_val(manifest->rows, row);
+		g_array_sort(manifest->rows, sort_func);
+		manifest->n_rows++;
+	}
+
+	/* make sure all rows were sent */
+	for (i = 0; i < manifest->n_rows; i++) {
+		PkManifestRow *row = &g_array_index(manifest->rows, PkManifestRow, i);
+		if (row->id != (i + 1)) {
+			return FALSE;
+		}
+	}
 
 	return TRUE;
 }
