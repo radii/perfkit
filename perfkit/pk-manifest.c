@@ -56,6 +56,17 @@ typedef struct
 static void
 pk_manifest_destroy (PkManifest *manifest)
 {
+	gint i;
+
+	g_return_if_fail(manifest != NULL);
+
+	/* free row names */
+	for (i = 0; i < manifest->n_rows; i++) {
+		g_free(g_array_index(manifest->rows, PkManifestRow, i).name);
+	}
+
+	/* free row array */
+	g_array_unref(manifest->rows);
 }
 
 static PkManifest*
