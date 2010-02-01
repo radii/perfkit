@@ -112,7 +112,7 @@ thread_func (gpointer data)
 	/*
 	 * Create our manifest.
 	 */
-	m = pkd_manifest_new();
+	m = pkd_manifest_sized_new(5);
 	pkd_manifest_append(m, "size", G_TYPE_UINT);
 	pkd_manifest_append(m, "resident", G_TYPE_UINT);
 	pkd_manifest_append(m, "share", G_TYPE_UINT);
