@@ -345,9 +345,9 @@ decode (PkManifest *manifest,
 	/* get manifest rows */
 	while (egg_buffer_get_pos(buffer) < end) {
 		PkManifestRow row;
-		gchar *name;
-		guint row_id;
-		GType row_type;
+		gchar *name = NULL;
+		guint row_id = 0;
+		GType row_type = 0;
 
 		/* row data length */
 		if (!egg_buffer_read_uint(buffer, &u32)) {
@@ -372,7 +372,7 @@ decode (PkManifest *manifest,
 		if (field != 2 || tag != EGG_BUFFER_ENUM) {
 			return FALSE;
 		}
-		if (!egg_buffer_read_uint(buffer, &row_type)) {
+		if (!egg_buffer_read_uint(buffer, (guint *)&row_type)) {
 			return FALSE;
 		}
 
