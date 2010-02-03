@@ -782,6 +782,20 @@ egg_buffer_get_pos (EggBuffer *buffer)
 	return buffer->pos;
 }
 
+/**
+ * egg_buffer_get_length:
+ * @buffer: An #EggBuffer.
+ *
+ * Returns: The length of the buffer.
+ */
+gsize
+egg_buffer_get_length (EggBuffer *buffer)
+{
+	g_return_val_if_fail(buffer != NULL, 0);
+
+	return buffer->ar->len;
+}
+
 GType
 egg_buffer_get_type (void)
 {
