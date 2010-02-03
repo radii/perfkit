@@ -44,7 +44,7 @@ namespace PerfkitGui {
 			return null;
 		}
 
-		public static Gee.List<Perfkit.Connection> all() {
+		public static Gee.List<Perfkit.Connection>? all() {
 			//return _conns.read_only_view;
 			return null;
 		}
