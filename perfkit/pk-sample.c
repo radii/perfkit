@@ -21,6 +21,7 @@
 #endif
 
 #include <egg-buffer.h>
+#include <egg-time.h>
 
 #include "pk-manifest.h"
 #include "pk-sample.h"
@@ -33,13 +34,11 @@
  * 
  */
 
-static gboolean decode (PkSample   *sample,
-                        EggBuffer  *buffer,
-                        PkManifest *manifest);
-
 struct _PkSample
 {
 	volatile gint ref_count;
+
+	GTimeVal tv;
 };
 
 static void
@@ -65,6 +64,240 @@ pk_sample_new (void)
 	sample->ref_count = 1;
 
 	return sample;
+}
+
+static gboolean
+pk_sample_decode_timeval (PkSample   *sample,
+                          EggBuffer  *buffer,
+                          PkManifest *manifest)
+{
+	PkResolution res;
+	guint field, tag;
+	GTimeVal tv;
+	guint64 u64;
+
+	/*
+	 * Make sure the buffer is at the timestamp field.
+	 */
+
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
+
+	if (field != 1 || tag != EGG_BUFFER_UINT64) {
+		return FALSE;
+	}
+
+	if (!egg_buffer_read_uint64(buffer, &u64)) {
+		return FALSE;
+	}
+
+	/*
+	 * Resolve the relative timestamp.
+	 */
+
+	pk_manifest_get_timeval(manifest, &tv);
+	res = pk_manifest_get_resolution(manifest);
+
+	switch (res) {
+	case PK_RESOLUTION_PRECISE:
+	case PK_RESOLUTION_USEC:
+		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
+		tv.tv_usec += (u64 % G_TIME_SPAN_SECOND) / 10;
+		break;
+	case PK_RESOLUTION_MSEC:
+		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
+		tv.tv_usec += (u64 % G_TIME_SPAN_SECOND) / G_TIME_SPAN_MILLISECOND;
+		break;
+	case PK_RESOLUTION_SECOND:
+		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
+		break;
+	case PK_RESOLUTION_MINUTE:
+		tv.tv_sec += (u64 / G_TIME_SPAN_MINUTE) * 60;
+		break;
+	case PK_RESOLUTION_HOUR:
+		tv.tv_sec += (u64 / G_TIME_SPAN_HOUR) * 3600;
+		break;
+	default:
+		g_warn_if_reached();
+		return FALSE;
+	}
+
+	sample->tv = tv;
+
+	return TRUE;
+}
+
+static gboolean
+pk_sample_init_value (PkSample   *sample,
+                      PkManifest *manifest,
+                      guint       field,
+                      GValue     *value)
+{
+	g_value_init(value, pk_manifest_get_row_type(manifest, field));
+	return TRUE;
+}
+
+static gboolean
+pk_sample_decode_data (PkSample   *sample,
+                       EggBuffer  *buffer,
+                       PkManifest *manifest)
+{
+	guint field, tag;
+	gsize data_len,
+	      total_len,
+	      offset;
+
+	/* Make sure the buffer is at field 2, data. */
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
+
+	if (field != 2 || tag != EGG_BUFFER_DATA) {
+		return FALSE;
+	}
+
+	/* Get the length of the data section. */
+	if (!egg_buffer_read_uint(buffer, &data_len)) {
+		return FALSE;
+	}
+
+	/* Make sure there is enough data in the buffer. */
+	total_len = egg_buffer_get_length(buffer);
+	offset = egg_buffer_get_pos(buffer);
+	if (total_len < (offset + data_len)) {
+		return FALSE;
+	}
+
+	while (offset < total_len) {
+		GValue value = {0};
+		GType type;
+		gchar *str;
+
+		/* Get the field position and type. */
+		if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+			return FALSE;
+		}
+
+		/* Initialize the gvalue type from the manifest */
+		if (!pk_sample_init_value(sample, manifest, field, &value)) {
+			return FALSE;
+		}
+
+		/* Get the type for verification */
+		type = G_VALUE_TYPE(&value);
+
+		/* Extract field data */
+		switch (tag) {
+		case 0: /* Varint type */
+			switch (type) {
+			case G_TYPE_INT:
+				if (!egg_buffer_read_int(buffer, &value.data[0].v_int)) {
+					return FALSE;
+				}
+				break;
+			case G_TYPE_UINT:
+				if (!egg_buffer_read_uint(buffer, &value.data[0].v_uint)) {
+					return FALSE;
+				}
+				break;
+			case G_TYPE_INT64:
+				if (!egg_buffer_read_int64(buffer, &value.data[0].v_int64)) {
+					return FALSE;
+				}
+				break;
+			case G_TYPE_UINT64:
+				if (!egg_buffer_read_uint64(buffer, &value.data[0].v_uint64)) {
+					return FALSE;
+				}
+				break;
+			default:
+				return FALSE;
+			}
+			break;
+
+		case 1: /* Double type */
+			switch (type) {
+			case G_TYPE_DOUBLE:
+				if (!egg_buffer_read_double(buffer, &value.data[0].v_double)) {
+					return FALSE;
+				}
+				break;
+			default:
+				return FALSE;
+			}
+			break;
+
+		case 2: /* String/data type */
+			switch (type) {
+			case G_TYPE_STRING:
+				if (!egg_buffer_read_string(buffer, &str)) {
+					return FALSE;
+				}
+				g_value_take_string(&value, str);
+				break;
+			default:
+				return FALSE;
+			}
+			break;
+
+		case 5: /* Float type */
+			switch (type) {
+			case G_TYPE_FLOAT:
+				if (!egg_buffer_read_float(buffer, &value.data[0].v_float)) {
+					return FALSE;
+				}
+				break;
+			default:
+				return FALSE;
+			}
+			break;
+
+		default: /* Invalid type */
+			return FALSE;
+		}
+
+		if (G_VALUE_TYPE(&value) != G_TYPE_INVALID) {
+			g_value_unset(&value);
+		}
+
+		offset = egg_buffer_get_pos(buffer);
+	}
+
+	return TRUE;
+}
+
+/**
+ * pk_sample_decode:
+ * @sample: A #PkSample.
+ * @buffer: An #EggBuffer.
+ * @manifest: A #PkManifest.
+ *
+ * Decodes the sample data within the buffer.
+ *
+ * Retruns: %TRUE if successful; otherwise %FALSE.
+ *
+ * Side effects: None.
+ */
+static gboolean
+pk_sample_decode (PkSample   *sample,
+                  EggBuffer  *buffer,
+                  PkManifest *manifest)
+{
+	g_return_val_if_fail(sample != NULL, FALSE);
+	g_return_val_if_fail(buffer != NULL, FALSE);
+
+	/* Decode field 1, timestamp. */
+	if (!pk_sample_decode_timeval(sample, buffer, manifest)) {
+		return FALSE;
+	}
+
+	/* Decode field 2, data. */
+	if (!pk_sample_decode_data(sample, buffer, manifest)) {
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /**
@@ -94,7 +327,7 @@ pk_sample_new_from_data (PkManifest   *manifest,
 	sample = pk_sample_new();
 	buffer = egg_buffer_new_from_data(data, length);
 
-	if (!decode(sample, buffer, manifest)) {
+	if (!pk_sample_decode(sample, buffer, manifest)) {
 		pk_sample_unref(sample);
 		sample = NULL;
 	}
@@ -150,6 +383,11 @@ pk_sample_unref (PkSample *sample)
 	}
 }
 
+/**
+ * pk_sample_get_type:
+ *
+ * Returns: The #PkSample #GType.
+ */
 GType
 pk_sample_get_type (void)
 {
@@ -164,40 +402,4 @@ pk_sample_get_type (void)
 	}
 
 	return type_id;
-}
-
-static gboolean
-decode (PkSample   *sample,
-        EggBuffer  *buffer,
-        PkManifest *manifest)
-{
-	guint field, tag;
-	guint64 reltime;
-
-	g_return_val_if_fail(sample != NULL, FALSE);
-	g_return_val_if_fail(buffer != NULL, FALSE);
-
-	/* */
-
-	/* relative timestamp */
-	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
-		return FALSE;
-	}
-	if (field != 1 || tag != EGG_BUFFER_UINT64) {
-		return FALSE;
-	}
-	if (!egg_buffer_read_uint64(buffer, &reltime)) {
-		return FALSE;
-	}
-
-	/* TODO: Need manifest to resolve relative time. */
-
-	/* encapsulated k=v buffer */
-	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
-		return FALSE;
-	}
-	//if (field != 2 || tag != EGG_BUFFER_UINT) {
-	//}
-
-	return TRUE;
 }
