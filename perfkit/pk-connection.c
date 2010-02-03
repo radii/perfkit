@@ -37,10 +37,20 @@ G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
-	PkManager *manager;
-	gchar *uri;
+	PkManager  *manager;
+	gchar      *uri;
+	GMutex     *lock;
 	GHashTable *subs;
 };
+
+typedef struct
+{
+	gint            sub_id;
+	PkManifest     *manifest;
+	PkManifestFunc  manifest_func;
+	PkSampleFunc    sample_func;
+	gpointer        user_data;
+} Sub;
 
 enum
 {
@@ -137,7 +147,7 @@ cleanup:
  * Returns: the newly created #PkConnection or %NULL.
  */
 PkConnection*
-pk_connection_new_from_uri(const gchar *uri)
+pk_connection_new_from_uri (const gchar *uri)
 {
 	PkConnection *conn;
 	GType conn_type;
@@ -198,8 +208,21 @@ pk_connection_get_uri (PkConnection *connection)
 PkManager*
 pk_connection_get_manager (PkConnection *connection)
 {
+	PkConnectionPrivate *priv;
+
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
-	return connection->priv->manager;
+
+	priv = connection->priv;
+
+	g_mutex_lock(priv->lock);
+	if (!priv->manager) {
+		priv->manager = g_object_new(PK_TYPE_MANAGER,
+		                             "connection", connection,
+		                             NULL);
+	}
+	g_mutex_unlock(priv->lock);
+
+	return priv->manager;
 }
 
 gboolean
@@ -227,10 +250,8 @@ pk_connection_channel_get_target (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_get_target(connection,
-	                                                               channel_id,
-	                                                               target,
-	                                                               error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_get_target(connection, channel_id, target, error);
 }
 
 gboolean
@@ -241,10 +262,8 @@ pk_connection_channel_get_working_dir (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_get_working_dir(connection,
-	                                                                    channel_id,
-	                                                                    working_dir,
-	                                                                    error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_get_working_dir(connection, channel_id, working_dir, error);
 }
 
 gboolean
@@ -255,10 +274,8 @@ pk_connection_channel_get_args (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_get_args(connection,
-	                                                             channel_id,
-	                                                             args,
-	                                                             error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_get_args(connection, channel_id, args, error);
 }
 
 gboolean
@@ -269,10 +286,8 @@ pk_connection_channel_get_env (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_get_env(connection,
-	                                                            channel_id,
-	                                                            env,
-	                                                            error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_get_env(connection, channel_id, env, error);
 }
 
 gboolean
@@ -283,10 +298,8 @@ pk_connection_channel_get_pid (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_get_pid(connection,
-	                                                            channel_id,
-	                                                            pid,
-	                                                            error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_get_pid(connection, channel_id, pid, error);
 }
 
 gboolean
@@ -297,8 +310,8 @@ pk_connection_manager_create_channel (PkConnection   *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_create_channel(
-			connection, spawn_info, channel_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_create_channel(connection, spawn_info, channel_id, error);
 }
 
 gboolean
@@ -314,9 +327,10 @@ pk_connection_manager_create_subscription (PkConnection  *connection,
 	g_return_val_if_fail(channel_id >= 0, FALSE);
 	g_return_val_if_fail(subscription_id != NULL, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_create_subscription(
-			connection, channel_id, buffer_size, buffer_timeout,
-			encoder_info_uid, subscription_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_create_subscription(connection, channel_id,
+				buffer_size, buffer_timeout, encoder_info_uid,
+				subscription_id, error);
 }
 
 gboolean
@@ -326,8 +340,8 @@ pk_connection_manager_remove_channel (PkConnection  *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_remove_channel(
-			connection, channel_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_remove_channel(connection, channel_id, error);
 }
 
 gboolean
@@ -337,8 +351,8 @@ pk_connection_channel_start (PkConnection  *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_start(
-			connection, channel_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_start(connection, channel_id, error);
 }
 
 gboolean
@@ -349,8 +363,8 @@ pk_connection_channel_stop (PkConnection  *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_stop(
-			connection, channel_id, killpid, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_stop(connection, channel_id, killpid, error);
 }
 
 gboolean
@@ -360,8 +374,8 @@ pk_connection_channel_pause (PkConnection  *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_pause(
-			connection, channel_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_pause(connection, channel_id, error);
 }
 
 gboolean
@@ -371,8 +385,8 @@ pk_connection_channel_unpause (PkConnection  *connection,
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_unpause(
-			connection, channel_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_unpause(connection, channel_id, error);
 }
 
 gboolean
@@ -383,8 +397,8 @@ pk_connection_manager_ping (PkConnection  *connection,
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 	g_return_val_if_fail(tv != NULL, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_ping(
-			connection, tv, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_ping(connection, tv, error);
 }
 
 gboolean
@@ -395,8 +409,8 @@ pk_connection_manager_get_version (PkConnection  *connection,
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 	g_return_val_if_fail(version != NULL, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_get_version(
-			connection, version, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_get_version(connection, version, error);
 }
 
 gboolean
@@ -407,8 +421,8 @@ pk_connection_manager_get_source_infos (PkConnection   *connection,
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 	g_return_val_if_fail(encoder_infos != NULL, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->manager_get_source_infos(
-			connection, encoder_infos, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		manager_get_source_infos(connection, encoder_infos, error);
 }
 
 gboolean
@@ -423,8 +437,9 @@ pk_connection_channel_add_source (PkConnection  *connection,
 	g_return_val_if_fail(source_type != NULL, FALSE);
 	g_return_val_if_fail(source_id != NULL, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_add_source(
-			connection, channel_id, source_type, source_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_add_source(connection, channel_id, source_type,
+				source_id, error);
 }
 
 gboolean
@@ -437,17 +452,47 @@ pk_connection_channel_remove_source (PkConnection  *connection,
 	g_return_val_if_fail(channel_id >= 0, FALSE);
 	g_return_val_if_fail(source_id >= 0, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->channel_remove_source(
-			connection, channel_id, source_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		channel_remove_source(connection, channel_id, source_id, error);
 }
 
-typedef struct
+/**
+ * pk_connection_subscription_get_manifest:
+ * @connection: A #PkConnection.
+ * @subscription_id: The subscription identifier.
+ *
+ * Retrieves the current manifest for the subscription.  The #PkManifest
+ * has it's reference count incremented and should be freed by the caller
+ * using pk_manifest_unref().
+ *
+ * Returns:
+ *    A #PkManifest if successful; otherwise %NULL.
+ *
+ * Side effects:
+ *    None.
+ */
+PkManifest*
+pk_connection_subscription_get_manifest (PkConnection *connection,
+                                         gint          subscription_id)
 {
-	gint           sub_id;
-	PkManifestFunc manifest_func;
-	PkSampleFunc   sample_func;
-	gpointer       user_data;
-} Sub;
+	PkConnectionPrivate *priv;
+	PkManifest *manifest = NULL;
+	Sub *sub;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
+
+	priv = connection->priv;
+
+	g_mutex_lock(priv->lock);
+	if (NULL != (sub = g_hash_table_lookup(priv->subs, &subscription_id))) {
+		if (sub->manifest) {
+			manifest = pk_manifest_ref(sub->manifest);
+		}
+	}
+	g_mutex_unlock(priv->lock);
+
+	return manifest;
+}
 
 gboolean
 pk_connection_subscription_set_handlers (PkConnection   *connection,
@@ -456,6 +501,7 @@ pk_connection_subscription_set_handlers (PkConnection   *connection,
                                          PkSampleFunc    sample_func,
                                          gpointer        user_data)
 {
+	PkConnectionPrivate *priv;
 	Sub *sub;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
@@ -463,14 +509,82 @@ pk_connection_subscription_set_handlers (PkConnection   *connection,
 	g_return_val_if_fail(manifest_func != NULL, FALSE);
 	g_return_val_if_fail(sample_func != NULL, FALSE);
 
+	priv = connection->priv;
+
 	sub = g_slice_new0(Sub);
 	sub->sub_id = subscription_id;
 	sub->manifest_func = manifest_func;
 	sub->sample_func = sample_func;
 	sub->user_data = user_data;
 
-	g_hash_table_insert(connection->priv->subs,
-	                    &sub->sub_id, sub);
+	g_mutex_lock(priv->lock);
+	g_hash_table_insert(priv->subs, &sub->sub_id, sub);
+	g_mutex_unlock(priv->lock);
+
+	return TRUE;
+}
+
+static gboolean
+decode_manifest (const guint8 *data,
+                 gsize         length,
+                 Sub          *sub)
+{
+	PkManifest *manifest, *tmp;
+
+	manifest = pk_manifest_new_from_data(data, length);
+	if (!manifest) {
+		return FALSE;
+	}
+
+	tmp = sub->manifest;
+	sub->manifest = manifest;
+
+	if (tmp) {
+		pk_manifest_unref(tmp);
+	}
+
+	return TRUE;
+}
+
+static gboolean
+decode_samples (const guint8   *data,
+                gsize           length,
+                Sub            *sub,
+                PkSample     ***samples,
+                gsize          *n_samples)
+{
+	PkSample *sample = NULL;
+	gsize n_bytes = 0, offset = 0;
+	GPtrArray *ar;
+
+	g_return_val_if_fail(data != NULL, FALSE);
+	g_return_val_if_fail(length > 0, FALSE);
+	g_return_val_if_fail(samples != NULL, FALSE);
+	g_return_val_if_fail(n_samples != NULL, FALSE);
+
+	ar = g_ptr_array_new();
+	*n_samples = 0;
+
+	while (offset < length) {
+		sample = pk_sample_new_from_data(sub->manifest,
+		                                 data,
+		                                 length - offset,
+		                                 &n_bytes);
+		offset += n_bytes;
+		data += n_bytes;
+		if (sample) {
+			g_debug("Sample %d", (gint)offset);
+			/*
+			   Seeing two samples right now because the sample parser
+			   in pk_sample is incomplete.
+			 */
+			g_ptr_array_add(ar, sample);
+			(*n_samples)++;
+		}
+	}
+
+	*samples = (PkSample **)ar->pdata;
+	g_ptr_array_free(ar, FALSE);
 
 	return TRUE;
 }
@@ -478,36 +592,55 @@ pk_connection_subscription_set_handlers (PkConnection   *connection,
 void
 pk_connection_subscription_deliver_manifest (PkConnection *connection,
                                              gint          subscription_id,
-                                             PkManifest   *manifest)
+                                             const guint8 *data,
+                                             gsize         length)
 {
 	PkConnectionPrivate *priv;
 	Sub *sub;
 
 	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(manifest != NULL);
+	g_return_if_fail(data != NULL);
+	g_return_if_fail(length > 0);
 
 	priv = connection->priv;
 
+	/* Locking Strategy? */
+
 	if (NULL != (sub = g_hash_table_lookup(priv->subs, &subscription_id))) {
-		sub->manifest_func(manifest, sub->user_data);
+		if (decode_manifest(data, length, sub)) {
+			sub->manifest_func(sub->manifest, sub->user_data);
+		}
 	}
 }
 
 void
 pk_connection_subscription_deliver_sample (PkConnection *connection,
                                            gint          subscription_id,
-                                           PkSample     *sample)
+                                           const guint8 *data,
+                                           gsize         length)
 {
 	PkConnectionPrivate *priv;
+	PkSample **samples = NULL;
+	gsize n_samples = 0;
 	Sub *sub;
+	gint i;
 
 	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(sample != NULL);
+	g_return_if_fail(data != NULL);
+	g_return_if_fail(length > 0);
 
 	priv = connection->priv;
 
+	/* Locking Strategy? */
+
 	if (NULL != (sub = g_hash_table_lookup(priv->subs, &subscription_id))) {
-		sub->sample_func(sample, sub->user_data);
+		if (decode_samples(data, length, sub, &samples, &n_samples)) {
+			for (i = 0; i < n_samples; i++) {
+				sub->sample_func(samples[i], sub->user_data);
+				pk_sample_unref(samples[i]);
+			}
+			g_free(samples);
+		}
 	}
 }
 
@@ -519,11 +652,9 @@ pk_connection_subscription_enable (PkConnection  *connection,
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 	g_return_val_if_fail(subscription_id >= 0, FALSE);
 
-	return PK_CONNECTION_GET_CLASS(connection)->subscription_enable(
-			connection, subscription_id, error);
+	return PK_CONNECTION_GET_CLASS(connection)->
+		subscription_enable(connection, subscription_id, error);
 }
-
-
 
 static void
 pk_connection_get_property (GObject    *object,
@@ -600,18 +731,26 @@ pk_connection_class_init (PkConnectionClass *klass)
 static void
 sub_free (gpointer data)
 {
+	Sub *sub = data;
+
+	if (sub->manifest) {
+		pk_manifest_unref(sub->manifest);
+	}
+
 	g_slice_free(Sub, data);
 }
 
 static void
 pk_connection_init (PkConnection *connection)
 {
+	PkConnectionPrivate *priv;
+
 	connection->priv = G_TYPE_INSTANCE_GET_PRIVATE(connection,
 	                                               PK_TYPE_CONNECTION,
 	                                               PkConnectionPrivate);
-	connection->priv->manager = g_object_new(PK_TYPE_MANAGER,
-	                                         "connection", connection,
-	                                         NULL);
-	connection->priv->subs = g_hash_table_new_full(g_int_hash, g_int_equal,
-	                                               NULL, sub_free);
+	priv = connection->priv;
+
+	priv->lock = g_mutex_new();
+	priv->subs = g_hash_table_new_full(g_int_hash, g_int_equal,
+	                                   NULL, sub_free);
 }

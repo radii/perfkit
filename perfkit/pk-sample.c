@@ -22,6 +22,7 @@
 
 #include <egg-buffer.h>
 
+#include "pk-manifest.h"
 #include "pk-sample.h"
 
 /**
@@ -32,7 +33,9 @@
  * 
  */
 
-static gboolean decode (PkSample *sample, EggBuffer *buffer);
+static gboolean decode (PkSample   *sample,
+                        EggBuffer  *buffer,
+                        PkManifest *manifest);
 
 struct _PkSample
 {
@@ -76,20 +79,27 @@ pk_sample_new (void)
  * Side effects: None.
  */
 PkSample*
-pk_sample_new_from_data (const guint8 *data,
-                         gsize         length)
+pk_sample_new_from_data (PkManifest   *manifest,
+                         const guint8 *data,
+                         gsize         length,
+                         gsize        *n_read)
 {
 	PkSample *sample;
 	EggBuffer *buffer;
 
+	g_return_val_if_fail(manifest != NULL, NULL);
+	g_return_val_if_fail(data != NULL, NULL);
+	g_return_val_if_fail(n_read != NULL, NULL);
+
 	sample = pk_sample_new();
 	buffer = egg_buffer_new_from_data(data, length);
 
-	if (!decode(sample, buffer)) {
+	if (!decode(sample, buffer, manifest)) {
 		pk_sample_unref(sample);
 		sample = NULL;
 	}
 
+	*n_read = egg_buffer_get_pos(buffer);
 	egg_buffer_unref(buffer);
 
 	return sample;
@@ -157,8 +167,37 @@ pk_sample_get_type (void)
 }
 
 static gboolean
-decode (PkSample  *sample,
-        EggBuffer *buffer)
+decode (PkSample   *sample,
+        EggBuffer  *buffer,
+        PkManifest *manifest)
 {
+	guint field, tag;
+	guint64 reltime;
+
+	g_return_val_if_fail(sample != NULL, FALSE);
+	g_return_val_if_fail(buffer != NULL, FALSE);
+
+	/* */
+
+	/* relative timestamp */
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
+	if (field != 1 || tag != EGG_BUFFER_UINT64) {
+		return FALSE;
+	}
+	if (!egg_buffer_read_uint64(buffer, &reltime)) {
+		return FALSE;
+	}
+
+	/* TODO: Need manifest to resolve relative time. */
+
+	/* encapsulated k=v buffer */
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		return FALSE;
+	}
+	//if (field != 2 || tag != EGG_BUFFER_UINT) {
+	//}
+
 	return TRUE;
 }

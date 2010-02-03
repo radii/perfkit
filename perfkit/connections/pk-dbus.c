@@ -315,12 +315,10 @@ handle_msg (DBusConnection *conn,
             void           *data)
 {
 	PkConnection *pk_conn = data;
-	PkManifest *manifest = NULL;
-	PkSample *sample = NULL;
-	gint sub_id = 0;
+	DBusMessageIter iter, ar_iter;
 	const guint8 *buffer = NULL;
 	gsize length = 0;
-	DBusMessageIter iter, ar_iter;
+	gint sub_id = 0;
 
 	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription")) {
 		g_warning("Not subscription interface.");
@@ -359,12 +357,12 @@ handle_msg (DBusConnection *conn,
 
 	switch (get_msg_type(msg)) {
 	case MSG_MANIFEST:
-		manifest = pk_manifest_new_from_data(buffer, length);
-		pk_connection_subscription_deliver_manifest(pk_conn, sub_id, manifest);
+		pk_connection_subscription_deliver_manifest(pk_conn, sub_id,
+		                                            buffer, length);
 		break;
 	case MSG_SAMPLE:
-		sample = pk_sample_new_from_data(buffer, length);
-		pk_connection_subscription_deliver_sample(pk_conn, sub_id, sample);
+		pk_connection_subscription_deliver_sample(pk_conn, sub_id,
+		                                          buffer, length);
 		break;
 	default:
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;

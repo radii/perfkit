@@ -144,12 +144,14 @@ pk_connection_subscription_set_handlers (PkConnection   *connection,
 void
 pk_connection_subscription_deliver_sample (PkConnection *connection,
                                            gint          subscription_id,
-                                           PkSample     *sample);
+                                           const guint8 *data,
+                                           gsize         length);
 
 void
 pk_connection_subscription_deliver_manifest (PkConnection *connection,
                                              gint          subscription_id,
-                                             PkManifest   *manifest);
+                                             const guint8 *data,
+                                             gsize         length);
 
 gboolean
 pk_connection_subscription_enable (PkConnection  *connection,
