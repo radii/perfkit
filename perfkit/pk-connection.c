@@ -573,11 +573,6 @@ decode_samples (const guint8   *data,
 		offset += n_bytes;
 		data += n_bytes;
 		if (sample) {
-			g_debug("Sample %d", (gint)offset);
-			/*
-			   Seeing two samples right now because the sample parser
-			   in pk_sample is incomplete.
-			 */
 			g_ptr_array_add(ar, sample);
 			(*n_samples)++;
 		}

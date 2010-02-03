@@ -1253,7 +1253,7 @@ static void
 monitor_on_sample (PkSample *sample,
                    gpointer  user_data)
 {
-	g_debug("%s", G_STRLOC);
+	g_print("Sample received.\n");
 }
 
 static gboolean

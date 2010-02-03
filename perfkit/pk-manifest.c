@@ -302,7 +302,6 @@ decode (PkManifest *manifest,
 		return FALSE;
 	}
 	if (tag != EGG_BUFFER_UINT64 || field != 1) {
-		g_debug("%d", __LINE__);
 		return FALSE;
 	}
 	if (!egg_buffer_read_uint64(buffer, &u64)) {
