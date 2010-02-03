@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include <glib.h>
 #include <glib/gi18n.h>
 #include <glib/gstdio.h>
 
@@ -1212,9 +1213,10 @@ pk_shell_cmd_channel_remove_source (EggLine  *line,
 	return EGG_LINE_STATUS_OK;
 }
 
+static PkManifest *current_manifest = NULL;
+
 static void
-monitor_on_manifest (PkManifest *manifest,
-                     gpointer    user_data)
+print_manifest (PkManifest *manifest)
 {
 	const gchar *name;
 	gint i, rows, len = 0;
@@ -1237,10 +1239,28 @@ monitor_on_manifest (PkManifest *manifest,
 }
 
 static void
+monitor_on_manifest (PkManifest *manifest,
+                     gpointer    user_data)
+{
+	print_manifest(manifest);
+	if (current_manifest) {
+		pk_manifest_unref(current_manifest);
+	}
+	current_manifest = pk_manifest_ref(manifest);
+}
+
+static void
 monitor_on_sample (PkSample *sample,
                    gpointer  user_data)
 {
 	g_debug("%s", G_STRLOC);
+}
+
+static gboolean
+show_manifest (gpointer data)
+{
+	print_manifest(current_manifest);
+	return TRUE;
 }
 
 static EggLineStatus
@@ -1284,6 +1304,9 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	if (!pk_connection_subscription_enable(connection, sub_id, error)) {
 		return EGG_LINE_STATUS_FAILURE;
 	}
+
+	/* show header every 5 seconds. */
+	g_timeout_add_seconds(20, show_manifest, NULL);
 
 	/* Start main loop */
 	g_main_loop_run(loop);
@@ -1458,6 +1481,7 @@ main (gint   argc,
 	}
 
 	/* initialize libraries */
+	g_thread_init(NULL);
 	g_type_init ();
 
 	/* connect to the daemon */
