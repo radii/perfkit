@@ -67,10 +67,11 @@ proc_pid_statm_read (proc_pid_statm *pstat,
 	snprintf (path, sizeof (path), "/proc/%d/statm", pid);
 
 	fd = open (path, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
 		return FALSE;
+	}
 
-	if (read (fd, buffer, sizeof (buffer) < 1)) {
+	if (read (fd, buffer, sizeof (buffer)) < 1) {
 		close (fd);
 		return FALSE;
 	}
