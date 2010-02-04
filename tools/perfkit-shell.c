@@ -1271,10 +1271,10 @@ monitor_on_sample (PkSample *sample,
 				g_print("%u,", g_value_get_uint(&value));
 				break;
 			case G_TYPE_INT64:
-				g_print("%li,", g_value_get_uint64(&value));
+				g_print("%" G_GINT64_FORMAT ",", g_value_get_uint64(&value));
 				break;
 			case G_TYPE_UINT64:
-				g_print("%lu,", g_value_get_uint64(&value));
+				g_print("%" G_GUINT64_FORMAT ",", g_value_get_uint64(&value));
 				break;
 			case G_TYPE_DOUBLE:
 				g_print("%f,", g_value_get_double(&value));
