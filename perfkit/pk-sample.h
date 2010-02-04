@@ -38,6 +38,9 @@ PkSample*     pk_sample_new_from_data (PkManifest   *manifest,
                                        gsize        *n_read);
 PkSample*     pk_sample_ref           (PkSample     *sample);
 void          pk_sample_unref         (PkSample     *sample);
+gboolean      pk_sample_get_value     (PkSample     *sample,
+                                       guint         row_id,
+                                       GValue       *value);
 
 G_END_DECLS
 

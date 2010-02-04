@@ -34,16 +34,34 @@
  * 
  */
 
+typedef struct _PkSampleField PkSampleField;
+
 struct _PkSample
 {
 	volatile gint ref_count;
 
-	GTimeVal tv;
+	GTimeVal  tv;
+	GArray   *ar;
+};
+
+struct _PkSampleField
+{
+	guint  field;
+	GValue value;
 };
 
 static void
 pk_sample_destroy (PkSample *sample)
 {
+	gint i;
+
+	g_return_if_fail(sample != NULL);
+
+	if (G_LIKELY(sample->ar)) {
+		for (i = 0; i < sample->ar->len; i++) {
+			g_value_unset(&(g_array_index(sample->ar, PkSampleField, i).value));
+		}
+	}
 }
 
 /**
@@ -62,6 +80,7 @@ pk_sample_new (void)
 
 	sample = g_slice_new0(PkSample);
 	sample->ref_count = 1;
+	sample->ar = g_array_new(FALSE, FALSE, sizeof(PkSampleField));
 
 	return sample;
 }
@@ -144,8 +163,8 @@ pk_sample_decode_data (PkSample   *sample,
                        PkManifest *manifest)
 {
 	guint field, tag;
-	gsize data_len,
-	      total_len,
+	guint data_len;
+	gsize total_len,
 	      offset;
 
 	/* Make sure the buffer is at field 2, data. */
@@ -170,6 +189,7 @@ pk_sample_decode_data (PkSample   *sample,
 	}
 
 	while (offset < total_len) {
+		PkSampleField item;
 		GValue value = {0};
 		GType type;
 		gchar *str;
@@ -257,10 +277,12 @@ pk_sample_decode_data (PkSample   *sample,
 			return FALSE;
 		}
 
-		if (G_VALUE_TYPE(&value) != G_TYPE_INVALID) {
-			g_value_unset(&value);
-		}
+		/* Add sample data point */
+		item.field = field;
+		item.value = value;
+		g_array_append_val(sample->ar, item);
 
+		/* Increment buffer position */
 		offset = egg_buffer_get_pos(buffer);
 	}
 
@@ -381,6 +403,40 @@ pk_sample_unref (PkSample *sample)
 		pk_sample_destroy(sample);
 		g_slice_free(PkSample, sample);
 	}
+}
+
+/**
+ * pk_sample_get_value:
+ * @sample: A #PkSample
+ * @row_id: The row within the manifest.
+ * @value: A #GValue to initialize and set.
+ *
+ * Retrieves the value for a given row in the sample.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ */
+gboolean
+pk_sample_get_value (PkSample *sample,  // IN
+                     guint     row_id,  // IN
+                     GValue   *value)   // OUT
+{
+	PkSampleField *f;
+	gint i;
+
+	g_return_val_if_fail(sample != NULL, FALSE);
+	g_return_val_if_fail(value != NULL, FALSE);
+	g_return_val_if_fail(sample->ar != NULL, FALSE);
+
+	for (i = 0; i < sample->ar->len; i++) {
+		f = &g_array_index(sample->ar, PkSampleField, i);
+		if (f->field == row_id) {
+			g_value_init(value, G_VALUE_TYPE(&f->value));
+			g_value_copy(&f->value, value);
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 /**
