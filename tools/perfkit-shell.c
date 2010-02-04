@@ -1253,7 +1253,44 @@ static void
 monitor_on_sample (PkSample *sample,
                    gpointer  user_data)
 {
-	g_print("Sample received.\n");
+	GValue value = {0};
+	gint i, n_rows;
+
+	g_return_if_fail(sample);
+	g_return_if_fail(current_manifest);
+
+	n_rows = pk_manifest_get_n_rows(current_manifest);
+
+	for (i = 1; i <= n_rows; i++) {
+		if (pk_sample_get_value(sample, i, &value)) {
+			switch (G_VALUE_TYPE(&value)) {
+			case G_TYPE_INT:
+				g_print("%d,", g_value_get_int(&value));
+				break;
+			case G_TYPE_UINT:
+				g_print("%u,", g_value_get_uint(&value));
+				break;
+			case G_TYPE_INT64:
+				g_print("%li,", g_value_get_uint64(&value));
+				break;
+			case G_TYPE_UINT64:
+				g_print("%lu,", g_value_get_uint64(&value));
+				break;
+			case G_TYPE_DOUBLE:
+				g_print("%f,", g_value_get_double(&value));
+				break;
+			case G_TYPE_FLOAT:
+				g_print("%f,", g_value_get_float(&value));
+				break;
+			default:
+				g_debug("TYPE IS %s", g_type_name(G_VALUE_TYPE(&value)));
+				g_print("NaN,");
+			}
+			g_value_unset(&value);
+		}
+	}
+
+	g_print("\n");
 }
 
 static gboolean
