@@ -27,6 +27,24 @@ G_BEGIN_DECLS
 
 typedef struct _PkdManifest PkdManifest;
 
+/**
+ * PkdResolution:
+ * @PKD_RESOLUTION_PRECISE: Samples include relative timestamp in 100-ns ticks.
+ * @PKD_RESOLUTION_USEC: Samples include relative timestamp in microseconds.
+ * @PKD_RESOLUTION_MSEC: Samples include relative timestamps in millseconds.
+ * @PKD_RESOLUTION_SECOND: Samples include relative timestamps in seconds.
+ * @PKD_RESOLUTION_MINUTE: Samples include relative timestamps in minutes.
+ * @PKD_RESOLUTION_HOUR: Samples include relative timestamps in hours.
+ *
+ * The #PkdResolution enumeration.  Samples include their difference in time
+ * since the describing #PkManifest.  The resolution allows control over how
+ * that relative timestamp is encoded.
+ *
+ * Normally, a sample 1 second difference would be 100000000 100-ns ticks.
+ * However, if @PKD_RESOLUTION_SECOND is used, it would be 1.  This is helpful
+ * in that "varint" encoding allows for very tight compression of small
+ * integers, thus saving precious bytes in the wire format.
+ */
 typedef enum
 {
 	PKD_RESOLUTION_PRECISE,

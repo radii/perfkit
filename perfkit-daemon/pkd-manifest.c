@@ -63,15 +63,15 @@ struct _PkdManifest
 static void
 pkd_manifest_destroy (PkdManifest *manifest)
 {
-	PkdManifestRow row;
+	PkdManifestRow *row;
 	gint i;
 
 	/*
 	 * Free strings in rows.  We copy the entire structure, which is okay.
 	 */
 	for (i = 0; i < manifest->rows->len; i++) {
-		row = g_array_index(manifest->rows, PkdManifestRow, i);
-		g_free(row.name);
+		row = &g_array_index(manifest->rows, PkdManifestRow, i);
+		g_free(row->name);
 	}
 
 	/*
@@ -92,7 +92,7 @@ pkd_manifest_destroy (PkdManifest *manifest)
 PkdManifest*
 pkd_manifest_new (void)
 {
-	return pkd_manifest_sized_new(1);
+	return pkd_manifest_sized_new(4);
 }
 
 /**
@@ -366,6 +366,7 @@ pkd_manifest_get_row_name (PkdManifest *manifest,
 gint
 pkd_manifest_get_source_id (PkdManifest *manifest)
 {
+	g_return_val_if_fail(manifest != NULL, -1);
 	return manifest->source_id;
 }
 
@@ -383,9 +384,15 @@ void
 pkd_manifest_set_source_id (PkdManifest *manifest,
                             gint         source_id)
 {
+	g_return_if_fail(manifest != NULL);
 	manifest->source_id = source_id;
 }
 
+/**
+ * pkd_manifest_get_type:
+ *
+ * Returns: the #PkdManifest #GType.
+ */
 GType
 pkd_manifest_get_type (void)
 {

@@ -399,6 +399,11 @@ pkd_sample_append_timeval (PkdSample *sample,
 	egg_buffer_write_uint64(sample->buf, ticks);
 }
 
+/**
+ * pkd_sample_get_type:
+ *
+ * Returns: the #PkdSample #GType.
+ */
 GType
 pkd_sample_get_type (void)
 {

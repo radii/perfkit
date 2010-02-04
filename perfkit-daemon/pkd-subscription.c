@@ -265,6 +265,7 @@ pkd_subscription_unref (PkdSubscription *subscription)
 guint
 pkd_subscription_get_id (PkdSubscription *subscription)
 {
+	g_return_val_if_fail(subscription != NULL, 0);
 	return subscription->sub_id;
 }
 

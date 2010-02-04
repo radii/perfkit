@@ -32,7 +32,7 @@
  * @title: PkdEncoderInfo
  * @short_description: Encoder plugins
  *
- * #PkdEncoderInfo encapsulates information about an #PkdEncoder plugin.
+ * #PkdEncoderInfo encapsulates information about a #PkdEncoder plugin.
  * It also provides a simple interface to the plugins factory for creating
  * new instances of #PkdEncoder.
  */
@@ -41,12 +41,23 @@ G_DEFINE_TYPE(PkdEncoderInfo, pkd_encoder_info, G_TYPE_OBJECT)
 
 struct _PkdEncoderInfoPrivate
 {
-	GModule          *module;
-	PkdEncoderFactory  factory;
-	gchar            *uid;
-	gchar            *name;
-	gchar            *description;
-	gchar            *version;
+	/* The module containing the plugin. */
+	GModule *module;
+
+	/* The factory function to create a PkdEncoder. */
+	PkdEncoderFactory factory;
+
+	/* The uid of the encoder type. */
+	gchar *uid;
+
+	/* The name of the endcoder type. */
+	gchar *name;
+
+	/* The description of the encoder type. */
+	gchar *description;
+
+	/* The version of the encoder type. */
+	gchar *version;
 };
 
 enum
@@ -244,6 +255,11 @@ pkd_encoder_info_create (PkdEncoderInfo *encoder_info)
 	return encoder_info->priv->factory();
 }
 
+/**
+ * pkd_encoder_info_error_quark:
+ *
+ * Returns: the error domain quark for use with #GError.
+ */
 GQuark
 pkd_encoder_info_error_quark(void)
 {

@@ -231,15 +231,15 @@ pkd_pipeline_add_source (PkdSource *source)
 
 	g_message("Registering source %d.", pkd_source_get_id(source));
 
+	source = g_object_ref(source);
+
 	G_LOCK(sources);
 	sources = g_list_prepend(sources, g_object_ref(source));
 	G_UNLOCK(sources);
 
-	source = g_object_ref(source);
 	g_ptr_array_foreach(listeners,
 	                    (GFunc)pkd_listener_source_added,
 	                    source);
-	g_object_unref(source);
 }
 
 /**

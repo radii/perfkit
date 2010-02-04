@@ -127,7 +127,8 @@ pkd_encoder_real_encode_samples (PkdManifest *manifest,
  * @data: A location for a data buffer.
  * @data_len: A location for the data buffer length.
  *
- * 
+ * Encodes the samples into a buffer.  The resulting buffer is stored in
+ * @data and the length of the buffer in @data_len.
  *
  * Returns: %TRUE if successful; otherwise %FALSE.
  */
@@ -271,12 +272,19 @@ pkd_encoder_encode_manifest (PkdEncoder   *encoder,
                              gchar       **data,
                              gsize        *data_len)
 {
-	if (encoder)
+	if (encoder) {
 		return PKD_ENCODER_GET_INTERFACE(encoder)->
 			encode_manifest(encoder, manifest, data, data_len);
+	}
+
 	return pkd_encoder_real_encode_manifest(manifest, data, data_len);
 }
 
+/**
+ * pkd_encoder_get_type:
+ *
+ * Returns: the #PkdEncoder #GType.
+ */
 GType
 pkd_encoder_get_type (void)
 {

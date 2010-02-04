@@ -63,6 +63,8 @@ struct _PkdSourceClass
 	void     (*notify_stopped)  (PkdSource    *source);
 	void     (*notify_paused)   (PkdSource    *source);
 	void     (*notify_unpaused) (PkdSource    *source);
+
+	gpointer reserved[16];
 };
 
 GType     pkd_source_get_type         (void) G_GNUC_CONST;

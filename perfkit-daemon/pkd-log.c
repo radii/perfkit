@@ -29,9 +29,9 @@
 
 #include "pkd-log.h"
 
-static gboolean    wants_stdout = FALSE;
-static GIOChannel *channel      = NULL;
-static gchar       hostname[64] = "";
+static gboolean wants_stdout = FALSE;
+static GIOChannel *channel = NULL;
+static gchar hostname[64] = "";
 
 static void
 pkd_log_handler (const gchar    *log_domain,
@@ -39,39 +39,38 @@ pkd_log_handler (const gchar    *log_domain,
                  const gchar    *message,
                  gpointer        user_data)
 {
-	time_t          t;
-	struct tm       tt;
-	gchar           ftime[32],
-	               *buffer;
-	GPid            pid;
+	time_t t;
+	struct tm tt;
+	gchar ftime[32], *buffer;
+	GPid pid;
 
 	if (!channel && !wants_stdout) {
 		return;
 	}
 
-	memset (&tt, 0, sizeof (tt));
+	memset(&tt, 0, sizeof(tt));
 
-	t = time (NULL);
-	tt = *localtime (&t);
-	strftime (ftime, sizeof (ftime), "%b %d %X", &tt);
-	pid = (GPid)getpid ();
-	buffer = g_strdup_printf ("%s %s %s[%lu]: %s\n",
-	                          ftime,
-	                          hostname,
-	                          log_domain,
-	                          (gulong)pid,
-	                          message);
+	t = time(NULL);
+	tt = *localtime(&t);
+	strftime(ftime, sizeof(ftime), "%b %d %X", &tt);
+	pid = (GPid)getpid();
+	buffer = g_strdup_printf("%s %s %s[%lu]: %s\n",
+	                         ftime,
+	                         hostname,
+	                         log_domain,
+	                         (gulong)pid,
+	                         message);
 
 	if (wants_stdout) {
-		g_print ("%s", buffer);
+		g_print("%s", buffer);
 	}
 
 	if (channel) {
-		g_io_channel_write_chars (channel, buffer, -1, NULL, NULL);
-		g_io_channel_flush (channel, NULL);
+		g_io_channel_write_chars(channel, buffer, -1, NULL, NULL);
+		g_io_channel_flush(channel, NULL);
 	}
 
-	g_free (buffer);
+	g_free(buffer);
 }
 
 /**
@@ -103,11 +102,11 @@ pkd_log_init (gboolean     stdout_,
 		}
 
 #ifdef __linux__
-		uname (&u);
-		memcpy (hostname, u.nodename, sizeof(hostname));
+		uname(&u);
+		memcpy(hostname, u.nodename, sizeof(hostname));
 #else
 #ifdef __APPLE__
-		gethostname (hostname, sizeof (hostname));
+		gethostname(hostname, sizeof (hostname));
 #else
 #error "Target platform not supported"
 #endif /* __APPLE__ */

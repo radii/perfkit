@@ -34,7 +34,7 @@
  *
  * The pid may be set to signify that the data sources within the channel
  * should attach to an existing process.  Otherwise, target should be set
- * to the path of an executable to launch.
+ * to the path of an executable to launch and pid will be set upon launch.
  */
 typedef struct
 {

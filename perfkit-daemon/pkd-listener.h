@@ -79,6 +79,8 @@ struct _PkdListenerClass
 	                            PkdSource       *source);
 	void (*subscription_added) (PkdListener     *listener,
 	                            PkdSubscription *subscription);
+
+	gpointer reserved[32];
 };
 
 GType    pkd_listener_get_type (void) G_GNUC_CONST;
