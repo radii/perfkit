@@ -46,16 +46,17 @@ static gboolean  started = FALSE;
  */
 gboolean
 pkg_runtime_initialize (gint     *argc,
-                             gchar  ***argv,
-                             GError  **error)
+                        gchar  ***argv,
+                        GError  **error)
 {
 	if (!pkg_prefs_init(argc, argv, error)) {
 		return FALSE;
 	}
 
 	pkg_panels_init();
-
 	started = TRUE;
+
+	return TRUE;
 }
 
 /**

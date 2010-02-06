@@ -27,7 +27,8 @@
 
 G_BEGIN_DECLS
 
-void pkg_panels_init (void);
+void pkg_panels_init         (void);
+void pkg_panels_show_sources (void);
 
 G_END_DECLS
 

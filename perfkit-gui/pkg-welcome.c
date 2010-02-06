@@ -24,6 +24,7 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include "pkg-panels.h"
 #include "pkg-paths.h"
 #include "pkg-runtime.h"
 #include "pkg-welcome.h"
@@ -89,6 +90,7 @@ pkg_welcome_local_clicked (GtkWidget *button,
 
 	window = pkg_window_new_for_uri("dbus://");
 	gtk_window_present(GTK_WINDOW(window));
+	pkg_panels_show_sources();
 	gtk_widget_show(window);
 
 	gtk_widget_hide(gtk_widget_get_toplevel(button));
@@ -157,6 +159,7 @@ pkg_welcome_init (PkgWelcome *welcome)
 	remote_button = GTK_WIDGET(gtk_builder_get_object(priv->builder, "remote-button"));
 
 	gtk_widget_reparent(child, GTK_WIDGET(welcome));
+	gtk_widget_grab_focus(local_button);
 
 	/* connect signals */
 	g_signal_connect(welcome, "delete-event",

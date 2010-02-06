@@ -124,12 +124,32 @@ pkg_window_class_init (PkgWindowClass *klass)
 static void
 pkg_window_init (PkgWindow *window)
 {
-	windows = g_list_prepend(windows, g_object_ref(window));
+	PkgWindowPrivate *priv;
+	GError *error = NULL;
+	GtkWidget *child;
+	gchar *path;
 
-	window->priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
-	                                           PKG_TYPE_WINDOW,
-	                                           PkgWindowPrivate);
+	/* create private data */
+	priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
+	                                   PKG_TYPE_WINDOW,
+	                                   PkgWindowPrivate);
+	window->priv = priv;
 
+	/* set defaults */
 	gtk_window_set_title(GTK_WINDOW(window), _("Perfkit"));
 	gtk_window_set_default_size(GTK_WINDOW(window), 800, 550);
+
+	/* load ui from gtkbuilder */
+	priv->builder = gtk_builder_new();
+	path = pkg_paths_build_data_path("ui", "perfkit.ui", NULL);
+	if (!gtk_builder_add_from_file(priv->builder, path, &error)) {
+		g_error("Error loading UI resources: %s", error->message);
+	}
+	g_free(path);
+
+	/* reparent child widget */
+	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "perfkit-child"));
+	gtk_widget_reparent(child, GTK_WIDGET(window));
+
+	windows = g_list_prepend(windows, g_object_ref(window));
 }
