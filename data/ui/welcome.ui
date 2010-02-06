@@ -59,7 +59,7 @@
                               <object class="GtkLabel" id="label1">
                                 <property name="visible">True</property>
                                 <property name="ypad">12</property>
-                                <property name="label" translatable="yes">&lt;span size="larger" weight="bold"&gt;Getting Started with Perfkit&lt;/span&gt;</property>
+                                <property name="label" translatable="yes">&lt;span size="larger" weight="bold"&gt;&lt;span size="larger"&gt;Getting Started with Perfkit&lt;/span&gt;&lt;/span&gt;</property>
                                 <property name="use_markup">True</property>
                               </object>
                               <packing>
