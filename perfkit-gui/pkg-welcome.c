@@ -42,7 +42,8 @@ G_DEFINE_TYPE(PkgWelcome, pkg_welcome, GTK_TYPE_WINDOW)
 
 struct _PkgWelcomePrivate
 {
-	GtkBuilder *builder;
+	GtkBuilder   *builder;
+	GtkTreeModel *items;
 };
 
 /**
@@ -103,6 +104,18 @@ pkg_welcome_remote_clicked (GtkWidget *widget,
 	g_debug("Remove activated");
 }
 
+static gboolean
+pkg_welcome_row_sep_func (GtkTreeModel *model,
+                          GtkTreeIter  *iter,
+                          gpointer      data)
+{
+	gboolean sep = FALSE;
+
+	gtk_tree_model_get(model, iter, 2, &sep, -1);
+
+	return sep;
+}
+
 static void
 pkg_welcome_finalize (GObject *object)
 {
@@ -131,7 +144,12 @@ pkg_welcome_init (PkgWelcome *welcome)
 	PkgWelcomePrivate *priv;
 	GtkWidget *child,
 	          *remote_button,
-	          *local_button;
+	          *local_button,
+	          *treeview;
+	GtkCellRenderer *cpix,
+	                *ctext;
+	GtkTreeViewColumn *col;
+	GtkTreeIter iter;
 	GError *error = NULL;
 	gchar *path;
 
@@ -157,7 +175,41 @@ pkg_welcome_init (PkgWelcome *welcome)
 	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "welcome-child"));
 	local_button = GTK_WIDGET(gtk_builder_get_object(priv->builder, "local-button"));
 	remote_button = GTK_WIDGET(gtk_builder_get_object(priv->builder, "remote-button"));
+	treeview = GTK_WIDGET(gtk_builder_get_object(priv->builder, "treeview"));
 
+	gtk_tree_view_set_row_separator_func(GTK_TREE_VIEW(treeview),
+	                                     pkg_welcome_row_sep_func,
+	                                     NULL, NULL);
+
+	/* setup list store and treeview */
+	col = gtk_tree_view_column_new();
+	cpix = gtk_cell_renderer_pixbuf_new();
+	g_object_set(cpix,
+	             "height", 38,
+	             "stock-size", GTK_ICON_SIZE_DND,
+	             NULL);
+	gtk_tree_view_column_pack_start(col, cpix, FALSE);
+	gtk_tree_view_column_add_attribute(col, cpix, "icon-name", 0);
+	ctext = gtk_cell_renderer_text_new();
+	g_object_set(ctext,
+	             "xpad", 6,
+	             NULL);
+	gtk_tree_view_column_pack_start(col, ctext, TRUE);
+	gtk_tree_view_column_add_attribute(col, ctext, "text", 1);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), col);
+
+	/* setup list store for treeview items */
+	priv->items = GTK_TREE_MODEL(gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN));
+	gtk_list_store_append(GTK_LIST_STORE(priv->items), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(priv->items), &iter,
+	                   0, GTK_STOCK_HOME,
+	                   1, _("Home"),
+	                   2, FALSE, -1);
+	gtk_list_store_append(GTK_LIST_STORE(priv->items), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(priv->items), &iter, 2, TRUE, -1);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(treeview), priv->items);
+
+	/* reparent and focus default */
 	gtk_widget_reparent(child, GTK_WIDGET(welcome));
 	gtk_widget_grab_focus(local_button);
 

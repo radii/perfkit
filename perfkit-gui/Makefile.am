@@ -54,3 +54,9 @@ test:
 	PERFKIT_GUI_DATA_PATH=$(top_srcdir)/data			\
 	PK_CONNECTIONS_DIR=$(top_srcdir)/perfkit/connections/.libs	\
 	$(builddir)/perfkit-gui
+
+debug:
+	$(builddir)/perfkit-gui --help > /dev/null
+	PERFKIT_GUI_DATA_PATH=$(top_srcdir)/data			\
+	PK_CONNECTIONS_DIR=$(top_srcdir)/perfkit/connections/.libs	\
+	gdb --args $(builddir)/.libs/lt-perfkit-gui
