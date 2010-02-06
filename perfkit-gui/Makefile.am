@@ -1,39 +1,51 @@
 bin_PROGRAMS = perfkit-gui
-
-uidir = $(datadir)/perfkit-gui/ui/
-ui_DATA = views/connection-view.ui
+noinst_LTLIBRARIES = libperfkit-gui.la
 
 AM_CPPFLAGS = \
-	$(PERFKIT_GUI_CFLAGS) \
-	-DGETTEXT_PACKAGE="\"perfkit-gui\"" \
-	-DLOCALE_DIR=\""$(datadir)/locale"\" \
-	-DPACKAGE_DATADIR=\""$(datadir)/perfkit-gui"\" \
+	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\"	\
+	-DPACKAGE_SRC_DIR=\""$(srcdir)"\"				\
+	-DPACKAGE_DATA_DIR=\""$(datadir)"\"				\
+	-DPACKAGE_LIB_DIR=\""$(libdir)"\"				\
+	-DGETTEXT_PACKAGE=\""pkg"\"					\
+	-DHAVE_CONFIG_H							\
+	-DG_LOG_DOMAIN=\"PerfkitGui\"					\
+	-DPERFKIT_COMPILATION						\
+	$(PERFKIT_GUI_CFLAGS)						\
 	$(NULL)
 
 AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
 
-perfkit_gui_SOURCES = \
-	main.vala \
-	controller.vala \
-	view.vala \
-	runtime.vala \
-	connections.vala \
-	controllers/connection-controller.vala \
-	views/connection-view.vala \
-	views/source-types-view.vala
+INST_H_FILES =								\
+	perfkit-gui.h							\
+	pkg-panels.h							\
+	pkg-paths.h							\
+	pkg-prefs.h							\
+	pkg-runtime.h							\
+	pkg-welcome.h							\
+	pkg-window.h							\
+	pkg-version.h							\
+	$(NULL)
 
-perfkit_gui_LDADD = \
-	$(top_builddir)/perfkit/libperfkit-1.0.la
+libperfkit_gui_la_SOURCES =						\
+	$(INST_H_FILES)							\
+	pkg-panels.c							\
+	pkg-paths.c							\
+	pkg-prefs.c							\
+	pkg-runtime.c							\
+	pkg-welcome.c							\
+	pkg-window.c							\
+	$(NULL)
 
-perfkit_gui_VALAFLAGS = \
-	--pkg=gtk+-2.0 \
-	--pkg=perfkit-1.0 \
-	--pkg=config \
-	--pkg=gee-1.0 \
-	--thread \
-	--vapidir=$(top_srcdir)/bindings/vala
+headerdir = $(prefix)/include/perfkit-1.0/perfkit-gui
+header_DATA = $(INST_H_FILES)
+
+perfkit_gui_SOURCES = main.c
+perfkit_gui_LDADD = libperfkit-gui.la
+perfkit_gui_LDFLAGS =							\
+	-export-dynamic							\
+	-no-undefined							\
+	-export-symbols-regex "^pkg_.*"					\
+	$(NULL)
 
 test:
-	PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
-	PERFKIT_GUI_UIDIR=$(srcdir)/views \
-	$(builddir)/perfkit-gui
+	PERFKIT_GUI_DATA_PATH=$(top_srcdir)/data $(builddir)/perfkit-gui

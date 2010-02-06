@@ -28,7 +28,6 @@ AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
-AM_PROG_VALAC([0.7.0])
 
 
 dnl ************************************************************************
@@ -73,18 +72,14 @@ PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0 >= 2.20
                                    gthread-2.0 >= 2.20
                                    gmodule-2.0 >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0 >= 2.20
-				   dbus-glib-1 >= 0.80
 				   gthread-2.0 >= 2.20
 				   gio-2.0     >= 2.20])
 PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0 >= 2.20
-				   dbus-glib-1 >= 0.80
 				   gthread-2.0 >= 2.20
 				   gio-2.0     >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0 >= 2.20
 				   gthread-2.0 >= 2.20
-				   dbus-glib-1 >= 0.80
-				   gtk+-2.0    >= 2.18
-				   gee-1.0     >= 0.3.0])
+				   gtk+-2.0    >= 2.18])
 PKG_CHECK_MODULES(DBUS,           [dbus-glib-1 >= 0.80])
 
 
@@ -120,31 +115,37 @@ dnl Output
 dnl ************************************************************************
 AC_OUTPUT([
 	Makefile
+
 	build/shave
 	build/shave-libtool
+
 	data/Makefile
 	data/dbus/Makefile
+	data/ui/Makefile
+
 	doc/Makefile
 	doc/reference/Makefile
-	tools/Makefile
-
+	doc/reference/perfkit/Makefile
+	doc/reference/perfkit/version.xml
 	doc/reference/perfkit-daemon/Makefile
 	doc/reference/perfkit-daemon/version.xml
+	doc/reference/perfkit-gui/Makefile
+	doc/reference/perfkit-gui/version.xml
+
+	tools/Makefile
+
+	perfkit/Makefile
+	perfkit/connections/Makefile
+	perfkit/pk-version.h
+
 	perfkit-daemon/Makefile
 	perfkit-daemon/sources/Makefile
 	perfkit-daemon/encoders/Makefile
 	perfkit-daemon/listeners/Makefile
 	perfkit-daemon/pkd-version.h
 
-	doc/reference/perfkit/Makefile
-	doc/reference/perfkit/version.xml
-	perfkit/Makefile
-	perfkit/connections/Makefile
-	perfkit/pk-version.h
-
-	doc/reference/perfkit-gui/Makefile
-	doc/reference/perfkit-gui/version.xml
 	perfkit-gui/Makefile
+	perfkit-gui/pkg-version.h
 
 	bindings/Makefile
 	bindings/vala/Makefile
