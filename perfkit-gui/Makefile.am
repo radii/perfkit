@@ -40,7 +40,10 @@ headerdir = $(prefix)/include/perfkit-1.0/perfkit-gui
 header_DATA = $(INST_H_FILES)
 
 perfkit_gui_SOURCES = main.c
-perfkit_gui_LDADD = libperfkit-gui.la
+perfkit_gui_LDADD =							\
+	libperfkit-gui.la						\
+	$(top_builddir)/perfkit/libperfkit-1.0.la			\
+	$(NULL)
 perfkit_gui_LDFLAGS =							\
 	-export-dynamic							\
 	-no-undefined							\
@@ -48,4 +51,6 @@ perfkit_gui_LDFLAGS =							\
 	$(NULL)
 
 test:
-	PERFKIT_GUI_DATA_PATH=$(top_srcdir)/data $(builddir)/perfkit-gui
+	PERFKIT_GUI_DATA_PATH=$(top_srcdir)/data			\
+	PK_CONNECTIONS_DIR=$(top_srcdir)/perfkit/connections/.libs	\
+	$(builddir)/perfkit-gui

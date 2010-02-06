@@ -81,6 +81,26 @@ pkg_welcome_key_press (GtkWidget   *window,
 	}
 }
 
+static gboolean
+pkg_welcome_local_clicked (GtkWidget *button,
+                           gpointer   user_data)
+{
+	GtkWidget *window;
+
+	window = pkg_window_new_for_uri("dbus://");
+	gtk_window_present(GTK_WINDOW(window));
+	gtk_widget_show(window);
+
+	gtk_widget_hide(gtk_widget_get_toplevel(button));
+}
+
+static gboolean
+pkg_welcome_remote_clicked (GtkWidget *widget,
+                            gpointer  user_data)
+{
+	g_debug("Remove activated");
+}
+
 static void
 pkg_welcome_finalize (GObject *object)
 {
@@ -107,7 +127,9 @@ static void
 pkg_welcome_init (PkgWelcome *welcome)
 {
 	PkgWelcomePrivate *priv;
-	GtkWidget *child;
+	GtkWidget *child,
+	          *remote_button,
+	          *local_button;
 	GError *error = NULL;
 	gchar *path;
 
@@ -130,8 +152,10 @@ pkg_welcome_init (PkgWelcome *welcome)
 	}
 	g_free(path);
 
-	/* reparent child widget into our window */
 	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "welcome-child"));
+	local_button = GTK_WIDGET(gtk_builder_get_object(priv->builder, "local-button"));
+	remote_button = GTK_WIDGET(gtk_builder_get_object(priv->builder, "remote-button"));
+
 	gtk_widget_reparent(child, GTK_WIDGET(welcome));
 
 	/* connect signals */
@@ -140,5 +164,11 @@ pkg_welcome_init (PkgWelcome *welcome)
 	                 NULL);
 	g_signal_connect(welcome, "key-press-event",
 	                 G_CALLBACK(pkg_welcome_key_press),
+	                 NULL);
+	g_signal_connect(local_button, "clicked",
+	                 G_CALLBACK(pkg_welcome_local_clicked),
+	                 welcome);
+	g_signal_connect(remote_button, "clicked",
+	                 G_CALLBACK(pkg_welcome_remote_clicked),
 	                 NULL);
 }

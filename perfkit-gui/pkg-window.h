@@ -24,6 +24,7 @@
 #define __PKG_WINDOW_H__
 
 #include <gtk/gtk.h>
+#include <perfkit/perfkit.h>
 
 G_BEGIN_DECLS
 
@@ -52,9 +53,12 @@ struct _PkgWindowClass
 	GtkWindowClass parent_class;
 };
 
-GType      pkg_window_get_type      (void) G_GNUC_CONST;
-GtkWidget* pkg_window_new           (void);
-gint       pkg_window_count_windows (void);
+GType      pkg_window_get_type       (void) G_GNUC_CONST;
+GtkWidget* pkg_window_new            (void);
+GtkWidget* pkg_window_new_for_uri    (const gchar *uri);
+gint       pkg_window_count_windows  (void);
+void       pkg_window_set_connection (PkgWindow    *window,
+                                      PkConnection *connection);
 
 G_END_DECLS
 

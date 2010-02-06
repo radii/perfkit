@@ -39,7 +39,8 @@ G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
 
 struct _PkgWindowPrivate
 {
-	GtkBuilder *builder;
+	GtkBuilder   *builder;
+	PkConnection *conn;
 };
 
 static GList *windows = NULL;
@@ -57,10 +58,51 @@ pkg_window_new (void)
 	return g_object_new(PKG_TYPE_WINDOW, NULL);
 }
 
+/**
+ * pkg_window_new_for_uri:
+ * @uri: A uri to a daemon
+ *
+ * Creates a new instance of #PkgWindow setting the connection using @uri.
+ *
+ * Return value: the newly created #PkgWindow instance.
+ */
+GtkWidget*
+pkg_window_new_for_uri (const gchar *uri)
+{
+	PkConnection *conn;
+	GtkWidget *window;
+
+	conn = pk_connection_new_from_uri(uri);
+	if (!conn) {
+		return NULL;
+	}
+
+	window = pkg_window_new();
+	pkg_window_set_connection(PKG_WINDOW(window), conn);
+	g_object_unref(conn);
+
+	return window;
+}
+
 gint
 pkg_window_count_windows (void)
 {
 	return g_list_length(windows);
+}
+
+void
+pkg_window_set_connection (PkgWindow    *window,
+                           PkConnection *connection)
+{
+	PkgWindowPrivate *priv;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(!window->priv->conn);
+
+	priv = window->priv;
+
+	priv->conn = g_object_ref(connection);
 }
 
 static void
