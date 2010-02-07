@@ -43,7 +43,7 @@ G_DEFINE_TYPE(PkgWelcome, pkg_welcome, GTK_TYPE_WINDOW)
 struct _PkgWelcomePrivate
 {
 	GtkBuilder   *builder;
-	GtkTreeModel *items;
+	GtkListStore *items;
 };
 
 /**
@@ -185,8 +185,10 @@ pkg_welcome_init (PkgWelcome *welcome)
 	col = gtk_tree_view_column_new();
 	cpix = gtk_cell_renderer_pixbuf_new();
 	g_object_set(cpix,
-	             "height", 38,
+	             "height", 40,
 	             "stock-size", GTK_ICON_SIZE_DND,
+	             "ypad", 3,
+	             "xpad", 3,
 	             NULL);
 	gtk_tree_view_column_pack_start(col, cpix, FALSE);
 	gtk_tree_view_column_add_attribute(col, cpix, "icon-name", 0);
@@ -199,15 +201,22 @@ pkg_welcome_init (PkgWelcome *welcome)
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), col);
 
 	/* setup list store for treeview items */
-	priv->items = GTK_TREE_MODEL(gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN));
-	gtk_list_store_append(GTK_LIST_STORE(priv->items), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(priv->items), &iter,
+	priv->items = gtk_list_store_new(3,
+	                                 G_TYPE_STRING,
+	                                 G_TYPE_STRING,
+	                                 G_TYPE_BOOLEAN);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(treeview),
+	                        GTK_TREE_MODEL(priv->items));
+	gtk_list_store_append(priv->items, &iter);
+	gtk_list_store_set(priv->items, &iter,
 	                   0, GTK_STOCK_HOME,
 	                   1, _("Home"),
 	                   2, FALSE, -1);
-	gtk_list_store_append(GTK_LIST_STORE(priv->items), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(priv->items), &iter, 2, TRUE, -1);
-	gtk_tree_view_set_model(GTK_TREE_VIEW(treeview), priv->items);
+	gtk_tree_selection_select_iter(
+			gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview)),
+			&iter);
+	gtk_list_store_append(priv->items, &iter);
+	gtk_list_store_set(priv->items, &iter, 2, TRUE, -1);
 
 	/* reparent and focus default */
 	gtk_widget_reparent(child, GTK_WIDGET(welcome));
