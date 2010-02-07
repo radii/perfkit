@@ -38,6 +38,7 @@ struct _PkgSessionViewPrivate
 {
 	PkgSession *session;
 	GtkWidget  *label;
+	GtkWidget  *vpaned;
 };
 
 enum
@@ -121,4 +122,8 @@ pkg_session_view_init (PkgSessionView *session_view)
 	text = gtk_label_new("Session 0");
 	gtk_box_pack_start(GTK_BOX(priv->label), text, TRUE, TRUE, 0);
 	gtk_widget_show(text);
+
+	priv->vpaned = gtk_vpaned_new();
+	gtk_container_add(GTK_CONTAINER(session_view), priv->vpaned);
+	gtk_widget_show(priv->vpaned);
 }

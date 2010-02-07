@@ -92,13 +92,24 @@ pkg_window_count_windows (void)
 	return g_list_length(windows);
 }
 
+static gboolean
+pkg_window_close_clicked (GtkButton *button,
+                          PkgWindow *window)
+{
+	g_debug("close session matching close button");
+	return FALSE;
+}
+
 void
 pkg_window_add_session (PkgWindow  *window,
                         PkgSession *session)
 {
 	PkgWindowPrivate *priv;
 	GtkWidget *notebook,
-	          *view;
+	          *view,
+	          *label,
+	          *close,
+	          *close_img;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(!session || PKG_IS_SESSION(session));
@@ -116,11 +127,30 @@ pkg_window_add_session (PkgWindow  *window,
 	notebook = (GtkWidget *)gtk_builder_get_object(priv->builder, "notebook1");
 	g_assert(notebook);
 
+	close_img = gtk_image_new_from_stock(GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
+	gtk_widget_show(close_img);
+
+	close = gtk_button_new();
+	gtk_widget_set_size_request(close, 22, 22);
+	gtk_container_add(GTK_CONTAINER(close), close_img);
+	gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
+	g_signal_connect(close, "clicked",
+	                 G_CALLBACK(pkg_window_close_clicked),
+	                 window);
+	gtk_widget_show(close);
+
 	view = pkg_session_view_new();
 	pkg_session_view_set_session(PKG_SESSION_VIEW(view), session);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), view,
-	                         pkg_session_view_get_label(PKG_SESSION_VIEW(view)));
 	gtk_widget_show(view);
+
+	label = gtk_hbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(label),
+	                   pkg_session_view_get_label(PKG_SESSION_VIEW(view)),
+	                   TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(label), close, FALSE, TRUE, 0);
+	gtk_widget_show(label);
+
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), view, label);
 }
 
 void
