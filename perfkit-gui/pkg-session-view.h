@@ -59,6 +59,7 @@ GtkWidget*  pkg_session_view_new         (void);
 void        pkg_session_view_set_session (PkgSessionView *session_view,
                                           PkgSession     *session);
 PkgSession* pkg_session_view_get_session (PkgSessionView *session_view);
+GtkWidget*  pkg_session_view_get_label   (PkgSessionView *session_view);
 
 G_END_DECLS
 

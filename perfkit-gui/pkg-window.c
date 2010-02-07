@@ -26,6 +26,8 @@
 #include "pkg-paths.h"
 #include "pkg-window.h"
 #include "pkg-runtime.h"
+#include "pkg-session.h"
+#include "pkg-session-view.h"
 
 G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
 
@@ -88,6 +90,37 @@ gint
 pkg_window_count_windows (void)
 {
 	return g_list_length(windows);
+}
+
+void
+pkg_window_add_session (PkgWindow  *window,
+                        PkgSession *session)
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *notebook,
+	          *view;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(!session || PKG_IS_SESSION(session));
+
+	priv = window->priv;
+
+	/* create new session if needed */
+	if (!session) {
+		session = g_object_new(PKG_TYPE_SESSION,
+		                       "connection", priv->conn,
+		                       NULL);
+	}
+
+	g_assert(pkg_session_get_connection(session) == priv->conn);
+	notebook = (GtkWidget *)gtk_builder_get_object(priv->builder, "notebook1");
+	g_assert(notebook);
+
+	view = pkg_session_view_new();
+	pkg_session_view_set_session(PKG_SESSION_VIEW(view), session);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), view,
+	                         pkg_session_view_get_label(PKG_SESSION_VIEW(view)));
+	gtk_widget_show(view);
 }
 
 void

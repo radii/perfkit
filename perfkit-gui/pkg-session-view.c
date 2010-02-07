@@ -37,6 +37,7 @@ G_DEFINE_TYPE(PkgSessionView, pkg_session_view, GTK_TYPE_VBOX)
 struct _PkgSessionViewPrivate
 {
 	PkgSession *session;
+	GtkWidget  *label;
 };
 
 enum
@@ -64,6 +65,18 @@ pkg_session_view_new (void)
 	return g_object_new(PKG_TYPE_SESSION_VIEW, NULL);
 }
 
+void
+pkg_session_view_set_session (PkgSessionView *session_view,
+                              PkgSession     *session)
+{
+}
+
+GtkWidget*
+pkg_session_view_get_label (PkgSessionView *session_view)
+{
+	return session_view->priv->label;
+}
+
 static void
 pkg_session_view_finalize (GObject *object)
 {
@@ -89,7 +102,23 @@ pkg_session_view_class_init (PkgSessionViewClass *klass)
 static void
 pkg_session_view_init (PkgSessionView *session_view)
 {
+	PkgSessionViewPrivate *priv;
+	GtkWidget *icon,
+	          *text;
+
 	session_view->priv = G_TYPE_INSTANCE_GET_PRIVATE(session_view,
 	                                                 PKG_TYPE_SESSION_VIEW,
 	                                                 PkgSessionViewPrivate);
+	priv = session_view->priv;
+
+	priv->label = gtk_hbox_new(FALSE, 3);
+	gtk_widget_show(priv->label);
+
+	icon = gtk_image_new_from_icon_name("computer", GTK_ICON_SIZE_MENU);
+	gtk_box_pack_start(GTK_BOX(priv->label), icon, FALSE, TRUE, 0);
+	gtk_widget_show(icon);
+
+	text = gtk_label_new("Session 0");
+	gtk_box_pack_start(GTK_BOX(priv->label), text, TRUE, TRUE, 0);
+	gtk_widget_show(text);
 }

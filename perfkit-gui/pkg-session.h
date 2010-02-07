@@ -23,7 +23,7 @@
 #ifndef __PKG_SESSION_H__
 #define __PKG_SESSION_H__
 
-#include <glib-object.h>
+#include <perfkit/perfkit.h>
 
 G_BEGIN_DECLS
 
@@ -52,8 +52,9 @@ struct _PkgSessionClass
 	GObjectClass parent_class;
 };
 
-GType       pkg_session_get_type (void) G_GNUC_CONST;
-PkgSession* pkg_session_new      (void);
+GType         pkg_session_get_type       (void) G_GNUC_CONST;
+PkgSession*   pkg_session_new            (void);
+PkConnection* pkg_session_get_connection (PkgSession *session);
 
 G_END_DECLS
 

@@ -52,8 +52,8 @@ struct _PkgWelcomeClass
 	GtkWindowClass parent_class;
 };
 
-GType      pkg_welcome_get_type (void) G_GNUC_CONST;
-GtkWidget* pkg_welcome_new      (void);
+GType      pkg_welcome_get_type     (void) G_GNUC_CONST;
+GtkWidget* pkg_welcome_get_instance (void);
 
 G_END_DECLS
 

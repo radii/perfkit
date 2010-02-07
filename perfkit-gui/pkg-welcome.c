@@ -46,6 +46,8 @@ struct _PkgWelcomePrivate
 	GtkListStore *items;
 };
 
+static GtkWidget *singleton = NULL;
+
 /**
  * pkg_welcome_new:
  *
@@ -53,10 +55,20 @@ struct _PkgWelcomePrivate
  *
  * Return value: the newly created #PkgWelcome instance.
  */
-GtkWidget*
+static GtkWidget*
 pkg_welcome_new (void)
 {
 	return g_object_new(PKG_TYPE_WELCOME, NULL);
+}
+
+GtkWidget*
+pkg_welcome_get_instance (void)
+{
+	if (g_once_init_enter((gsize *)&singleton)) {
+		g_once_init_leave((gsize *)&singleton, (gsize)pkg_welcome_new());
+	}
+
+	return singleton;
 }
 
 static gboolean
@@ -88,12 +100,20 @@ pkg_welcome_local_clicked (GtkWidget *button,
                            gpointer   user_data)
 {
 	GtkWidget *window;
+	PkgSession *session;
 
+	/* create new create new window for session */
 	window = pkg_window_new_for_uri("dbus://");
 	gtk_window_present(GTK_WINDOW(window));
-	pkg_panels_show_sources();
 	gtk_widget_show(window);
 
+	/* add a new session */
+	pkg_window_add_session(PKG_WINDOW(window), NULL);
+
+	/* show the sources toolboox */
+	pkg_panels_show_sources();
+
+	/* hide the welcome window */
 	gtk_widget_hide(gtk_widget_get_toplevel(button));
 }
 
@@ -110,9 +130,7 @@ pkg_welcome_row_sep_func (GtkTreeModel *model,
                           gpointer      data)
 {
 	gboolean sep = FALSE;
-
 	gtk_tree_model_get(model, iter, 2, &sep, -1);
-
 	return sep;
 }
 

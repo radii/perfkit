@@ -54,7 +54,7 @@ main (gint   argc,
 	}
 
 	/* show the welcome window */
-	welcome = pkg_welcome_new();
+	welcome = pkg_welcome_get_instance();
 	gtk_widget_show(welcome);
 
 	/* block on mainloop */

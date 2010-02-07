@@ -39,6 +39,12 @@ struct _PkgSessionPrivate
 	PkConnection *conn;
 };
 
+enum
+{
+	PROP_0,
+	PROP_CONNECTION,
+};
+
 /**
  * pkg_session_new:
  *
@@ -50,6 +56,21 @@ PkgSession*
 pkg_session_new (void)
 {
 	return g_object_new(PKG_TYPE_SESSION, NULL);
+}
+
+static void
+pkg_session_set_connection (PkgSession   *session,
+                            PkConnection *connection)
+{
+	g_return_if_fail(PKG_IS_SESSION(session));
+	session->priv->conn = g_object_ref(connection);
+}
+
+PkConnection*
+pkg_session_get_connection (PkgSession *session)
+{
+	g_return_val_if_fail(PKG_IS_SESSION(session), NULL);
+	return session->priv->conn;
 }
 
 static void
@@ -65,13 +86,60 @@ pkg_session_finalize (GObject *object)
 }
 
 static void
+pkg_session_set_property (GObject      *object,
+                          guint         prop_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_CONNECTION:
+		pkg_session_set_connection(PKG_SESSION(object),
+		                           PK_CONNECTION(g_value_get_object(value)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pkg_session_get_property (GObject    *object,
+                          guint       prop_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_CONNECTION:
+		g_value_set_object(value,
+		                   pkg_session_get_connection(PKG_SESSION(object)));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
 pkg_session_class_init (PkgSessionClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pkg_session_finalize;
+	object_class->set_property = pkg_session_set_property;
+	object_class->get_property = pkg_session_get_property;
 	g_type_class_add_private(object_class, sizeof(PkgSessionPrivate));
+
+	/**
+	 * PkgSession:connection:
+	 *
+	 * The "connection" property.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_CONNECTION,
+	                                g_param_spec_object("connection",
+	                                                    "connection",
+	                                                    "Connection",
+	                                                    PK_TYPE_CONNECTION,
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
