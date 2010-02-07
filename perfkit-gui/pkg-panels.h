@@ -23,12 +23,13 @@
 #ifndef __PKG_PANELS_H__
 #define __PKG_PANELS_H__
 
-#include <glib.h>
+#include <perfkit/perfkit.h>
 
 G_BEGIN_DECLS
 
-void pkg_panels_init         (void);
-void pkg_panels_show_sources (void);
+void pkg_panels_init           (void);
+void pkg_panels_show_sources   (void);
+void pkg_panels_set_connection (PkConnection *connection);
 
 G_END_DECLS
 

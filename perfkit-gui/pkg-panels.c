@@ -25,6 +25,7 @@
 #include "pkg-panels.h"
 
 static GtkWidget *sources = NULL;
+static PkConnection *conn = NULL;
 
 static void
 pkg_panels_create_sources (void)
@@ -90,4 +91,19 @@ void
 pkg_panels_show_sources (void)
 {
 	gtk_widget_show(sources);
+}
+
+void
+pkg_panels_set_connection (PkConnection *connection)
+{
+	if (connection == conn) {
+		return;
+	} else if (conn) {
+		g_object_unref(conn);
+		conn = NULL;
+	}
+
+	g_debug("Set sources list");
+
+	conn = g_object_ref(connection);
 }

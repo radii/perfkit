@@ -153,6 +153,15 @@ pkg_window_add_session (PkgWindow  *window,
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), view, label);
 }
 
+static gboolean
+pkg_window_focus_in (PkgWindow *window,
+                     GdkEvent  *event,
+                     gpointer   user_data)
+{
+	pkg_panels_set_connection(window->priv->conn);
+	return FALSE;
+}
+
 void
 pkg_window_set_connection (PkgWindow    *window,
                            PkConnection *connection)
@@ -215,4 +224,9 @@ pkg_window_init (PkgWindow *window)
 	gtk_widget_reparent(child, GTK_WIDGET(window));
 
 	windows = g_list_prepend(windows, g_object_ref(window));
+
+	g_signal_connect(window,
+	                 "focus-in-event",
+	                 G_CALLBACK(pkg_window_focus_in),
+	                 NULL);
 }
