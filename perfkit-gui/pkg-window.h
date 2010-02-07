@@ -26,6 +26,8 @@
 #include <gtk/gtk.h>
 #include <perfkit/perfkit.h>
 
+#include "pkg-session.h"
+
 G_BEGIN_DECLS
 
 #define PKG_TYPE_WINDOW            (pkg_window_get_type())
@@ -59,6 +61,10 @@ GtkWidget* pkg_window_new_for_uri    (const gchar *uri);
 gint       pkg_window_count_windows  (void);
 void       pkg_window_set_connection (PkgWindow    *window,
                                       PkConnection *connection);
+void       pkg_window_add_session    (PkgWindow    *window,
+                                      PkgSession   *session);
+void       pkg_window_remove_session (PkgWindow    *window,
+                                      PkgSession   *session);
 
 G_END_DECLS
 
