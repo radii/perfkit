@@ -21,6 +21,7 @@
 #endif
 
 #include <glib/gi18n.h>
+#include <clutter-gtk/clutter-gtk.h>
 
 #include "pkg-session-view.h"
 
@@ -39,6 +40,8 @@ struct _PkgSessionViewPrivate
 	PkgSession *session;
 	GtkWidget  *label;
 	GtkWidget  *vpaned;
+
+	ClutterActor *bg_for_sources;
 };
 
 enum
@@ -101,17 +104,44 @@ pkg_session_view_class_init (PkgSessionViewClass *klass)
 }
 
 static void
+pkg_session_view_style_set (GtkWidget *embed,
+                            GtkStyle  *old_style,
+                            gpointer   user_data)
+{
+	PkgSessionViewPrivate *priv;
+	ClutterColor cbg;
+	GdkColor bg;
+
+	priv = PKG_SESSION_VIEW(user_data)->priv;
+
+	bg = gtk_widget_get_style(user_data)->bg[GTK_STATE_ACTIVE];
+	cbg.red = bg.red / 0xFF;
+	cbg.green = bg.green / 0xFF;
+	cbg.blue = bg.blue / 0xFF;
+	g_object_set(priv->bg_for_sources, "color", &cbg, NULL);
+}
+
+static void
 pkg_session_view_init (PkgSessionView *session_view)
 {
 	PkgSessionViewPrivate *priv;
 	GtkWidget *icon,
-	          *text;
+	          *text,
+	          *table,
+	          *vscroller,
+	          *hscroller,
+	          *zhbox,
+	          *scale,
+	          *embed;
+	ClutterActor *stage;
+	ClutterColor color;
 
 	session_view->priv = G_TYPE_INSTANCE_GET_PRIVATE(session_view,
 	                                                 PKG_TYPE_SESSION_VIEW,
 	                                                 PkgSessionViewPrivate);
 	priv = session_view->priv;
 
+	/* setup label */
 	priv->label = gtk_hbox_new(FALSE, 3);
 	gtk_widget_show(priv->label);
 
@@ -126,4 +156,69 @@ pkg_session_view_init (PkgSessionView *session_view)
 	priv->vpaned = gtk_vpaned_new();
 	gtk_container_add(GTK_CONTAINER(session_view), priv->vpaned);
 	gtk_widget_show(priv->vpaned);
+
+	/* setup main layout */
+	table = gtk_table_new(2, 3, FALSE);
+	gtk_paned_add1(GTK_PANED(priv->vpaned), table);
+	gtk_widget_show(table);
+
+	vscroller = gtk_vscrollbar_new(NULL);
+	gtk_table_attach(GTK_TABLE(table),
+	                 vscroller,
+	                 2, 3, 0, 1,
+	                 GTK_FILL,
+	                 GTK_FILL | GTK_EXPAND,
+	                 0, 0);
+	gtk_widget_show(vscroller);
+
+	hscroller = gtk_hscrollbar_new(NULL);
+	gtk_table_attach(GTK_TABLE(table),
+	                 hscroller,
+	                 1, 2, 1, 2,
+	                 GTK_FILL | GTK_EXPAND,
+	                 GTK_FILL,
+	                 0, 0);
+	gtk_widget_show(hscroller);
+
+	/* add sources stage */
+	embed = gtk_clutter_embed_new();
+	gtk_table_attach(GTK_TABLE(table),
+	                 embed,
+	                 0, 2, 0, 1,
+	                 GTK_FILL | GTK_EXPAND,
+	                 GTK_FILL | GTK_EXPAND,
+	                 0, 0);
+	g_signal_connect(embed,
+	                 "style-set",
+	                 G_CALLBACK(pkg_session_view_style_set),
+	                 session_view);
+	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
+	gtk_widget_show(embed);
+
+	/* create zoom control */
+	zhbox = gtk_hbox_new(FALSE, 0);
+	gtk_table_attach(GTK_TABLE(table),
+	                 zhbox,
+	                 0, 1, 1, 2,
+	                 GTK_FILL,
+	                 GTK_FILL,
+	                 0, 0);
+	gtk_widget_set_size_request(zhbox, 200, -1);
+	gtk_widget_show(zhbox);
+
+	scale = gtk_hscale_new(NULL);
+	gtk_scale_set_draw_value(GTK_SCALE(scale), FALSE);
+	gtk_box_pack_start(GTK_BOX(zhbox), scale, TRUE, TRUE, 0);
+	gtk_widget_show(scale);
+
+	/* create clutter actors for inside data view */
+	priv->bg_for_sources = clutter_rectangle_new();
+	clutter_container_add_actor(CLUTTER_CONTAINER(stage), priv->bg_for_sources);
+	clutter_actor_set_size(priv->bg_for_sources, 200, 1000);
+	clutter_actor_set_position(priv->bg_for_sources, 0, 0);
+	color.red = 0x0A;
+	color.green = 0x0A;
+	color.blue = 0x0A;
+	g_object_set(priv->bg_for_sources, "color", &color, NULL);
+	clutter_actor_show(priv->bg_for_sources);
 }
