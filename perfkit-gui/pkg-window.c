@@ -24,10 +24,11 @@
 #include <gtk/gtk.h>
 
 #include "pkg-paths.h"
-#include "pkg-window.h"
+#include "pkg-panels.h"
 #include "pkg-runtime.h"
 #include "pkg-session.h"
 #include "pkg-session-view.h"
+#include "pkg-window.h"
 
 G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
 

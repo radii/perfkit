@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <clutter/clutter.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
@@ -50,6 +51,7 @@ pkg_prefs_init (gint     *argc,
 	context = g_option_context_new(_("- A Perfkit Gui"));
 	g_option_context_add_main_entries(context, entries, GETTEXT_PACKAGE);
 	g_option_context_add_group(context, gtk_get_option_group(TRUE));
+	g_option_context_add_group(context, clutter_get_option_group());
 	if (!g_option_context_parse(context, argc, argv, error)) {
 		return FALSE;
 	}

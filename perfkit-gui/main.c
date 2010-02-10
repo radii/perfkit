@@ -20,10 +20,10 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <glib/gthread.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <stdlib.h>
 
 #include "pkg-paths.h"
 #include "pkg-runtime.h"
