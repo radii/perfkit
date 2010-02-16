@@ -236,9 +236,14 @@ pkg_welcome_init (PkgWelcome *welcome)
 	gtk_list_store_append(priv->items, &iter);
 	gtk_list_store_set(priv->items, &iter, 2, TRUE, -1);
 
-	/* reparent and focus default */
-	gtk_widget_reparent(child, GTK_WIDGET(welcome));
-	gtk_widget_grab_focus(local_button);
+	/* reparent */
+	gtk_widget_unparent(child);
+	gtk_container_add(GTK_CONTAINER(welcome), child);
+
+	/* set focus */
+	gtk_widget_set_can_default(local_button, TRUE);
+	gtk_window_set_default(GTK_WINDOW(welcome), local_button);
+	gtk_window_set_focus(GTK_WINDOW(welcome), local_button);
 
 	/* connect signals */
 	g_signal_connect(welcome, "delete-event",
