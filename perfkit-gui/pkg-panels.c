@@ -41,6 +41,8 @@ pkg_panels_create_sources (void)
 	gtk_window_set_title(GTK_WINDOW(sources), "");
 	gtk_window_set_default_size(GTK_WINDOW(sources), 200, 400);
 	gtk_window_set_type_hint(GTK_WINDOW(sources), GDK_WINDOW_TYPE_HINT_UTILITY);
+	gtk_window_set_skip_taskbar_hint(GTK_WINDOW(sources), TRUE);
+	gtk_window_set_skip_pager_hint(GTK_WINDOW(sources), TRUE);
 
 	vbox = gtk_vbox_new(FALSE, 0);
 	gtk_container_add(GTK_CONTAINER(sources), vbox);
