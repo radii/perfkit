@@ -53,6 +53,7 @@ pkg_runtime_initialize (gint     *argc,
 		return FALSE;
 	}
 
+	gtk_window_set_default_icon_name("clock");
 	pkg_panels_init();
 	started = TRUE;
 

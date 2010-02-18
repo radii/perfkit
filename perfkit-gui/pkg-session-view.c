@@ -118,6 +118,7 @@ pkg_session_view_style_set (GtkWidget *embed,
 	cbg.red = bg.red / 0xFF;
 	cbg.green = bg.green / 0xFF;
 	cbg.blue = bg.blue / 0xFF;
+	cbg.alpha = 0x66;
 	g_object_set(priv->bg_for_sources, "color", &cbg, NULL);
 }
 
@@ -277,17 +278,17 @@ pkg_session_view_init (PkgSessionView *session_view)
 		color.red = 0x00;
 		color.green = 0x00;
 		color.blue = 0x00;
-		color.alpha = 0xFF;
-		txt2 = clutter_text_new_full("Sans 16", "Memory", &color);
+		color.alpha = 0xCC;
+		txt2 = clutter_text_new_full("Sans 14", "Memory", &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
-		clutter_actor_set_position(txt2, 32, ((60 - clutter_actor_get_height(txt2)) / 2) + 32);
+		clutter_actor_set_position(txt2, 31, ((60 - clutter_actor_get_height(txt2)) / 2) + 31);
 		clutter_actor_show(txt2);
 
 		color.red = 0xFF;
 		color.green = 0xFF;
 		color.blue = 0xFF;
-		color.alpha = 0xaa;
-		txt1 = clutter_text_new_full("Sans 16", "Memory", &color);
+		color.alpha = 0xFF;
+		txt1 = clutter_text_new_full("Sans 14", "Memory", &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
 		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + 30);
 		clutter_actor_show(txt1);
@@ -300,7 +301,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 		color.red = 0x9b;
 		color.green = 0x64;
 		color.blue = 0x4c;
-		color.alpha = 0xcc;
+		color.alpha = 0xCC;
 		g_object_set(src_bg, "color", &color, NULL);
 		clutter_actor_set_size(src_bg, 1000, 60);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
