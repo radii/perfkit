@@ -121,7 +121,7 @@ static gboolean
 pkg_welcome_remote_clicked (GtkWidget *widget,
                             gpointer  user_data)
 {
-	g_debug("Remove activated");
+	g_debug("Remote activated");
 }
 
 static gboolean
