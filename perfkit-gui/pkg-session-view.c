@@ -42,6 +42,7 @@ struct _PkgSessionViewPrivate
 	GtkWidget  *vpaned;
 
 	ClutterActor *bg_for_sources;
+	ClutterActor *stage;
 };
 
 enum
@@ -103,6 +104,96 @@ pkg_session_view_class_init (PkgSessionViewClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkgSessionViewPrivate));
 }
 
+static ClutterActor*
+create_source(PkgSessionView *session_view,
+              const gchar    *title,
+              ClutterActor   *stage,
+              gint            offset,
+              gboolean        selected)
+{
+	ClutterColor color = {0,0,0,0xFF};
+	GdkColor dark, mid, light, bg;
+
+	{
+		ClutterActor *handle;
+		cairo_t *cr;
+		cairo_pattern_t *p;
+		gint state = selected ? GTK_STATE_SELECTED : GTK_STATE_NORMAL;
+
+		handle = clutter_cairo_texture_new(200, 60);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), handle);
+		clutter_actor_set_position(handle, 0, offset);
+		clutter_actor_set_size(handle, 200, 60);
+		clutter_actor_show(handle);
+
+		dark = GTK_WIDGET(session_view)->style->dark[state];
+		mid = GTK_WIDGET(session_view)->style->mid[state];
+		light = GTK_WIDGET(session_view)->style->light[state];
+		bg = GTK_WIDGET(session_view)->style->bg[state];
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(handle));
+		cairo_rectangle(cr, 0, 0, 200, 80);
+		p = cairo_pattern_create_linear(0, 0, 0, 60);
+		cairo_pattern_add_color_stop_rgb(p, 0.0f,
+		                                 light.red / (double)0xFFFF,
+		                                 light.green / (double)0xFFFF,
+		                                 light.blue / (double)0xFFFF);
+		cairo_pattern_add_color_stop_rgb(p, 0.5f,
+		                                 mid.red / (double)0xFFFF,
+		                                 mid.green / (double)0xFFFF,
+		                                 mid.blue / (double)0xFFFF);
+		cairo_pattern_add_color_stop_rgb(p, 0.51f,
+		                                 dark.red / (double)0xFFFF,
+		                                 dark.green / (double)0xFFFF,
+		                                 dark.blue / (double)0xFFFF);
+		cairo_pattern_add_color_stop_rgb(p, 1.0f,
+		                                 bg.red / (double)0xFFFF,
+		                                 bg.green / (double)0xFFFF,
+		                                 bg.blue / (double)0xFFFF);
+		cairo_set_source(cr, p);
+		cairo_fill(cr);
+		cairo_destroy(cr);
+	}
+
+	{
+		ClutterActor *txt1, *txt2;
+
+		color.red = 0xFF;
+		color.green = 0xFF;
+		color.blue = 0xFF;
+		color.alpha = 0xFF;
+		txt2 = clutter_text_new_full("Sans 16 Bold", title, &color);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
+		clutter_actor_set_position(txt2, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
+		clutter_actor_show(txt2);
+
+		color.red = 0x44;
+		color.green = 0x44;
+		color.blue = 0x44;
+		color.alpha = 0xFF;
+		txt1 = clutter_text_new_full("Sans 16 Bold", title, &color);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
+		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset);
+		clutter_actor_show(txt1);
+	}
+
+	{
+		ClutterActor *src_bg;
+
+		src_bg = clutter_rectangle_new();
+		color.red = bg.red / 255.0;
+		color.green = bg.green / 255.0;
+		color.blue = bg.blue / 255.0;
+		color.alpha = 0xFF;
+		g_object_set(src_bg, "color", &color, NULL);
+		clutter_actor_set_size(src_bg, 1000, 60);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
+		clutter_actor_set_position(src_bg, 201, offset);
+		clutter_actor_show(src_bg);
+	}
+
+	return NULL;
+}
+
 static void
 pkg_session_view_style_set (GtkWidget *embed,
                             GtkStyle  *old_style,
@@ -118,8 +209,20 @@ pkg_session_view_style_set (GtkWidget *embed,
 	cbg.red = bg.red / 0xFF;
 	cbg.green = bg.green / 0xFF;
 	cbg.blue = bg.blue / 0xFF;
-	cbg.alpha = 0x66;
+	cbg.alpha = 0xFF;
 	g_object_set(priv->bg_for_sources, "color", &cbg, NULL);
+
+	// tmp
+	{
+		ClutterActor *src1, *src2, *src3, *src4;
+
+		src1 = create_source(user_data, "Memory", priv->stage, 30, TRUE);
+		src2 = create_source(user_data, "CPU", priv->stage, 90, FALSE);
+		src3 = create_source(user_data, "Disk", priv->stage, 150, FALSE);
+		src4 = create_source(user_data, "Network", priv->stage, 210, FALSE);
+
+		g_debug("DONE");
+	}
 }
 
 static void
@@ -197,6 +300,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 session_view);
 	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
 	gtk_widget_show(embed);
+	priv->stage = stage;
 
 	/* create zoom control */
 	zhbox = gtk_hbox_new(FALSE, 3);
@@ -229,9 +333,10 @@ pkg_session_view_init (PkgSessionView *session_view)
 	clutter_container_add_actor(CLUTTER_CONTAINER(stage), priv->bg_for_sources);
 	clutter_actor_set_size(priv->bg_for_sources, 200, 1000);
 	clutter_actor_set_position(priv->bg_for_sources, 0, 0);
-	color.red = 0x0A;
-	color.green = 0x0A;
-	color.blue = 0x0A;
+	color.red = 0x00;
+	color.green = 0x00;
+	color.blue = 0x00;
+	color.alpha = 0xFF;
 	g_object_set(priv->bg_for_sources, "color", &color, NULL);
 	clutter_actor_show(priv->bg_for_sources);
 
@@ -242,70 +347,11 @@ pkg_session_view_init (PkgSessionView *session_view)
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), shadow);
 		clutter_actor_set_size(shadow, 1, 1000);
 		clutter_actor_set_position(shadow, 200, 0);
-		color.red = 0;
-		color.green = 0;
-		color.blue = 0;
+		color.red = 0x88;
+		color.green = 0x88;
+		color.blue = 0x88;
+		color.alpha = 0xff;
 		g_object_set(shadow, "color", &color, NULL);
 		clutter_actor_show(shadow);
-	}
-
-	{
-		ClutterActor *handle;
-		cairo_t *cr;
-		cairo_pattern_t *p;
-
-		handle = clutter_cairo_texture_new(200, 60);
-		clutter_container_add_actor(CLUTTER_CONTAINER(stage), handle);
-		clutter_actor_set_position(handle, 0, 30);
-		clutter_actor_set_size(handle, 200, 60);
-		clutter_actor_show(handle);
-
-		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(handle));
-		cairo_rectangle(cr, 0, 0, 200, 80);
-		p = cairo_pattern_create_linear(0, 0, 0, 60);
-		cairo_pattern_add_color_stop_rgb(p, 0.0f, 0x6f / 255.0, 0x4f / 255.0, 0x41 / 255.0);
-		cairo_pattern_add_color_stop_rgb(p, 0.5f, 0x58 / 255.0, 0x43 / 255.0, 0x39 / 255.0);
-		cairo_pattern_add_color_stop_rgb(p, 0.51f, 0x50 / 255.0, 0x3e / 255.0, 0x36 / 255.0);
-		cairo_pattern_add_color_stop_rgb(p, 1.0f, 0x5a / 255.0, 0x43 / 255.0, 0x3a / 255.0);
-		cairo_set_source(cr, p);
-		cairo_fill(cr);
-		cairo_destroy(cr);
-	}
-
-	{
-		ClutterActor *txt1, *txt2;
-
-		color.red = 0x00;
-		color.green = 0x00;
-		color.blue = 0x00;
-		color.alpha = 0xCC;
-		txt2 = clutter_text_new_full("Sans 14", "Memory", &color);
-		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
-		clutter_actor_set_position(txt2, 31, ((60 - clutter_actor_get_height(txt2)) / 2) + 31);
-		clutter_actor_show(txt2);
-
-		color.red = 0xFF;
-		color.green = 0xFF;
-		color.blue = 0xFF;
-		color.alpha = 0xFF;
-		txt1 = clutter_text_new_full("Sans 14", "Memory", &color);
-		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
-		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + 30);
-		clutter_actor_show(txt1);
-	}
-
-	{
-		ClutterActor *src_bg;
-
-		src_bg = clutter_rectangle_new();
-		color.red = 0x9b;
-		color.green = 0x64;
-		color.blue = 0x4c;
-		color.alpha = 0xCC;
-		g_object_set(src_bg, "color", &color, NULL);
-		clutter_actor_set_size(src_bg, 1000, 60);
-		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
-		clutter_actor_set_position(src_bg, 201, 30);
-		clutter_actor_show(src_bg);
 	}
 }
