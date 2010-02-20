@@ -111,8 +111,9 @@ create_source(PkgSessionView *session_view,
               gint            offset,
               gboolean        selected)
 {
+	GtkWidget *w = GTK_WIDGET(session_view);
 	ClutterColor color = {0,0,0,0xFF};
-	GdkColor dark, mid, light, bg;
+	GdkColor dark, mid, light, bg, fg;
 
 	{
 		ClutterActor *handle;
@@ -126,10 +127,11 @@ create_source(PkgSessionView *session_view,
 		clutter_actor_set_size(handle, 200, 60);
 		clutter_actor_show(handle);
 
-		dark = GTK_WIDGET(session_view)->style->dark[state];
-		mid = GTK_WIDGET(session_view)->style->mid[state];
-		light = GTK_WIDGET(session_view)->style->light[state];
-		bg = GTK_WIDGET(session_view)->style->bg[state];
+		dark = w->style->dark[state];
+		mid = w->style->mid[state];
+		light = w->style->light[state];
+		bg = w->style->bg[state];
+		fg = w->style->fg[state];
 		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(handle));
 		cairo_rectangle(cr, 0, 0, 200, 80);
 		p = cairo_pattern_create_linear(0, 0, 0, 60);
@@ -166,9 +168,9 @@ create_source(PkgSessionView *session_view,
 		clutter_actor_set_position(txt2, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
 		clutter_actor_show(txt2);
 
-		color.red = 0x44;
-		color.green = 0x44;
-		color.blue = 0x44;
+		color.red = fg.red / 255.0;
+		color.green = fg.green / 255.0;
+		color.blue = fg.blue / 255.0;
 		color.alpha = 0xFF;
 		txt1 = clutter_text_new_full("Sans 16 Bold", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
