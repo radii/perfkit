@@ -113,7 +113,7 @@ create_source(PkgSessionView *session_view,
 {
 	GtkWidget *w = GTK_WIDGET(session_view);
 	ClutterColor color = {0,0,0,0xFF};
-	GdkColor dark, mid, light, bg, fg;
+	GdkColor dark, mid, light, bg, fg, text;
 
 	{
 		ClutterActor *handle;
@@ -132,6 +132,7 @@ create_source(PkgSessionView *session_view,
 		light = w->style->light[state];
 		bg = w->style->bg[state];
 		fg = w->style->fg[state];
+		text = w->style->text[state];
 		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(handle));
 		cairo_rectangle(cr, 0, 0, 200, 80);
 		p = cairo_pattern_create_linear(0, 0, 0, 60);
@@ -159,23 +160,61 @@ create_source(PkgSessionView *session_view,
 	{
 		ClutterActor *txt1, *txt2;
 
-		color.red = 0xFF;
-		color.green = 0xFF;
-		color.blue = 0xFF;
-		color.alpha = 0xCC;
+		color.red = (bg.red / 65535.0) * 0xFF;
+		color.green = (bg.green / 65535.0) * 0xFF;
+		color.blue = (bg.blue / 65535.0) * 0xFF;
+		color.alpha = 0xFF;
 		txt2 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
 		clutter_actor_set_position(txt2, 31, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
 		clutter_actor_show(txt2);
 
-		color.red = fg.red / 255.0;
-		color.green = fg.green / 255.0;
-		color.blue = fg.blue / 255.0;
+		color.red = (text.red / 65535.0) * 0xFF;
+		color.green = (text.green / 65535.0) * 0xFF;
+		color.blue = (text.blue / 65535.0) * 0xFF;
 		color.alpha = 0xFF;
 		txt1 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
 		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset);
 		clutter_actor_show(txt1);
+	}
+
+	{
+		ClutterActor *conf;
+		cairo_t *cr;
+		PangoLayout *pl;
+		int w, h;
+
+		conf = clutter_cairo_texture_new(20, 20);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), conf);
+		clutter_actor_set_size(conf, 20, 20);
+		clutter_actor_set_position(conf, 170, offset + 20);
+		clutter_actor_show(conf);
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(conf));
+		cairo_arc(cr, 10., 10., 8., 0., 2 * G_PI);
+		cairo_set_source_rgba(cr,
+		                      bg.red / 65535.0,
+		                      bg.green / 65535.0,
+		                      bg.blue / 65535.0,
+		                      1.0);
+		cairo_fill_preserve(cr);
+		cairo_set_source_rgba(cr,
+		                      dark.red / 65535.0,
+		                      dark.green / 65535.0,
+		                      dark.blue / 65535.0,
+		                      1.0);
+		cairo_stroke(cr);
+		cairo_set_source_rgb(cr,
+		                     text.red / 65535.0,
+		                     text.green / 65535.0,
+		                     text.blue / 65535.0);
+		pl = pango_cairo_create_layout(cr);
+		pango_layout_set_markup(pl, "<span size=\"smaller\" weight=\"bold\"><i>i</i></span>", -1);
+		pango_layout_get_pixel_size(pl, &w, &h);
+		cairo_move_to(cr, (20 - w) / 2, (20 - h) / 2);
+		pango_cairo_show_layout(cr, pl);
+		g_object_unref(pl);
+		cairo_destroy(cr);
 	}
 
 	{
