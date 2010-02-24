@@ -162,17 +162,17 @@ create_source(PkgSessionView *session_view,
 		color.red = 0xFF;
 		color.green = 0xFF;
 		color.blue = 0xFF;
-		color.alpha = 0xFF;
-		txt2 = clutter_text_new_full("Sans 16 Bold", title, &color);
+		color.alpha = 0xCC;
+		txt2 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
-		clutter_actor_set_position(txt2, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
+		clutter_actor_set_position(txt2, 31, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
 		clutter_actor_show(txt2);
 
 		color.red = fg.red / 255.0;
 		color.green = fg.green / 255.0;
 		color.blue = fg.blue / 255.0;
 		color.alpha = 0xFF;
-		txt1 = clutter_text_new_full("Sans 16 Bold", title, &color);
+		txt1 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
 		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset);
 		clutter_actor_show(txt1);
