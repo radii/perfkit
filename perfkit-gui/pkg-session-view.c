@@ -179,7 +179,9 @@ create_source(PkgSessionView *session_view,
 	}
 
 	{
-		ClutterActor *src_bg;
+		ClutterActor *src_bg, *hl;
+		cairo_t *cr;
+		cairo_pattern_t *p;
 
 		src_bg = clutter_rectangle_new();
 		color.red = bg.red / 255.0;
@@ -191,6 +193,20 @@ create_source(PkgSessionView *session_view,
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
 		clutter_actor_set_position(src_bg, 201, offset);
 		clutter_actor_show(src_bg);
+
+		hl = clutter_cairo_texture_new(1000, 60);
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(hl));
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), hl);
+		clutter_actor_set_position(hl, 201, offset);
+		clutter_actor_set_size(hl, 1000, 60);
+		clutter_actor_show(hl);
+		p = cairo_pattern_create_linear(0., 0., 0., 60.);
+		cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
+		cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
+		cairo_rectangle(cr, 0., 0., 1000., 60.);
+		cairo_set_source(cr, p);
+		cairo_fill(cr);
+		cairo_destroy(cr);
 	}
 
 	return NULL;
