@@ -199,7 +199,7 @@ pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
 	GError *error = NULL;
-	GtkWidget *child;
+	GtkWidget *child, *spinner, *spinner_parent;
 	gchar *path;
 
 	/* create private data */
@@ -223,6 +223,14 @@ pkg_window_init (PkgWindow *window)
 	/* reparent child widget */
 	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "perfkit-child"));
 	gtk_widget_reparent(child, GTK_WIDGET(window));
+
+	/* add spinner */
+	spinner_parent = GTK_WIDGET(gtk_builder_get_object(priv->builder, "spinner-parent"));
+	spinner = gtk_spinner_new();
+	gtk_container_add(GTK_CONTAINER(spinner_parent), spinner);
+	gtk_widget_set_size_request(spinner, 18, -1);
+	gtk_spinner_start(GTK_SPINNER(spinner));
+	gtk_widget_show(spinner);
 
 	windows = g_list_prepend(windows, g_object_ref(window));
 
