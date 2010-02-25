@@ -145,39 +145,75 @@
           </packing>
         </child>
         <child>
-          <object class="GtkToolbar" id="toolbar1">
+          <object class="GtkHBox" id="hbox1">
             <property name="visible">True</property>
             <child>
-              <object class="GtkToggleToolButton" id="toolbutton1">
+              <object class="GtkToolbar" id="toolbar1">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Record</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-record</property>
+                <child>
+                  <object class="GtkToggleToolButton" id="toolbutton1">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Record</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">media-record</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToggleToolButton" id="toolbutton2">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="label" translatable="yes">Pause</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">media-playback-pause</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="toolbutton3">
+                    <property name="visible">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
               </object>
               <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkToggleToolButton" id="toolbutton2">
+              <object class="GtkToolbar" id="toolbar2">
+                <property name="width_request">30</property>
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Pause</property>
-                <property name="use_underline">True</property>
-                <property name="icon_name">media-playback-pause</property>
+                <child>
+                  <object class="GtkToolItem" id="toolitem1">
+                    <property name="visible">True</property>
+                    <child>
+                      <object class="GtkAlignment" id="spinner-parent">
+                        <property name="visible">True</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSeparatorToolItem" id="toolbutton3">
-                <property name="visible">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>
