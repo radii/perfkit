@@ -262,21 +262,95 @@ pkg_session_view_style_set (GtkWidget *embed,
 
 	priv = PKG_SESSION_VIEW(user_data)->priv;
 
-	bg = gtk_widget_get_style(user_data)->bg[GTK_STATE_ACTIVE];
-	cbg.red = bg.red / 0xFF;
-	cbg.green = bg.green / 0xFF;
-	cbg.blue = bg.blue / 0xFF;
-	cbg.alpha = 0xFF;
-	g_object_set(priv->bg_for_sources, "color", &cbg, NULL);
+	{
+		bg = gtk_widget_get_style(user_data)->bg[GTK_STATE_ACTIVE];
+		cbg.red = bg.red / 0xFF;
+		cbg.green = bg.green / 0xFF;
+		cbg.blue = bg.blue / 0xFF;
+		cbg.alpha = 0xFF;
+		g_object_set(priv->bg_for_sources, "color", &cbg, NULL);
+	}
 
-	// tmp
+	{
+		ClutterActor *header;
+		ClutterColor bg, mid, light, dark;
+		cairo_t *cr;
+		cairo_pattern_t *p;
+
+		gtk_clutter_get_bg_color(embed, GTK_STATE_NORMAL, &bg);
+		gtk_clutter_get_light_color(embed, GTK_STATE_NORMAL, &light);
+		gtk_clutter_get_mid_color(embed, GTK_STATE_NORMAL, &mid);
+		gtk_clutter_get_dark_color(embed, GTK_STATE_NORMAL, &dark);
+
+		header = clutter_cairo_texture_new(1201, 25);
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), header);
+		clutter_actor_set_position(header, 0, 0);
+		clutter_actor_set_size(header, 1201, 25);
+		clutter_actor_show(header);
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(header));
+		cairo_rectangle(cr, 0, 0, 1201, 25);
+		p = cairo_pattern_create_linear(0, 0, 0, 30);
+		cairo_pattern_add_color_stop_rgb(p, 0.,
+		                                 light.red / 255.,
+		                                 light.green / 255.,
+		                                 light.blue / 255.);
+		cairo_pattern_add_color_stop_rgb(p, 7.,
+		                                 bg.red / 255.,
+		                                 bg.green / 255.,
+		                                 bg.blue / 255.);
+		cairo_set_source(cr, p);
+		cairo_fill(cr);
+		cairo_pattern_destroy(p);
+		cairo_destroy(cr);
+	}
+
+	{
+		ClutterActor *text;
+		ClutterColor color;
+		gfloat w, h;
+
+		gtk_clutter_get_fg_color(user_data, GTK_STATE_NORMAL, &color);
+		text = clutter_text_new_full("Sans 10", "Sources", &color);
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), text);
+		clutter_actor_get_size(text, &w, &h);
+		clutter_actor_set_position(text, (200 - w) / 2., (25 - h) / 2.);
+		clutter_actor_show(text);
+	}
+
+	{
+		ClutterActor *line;
+		ClutterColor dark;
+
+		gtk_clutter_get_dark_color(embed, GTK_STATE_NORMAL, &dark);
+
+		line = clutter_rectangle_new();
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), line);
+		g_object_set(line, "color", &dark, NULL);
+		clutter_actor_set_size(line, 1201, 1);
+		clutter_actor_set_position(line, 0, 24);
+		clutter_actor_show(line);
+	}
+
+	{
+		ClutterActor *shadow;
+		ClutterColor dark;
+
+		shadow = clutter_rectangle_new();
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), shadow);
+		clutter_actor_set_size(shadow, 1, 1000);
+		clutter_actor_set_position(shadow, 200, 0);
+		gtk_clutter_get_dark_color(GTK_WIDGET(embed), GTK_STATE_NORMAL, &dark);
+		g_object_set(shadow, "color", &dark, NULL);
+		clutter_actor_show(shadow);
+	}
+
 	{
 		ClutterActor *src1, *src2, *src3, *src4;
 
-		src1 = create_source(user_data, "Memory", priv->stage, 30, TRUE);
-		src2 = create_source(user_data, "CPU", priv->stage, 90, FALSE);
-		src3 = create_source(user_data, "Disk", priv->stage, 150, FALSE);
-		src4 = create_source(user_data, "Network", priv->stage, 210, FALSE);
+		src1 = create_source(user_data, "Memory", priv->stage, 25, TRUE);
+		src2 = create_source(user_data, "CPU", priv->stage, 85, FALSE);
+		src3 = create_source(user_data, "Disk", priv->stage, 145, FALSE);
+		src4 = create_source(user_data, "Network", priv->stage, 205, FALSE);
 
 		g_debug("DONE");
 	}
@@ -396,19 +470,4 @@ pkg_session_view_init (PkgSessionView *session_view)
 	color.alpha = 0xFF;
 	g_object_set(priv->bg_for_sources, "color", &color, NULL);
 	clutter_actor_show(priv->bg_for_sources);
-
-	{
-		ClutterActor *shadow;
-
-		shadow = clutter_rectangle_new();
-		clutter_container_add_actor(CLUTTER_CONTAINER(stage), shadow);
-		clutter_actor_set_size(shadow, 1, 1000);
-		clutter_actor_set_position(shadow, 200, 0);
-		color.red = 0x88;
-		color.green = 0x88;
-		color.blue = 0x88;
-		color.alpha = 0xff;
-		g_object_set(shadow, "color", &color, NULL);
-		clutter_actor_show(shadow);
-	}
 }
