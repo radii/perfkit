@@ -104,6 +104,37 @@ pkg_session_view_class_init (PkgSessionViewClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkgSessionViewPrivate));
 }
 
+static void
+src_on_size_allocated (GtkWidget    *widget,
+                       GdkEvent     *event,
+                       ClutterActor *src_bg)
+{
+	g_assert(src_bg);
+	clutter_actor_set_size(src_bg, widget->allocation.width - 200, 60);
+}
+
+static void
+gloss_on_size_allocated (GtkWidget    *widget,
+                         GdkEvent     *event,
+                         ClutterActor *hl)
+{
+	cairo_t *cr;
+	cairo_pattern_t *p;
+
+	g_assert(hl);
+	clutter_actor_set_size(hl, widget->allocation.width - 200, 60);
+
+	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(hl));
+	p = cairo_pattern_create_linear(0., 0., 0., 60.);
+	cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
+	cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
+	cairo_rectangle(cr, 0., 0., 1000., 60.);
+	cairo_set_source(cr, p);
+	cairo_fill(cr);
+	cairo_pattern_destroy(p);
+	cairo_destroy(cr);
+}
+
 static ClutterActor*
 create_source(PkgSessionView *session_view,
               const gchar    *title,
@@ -219,8 +250,6 @@ create_source(PkgSessionView *session_view,
 
 	{
 		ClutterActor *src_bg, *hl;
-		cairo_t *cr;
-		cairo_pattern_t *p;
 
 		src_bg = clutter_rectangle_new();
 		color.red = bg.red / 255.0;
@@ -232,23 +261,61 @@ create_source(PkgSessionView *session_view,
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
 		clutter_actor_set_position(src_bg, 201, offset);
 		clutter_actor_show(src_bg);
+		g_signal_connect(session_view, "size-allocate", G_CALLBACK(src_on_size_allocated), src_bg);
 
 		hl = clutter_cairo_texture_new(1000, 60);
-		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(hl));
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), hl);
-		clutter_actor_set_position(hl, 201, offset);
 		clutter_actor_set_size(hl, 1000, 60);
+		clutter_actor_set_position(hl, 201, offset);
 		clutter_actor_show(hl);
-		p = cairo_pattern_create_linear(0., 0., 0., 60.);
-		cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
-		cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
-		cairo_rectangle(cr, 0., 0., 1000., 60.);
-		cairo_set_source(cr, p);
-		cairo_fill(cr);
-		cairo_destroy(cr);
+		g_signal_connect(session_view, "size-allocate", G_CALLBACK(gloss_on_size_allocated), hl);
 	}
 
 	return NULL;
+}
+
+static void
+header_line_on_size_allocate (GtkWidget    *session_view,
+                              GdkEvent     *event,
+                              ClutterActor *a)
+{
+	g_assert(a);
+	clutter_actor_set_size(a, session_view->allocation.width, 1);
+}
+
+static void
+header_on_size_allocate (GtkWidget    *session_view,
+                         GdkEvent     *event,
+                         ClutterActor *header)
+{
+	{
+		ClutterColor bg, mid, light, dark;
+		cairo_t *cr;
+		cairo_pattern_t *p;
+
+		gtk_clutter_get_bg_color(session_view, GTK_STATE_NORMAL, &bg);
+		gtk_clutter_get_light_color(session_view, GTK_STATE_NORMAL, &light);
+		gtk_clutter_get_mid_color(session_view, GTK_STATE_NORMAL, &mid);
+		gtk_clutter_get_dark_color(session_view, GTK_STATE_NORMAL, &dark);
+
+		clutter_actor_set_size(header, session_view->allocation.width, 25);
+
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(header));
+		cairo_rectangle(cr, 0, 0, 1201, 25);
+		p = cairo_pattern_create_linear(0, 0, 0, 30);
+		cairo_pattern_add_color_stop_rgb(p, 0.,
+		                                 light.red / 255.,
+		                                 light.green / 255.,
+		                                 light.blue / 255.);
+		cairo_pattern_add_color_stop_rgb(p, 7.,
+		                                 bg.red / 255.,
+		                                 bg.green / 255.,
+		                                 bg.blue / 255.);
+		cairo_set_source(cr, p);
+		cairo_fill(cr);
+		cairo_pattern_destroy(p);
+		cairo_destroy(cr);
+	}
 }
 
 static void
@@ -305,6 +372,18 @@ pkg_session_view_style_set (GtkWidget *embed,
 	}
 
 	{
+		ClutterActor *header;
+
+		header = clutter_cairo_texture_new(1201, 25);
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), header);
+		clutter_actor_set_position(header, 0, 0);
+		clutter_actor_set_size(header, 1201, 25);
+		clutter_actor_show(header);
+		g_signal_connect(user_data, "size-allocate",
+		                 G_CALLBACK(header_on_size_allocate), header);
+	}
+
+	{
 		ClutterActor *text;
 		ClutterColor color;
 		gfloat w, h;
@@ -315,20 +394,6 @@ pkg_session_view_style_set (GtkWidget *embed,
 		clutter_actor_get_size(text, &w, &h);
 		clutter_actor_set_position(text, (200 - w) / 2., (25 - h) / 2.);
 		clutter_actor_show(text);
-	}
-
-	{
-		ClutterActor *line;
-		ClutterColor dark;
-
-		gtk_clutter_get_dark_color(embed, GTK_STATE_NORMAL, &dark);
-
-		line = clutter_rectangle_new();
-		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), line);
-		g_object_set(line, "color", &dark, NULL);
-		clutter_actor_set_size(line, 1201, 1);
-		clutter_actor_set_position(line, 0, 24);
-		clutter_actor_show(line);
 	}
 
 	{
@@ -345,11 +410,28 @@ pkg_session_view_style_set (GtkWidget *embed,
 	}
 
 	{
+		ClutterActor *line;
+		ClutterColor dark;
+
+		gtk_clutter_get_dark_color(embed, GTK_STATE_NORMAL, &dark);
+
+		line = clutter_rectangle_new();
+		clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), line);
+		g_object_set(line, "color", &dark, NULL);
+		clutter_actor_set_size(line, 1201, 1);
+		clutter_actor_set_position(line, 0, 24);
+		clutter_actor_show(line);
+		g_signal_connect(user_data, "size-allocate",
+		                 G_CALLBACK(header_line_on_size_allocate),
+		                 line);
+	}
+
+	{
 		ClutterActor *src1, *src2, *src3, *src4;
 
-		src1 = create_source(user_data, "Memory", priv->stage, 25, TRUE);
+		src1 = create_source(user_data, "Memory", priv->stage, 25, FALSE);
 		src2 = create_source(user_data, "CPU", priv->stage, 85, FALSE);
-		src3 = create_source(user_data, "Disk", priv->stage, 145, FALSE);
+		src3 = create_source(user_data, "Disk", priv->stage, 145, TRUE);
 		src4 = create_source(user_data, "Network", priv->stage, 205, FALSE);
 
 		g_debug("DONE");
