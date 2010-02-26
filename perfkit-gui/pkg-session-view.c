@@ -129,6 +129,10 @@ gloss_on_size_allocated (GtkWidget    *widget,
 	cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
 	cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
 	cairo_rectangle(cr, 0., 0., 1000., 60.);
+	cairo_save(cr);
+	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+	cairo_fill_preserve(cr);
+	cairo_restore(cr);
 	cairo_set_source(cr, p);
 	cairo_fill(cr);
 	cairo_pattern_destroy(p);
@@ -427,12 +431,14 @@ pkg_session_view_style_set (GtkWidget *embed,
 	}
 
 	{
-		ClutterActor *src1, *src2, *src3, *src4;
+		ClutterActor *src1, *src2, *src3, *src4, *src5, *src6;
 
 		src1 = create_source(user_data, "Memory", priv->stage, 25, FALSE);
 		src2 = create_source(user_data, "CPU", priv->stage, 85, FALSE);
 		src3 = create_source(user_data, "Disk", priv->stage, 145, TRUE);
 		src4 = create_source(user_data, "Network", priv->stage, 205, FALSE);
+		src5 = create_source(user_data, "Gtk Events", priv->stage, 265, FALSE);
+		src5 = create_source(user_data, "X Events", priv->stage, 325, FALSE);
 
 		g_debug("DONE");
 	}
