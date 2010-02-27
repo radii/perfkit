@@ -25,6 +25,8 @@
 
 #include "pkg-session-view.h"
 
+#define DEFAULT_HEIGHT 40
+
 G_DEFINE_TYPE(PkgSessionView, pkg_session_view, GTK_TYPE_VBOX)
 
 /**
@@ -110,7 +112,7 @@ src_on_size_allocated (GtkWidget    *widget,
                        ClutterActor *src_bg)
 {
 	g_assert(src_bg);
-	clutter_actor_set_size(src_bg, widget->allocation.width - 200, 60);
+	clutter_actor_set_size(src_bg, widget->allocation.width - 200, DEFAULT_HEIGHT);
 }
 
 static void
@@ -122,13 +124,13 @@ gloss_on_size_allocated (GtkWidget    *widget,
 	cairo_pattern_t *p;
 
 	g_assert(hl);
-	clutter_actor_set_size(hl, widget->allocation.width - 200, 60);
+	clutter_actor_set_size(hl, widget->allocation.width - 200, DEFAULT_HEIGHT);
 
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(hl));
-	p = cairo_pattern_create_linear(0., 0., 0., 60.);
+	p = cairo_pattern_create_linear(0., 0., 0., DEFAULT_HEIGHT);
 	cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
 	cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
-	cairo_rectangle(cr, 0., 0., 1000., 60.);
+	cairo_rectangle(cr, 0., 0., 1000., DEFAULT_HEIGHT);
 	cairo_save(cr);
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_fill_preserve(cr);
@@ -156,10 +158,10 @@ create_source(PkgSessionView *session_view,
 		cairo_pattern_t *p;
 		gint state = selected ? GTK_STATE_SELECTED : GTK_STATE_NORMAL;
 
-		handle = clutter_cairo_texture_new(200, 60);
+		handle = clutter_cairo_texture_new(200, DEFAULT_HEIGHT);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), handle);
 		clutter_actor_set_position(handle, 0, offset);
-		clutter_actor_set_size(handle, 200, 60);
+		clutter_actor_set_size(handle, 200, DEFAULT_HEIGHT);
 		clutter_actor_show(handle);
 
 		dark = w->style->dark[state];
@@ -170,7 +172,7 @@ create_source(PkgSessionView *session_view,
 		text = w->style->text[state];
 		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(handle));
 		cairo_rectangle(cr, 0, 0, 200, 80);
-		p = cairo_pattern_create_linear(0, 0, 0, 60);
+		p = cairo_pattern_create_linear(0, 0, 0, DEFAULT_HEIGHT);
 		cairo_pattern_add_color_stop_rgb(p, 0.0f,
 		                                 light.red / (double)0xFFFF,
 		                                 light.green / (double)0xFFFF,
@@ -201,7 +203,7 @@ create_source(PkgSessionView *session_view,
 		color.alpha = 0xFF;
 		txt2 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt2);
-		clutter_actor_set_position(txt2, 31, ((60 - clutter_actor_get_height(txt2)) / 2) + offset + 1);
+		clutter_actor_set_position(txt2, 31, ((DEFAULT_HEIGHT - clutter_actor_get_height(txt2)) / 2) + offset + 1);
 		clutter_actor_show(txt2);
 
 		color.red = (text.red / 65535.0) * 0xFF;
@@ -210,7 +212,7 @@ create_source(PkgSessionView *session_view,
 		color.alpha = 0xFF;
 		txt1 = clutter_text_new_full("Sans Bold 12", title, &color);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), txt1);
-		clutter_actor_set_position(txt1, 30, ((60 - clutter_actor_get_height(txt2)) / 2) + offset);
+		clutter_actor_set_position(txt1, 30, ((DEFAULT_HEIGHT - clutter_actor_get_height(txt2)) / 2) + offset);
 		clutter_actor_show(txt1);
 	}
 
@@ -223,7 +225,7 @@ create_source(PkgSessionView *session_view,
 		conf = clutter_cairo_texture_new(20, 20);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), conf);
 		clutter_actor_set_size(conf, 20, 20);
-		clutter_actor_set_position(conf, 170, offset + 20);
+		clutter_actor_set_position(conf, 170, offset + 10);
 		clutter_actor_show(conf);
 		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(conf));
 		cairo_arc(cr, 10., 10., 8., 0., 2 * G_PI);
@@ -261,18 +263,42 @@ create_source(PkgSessionView *session_view,
 		color.blue = bg.blue / 255.0;
 		color.alpha = 0xFF;
 		g_object_set(src_bg, "color", &color, NULL);
-		clutter_actor_set_size(src_bg, 1000, 60);
+		clutter_actor_set_size(src_bg, 1000, DEFAULT_HEIGHT);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), src_bg);
 		clutter_actor_set_position(src_bg, 201, offset);
 		clutter_actor_show(src_bg);
 		g_signal_connect(session_view, "size-allocate", G_CALLBACK(src_on_size_allocated), src_bg);
 
-		hl = clutter_cairo_texture_new(1000, 60);
+		hl = clutter_cairo_texture_new(1000, DEFAULT_HEIGHT);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), hl);
-		clutter_actor_set_size(hl, 1000, 60);
+		clutter_actor_set_size(hl, 1000, DEFAULT_HEIGHT);
 		clutter_actor_set_position(hl, 201, offset);
 		clutter_actor_show(hl);
 		g_signal_connect(session_view, "size-allocate", G_CALLBACK(gloss_on_size_allocated), hl);
+	}
+
+	{
+		ClutterActor *tri;
+		cairo_t *cr;
+		GdkColor c;
+
+		c = GTK_WIDGET(session_view)->style->text[GTK_STATE_NORMAL];
+		tri = clutter_cairo_texture_new(20, 20);
+		clutter_container_add_actor(CLUTTER_CONTAINER(stage), tri);
+		clutter_actor_set_position(tri, 5, offset + 10);
+		clutter_actor_set_size(tri, 20, 20);
+		cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(tri));
+		cairo_move_to(cr, 5, 5);
+		cairo_line_to(cr, 12, 10);
+		cairo_line_to(cr, 5, 15);
+		cairo_line_to(cr, 5, 5);
+		cairo_set_source_rgb(cr,
+		                     c.red / (gfloat)0xFFFF,
+		                     c.green / (gfloat)0xFFFF,
+		                     c.blue / (gfloat)0xFFFF);
+		cairo_fill(cr);
+		cairo_destroy(cr);
+		clutter_actor_show(tri);
 	}
 
 	return NULL;
@@ -434,11 +460,11 @@ pkg_session_view_style_set (GtkWidget *embed,
 		ClutterActor *src1, *src2, *src3, *src4, *src5, *src6;
 
 		src1 = create_source(user_data, "Memory", priv->stage, 25, FALSE);
-		src2 = create_source(user_data, "CPU", priv->stage, 85, FALSE);
-		src3 = create_source(user_data, "Disk", priv->stage, 145, TRUE);
-		src4 = create_source(user_data, "Network", priv->stage, 205, FALSE);
-		src5 = create_source(user_data, "Gtk Events", priv->stage, 265, FALSE);
-		src5 = create_source(user_data, "X Events", priv->stage, 325, FALSE);
+		src2 = create_source(user_data, "CPU", priv->stage, 65, FALSE);
+		src3 = create_source(user_data, "Disk", priv->stage, 105, TRUE);
+		src4 = create_source(user_data, "Network", priv->stage, 145, FALSE);
+		src5 = create_source(user_data, "Gtk Events", priv->stage, 185, FALSE);
+		src5 = create_source(user_data, "X Events", priv->stage, 225, FALSE);
 
 		g_debug("DONE");
 	}
