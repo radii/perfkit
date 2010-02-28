@@ -87,7 +87,10 @@ struct _PkgSessionViewRow
 	ClutterActor   *header_text;        /* Row header title shadow */
 	ClutterActor   *header_text2;       /* Row header title */
 	ClutterActor   *header_info;        /* Row header info button */
+	gboolean        header_info_pressed;/* Info button is pressed */
 };
+
+static void pkg_session_view_row_set_style (PkgSessionViewRow*, GtkStyle*);
 
 /**
  * pkg_session_view_new:
@@ -148,6 +151,30 @@ pkg_session_view_get_label (PkgSessionView *session_view)
 {
 	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
 	return session_view->priv->label;
+}
+
+static void
+pkg_session_view_select_row (PkgSessionView    *session_view,
+                             PkgSessionViewRow *row)
+{
+	PkgSessionViewRow *old_row;
+	PkgSessionViewPrivate *priv;
+
+	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(row != NULL);
+
+	priv = session_view->priv;
+
+	old_row = priv->selected;
+	if (row == old_row) {
+		return;
+	}
+
+	priv->selected = row;
+	pkg_session_view_row_set_style(row, GTK_WIDGET(row->view)->style);
+	if (old_row) {
+		pkg_session_view_row_set_style(old_row, GTK_WIDGET(row->view)->style);
+	}
 }
 
 static void
@@ -243,7 +270,11 @@ pkg_session_view_row_paint_header_info (PkgSessionViewRow *row,
 
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(info));
 	cairo_arc(cr, 10., 10., 8., 0., 2 * G_PI);
-	gdk_cairo_set_source_color(cr, &widget->style->bg[state]);
+	if (!row->header_info_pressed) {
+		gdk_cairo_set_source_color(cr, &widget->style->bg[state]);
+	} else {
+		gdk_cairo_set_source_color(cr, &widget->style->dark[state]);
+	}
 	cairo_fill_preserve(cr);
 	gdk_cairo_set_source_color(cr, &widget->style->dark[state]);
 	cairo_stroke(cr);
@@ -265,6 +296,46 @@ pkg_session_view_row_arrow_clicked (ClutterActor *arrow,
 	PkgSessionViewRow *row = user_data;
 
 	g_debug("Arrow clicked");
+
+	if (!ROW_IS_SELECTED(row)) {
+		pkg_session_view_select_row(row->view, row);
+	}
+
+	return TRUE;
+}
+
+static gboolean
+pkg_session_view_row_info_released (ClutterActor *info,
+                                    ClutterEvent *event,
+                                    gpointer      user_data)
+{
+	PkgSessionViewRow *row = user_data;
+
+	g_return_val_if_fail(row != NULL, FALSE);
+
+	row->header_info_pressed = FALSE;
+	pkg_session_view_row_paint_header_info(row, row->header_info);
+
+	return TRUE;
+}
+
+static gboolean
+pkg_session_view_row_info_clicked (ClutterActor *info,
+                                   ClutterEvent *event,
+                                   gpointer      user_data)
+{
+	PkgSessionViewRow *row = user_data;
+
+	if (event->button.click_count == 1) {
+		if (!ROW_IS_SELECTED(row)) {
+			pkg_session_view_select_row(row->view, row);
+		}
+
+		g_debug("Info single clicked");
+
+		row->header_info_pressed = TRUE;
+		pkg_session_view_row_paint_header_info(row, row->header_info);
+	}
 
 	return TRUE;
 }
@@ -325,21 +396,11 @@ pkg_session_view_row_group_clicked (ClutterActor      *group,
                                     ClutterEvent      *event,
                                     PkgSessionViewRow *row)
 {
-	PkgSessionViewRow *old_row;
-
 	g_return_val_if_fail(group != NULL, FALSE);
 	g_return_val_if_fail(row != NULL, FALSE);
+	g_return_val_if_fail(row->group == group, FALSE);
 
-	old_row = row->view->priv->selected;
-	if (row == old_row) {
-		return FALSE;
-	}
-
-	row->view->priv->selected = row;
-	pkg_session_view_row_set_style(row, GTK_WIDGET(row->view)->style);
-	if (old_row) {
-		pkg_session_view_row_set_style(old_row, GTK_WIDGET(row->view)->style);
-	}
+	pkg_session_view_select_row(row->view, row);
 }
 
 static PkgSessionViewRow*
@@ -445,6 +506,15 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	clutter_actor_set_size(row->header_info, 20, 20);
 	clutter_actor_set_position(row->header_info, 175, (row_height - 20) / 2);
 	clutter_actor_set_reactive(row->header_info, TRUE);
+	g_signal_connect(row->header_info,
+	                 "button-press-event",
+	                 G_CALLBACK(pkg_session_view_row_info_clicked),
+	                 row);
+	g_signal_connect(row->header_info,
+	                 "button-release-event",
+	                 G_CALLBACK(pkg_session_view_row_info_released),
+	                 row);
+	
 
 	/*
 	 * Attach styling.
