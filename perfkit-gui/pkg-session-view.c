@@ -188,10 +188,10 @@ pkg_session_view_row_paint_arrow (PkgSessionViewRow *row,
 
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(arrow));
 	gdk_cairo_set_source_color(cr, &GTK_WIDGET(row->view)->style->text[GTK_STATE_NORMAL]);
-	cairo_move_to(cr, 5, 5);
-	cairo_line_to(cr, 12, 10);
-	cairo_line_to(cr, 5, 15);
-	cairo_line_to(cr, 5, 5);
+	cairo_move_to(cr, 0, 0);
+	cairo_line_to(cr, 7, 5);
+	cairo_line_to(cr, 0, 10);
+	cairo_line_to(cr, 0, 0);
 	cairo_fill(cr);
 	cairo_destroy(cr);
 }
@@ -294,12 +294,19 @@ pkg_session_view_row_arrow_clicked (ClutterActor *arrow,
                                     gpointer      user_data)
 {
 	PkgSessionViewRow *row = user_data;
+	gdouble z = 1.0;
 
 	g_debug("Arrow clicked");
 
 	if (!ROW_IS_SELECTED(row)) {
 		pkg_session_view_select_row(row->view, row);
 	}
+
+	g_object_get(arrow, "rotation-angle-z", &z, NULL);
+	z = (z != 0.) ? 0. : 90.;
+	clutter_actor_animate(arrow, CLUTTER_LINEAR, 250,
+	                      "rotation-angle-z", z,
+	                      NULL);
 
 	return TRUE;
 }
@@ -434,7 +441,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	row->data_fg = clutter_cairo_texture_new(1, 1);
 	row->data_gloss = clutter_cairo_texture_new(1, 1);
 	row->header_bg = clutter_cairo_texture_new(200, row->row_ratio * DEFAULT_HEIGHT);
-	row->header_arrow = clutter_cairo_texture_new(20, 20);
+	row->header_arrow = clutter_cairo_texture_new(10, 10);
 	row->header_text = clutter_text_new();
 	row->header_text2 = clutter_text_new();
 	row->header_info = clutter_cairo_texture_new(20, 20);
@@ -493,11 +500,14 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	 * Setup arrow.
 	 */
 	clutter_container_add_actor(CLUTTER_CONTAINER(row->group), row->header_arrow);
-	clutter_actor_set_size(row->header_arrow, 20, 20);
-	clutter_actor_set_position(row->header_arrow, 5, (row_height - 20) / 2);
+	clutter_actor_set_size(row->header_arrow, 10, 10);
 	clutter_actor_set_reactive(row->header_arrow, TRUE);
-	g_signal_connect(row->header_arrow, "button-press-event",
-	                 G_CALLBACK(pkg_session_view_row_arrow_clicked), row);
+	clutter_actor_set_position(row->header_arrow, 15, (row_height / 2));
+	clutter_actor_set_anchor_point(row->header_arrow, 3.5, 5);
+	g_signal_connect(row->header_arrow,
+	                 "button-press-event",
+	                 G_CALLBACK(pkg_session_view_row_arrow_clicked),
+	                 row);
 
 	/*
 	 * Setup info button.
