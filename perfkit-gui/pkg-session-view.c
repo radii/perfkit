@@ -447,7 +447,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 
 	priv = session_view->priv;
 	ratio = gtk_adjustment_get_value(GTK_ADJUSTMENT(priv->zadj));
-	row_height = DEFAULT_HEIGHT * ratio;
+	row_height = DEFAULT_HEIGHT;
 	title = g_strdup_printf("<span size=\"larger\" weight=\"bold\">%s</span>",
 	                        "Source Name");
 
@@ -461,7 +461,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	row->data_bg = clutter_rectangle_new();
 	row->data_fg = clutter_cairo_texture_new(1, 1);
 	row->data_gloss = clutter_cairo_texture_new(1, 1);
-	row->header_bg = clutter_cairo_texture_new(200, row->row_ratio * DEFAULT_HEIGHT);
+	row->header_bg = clutter_cairo_texture_new(200, row_height);
 	row->header_arrow = clutter_cairo_texture_new(10, 10);
 	row->header_text = clutter_text_new();
 	row->header_text2 = clutter_text_new();
