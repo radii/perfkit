@@ -242,10 +242,25 @@ static void
 pkg_session_view_row_paint_data_gloss (PkgSessionViewRow *row,
                                        ClutterActor      *data_gloss)
 {
+	cairo_t *cr;
+	cairo_pattern_t *p;
+
 	g_return_if_fail(row != NULL);
 	g_return_if_fail(data_gloss != NULL);
 
 	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(data_gloss));
+	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(data_gloss));
+	p = cairo_pattern_create_linear(0., 0., 0.,
+	                                clutter_actor_get_height(data_gloss));
+	cairo_pattern_add_color_stop_rgba(p, 0., 1., 1., 1., .3);
+	cairo_pattern_add_color_stop_rgba(p, .618033, 1., 1., 1., .0);
+	cairo_rectangle(cr, 0., 0.,
+	                clutter_actor_get_width(data_gloss),
+	                clutter_actor_get_height(data_gloss));
+	cairo_set_source(cr, p);
+	cairo_fill(cr);
+	cairo_pattern_destroy(p);
+	cairo_destroy(cr);
 }
 
 static void
@@ -354,18 +369,24 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 {
 	PkgSessionViewPrivate *priv;
 	PkgSessionViewRow *row;
+	gfloat width;
 	GList *list;
 
 	g_return_if_fail(PKG_IS_SESSION_VIEW(user_data));
 
 	priv = PKG_SESSION_VIEW(user_data)->priv;
 
+
 	for (list = priv->rows; list; list = list->next) {
 		row = list->data;
 		clutter_actor_set_width(row->group, alloc->width);
-		clutter_actor_set_width(row->data_bg, alloc->width);
-		clutter_actor_set_width(row->data_fg, alloc->width);
-		clutter_actor_set_width(row->data_gloss, alloc->width);
+		clutter_actor_set_width(row->data_bg, alloc->width - 201);
+		clutter_actor_set_width(row->data_fg, alloc->width - 201);
+		clutter_actor_set_width(row->data_gloss, alloc->width - 201);
+		clutter_cairo_texture_set_surface_size(
+				CLUTTER_CAIRO_TEXTURE(row->data_gloss),
+				alloc->width - 201,
+				clutter_actor_get_height(row->group));
 		pkg_session_view_row_paint_data_fg(row, row->data_fg);
 		pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
 	}
