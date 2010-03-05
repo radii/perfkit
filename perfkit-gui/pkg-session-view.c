@@ -448,7 +448,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	priv = session_view->priv;
 	ratio = gtk_adjustment_get_value(GTK_ADJUSTMENT(priv->zadj));
 	row_height = DEFAULT_HEIGHT;
-	title = g_strdup_printf("<span size=\"larger\" weight=\"bold\">%s</span>",
+	title = g_strdup_printf("<span weight=\"bold\">%s</span>",
 	                        "Source Name");
 
 	/*
@@ -642,7 +642,10 @@ pkg_session_view_init (PkgSessionView *session_view)
 	          *scale,
 	          *embed,
 	          *img1,
-	          *img2;
+	          *img2,
+	          *hruler,
+	          *hhbox,
+	          *lbl;
 	ClutterActor *stage;
 	ClutterColor color;
 
@@ -668,14 +671,14 @@ pkg_session_view_init (PkgSessionView *session_view)
 	gtk_widget_show(priv->vpaned);
 
 	/* setup main layout */
-	table = gtk_table_new(2, 3, FALSE);
+	table = gtk_table_new(3, 3, FALSE);
 	gtk_paned_add1(GTK_PANED(priv->vpaned), table);
 	gtk_widget_show(table);
 
 	vscroller = gtk_vscrollbar_new(NULL);
 	gtk_table_attach(GTK_TABLE(table),
 	                 vscroller,
-	                 2, 3, 0, 1,
+	                 2, 3, 1, 2,
 	                 GTK_FILL,
 	                 GTK_FILL | GTK_EXPAND,
 	                 0, 0);
@@ -684,7 +687,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	hscroller = gtk_hscrollbar_new(NULL);
 	gtk_table_attach(GTK_TABLE(table),
 	                 hscroller,
-	                 1, 2, 1, 2,
+	                 1, 2, 2, 3,
 	                 GTK_FILL | GTK_EXPAND,
 	                 GTK_FILL,
 	                 0, 0);
@@ -694,7 +697,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	embed = gtk_clutter_embed_new();
 	gtk_table_attach(GTK_TABLE(table),
 	                 embed,
-	                 0, 2, 0, 1,
+	                 0, 2, 1, 2,
 	                 GTK_FILL | GTK_EXPAND,
 	                 GTK_FILL | GTK_EXPAND,
 	                 0, 0);
@@ -710,7 +713,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	zhbox = gtk_hbox_new(FALSE, 3);
 	gtk_table_attach(GTK_TABLE(table),
 	                 zhbox,
-	                 0, 1, 1, 2,
+	                 0, 1, 2, 3,
 	                 GTK_FILL,
 	                 GTK_FILL,
 	                 6, 0);
@@ -747,6 +750,30 @@ pkg_session_view_init (PkgSessionView *session_view)
 	priv->zadj = gtk_adjustment_new(1., .5, 5., .25, 1., 1.);
 	g_object_set(scale, "adjustment", priv->zadj, NULL);
 
+
+	hruler = gtk_hruler_new();
+	gtk_table_attach(GTK_TABLE(table),
+	                 hruler,
+	                 1, 3, 0, 1,
+	                 GTK_FILL | GTK_EXPAND,
+	                 GTK_FILL,
+	                 0, 0);
+	gtk_ruler_set_range(GTK_RULER(hruler), 0., 10., 0., 0.);
+	gtk_widget_show(hruler);
+
+	hhbox = gtk_hbox_new(FALSE, 6);
+	gtk_table_attach(GTK_TABLE(table),
+	                 hhbox,
+	                 0, 1, 0, 1,
+	                 GTK_FILL,
+	                 GTK_FILL,
+	                 0, 0);
+	gtk_widget_show(hhbox);
+
+	lbl = gtk_label_new("");
+	gtk_box_pack_start(GTK_BOX(hhbox), lbl, TRUE, TRUE, 0);
+	gtk_widget_show(lbl);
+
 	g_signal_connect(session_view, "size-allocate",
 	                 G_CALLBACK(pkg_session_view_size_allocated),
 	                 session_view);
@@ -761,6 +788,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 		row = pkg_session_view_row_new(session_view, NULL);
 		priv->rows = g_list_append(priv->rows, row);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), row->group);
+		clutter_actor_set_position(row->group, 0, 0);
 
 		row = pkg_session_view_row_new(session_view, NULL);
 		priv->rows = g_list_append(priv->rows, row);
