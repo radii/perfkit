@@ -442,6 +442,8 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	gdouble row_height;
 	gchar *title;
 	gint height;
+	static gchar *names[] = { "CPU", "Memory", "Disk" };
+	static gint i = 0;
 
 	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
 	//g_return_val_if_fail(PK_IS_SOURCE(source), NULL);
@@ -450,7 +452,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	ratio = gtk_adjustment_get_value(GTK_ADJUSTMENT(priv->zadj));
 	row_height = DEFAULT_HEIGHT;
 	title = g_strdup_printf("<span weight=\"bold\">%s</span>",
-	                        "Source Name");
+	                        names[i++]);
 
 	/*
 	 * Create state and actors.
