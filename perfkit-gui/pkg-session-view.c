@@ -797,13 +797,15 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 0, 0);
 	gtk_widget_show(hhbox);
 
-	lbl = gtk_label_new("");
+	lbl = gtk_label_new(_("Sources"));
 	gtk_box_pack_start(GTK_BOX(hhbox), lbl, TRUE, TRUE, 0);
+	g_object_set(lbl, "ypad", 3, NULL);
 	gtk_widget_show(lbl);
 
 	g_signal_connect(session_view, "size-allocate",
 	                 G_CALLBACK(pkg_session_view_size_allocated),
 	                 session_view);
+
 
 
 	// tmp
