@@ -71,6 +71,7 @@ struct _PkgSessionViewPrivate
 	GtkObject         *zadj;            /* Zoom adjustment */
 	GtkObject         *vadj;            /* Vertical scroll adjustment */
 	GtkObject         *hadj;            /* Horizontal scroll adjustment */
+	GtkWidget         *ruler;
 };
 
 struct _PkgSessionViewRow
@@ -606,6 +607,28 @@ pkg_session_view_style_set (GtkWidget *widget,
 }
 
 static void
+pkg_session_view_stage_motion_event (ClutterActor   *stage,
+                                     ClutterEvent   *event,
+                                     PkgSessionView *session_view)
+{
+	PkgSessionViewPrivate *priv;
+	gfloat w, x, ratio;
+	gdouble lower, upper, pos;
+
+	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+
+	priv = session_view->priv;
+
+	w = clutter_actor_get_width(stage);
+	ratio = (event->motion.x - 200) / (w - 200);
+	gtk_ruler_get_range(GTK_RULER(priv->ruler), &lower, &upper, NULL, NULL);
+	pos = (upper - lower) * ratio;
+	g_object_set(priv->ruler,
+	             "position", CLAMP(pos, lower, upper),
+	             NULL);
+}
+
+static void
 pkg_session_view_finalize (GObject *object)
 {
 	PkgSessionViewPrivate *priv;
@@ -643,7 +666,6 @@ pkg_session_view_init (PkgSessionView *session_view)
 	          *embed,
 	          *img1,
 	          *img2,
-	          *hruler,
 	          *hhbox,
 	          *lbl;
 	ClutterActor *stage;
@@ -678,7 +700,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	vscroller = gtk_vscrollbar_new(NULL);
 	gtk_table_attach(GTK_TABLE(table),
 	                 vscroller,
-	                 2, 3, 1, 2,
+	                 2, 3, 0, 2,
 	                 GTK_FILL,
 	                 GTK_FILL | GTK_EXPAND,
 	                 0, 0);
@@ -706,6 +728,11 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 G_CALLBACK(pkg_session_view_style_set),
 	                 session_view);
 	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
+	g_signal_connect(stage,
+	                 "motion-event",
+	                 G_CALLBACK(pkg_session_view_stage_motion_event),
+	                 session_view);
+
 	gtk_widget_show(embed);
 	priv->stage = stage;
 
@@ -750,16 +777,16 @@ pkg_session_view_init (PkgSessionView *session_view)
 	priv->zadj = gtk_adjustment_new(1., .5, 5., .25, 1., 1.);
 	g_object_set(scale, "adjustment", priv->zadj, NULL);
 
-
-	hruler = gtk_hruler_new();
+	/* position ruler */
+	priv->ruler = gtk_hruler_new();
 	gtk_table_attach(GTK_TABLE(table),
-	                 hruler,
-	                 1, 3, 0, 1,
+	                 priv->ruler,
+	                 1, 2, 0, 1,
 	                 GTK_FILL | GTK_EXPAND,
 	                 GTK_FILL,
 	                 0, 0);
-	gtk_ruler_set_range(GTK_RULER(hruler), 0., 10., 0., 0.);
-	gtk_widget_show(hruler);
+	gtk_ruler_set_range(GTK_RULER(priv->ruler), 0., 10., 0., 0.);
+	gtk_widget_show(priv->ruler);
 
 	hhbox = gtk_hbox_new(FALSE, 6);
 	gtk_table_attach(GTK_TABLE(table),
