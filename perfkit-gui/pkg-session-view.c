@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
 #include <clutter-gtk/clutter-gtk.h>
 #include <perfkit/perfkit.h>
@@ -630,6 +631,52 @@ pkg_session_view_stage_motion_event (ClutterActor   *stage,
 	             NULL);
 }
 
+static gboolean
+pkg_session_view_embed_key_press (GtkWidget      *embed,
+                                  GdkEvent       *event,
+                                  PkgSessionView *session_view)
+{
+	PkgSessionViewPrivate *priv;
+	GList *iter;
+
+	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), FALSE);
+
+	priv = session_view->priv;
+	if (!priv->selected) {
+		return FALSE;
+	}
+
+	switch (event->key.keyval) {
+	case GDK_Down:
+		for (iter = priv->rows; iter; iter = iter->next) {
+			if (iter->data == priv->selected && iter->next) {
+				pkg_session_view_select_row(session_view, iter->next->data);
+				break;
+			}
+		}
+		break;
+	case GDK_Up:
+		for (iter = g_list_last(priv->rows); iter; iter = iter->prev) {
+			if (iter->data == priv->selected && iter->prev) {
+				pkg_session_view_select_row(session_view, iter->prev->data);
+				break;
+			}
+		}
+		break;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+pkg_session_view_embed_button_press (GtkWidget *widget,
+                                     GdkEvent  *event,
+                                     gpointer   user_data)
+{
+	gtk_widget_grab_focus(widget);
+	return FALSE;
+}
+
 static void
 pkg_session_view_finalize (GObject *object)
 {
@@ -719,6 +766,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 
 	/* add sources stage */
 	embed = gtk_clutter_embed_new();
+	gtk_widget_add_events(embed, GDK_KEY_PRESS_MASK);
 	gtk_table_attach(GTK_TABLE(table),
 	                 embed,
 	                 0, 2, 1, 2,
@@ -729,14 +777,20 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 "style-set",
 	                 G_CALLBACK(pkg_session_view_style_set),
 	                 session_view);
-	stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
+	priv->stage = stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
 	g_signal_connect(stage,
 	                 "motion-event",
 	                 G_CALLBACK(pkg_session_view_stage_motion_event),
 	                 session_view);
-
+	g_signal_connect(embed,
+	                 "key-press-event",
+	                 G_CALLBACK(pkg_session_view_embed_key_press),
+	                 session_view);
+	g_signal_connect(embed,
+	                 "button-press-event",
+	                 G_CALLBACK(pkg_session_view_embed_button_press),
+	                 NULL);
 	gtk_widget_show(embed);
-	priv->stage = stage;
 
 	/* create zoom control */
 	zhbox = gtk_hbox_new(FALSE, 3);
