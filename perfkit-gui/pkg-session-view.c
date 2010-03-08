@@ -494,7 +494,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	 */
 	clutter_container_add_actor(CLUTTER_CONTAINER(row->group), row->data_fg);
 	clutter_actor_set_size(row->data_fg, 279, row_height);
-	clutter_actor_set_position(row->data_bg, 201, 0);
+	clutter_actor_set_position(row->data_fg, 201, 0);
 
 	/*
 	 * Setup data gloss texture.
