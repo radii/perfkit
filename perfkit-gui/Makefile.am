@@ -23,6 +23,7 @@ INST_H_FILES =								\
 	pkg-runtime.h							\
 	pkg-session.h							\
 	pkg-session-view.h						\
+	pkg-source-renderer.h						\
 	pkg-welcome.h							\
 	pkg-window.h							\
 	pkg-version.h							\
@@ -36,6 +37,7 @@ libperfkit_gui_la_SOURCES =						\
 	pkg-runtime.c							\
 	pkg-session.c							\
 	pkg-session-view.c						\
+	pkg-source-renderer.c						\
 	pkg-welcome.c							\
 	pkg-window.c							\
 	$(NULL)
