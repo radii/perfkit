@@ -389,6 +389,10 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 				CLUTTER_CAIRO_TEXTURE(row->data_gloss),
 				alloc->width - 201,
 				clutter_actor_get_height(row->group));
+		clutter_cairo_texture_set_surface_size(
+				CLUTTER_CAIRO_TEXTURE(row->data_fg),
+				alloc->width - 201,
+				clutter_actor_get_height(row->group));
 		pkg_session_view_row_paint_data_fg(row, row->data_fg);
 		pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
 	}
