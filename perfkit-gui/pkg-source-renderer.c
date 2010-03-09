@@ -215,6 +215,7 @@ pkg_source_renderer_real_render (PkgSourceRenderer *source_renderer,
 	cairo_line_to(cr, 0, h);
 	cairo_fill_preserve(cr);
 	cairo_set_source_rgb(cr, 0.3058, 0.6039, 0.0235);
+	cairo_set_line_width(cr, 1.0);
 	cairo_stroke(cr);
 	cairo_destroy(cr);
 }
