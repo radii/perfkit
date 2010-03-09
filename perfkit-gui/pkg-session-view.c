@@ -26,6 +26,7 @@
 #include <perfkit/perfkit.h>
 
 #include "pkg-session-view.h"
+#include "pkg-source-renderer.h"
 
 #define DEFAULT_HEIGHT 40
 #define ROW_IS_SELECTED(r) ((r)->view->priv->selected == (r))
@@ -79,6 +80,8 @@ struct _PkgSessionViewRow
 {
 	PkgSessionView *view;
 	PkSource       *source;
+	PkgSourceRenderer
+	               *renderer;           /* Graph renderer */
 	gfloat          row_ratio;          /* Size ratio compared to def. size */
 	ClutterActor   *group;              /* Container for row actors */
 	ClutterActor   *data_bg;            /* Background for data graph */
@@ -234,10 +237,13 @@ static void
 pkg_session_view_row_paint_data_fg (PkgSessionViewRow *row,
                                     ClutterActor      *data_fg)
 {
+	float w;
+
 	g_return_if_fail(row != NULL);
 	g_return_if_fail(data_fg != NULL);
 
-	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(data_fg));
+	clutter_actor_get_size(data_fg, &w, NULL);
+	pkg_source_renderer_render(row->renderer, data_fg, 0, w);
 }
 
 static void
@@ -465,6 +471,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	row = g_slice_new0(PkgSessionViewRow);
 	row->source = source ? g_object_ref(source) : NULL;
 	row->row_ratio = 1.0;
+	row->renderer = pkg_source_renderer_new();
 	row->group = clutter_group_new();
 	row->data_bg = clutter_rectangle_new();
 	row->data_fg = clutter_cairo_texture_new(1, 1);
@@ -496,6 +503,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	/*
 	 * Setup data graph texture.
 	 */
+	row->data_fg = pkg_source_renderer_get_actor(row->renderer);
 	clutter_container_add_actor(CLUTTER_CONTAINER(row->group), row->data_fg);
 	clutter_actor_set_size(row->data_fg, 279, row_height);
 	clutter_actor_set_position(row->data_fg, 201, 0);
