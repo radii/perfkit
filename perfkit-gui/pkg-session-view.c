@@ -427,7 +427,6 @@ pkg_session_view_row_set_style (PkgSessionViewRow *row,
 	pkg_session_view_row_paint_arrow(row, row->header_arrow);
 	pkg_session_view_row_paint_header_bg(row, row->header_bg);
 	pkg_session_view_row_paint_header_info(row, row->header_info);
-	pkg_session_view_row_paint_data_fg(row, row->data_fg);
 	pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
 	g_object_set(row->data_bg, "color", &bg, NULL);
 	g_object_set(row->header_text, "color", &bg, NULL);
