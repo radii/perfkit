@@ -29,7 +29,7 @@
 #include "pkg-source-renderer.h"
 
 #define DEFAULT_HEIGHT 40
-#define ROW_IS_SELECTED(r) ((r)->view->priv->selected == (r))
+#define ROW_IS_SELECTED(r) ((r) && ((r)->view->priv->selected == (r)))
 #define ADD_COLOR_STOP(p,o,g) G_STMT_START {                      \
     cairo_pattern_add_color_stop_rgb((p), (o),                    \
                                      ((g)->red) / 65535.,         \
@@ -166,19 +166,22 @@ pkg_session_view_select_row (PkgSessionView    *session_view,
 	PkgSessionViewPrivate *priv;
 
 	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
-	g_return_if_fail(row != NULL);
 
 	priv = session_view->priv;
 
 	old_row = priv->selected;
+
 	if (row == old_row) {
 		return;
 	}
 
 	priv->selected = row;
-	pkg_session_view_row_set_style(row, GTK_WIDGET(row->view)->style);
+
+	if (row) {
+		pkg_session_view_row_set_style(row, GTK_WIDGET(session_view)->style);
+	}
 	if (old_row) {
-		pkg_session_view_row_set_style(old_row, GTK_WIDGET(row->view)->style);
+		pkg_session_view_row_set_style(old_row, GTK_WIDGET(session_view)->style);
 	}
 }
 
@@ -436,11 +439,25 @@ pkg_session_view_row_group_clicked (ClutterActor      *group,
                                     ClutterEvent      *event,
                                     PkgSessionViewRow *row)
 {
+	PkgSessionView *view;
+
 	g_return_val_if_fail(group != NULL, FALSE);
 	g_return_val_if_fail(row != NULL, FALSE);
 	g_return_val_if_fail(row->group == group, FALSE);
 
-	pkg_session_view_select_row(row->view, row);
+	view = row->view;
+
+	/*
+	 * Unselect the selected row if it is clicked while holding
+	 * Control.
+	 */
+	if ((event->button.modifier_state & CLUTTER_CONTROL_MASK) != 0) {
+		if (ROW_IS_SELECTED(row)) {
+			row = NULL;
+		}
+	}
+
+	pkg_session_view_select_row(view, row);
 }
 
 static PkgSessionViewRow*
