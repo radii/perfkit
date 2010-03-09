@@ -22,6 +22,8 @@
 
 #include <stdlib.h>
 #include <gtk/gtk.h>
+#include <ethos/ethos.h>
+#include <ethos/ethos-ui.h>
 
 #include "pkg-panels.h"
 #include "pkg-prefs.h"
@@ -36,8 +38,9 @@
  * 
  */
 
-static GList    *windows = NULL;
-static gboolean  started = FALSE;
+static GList        *windows = NULL;
+static gboolean      started = FALSE;
+static EthosManager *manager = NULL;
 
 /**
  * pkg_runtime_initialize:
@@ -49,13 +52,43 @@ pkg_runtime_initialize (gint     *argc,
                         gchar  ***argv,
                         GError  **error)
 {
+	gchar **plugin_dirs;
+
 	if (!pkg_prefs_init(argc, argv, error)) {
 		return FALSE;
 	}
 
+	/*
+	 * Get the plugin directory paths.
+	 */
+	plugin_dirs = g_malloc0(sizeof(gchar*) * 3);
+	plugin_dirs[0] = g_build_filename(g_get_user_config_dir(),
+	                                  "perfkit-gui",
+	                                  "plugins",
+	                                  NULL);
+	plugin_dirs[1] = g_build_filename(PACKAGE_LIB_DIR,
+	                                  "perfkit-gui",
+	                                  "plugins",
+	                                  NULL);
+
+	/*
+	 * Set default windows.
+	 */
 	gtk_window_set_default_icon_name("clock");
 	pkg_panels_init();
+
+	/*
+	 * Indicate we are started.
+	 */
 	started = TRUE;
+
+	/*
+	 * Prepare the ethos plugin engine.
+	 */
+	manager = ethos_manager_new();
+	ethos_manager_set_app_name(manager, "Perfkit");
+	ethos_manager_set_plugin_dirs(manager, plugin_dirs);
+	ethos_manager_initialize(manager);
 
 	return TRUE;
 }
@@ -83,7 +116,6 @@ pkg_runtime_quit (void)
 	if (!started) {
 		exit(EXIT_FAILURE);
 	}
-
 	gtk_main_quit();
 }
 
@@ -96,4 +128,17 @@ pkg_runtime_quit (void)
 void
 pkg_runtime_shutdown (void)
 {
+}
+
+/**
+ * pkg_runtime_get_manager:
+ *
+ * Retrieves the #EthosManager plugin manager for the process.
+ *
+ * Returns: An #EthosManager instance.
+ */
+EthosManager*
+pkg_runtime_get_manager (void)
+{
+	return manager;
 }

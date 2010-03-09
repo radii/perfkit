@@ -23,16 +23,17 @@
 #ifndef __PKG_RUNTIME_H__
 #define __PKG_RUNTIME_H__
 
-#include <glib-object.h>
+#include <ethos/ethos.h>
 
 G_BEGIN_DECLS
 
-gboolean pkg_runtime_initialize    (gint     *argc,
-                                    gchar  ***argv,
-                                    GError  **error);
-void     pkg_runtime_shutdown      (void);
-void     pkg_runtime_run           (void);
-void     pkg_runtime_quit          (void);
+gboolean      pkg_runtime_initialize    (gint     *argc,
+                                         gchar  ***argv,
+                                         GError  **error);
+void          pkg_runtime_shutdown      (void);
+void          pkg_runtime_run           (void);
+void          pkg_runtime_quit          (void);
+EthosManager* pkg_runtime_get_manager   (void);
 
 G_END_DECLS
 

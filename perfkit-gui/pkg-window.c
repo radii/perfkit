@@ -195,11 +195,19 @@ pkg_window_class_init (PkgWindowClass *klass)
 }
 
 static void
+pkg_window_prefs_activate (GtkWidget *prefs_menu_item,
+                           PkgWindow *window)
+{
+	g_debug("Show Preferences");
+}
+
+static void
 pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
 	GError *error = NULL;
-	GtkWidget *child; //, *spinner, *spinner_parent;
+	GtkWidget *child,
+	          *prefsitem;
 	gchar *path;
 
 	/* create private data */
@@ -223,6 +231,13 @@ pkg_window_init (PkgWindow *window)
 	/* reparent child widget */
 	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "perfkit-child"));
 	gtk_widget_reparent(child, GTK_WIDGET(window));
+
+	/* hook preferences menu item */
+	prefsitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "prefs-menu-item"));
+	g_signal_connect(prefsitem,
+	                 "activate",
+	                 G_CALLBACK(pkg_window_prefs_activate),
+	                 window);
 
 	/* add spinner */
 	/*
