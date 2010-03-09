@@ -189,17 +189,33 @@ pkg_source_renderer_real_render (PkgSourceRenderer *source_renderer,
 {
 	PkgSourceRendererPrivate *priv;
 	cairo_t *cr;
+	cairo_pattern_t *p;
 	gfloat w, h;
+	gint i;
 
 	g_return_if_fail(CLUTTER_IS_CAIRO_TEXTURE(actor));
 
 	priv = source_renderer->priv;
 	clutter_actor_get_size(actor, &w, &h);
 
+	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(actor));
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(actor));
-	cairo_rectangle(cr, x, 0, w, h / 2.);
-	cairo_set_source_rgb(cr, 0, 0, 0);
-	cairo_fill(cr);
+	p = cairo_pattern_create_linear(0, 0, 0, h);
+	cairo_pattern_add_color_stop_rgb(p, .0, 1., 0, 0);
+	cairo_pattern_add_color_stop_rgb(p, .4, .9411, .8862, .2039);
+	cairo_pattern_add_color_stop_rgb(p, .8, .4509, .8235, .0862);
+	cairo_set_source(cr, p);
+
+	for (i = 0; i < width; i++) {
+		cairo_line_to(cr, i, g_random_double_range(5, h - 10.));
+		i += g_random_int_range(1, 5);
+	}
+
+	cairo_line_to(cr, x + width, h);
+	cairo_line_to(cr, 0, h);
+	cairo_fill_preserve(cr);
+	cairo_set_source_rgb(cr, 0.3058, 0.6039, 0.0235);
+	cairo_stroke(cr);
 	cairo_destroy(cr);
 }
 
