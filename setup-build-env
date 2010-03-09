@@ -6,6 +6,7 @@
 
 targets=" \
    build-essential \
+   git-core \
    gnome-common \
    gtk-doc-tools \
    libglib2.0-dev
@@ -15,7 +16,17 @@ targets=" \
    libreadline-dev \
    "
 
+# install required packages
 sudo apt-get install $targets 
 
+# checkout and install libethos
+git clone git://git.dronelabs.com/ethos
+pushd ethos
+./autogen.sh
+make
+sudo make install
+popd
+
+# build perfkit
 ./autogen.sh
 make
