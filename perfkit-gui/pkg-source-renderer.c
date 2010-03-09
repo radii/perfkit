@@ -230,6 +230,7 @@ pkg_source_renderer_class_init (PkgSourceRendererClass *klass)
 
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = pkg_source_renderer_finalize;
+	g_type_class_add_private(object_class, sizeof(PkgSourceRendererPrivate));
 
 	klass->get_actor = pkg_source_renderer_real_get_actor;
 	klass->set_range = pkg_source_renderer_real_set_range;
