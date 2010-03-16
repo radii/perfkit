@@ -1132,9 +1132,13 @@ pk_shell_cmd_channel_add_source(EggLine  *line,
 	                                      argv[1],
 	                                      &source_id,
 	                                      &lerror)) {
-	    g_printerr("ERROR: %s.\n", lerror->message);
-	    g_error_free(lerror);
-	    lerror = NULL;
+	    if (lerror) {
+			g_printerr("ERROR: %s.\n", lerror->message);
+			g_error_free(lerror);
+			lerror = NULL;
+		} else {
+			g_printerr("Unknown error adding source.\n");
+		}
 	}
 	else {
 		g_print("Source %d created.\n", source_id);
