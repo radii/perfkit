@@ -29,6 +29,8 @@
 
 G_BEGIN_DECLS
 
+#define PKD_TYPE_SAMPLE (pkd_sample_get_type())
+
 typedef struct _PkdSample PkdSample;
 
 GType       pkd_sample_get_type       (void) G_GNUC_CONST;
