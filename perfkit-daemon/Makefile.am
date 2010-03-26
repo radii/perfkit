@@ -109,3 +109,9 @@ test:
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
 	$(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
+
+debug:
+	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
+	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
+	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
+	gdb --args $(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
