@@ -82,16 +82,28 @@ pk_source_info_set_property (GObject      *object,
 {
 	switch (prop_id) {
 	case PROP_UID:
-		PK_SOURCE_INFO(object)->priv->uid = g_value_dup_string(value);
+		if (g_value_get_string(value)) {
+			g_free(PK_SOURCE_INFO(object)->priv->uid);
+			PK_SOURCE_INFO(object)->priv->uid = g_value_dup_string(value);
+		}
 		break;
 	case PROP_NAME:
-		PK_SOURCE_INFO(object)->priv->name = g_value_dup_string(value);
+		if (g_value_get_string(value)) {
+			g_free(PK_SOURCE_INFO(object)->priv->name);
+			PK_SOURCE_INFO(object)->priv->name = g_value_dup_string(value);
+		}
 		break;
 	case PROP_VERSION:
-		PK_SOURCE_INFO(object)->priv->version = g_value_dup_string(value);
+		if (g_value_get_string(value)) {
+			g_free(PK_SOURCE_INFO(object)->priv->version);
+			PK_SOURCE_INFO(object)->priv->version = g_value_dup_string(value);
+		}
 		break;
 	case PROP_DESCRIPTION:
-		PK_SOURCE_INFO(object)->priv->description = g_value_dup_string(value);
+		if (g_value_get_string(value)) {
+			g_free(PK_SOURCE_INFO(object)->priv->description);
+			PK_SOURCE_INFO(object)->priv->description = g_value_dup_string(value);
+		}
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -188,6 +200,10 @@ pk_source_info_init (PkSourceInfo *source_info)
 	source_info->priv = G_TYPE_INSTANCE_GET_PRIVATE(source_info,
 	                                                PK_TYPE_SOURCE_INFO,
 	                                                PkSourceInfoPrivate);
+	source_info->priv->description = g_strdup("");
+	source_info->priv->version = g_strdup("");
+	source_info->priv->uid = g_strdup("");
+	source_info->priv->name = g_strdup("");
 }
 
 /**
