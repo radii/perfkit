@@ -119,9 +119,9 @@ pk_connection_manager_create_subscription (PkConnection    *connection,
                                            GError         **error);
 
 gboolean
-pk_connection_manager_get_source_infos (PkConnection   *connection,
-                                        gchar        ***source_infos,
-                                        GError        **error);
+pk_connection_manager_get_source_plugins (PkConnection   *connection,
+                                          gchar        ***source_infos,
+                                          GError        **error);
 
 gboolean
 pk_connection_manager_remove_channel (PkConnection  *connection,

@@ -414,15 +414,15 @@ pk_connection_manager_get_version (PkConnection  *connection,
 }
 
 gboolean
-pk_connection_manager_get_source_infos (PkConnection   *connection,
-                                        gchar        ***encoder_infos,
-                                        GError        **error)
+pk_connection_manager_get_source_plugins (PkConnection   *connection,
+                                          gchar        ***plugins,
+                                          GError        **error)
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-	g_return_val_if_fail(encoder_infos != NULL, FALSE);
+	g_return_val_if_fail(plugins != NULL, FALSE);
 
 	return PK_CONNECTION_GET_CLASS(connection)->
-		manager_get_source_infos(connection, encoder_infos, error);
+		manager_get_source_plugins(connection, plugins, error);
 }
 
 gboolean

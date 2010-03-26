@@ -28,6 +28,7 @@
 #include "pk-channel.h"
 #include "pk-encoder-info.h"
 #include "pk-subscription.h"
+#include "pk-source-info.h"
 
 G_BEGIN_DECLS
 
@@ -84,6 +85,7 @@ gboolean        pk_manager_get_channels        (PkManager      *manager,
                                                 GList         **channels,
                                                 GError        **error);
 GList*          pk_manager_get_processes       (PkManager      *manager);
+GList*          pk_manager_get_source_plugins  (PkManager      *manager);
 
 G_END_DECLS
 

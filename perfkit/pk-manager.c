@@ -166,6 +166,36 @@ pk_manager_create_channel (PkManager    *manager,
 	                    NULL);
 }
 
+GList*
+pk_manager_get_source_plugins (PkManager *manager)
+{
+	PkManagerPrivate *priv;
+	GError *error = NULL;
+	gchar **plugins = NULL;
+	gint i;
+
+	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
+
+	priv = manager->priv;
+
+	if (!pk_connection_manager_get_source_plugins(priv->conn,
+	                                              &plugins,
+	                                              &error)) {
+	    if (!plugins) {
+	    	g_warning("%s: Invalid array returned!", G_STRFUNC);
+	    	return NULL;
+		}
+
+		for (i = 0; plugins[i]; i++) {
+			g_debug("!!!! %s !!!", plugins[i]);
+		}
+
+		g_debug("DONE!!");
+	}
+
+	return NULL;
+}
+
 static void
 pk_manager_finalize (GObject *object)
 {

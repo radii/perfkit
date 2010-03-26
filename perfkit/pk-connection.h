@@ -169,7 +169,7 @@ struct _PkConnectionClass
 	                                               gint            *subscription_id,
 	                                               GError         **error);
 
-	gboolean       (*manager_get_source_infos)    (PkConnection    *connection,
+	gboolean       (*manager_get_source_plugins)  (PkConnection    *connection,
 	                                               gchar         ***encoder_infos,
 	                                               GError         **error);
 

@@ -37,6 +37,15 @@
 #include "pk-channel-dbus.h"
 #include "pk-subscription-dbus.h"
 
+#define ENSURE_CONNECTED(c, e) G_STMT_START {                   \
+    if (PK_DBUS((c))->priv->manager == NULL) {                  \
+        g_set_error((e), PK_DBUS_ERROR, PK_DBUS_ERROR_UNKNOWN,  \
+                    "%s called while not connected!",           \
+                    G_STRFUNC);                                 \
+        return FALSE;                                           \
+    }                                                           \
+} G_STMT_END
+
 G_DEFINE_TYPE(PkDbus, pk_dbus, PK_TYPE_CONNECTION)
 
 struct _PkDbusPrivate
@@ -686,13 +695,30 @@ pk_dbus_manager_create_channel (PkConnection  *connection,
 }
 
 static gboolean
-pk_dbus_manager_get_source_infos (PkConnection   *connection,
-                                   gchar        ***source_infos,
-                                   GError        **error)
+pk_dbus_manager_get_source_plugins (PkConnection   *connection,
+                                    gchar        ***plugins,
+                                    GError        **error)
 {
-	g_warn_if_reached();
+	PkDbusPrivate *priv = ((PkDbus *)connection)->priv;
+	gchar **p, uid[128];
+	gint i, j;
 
-	*source_infos = NULL;
+	ENSURE_CONNECTED(connection, error);
+
+	if (!com_dronelabs_Perfkit_Manager_get_source_plugins(priv->manager, &p, error)) {
+		return FALSE;
+	}
+
+	*plugins = g_malloc0((g_strv_length(p) + 1) * sizeof(gchar*));
+
+	for (i = 0, j = 0; p[i]; i++) {
+		if (strlen(p[i]) > (sizeof(uid) - 1)) {
+			continue;
+		}
+		memset(uid, 0, sizeof(uid));
+		sscanf((*plugins)[i], "/com/dronelabs/Perfkit/Plugins/Sources/%s", uid);
+		(*plugins)[j++] = g_strdup(uid);
+	}
 
 	return TRUE;
 }
@@ -718,6 +744,8 @@ pk_dbus_channel_add_source (PkConnection  *connection,
 
 	if (res) {
 		if (sscanf(path, "/com/dronelabs/Perfkit/Sources/%d", source_id) != 1) {
+			res = FALSE;
+		} else if ((*source_id) < 0) {
 			res = FALSE;
 		}
 	}
@@ -763,7 +791,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->manager_create_channel = pk_dbus_manager_create_channel;
 	conn_class->manager_create_subscription = pk_dbus_manager_create_subscription;
 	conn_class->manager_get_version = pk_dbus_manager_get_version;
-	conn_class->manager_get_source_infos = pk_dbus_manager_get_source_infos;
+	conn_class->manager_get_source_plugins = pk_dbus_manager_get_source_plugins;
 	conn_class->manager_remove_channel = pk_dbus_manager_remove_channel;
 	conn_class->subscription_enable = pk_dbus_subscription_enable;
 }
