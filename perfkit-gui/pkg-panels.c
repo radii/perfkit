@@ -37,16 +37,41 @@ typedef struct
 static PkgPanels panels = {0};
 
 static void
-pkg_panels_sources_cell_data_func (GtkTreeViewColumn   *tree_column,
-                                   GtkCellRenderer     *cell_renderer,
-                                   GtkTreeModel        *tree_model,
-                                   GtkTreeIter         *iter,
-                                   gpointer             data)
+pkg_panels_sources_text_func (GtkTreeViewColumn   *tree_column,
+                              GtkCellRenderer     *cell_renderer,
+                              GtkTreeModel        *tree_model,
+                              GtkTreeIter         *iter,
+                              gpointer             data)
 {
 	PkSourceInfo *info = NULL;
+	const gchar *desc;
+	gchar *markup;
 
 	gtk_tree_model_get(tree_model, iter, 0, &info, -1);
-	g_object_set(cell_renderer, "text", pk_source_info_get_name(info), NULL);
+	desc = pk_source_info_get_description(info);
+
+	if (desc && strlen(desc)) {
+		markup = g_strdup_printf("<b>%s</b>\n<span size=\"smaller\"><i>%s</i></span>",
+								 pk_source_info_get_name(info),
+								 pk_source_info_get_description(info));
+	} else {
+		markup = g_strdup_printf("<b>%s</b>",
+		                         pk_source_info_get_name(info));
+	}
+	g_object_set(cell_renderer, "markup", markup, NULL);
+	g_free(markup);
+}
+
+static void
+pkg_panels_sources_pixbuf_func (GtkTreeViewColumn   *tree_column,
+                                GtkCellRenderer     *cell_renderer,
+                                GtkTreeModel        *tree_model,
+                                GtkTreeIter         *iter,
+                                gpointer             data)
+{
+	g_object_set(cell_renderer,
+	             "icon-name", "ethos-plugin",
+	             NULL);
 }
 
 static void
@@ -60,6 +85,12 @@ pkg_panels_create_sources (void)
 	          *image;
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *cell;
+	gchar *icon_dir;
+
+	icon_dir = g_build_filename(PACKAGE_DATA_DIR, "ethos", "icons", NULL);
+	gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(),
+	                                  icon_dir);
+	g_free(icon_dir);
 
 	panels.sources_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(panels.sources_window), "");
@@ -81,6 +112,7 @@ pkg_panels_create_sources (void)
 	gtk_widget_show(scroller);
 
 	treeview = gtk_tree_view_new();
+	gtk_tree_view_set_fixed_height_mode(GTK_TREE_VIEW(treeview), TRUE);
 	gtk_container_add(GTK_CONTAINER(scroller), treeview);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(treeview), FALSE);
 	gtk_widget_show(treeview);
@@ -102,12 +134,21 @@ pkg_panels_create_sources (void)
 	                        GTK_TREE_MODEL(panels.sources_store));
 
 	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
+	cell = gtk_cell_renderer_pixbuf_new();
+	gtk_tree_view_column_pack_start(column, cell, FALSE);
+	gtk_tree_view_column_set_cell_data_func(column, cell,
+			pkg_panels_sources_pixbuf_func, NULL, NULL);
+	g_object_set(cell, "yalign", .5, NULL);
+
 	cell = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(cell), 2);
+	g_object_set(cell, "xpad", 6, NULL);
 	gtk_tree_view_column_pack_start(column, cell, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, cell,
-			pkg_panels_sources_cell_data_func, NULL, NULL);
+			pkg_panels_sources_text_func, NULL, NULL);
 }
 
 /**
