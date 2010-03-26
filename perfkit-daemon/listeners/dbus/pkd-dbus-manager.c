@@ -207,6 +207,40 @@ error:
 }
 
 gboolean
+pkd_dbus_manager_get_source_plugins (PkdDBusManager   *manager,
+                                     gchar          ***paths,
+                                     GError          **error)
+{
+	GList *list, *iter;
+	gchar **p;
+	gint i;
+
+	g_return_val_if_fail(PKD_DBUS_IS_MANAGER(manager), FALSE);
+	g_return_val_if_fail(paths != NULL, FALSE);
+
+	list = pkd_pipeline_get_source_plugins();
+
+	if (!list) {
+		*paths = g_malloc0(sizeof(gchar*));
+		return TRUE;
+	}
+
+	p = g_malloc0((g_list_length(list) + 1) * sizeof(gchar*));
+	for (iter = list, i = 0; iter; iter = iter->next, i++) {
+		p[i] = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+		                       pkd_source_info_get_uid(iter->data));
+	}
+
+	p[i] = NULL;
+	*paths = p;
+
+	g_list_foreach(list, (GFunc)g_object_unref, NULL);
+	g_list_free(list);
+
+	return TRUE;
+}
+
+gboolean
 pkd_dbus_manager_get_version (PkdDBusManager  *manager,
                               gchar          **version,
                               GError         **error)

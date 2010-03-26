@@ -105,5 +105,16 @@
             <arg name="path" type="o" direction="in"/>
         </method>
 
+        <!--
+            Manager::GetSourcePlugins()
+
+                Retrieves the list of source plugins.
+
+            Returns: A list of source info uris.
+        -->
+        <method name="GetSourcePlugins">
+            <arg name="paths" type="as" direction="out"/>
+        </method>
+
     </interface>
 </node>

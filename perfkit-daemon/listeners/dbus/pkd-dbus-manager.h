@@ -82,6 +82,9 @@ gboolean pkd_dbus_manager_get_version         (PkdDBusManager  *manager,
 gboolean pkd_dbus_manager_remove_channel      (PkdDBusManager  *manager,
                                                const gchar     *path,
                                                GError         **error);
+gboolean pkd_dbus_manager_get_source_plugins  (PkdDBusManager   *manager,
+                                               gchar          ***paths,
+                                               GError          **error);
 
 G_END_DECLS
 
