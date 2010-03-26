@@ -218,6 +218,14 @@ pkg_panels_init (void)
 	}
 }
 
+/**
+ * pkg_panels_show_sources:
+ *
+ * Shows the Source Plugins window.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pkg_panels_show_sources (void)
 {
@@ -274,6 +282,15 @@ pkg_panels_set_connection (PkConnection *connection)
 	pkg_panels_on_set_connection(connection);
 }
 
+/**
+ * pkg_panels_get_selected_source_plugin:
+ *
+ * Retreives the currently selected #PkSourceInfo from the Source Plugins
+ * window.
+ *
+ * Returns: A #PkSourceInfo or %NULL if successful; otherwise %NULL.
+ * Side effects: None.
+ */
 PkSourceInfo*
 pkg_panels_get_selected_source_plugin (void)
 {
