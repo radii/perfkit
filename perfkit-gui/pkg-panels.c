@@ -122,6 +122,9 @@ pkg_panels_create_sources (void)
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *cell;
 	gchar *icon_dir;
+	GtkTargetEntry target_entry[] = {
+		{ "text/x-perfkit-source-info", GTK_TARGET_SAME_APP, 0 },
+	};
 
 	icon_dir = g_build_filename(PACKAGE_DATA_DIR, "ethos", "icons", NULL);
 	gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(),
@@ -151,6 +154,11 @@ pkg_panels_create_sources (void)
 	gtk_tree_view_set_fixed_height_mode(GTK_TREE_VIEW(treeview), TRUE);
 	gtk_container_add(GTK_CONTAINER(scroller), treeview);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(treeview), FALSE);
+	gtk_tree_view_enable_model_drag_source(GTK_TREE_VIEW(treeview),
+	                                       GDK_BUTTON1_MASK,
+	                                       target_entry,
+	                                       G_N_ELEMENTS(target_entry),
+	                                       GDK_ACTION_COPY);
 	gtk_widget_show(treeview);
 
 	hbox = gtk_hbox_new(FALSE, 0);
