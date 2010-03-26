@@ -159,11 +159,13 @@ pkg_runtime_set_active_window (PkgWindow *window)
 	g_return_if_fail(PKG_IS_WINDOW(window));
 
 	if (active_window) {
-		g_object_remove_weak_pointer(G_OBJECT(active_window), &active_window);
+		g_object_remove_weak_pointer(G_OBJECT(active_window),
+		                             (gpointer *)&active_window);
 	}
 
 	active_window = window;
-	g_object_add_weak_pointer(G_OBJECT(window), &active_window);
+	g_object_add_weak_pointer(G_OBJECT(window),
+	                          (gpointer *)&active_window);
 }
 
 /**
