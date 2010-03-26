@@ -706,6 +706,17 @@ pkg_session_view_embed_button_press (GtkWidget *widget,
 }
 
 static void
+pkg_session_view_drag_drop (GtkWidget      *embed,
+                            GdkDragContext *context,
+                            gint            x,
+                            gint            y,
+                            guint           time,
+                            gpointer        user_data)
+{
+	g_debug("%s", G_STRFUNC);
+}
+
+static void
 pkg_session_view_finalize (GObject *object)
 {
 	PkgSessionViewPrivate *priv;
@@ -813,6 +824,14 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 "style-set",
 	                 G_CALLBACK(pkg_session_view_style_set),
 	                 session_view);
+	g_signal_connect(embed,
+	                 "drag-drop",
+	                 G_CALLBACK(pkg_session_view_drag_drop),
+	                 session_view);
+
+	/*
+	 * Setup stage signals.
+	 */
 	priv->stage = stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
 	g_signal_connect(stage,
 	                 "motion-event",
