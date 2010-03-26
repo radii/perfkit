@@ -1,6 +1,6 @@
-/* pkg-runtime.h
- * 
- * Copyright (C) 2010 Christian Hergert
+/* pkg-dialog.h
+ *
+ * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,25 +20,19 @@
 #error "Only <perfkit-gui/perfkit-gui.h> can be included directly."
 #endif
 
-#ifndef __PKG_RUNTIME_H__
-#define __PKG_RUNTIME_H__
+#ifndef __PKG_DIALOG__
+#define __PKG_DIALOG__
 
-#include <ethos/ethos.h>
-
-#include "pkg-window.h"
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
-gboolean      pkg_runtime_initialize        (gint     *argc,
-                                             gchar  ***argv,
-                                             GError  **error);
-void          pkg_runtime_shutdown          (void);
-void          pkg_runtime_run               (void);
-void          pkg_runtime_quit              (void);
-EthosManager* pkg_runtime_get_manager       (void);
-PkgWindow*    pkg_runtime_get_active_window (void);
-void          pkg_runtime_set_active_window (PkgWindow *window);
+GtkWidget* pkg_dialog_warning (GtkWidget   *parent,
+                               const gchar *title,
+                               const gchar *message,
+                               const gchar *content,
+                               gboolean     use_expander);
 
 G_END_DECLS
 
-#endif /* __PKG_RUNTIME_H__ */
+#endif /* __PKG_DIALOG__ */

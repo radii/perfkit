@@ -159,6 +159,7 @@ pkg_window_focus_in (PkgWindow *window,
                      GdkEvent  *event,
                      gpointer   user_data)
 {
+	pkg_runtime_set_active_window(window);
 	pkg_panels_set_connection(window->priv->conn);
 	return FALSE;
 }

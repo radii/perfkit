@@ -38,9 +38,10 @@
  * 
  */
 
-static GList        *windows = NULL;
-static gboolean      started = FALSE;
-static EthosManager *manager = NULL;
+static GList        *windows       = NULL;
+static gboolean      started       = FALSE;
+static EthosManager *manager       = NULL;
+static PkgWindow    *active_window = NULL;
 
 /**
  * pkg_runtime_initialize:
@@ -141,4 +142,40 @@ EthosManager*
 pkg_runtime_get_manager (void)
 {
 	return manager;
+}
+
+/**
+ * pkg_runtime_set_active_window:
+ * @window: A #PkgWindow.
+ *
+ * Sets the active window that is being viewed within the application.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pkg_runtime_set_active_window (PkgWindow *window)
+{
+	g_return_if_fail(PKG_IS_WINDOW(window));
+
+	if (active_window) {
+		g_object_remove_weak_pointer(G_OBJECT(active_window), &active_window);
+	}
+
+	active_window = window;
+	g_object_add_weak_pointer(G_OBJECT(window), &active_window);
+}
+
+/**
+ * pkg_runtime_get_active_window:
+ *
+ * Retrieves the active #PkgWindow for the process.
+ *
+ * Returns: A #PkgWindow or %NULL.
+ * Side effects: None.
+ */
+PkgWindow*
+pkg_runtime_get_active_window (void)
+{
+	return active_window;
 }

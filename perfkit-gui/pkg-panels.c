@@ -20,12 +20,21 @@
 #include "config.h"
 #endif
 
+#include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
 #include "pkg-panels.h"
+#include "pkg-dialog.h"
+#include "pkg-runtime.h"
 
-static GtkWidget *sources = NULL;
-static PkConnection *conn = NULL;
+typedef struct
+{
+	GtkWidget    *sources_window;
+	GtkListStore *sources_store;
+	PkConnection *conn;
+} PkgPanels;
+
+static PkgPanels panels = {0};
 
 static void
 pkg_panels_create_sources (void)
@@ -37,15 +46,16 @@ pkg_panels_create_sources (void)
 	          *refresh,
 	          *image;
 
-	sources = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(sources), "");
-	gtk_window_set_default_size(GTK_WINDOW(sources), 200, 400);
-	gtk_window_set_type_hint(GTK_WINDOW(sources), GDK_WINDOW_TYPE_HINT_UTILITY);
-	gtk_window_set_skip_taskbar_hint(GTK_WINDOW(sources), TRUE);
-	gtk_window_set_skip_pager_hint(GTK_WINDOW(sources), TRUE);
+	panels.sources_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(panels.sources_window), "");
+	gtk_window_set_default_size(GTK_WINDOW(panels.sources_window), 200, 400);
+	gtk_window_set_type_hint(GTK_WINDOW(panels.sources_window),
+	                         GDK_WINDOW_TYPE_HINT_UTILITY);
+	gtk_window_set_skip_taskbar_hint(GTK_WINDOW(panels.sources_window), TRUE);
+	gtk_window_set_skip_pager_hint(GTK_WINDOW(panels.sources_window), TRUE);
 
 	vbox = gtk_vbox_new(FALSE, 0);
-	gtk_container_add(GTK_CONTAINER(sources), vbox);
+	gtk_container_add(GTK_CONTAINER(panels.sources_window), vbox);
 	gtk_widget_show(vbox);
 
 	scroller = gtk_scrolled_window_new(NULL, NULL);
@@ -71,6 +81,10 @@ pkg_panels_create_sources (void)
 	gtk_box_pack_start(GTK_BOX(hbox), refresh, FALSE, FALSE, 0);
 	gtk_widget_show(image);
 	gtk_widget_show(refresh);
+
+	panels.sources_store = gtk_list_store_new(1, PK_TYPE_SOURCE);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(treeview),
+	                        GTK_TREE_MODEL(panels.sources_store));
 }
 
 /**
@@ -92,20 +106,82 @@ pkg_panels_init (void)
 void
 pkg_panels_show_sources (void)
 {
-	gtk_widget_show(sources);
+	gtk_widget_show(panels.sources_window);
 }
 
+static void
+pkg_panels_on_set_connection (PkConnection *connection)
+{
+	PkManager *manager;
+	GList *list, *plugins;
+	GtkTreeIter iter;
+
+	/*
+	 * Get the manager for the connection.
+	 */
+	if (!(manager = pk_connection_get_manager(panels.conn))) {
+		g_warning("Error retrieving connection manager.");
+		return;
+	}
+
+	/*
+	 * Add the sources to the liststore.
+	 */
+	plugins = pk_manager_get_source_plugins(manager);
+	for (list = plugins; list; list = list->next) {
+		gtk_list_store_append(panels.sources_store, &iter);
+		gtk_list_store_set(panels.sources_store, &iter, 0, list->data);
+	}
+}
+
+/**
+ * pkg_panels_set_connection:
+ * @connection: A #PkConnection.
+ *
+ * Sets the connection that is used by the active window.  This updates
+ * the global panels that are relative to the active connection.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pkg_panels_set_connection (PkConnection *connection)
 {
-	if (connection == conn) {
+	GError *error = NULL;
+
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	/*
+	 * Set the connection.
+	 */
+	if (panels.conn == connection)
 		return;
-	} else if (conn) {
-		g_object_unref(conn);
-		conn = NULL;
+	else if (panels.conn)
+		g_object_unref(panels.conn);
+	panels.conn = g_object_ref(connection);
+
+	/*
+	 * Clear the list of items.
+	 */
+	gtk_list_store_clear(panels.sources_store);
+
+	/*
+	 * If the connection is not connected, go ahead and connect it.
+	 *
+	 * TODO: Make this async.
+	 */
+	if (!pk_connection_connect(connection, &error)) {
+		pkg_dialog_warning(GTK_WIDGET(pkg_runtime_get_active_window()), "",
+		                   "There was an error connecting to the Perfkit system.",
+		                   error ? error->message : _("An uknown occured"),
+		                   TRUE);
+		return;
 	}
 
-	g_debug("Set sources list");
+	g_debug("WE SUCCUESSFULLY CONNECTED");
 
-	conn = g_object_ref(connection);
+	/*
+	 * Handle UI changes.
+	 */
+	pkg_panels_on_set_connection(connection);
 }
