@@ -37,6 +37,19 @@ typedef struct
 static PkgPanels panels = {0};
 
 static void
+pkg_panels_sources_cell_data_func (GtkTreeViewColumn   *tree_column,
+                                   GtkCellRenderer     *cell_renderer,
+                                   GtkTreeModel        *tree_model,
+                                   GtkTreeIter         *iter,
+                                   gpointer             data)
+{
+	PkSourceInfo *info = NULL;
+
+	gtk_tree_model_get(tree_model, iter, 0, &info, -1);
+	g_object_set(cell_renderer, "text", pk_source_info_get_name(info), NULL);
+}
+
+static void
 pkg_panels_create_sources (void)
 {
 	GtkWidget *vbox,
@@ -45,6 +58,8 @@ pkg_panels_create_sources (void)
 	          *treeview,
 	          *refresh,
 	          *image;
+	GtkTreeViewColumn *column;
+	GtkCellRenderer *cell;
 
 	panels.sources_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(panels.sources_window), "");
@@ -82,9 +97,17 @@ pkg_panels_create_sources (void)
 	gtk_widget_show(image);
 	gtk_widget_show(refresh);
 
-	panels.sources_store = gtk_list_store_new(1, PK_TYPE_SOURCE);
+	panels.sources_store = gtk_list_store_new(1, PK_TYPE_SOURCE_INFO);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(treeview),
 	                        GTK_TREE_MODEL(panels.sources_store));
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
+
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_set_cell_data_func(column, cell,
+			pkg_panels_sources_cell_data_func, NULL, NULL);
 }
 
 /**
@@ -130,7 +153,7 @@ pkg_panels_on_set_connection (PkConnection *connection)
 	plugins = pk_manager_get_source_plugins(manager);
 	for (list = plugins; list; list = list->next) {
 		gtk_list_store_append(panels.sources_store, &iter);
-		gtk_list_store_set(panels.sources_store, &iter, 0, list->data);
+		gtk_list_store_set(panels.sources_store, &iter, 0, list->data, -1);
 	}
 }
 
@@ -177,8 +200,6 @@ pkg_panels_set_connection (PkConnection *connection)
 		                   TRUE);
 		return;
 	}
-
-	g_debug("WE SUCCUESSFULLY CONNECTED");
 
 	/*
 	 * Handle UI changes.

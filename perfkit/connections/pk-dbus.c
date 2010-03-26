@@ -716,7 +716,7 @@ pk_dbus_manager_get_source_plugins (PkConnection   *connection,
 			continue;
 		}
 		memset(uid, 0, sizeof(uid));
-		sscanf((*plugins)[i], "/com/dronelabs/Perfkit/Plugins/Sources/%s", uid);
+		sscanf(p[i], "/com/dronelabs/Perfkit/Plugins/Sources/%s", uid);
 		(*plugins)[j++] = g_strdup(uid);
 	}
 

@@ -41,6 +41,7 @@ G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_OBJECT)
 struct _PkManagerPrivate
 {
 	PkConnection *conn;
+	GList        *source_infos;
 };
 
 enum
@@ -170,30 +171,35 @@ GList*
 pk_manager_get_source_plugins (PkManager *manager)
 {
 	PkManagerPrivate *priv;
+	PkSourceInfo *info;
 	GError *error = NULL;
 	gchar **plugins = NULL;
+	GList *list = NULL;
 	gint i;
 
 	g_return_val_if_fail(PK_IS_MANAGER(manager), NULL);
 
 	priv = manager->priv;
 
-	if (!pk_connection_manager_get_source_plugins(priv->conn,
-	                                              &plugins,
-	                                              &error)) {
-	    if (!plugins) {
-	    	g_warning("%s: Invalid array returned!", G_STRFUNC);
-	    	return NULL;
+	if (!priv->source_infos) {
+		if (!pk_connection_manager_get_source_plugins(priv->conn, &plugins, &error)) {
+			g_warning("Error retrieving source plugins: %s",
+			          error ? error->message : "unknown");
+			return NULL;
 		}
 
 		for (i = 0; plugins[i]; i++) {
-			g_debug("!!!! %s !!!", plugins[i]);
+			info = g_object_new(PK_TYPE_SOURCE_INFO,
+			                    "uid", plugins[i],
+			                    "name", plugins[i],
+			                    NULL);
+			list = g_list_prepend(list, info);
 		}
 
-		g_debug("DONE!!");
+		priv->source_infos = list;
 	}
 
-	return NULL;
+	return priv->source_infos;
 }
 
 static void

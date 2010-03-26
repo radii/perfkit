@@ -140,7 +140,7 @@ pk_source_info_class_init (PkSourceInfoClass *klass)
 	                                                    "uid",
 	                                                    "The uid property",
 	                                                    NULL,
-	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkSourceInfo:name:
@@ -153,7 +153,7 @@ pk_source_info_class_init (PkSourceInfoClass *klass)
 	                                                    "name",
 	                                                    "The name property",
 	                                                    NULL,
-	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkSourceInfo:version:
@@ -166,7 +166,7 @@ pk_source_info_class_init (PkSourceInfoClass *klass)
 	                                                    "version",
 	                                                    "The version property",
 	                                                    NULL,
-	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/**
 	 * PkSourceInfo:description:
@@ -179,7 +179,7 @@ pk_source_info_class_init (PkSourceInfoClass *klass)
 	                                                    "description",
 	                                                    "The description property",
 	                                                    NULL,
-	                                                    G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
