@@ -747,6 +747,9 @@ pkg_session_view_init (PkgSessionView *session_view)
 	          *lbl;
 	ClutterActor *stage;
 	ClutterColor color;
+	GtkTargetEntry target_entry[] = {
+		{ "text/x-perfkit-source-info", GTK_TARGET_SAME_APP, 0 },
+	};
 
 	session_view->priv = G_TYPE_INSTANCE_GET_PRIVATE(session_view,
 	                                                 PKG_TYPE_SESSION_VIEW,
@@ -801,6 +804,11 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 GTK_FILL | GTK_EXPAND,
 	                 GTK_FILL | GTK_EXPAND,
 	                 0, 0);
+	gtk_drag_dest_set(embed,
+	                  GTK_DEST_DEFAULT_ALL,
+	                  target_entry,
+	                  G_N_ELEMENTS(target_entry),
+	                  GDK_ACTION_COPY);
 	g_signal_connect(embed,
 	                 "style-set",
 	                 G_CALLBACK(pkg_session_view_style_set),
