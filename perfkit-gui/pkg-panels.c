@@ -75,6 +75,42 @@ pkg_panels_sources_pixbuf_func (GtkTreeViewColumn   *tree_column,
 }
 
 static void
+pkg_panels_on_set_connection (PkConnection *connection)
+{
+	PkManager *manager;
+	GList *list, *plugins;
+	GtkTreeIter iter;
+
+	/*
+	 * Get the manager for the connection.
+	 */
+	if (!(manager = pk_connection_get_manager(panels.conn))) {
+		g_warning("Error retrieving connection manager.");
+		return;
+	}
+
+	/*
+	 * Add the sources to the liststore.
+	 */
+	plugins = pk_manager_get_source_plugins(manager);
+	for (list = plugins; list; list = list->next) {
+		gtk_list_store_append(panels.sources_store, &iter);
+		gtk_list_store_set(panels.sources_store, &iter, 0, list->data, -1);
+	}
+}
+
+static void
+pkg_panels_sources_refresh (GtkWidget *button,
+                            gpointer   user_data)
+{
+	gtk_list_store_clear(panels.sources_store);
+
+	if (panels.conn) {
+		pkg_panels_on_set_connection(panels.conn);
+	}
+}
+
+static void
 pkg_panels_create_sources (void)
 {
 	GtkWidget *vbox,
@@ -149,6 +185,11 @@ pkg_panels_create_sources (void)
 	gtk_tree_view_column_pack_start(column, cell, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, cell,
 			pkg_panels_sources_text_func, NULL, NULL);
+
+	g_signal_connect(refresh,
+	                 "clicked",
+	                 G_CALLBACK(pkg_panels_sources_refresh),
+	                 NULL);
 }
 
 /**
@@ -171,31 +212,6 @@ void
 pkg_panels_show_sources (void)
 {
 	gtk_widget_show(panels.sources_window);
-}
-
-static void
-pkg_panels_on_set_connection (PkConnection *connection)
-{
-	PkManager *manager;
-	GList *list, *plugins;
-	GtkTreeIter iter;
-
-	/*
-	 * Get the manager for the connection.
-	 */
-	if (!(manager = pk_connection_get_manager(panels.conn))) {
-		g_warning("Error retrieving connection manager.");
-		return;
-	}
-
-	/*
-	 * Add the sources to the liststore.
-	 */
-	plugins = pk_manager_get_source_plugins(manager);
-	for (list = plugins; list; list = list->next) {
-		gtk_list_store_append(panels.sources_store, &iter);
-		gtk_list_store_set(panels.sources_store, &iter, 0, list->data, -1);
-	}
 }
 
 /**
