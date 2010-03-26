@@ -27,9 +27,10 @@
 
 G_BEGIN_DECLS
 
-void pkg_panels_init           (void);
-void pkg_panels_show_sources   (void);
-void pkg_panels_set_connection (PkConnection *connection);
+void          pkg_panels_init                       (void);
+void          pkg_panels_show_sources               (void);
+void          pkg_panels_set_connection             (PkConnection *connection);
+PkSourceInfo* pkg_panels_get_selected_source_plugin (void);
 
 G_END_DECLS
 

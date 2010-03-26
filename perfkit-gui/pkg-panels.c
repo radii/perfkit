@@ -30,6 +30,7 @@
 typedef struct
 {
 	GtkWidget    *sources_window;
+	GtkWidget    *sources_treeview;
 	GtkListStore *sources_store;
 	PkConnection *conn;
 } PkgPanels;
@@ -159,6 +160,7 @@ pkg_panels_create_sources (void)
 	                                       target_entry,
 	                                       G_N_ELEMENTS(target_entry),
 	                                       GDK_ACTION_COPY);
+	panels.sources_treeview = treeview;
 	gtk_widget_show(treeview);
 
 	hbox = gtk_hbox_new(FALSE, 0);
@@ -270,4 +272,20 @@ pkg_panels_set_connection (PkConnection *connection)
 	 * Handle UI changes.
 	 */
 	pkg_panels_on_set_connection(connection);
+}
+
+PkSourceInfo*
+pkg_panels_get_selected_source_plugin (void)
+{
+	PkSourceInfo *plugin = NULL;
+	GtkTreeSelection *sel;
+	GtkTreeModel *model = NULL;
+	GtkTreeIter iter;
+
+	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(panels.sources_treeview));
+	if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, 0, &plugin, -1);
+	}
+
+	return plugin;
 }

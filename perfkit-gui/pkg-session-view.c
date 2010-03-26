@@ -25,6 +25,7 @@
 #include <clutter-gtk/clutter-gtk.h>
 #include <perfkit/perfkit.h>
 
+#include "pkg-panels.h"
 #include "pkg-session-view.h"
 #include "pkg-source-renderer.h"
 
@@ -713,7 +714,13 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
                             guint           time,
                             gpointer        user_data)
 {
-	g_debug("%s", G_STRFUNC);
+	PkSourceInfo *source = NULL;
+
+	source = pkg_panels_get_selected_source_plugin();
+	g_assert(source);
+
+	g_debug("Drop request of source plugin %s at %dx%d",
+	        pk_source_info_get_uid(source), x, y);
 }
 
 static void
