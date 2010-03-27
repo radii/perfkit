@@ -31,6 +31,7 @@
 #include "pkd-sample.h"
 #include "pkd-source.h"
 #include "pkd-source-info.h"
+#include "pkd-source-simple.h"
 #include "pkd-spawn-info.h"
 #include "pkd-subscription.h"
 #include "pkd-version.h"
