@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 typedef struct _PkdSourceSimple        PkdSourceSimple;
 typedef struct _PkdSourceSimpleClass   PkdSourceSimpleClass;
 typedef struct _PkdSourceSimplePrivate PkdSourceSimplePrivate;
-typedef void (*PkdSourceSimpleFunc) (PkdSourceSimple *source);
+typedef void (*PkdSourceSimpleFunc) (PkdSourceSimple *source, gpointer user_data);
 
 struct _PkdSourceSimple
 {
@@ -61,6 +61,7 @@ void       pkd_source_simple_set_callback         (PkdSourceSimple     *source,
                                                    GDestroyNotify       notify);
 void       pkd_source_simple_set_callback_closure (PkdSourceSimple *source,
                                                    GClosure        *closure);
+gboolean   pkd_source_simple_get_use_thread       (PkdSourceSimple *source);
 void       pkd_source_simple_set_use_thread       (PkdSourceSimple *source,
                                                    gboolean         use_thread);
 void       pkd_source_simple_set_frequency        (PkdSourceSimple *source,

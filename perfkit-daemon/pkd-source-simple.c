@@ -127,7 +127,7 @@ pkd_source_simple_set_callback (PkdSourceSimple     *source,
 
 	closure = g_cclosure_new(G_CALLBACK(callback), user_data,
 	                         (GClosureNotify)notify);
-	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__OBJECT);
+	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__VOID);
 	pkd_source_simple_set_callback_closure(source, closure);
 }
 
@@ -152,19 +152,20 @@ pkd_source_simple_set_use_thread (PkdSourceSimple *source,
 	source->priv->dedicated = use_thread;
 }
 
-static inline void
-pkd_source_simple_invoke (PkdSourceSimple *source)
+/**
+ * pkd_source_simple_get_use_thread:
+ * @source: A #PkdSourceSimple.
+ *
+ * Retrieves if the source should use a dedicated thread.
+ *
+ * Returns: %TRUE if a dedicated thread is to be used; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pkd_source_simple_get_use_thread (PkdSourceSimple *source)
 {
-	PkdSourceSimplePrivate *priv = source->priv;
-	GValue params = {0};
-
-	/*
-	 * Invoke the routine closure.
-	 */
-	g_value_init(&params, PKD_TYPE_SOURCE_SIMPLE);
-	g_value_set_object(&params, source);
-	g_closure_invoke(priv->closure, NULL, 1, &params, NULL);
-	g_value_unset(&params);
+	g_return_val_if_fail(PKD_IS_SOURCE_SIMPLE(source), FALSE);
+	return source->priv->dedicated;
 }
 
 /**
@@ -183,10 +184,32 @@ pkd_source_simple_update (PkdSourceSimple *source)
 	struct timespec ts, *freq = &priv->freq;
 
 	clock_gettime(CLOCK_MONOTONIC, &ts);
+	ts.tv_nsec += freq->tv_nsec;
+	ts.tv_sec += ts.tv_nsec / G_NSEC_PER_SEC;
+	ts.tv_nsec %= G_NSEC_PER_SEC;
 	ts.tv_sec += freq->tv_sec;
-	ts.tv_sec += freq->tv_nsec / G_NSEC_PER_SEC;
-	ts.tv_nsec += freq->tv_nsec % G_NSEC_PER_SEC;
 	priv->timeout = ts;
+}
+
+static inline void
+pkd_source_simple_invoke (PkdSourceSimple *source)
+{
+	PkdSourceSimplePrivate *priv = source->priv;
+	GValue params = {0};
+
+	/*
+	 * Update when our next timeout should be. This is done before invoking
+	 * the closure to reduce drift.
+	 */
+	pkd_source_simple_update(source);
+
+	/*
+	 * Invoke the routine closure.
+	 */
+	g_value_init(&params, PKD_TYPE_SOURCE_SIMPLE);
+	g_value_set_object(&params, source);
+	g_closure_invoke(priv->closure, NULL, 1, &params, NULL);
+	g_value_unset(&params);
 }
 
 /**
@@ -269,7 +292,6 @@ next:
 		source = g_ptr_array_index(sources, i);
 		if (pkd_source_simple_is_ready(source)) {
 			pkd_source_simple_invoke(source);
-			pkd_source_simple_update(source);
 			dirty = TRUE;
 		} else break;
 	}
@@ -294,7 +316,7 @@ pkd_source_simple_worker (gpointer user_data)
 
 	pthread_mutex_lock(&priv->mutex);
 	while (pkd_source_simple_wait(source, &priv->cond, &priv->mutex)) {
-		pkd_source_simple_invoke(user_data);
+		pkd_source_simple_invoke(source);
 	}
 	pthread_mutex_unlock(&priv->mutex);
 
@@ -430,7 +452,7 @@ pkd_source_simple_set_property (GObject      *object,
 		break;
 	case PROP_FREQ:
 		pkd_source_simple_set_frequency(PKD_SOURCE_SIMPLE(object),
-		                                g_value_get_boxed(value));
+		                                g_value_get_pointer(value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -474,11 +496,10 @@ pkd_source_simple_class_init (PkdSourceSimpleClass *klass)
 	 */
 	g_object_class_install_property(object_class,
 	                                PROP_FREQ,
-	                                g_param_spec_boxed("frequency",
-	                                                   "Frequency",
-	                                                   "The sampling frequency",
-	                                                   G_TYPE_POINTER,
-	                                                   G_PARAM_READWRITE));
+	                                g_param_spec_pointer("frequency",
+	                                                     "Frequency",
+	                                                     "The sampling frequency",
+	                                                     G_PARAM_READWRITE));
 
 	/**
 	 * PkdSourceSimple:cleanup:
