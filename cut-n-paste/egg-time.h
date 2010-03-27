@@ -25,9 +25,11 @@
 #define __EGG_TIME_H__
 
 #include <glib.h>
+#include <time.h>
 
 G_BEGIN_DECLS
 
+#define G_NSEC_PER_SEC          (1000000000)
 #define G_TIME_SPAN_DAY         (G_GINT64_CONSTANT (864000000000))
 #define G_TIME_SPAN_HOUR        (G_GINT64_CONSTANT (36000000000))
 #define G_TIME_SPAN_MINUTE      (G_GINT64_CONSTANT (600000000))
@@ -73,6 +75,20 @@ g_time_val_diff (GTimeVal  *tv1,
 	g_time_val_to_ticks(tv1, &u1);
 	g_time_val_to_ticks(tv2, &u2);
 	*u = (u1 - u2);
+}
+
+inline gint
+g_time_val_compare (const GTimeVal *tv1,
+                    const GTimeVal *tv2)
+{
+	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec == tv2->tv_usec))
+		return 0;
+	else if ((tv1->tv_sec > tv2->tv_sec) ||
+	    ((tv1->tv_sec == tv2->tv_sec) &&
+	     (tv1->tv_usec > tv2->tv_usec)))
+		return 1;
+	else
+		return -1;
 }
 
 G_END_DECLS
