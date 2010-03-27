@@ -55,16 +55,17 @@ struct _PkgWindowClass
 	GtkWindowClass parent_class;
 };
 
-GType      pkg_window_get_type       (void) G_GNUC_CONST;
-GtkWidget* pkg_window_new            (void);
-GtkWidget* pkg_window_new_for_uri    (const gchar *uri);
-gint       pkg_window_count_windows  (void);
-void       pkg_window_set_connection (PkgWindow    *window,
-                                      PkConnection *connection);
-void       pkg_window_add_session    (PkgWindow    *window,
-                                      PkgSession   *session);
-void       pkg_window_remove_session (PkgWindow    *window,
-                                      PkgSession   *session);
+GType       pkg_window_get_type       (void) G_GNUC_CONST;
+GtkWidget*  pkg_window_new            (void);
+GtkWidget*  pkg_window_new_for_uri    (const gchar *uri);
+gint        pkg_window_count_windows  (void);
+void        pkg_window_set_connection (PkgWindow    *window,
+                                       PkConnection *connection);
+void        pkg_window_add_session    (PkgWindow    *window,
+                                       PkgSession   *session);
+void        pkg_window_remove_session (PkgWindow    *window,
+                                       PkgSession   *session);
+PkgSession* pkg_window_get_session    (PkgWindow    *window);
 
 G_END_DECLS
 

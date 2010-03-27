@@ -42,8 +42,9 @@ G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
 
 struct _PkgWindowPrivate
 {
-	GtkBuilder   *builder;
-	PkConnection *conn;
+	GtkBuilder     *builder;
+	PkConnection   *conn;
+	PkgSessionView *selected;
 };
 
 static GList *windows = NULL;
@@ -179,6 +180,13 @@ pkg_window_set_connection (PkgWindow    *window,
 	priv->conn = g_object_ref(connection);
 }
 
+PkgSession*
+pkg_window_get_session (PkgWindow *window)
+{
+	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
+	return pkg_session_view_get_session(window->priv->selected);
+}
+
 static void
 pkg_window_finalize (GObject *object)
 {
@@ -203,12 +211,30 @@ pkg_window_prefs_activate (GtkWidget *prefs_menu_item,
 }
 
 static void
+pkg_window_session_set (GtkWidget       *widget,
+                        GtkNotebookPage *page,
+                        guint            page_num,
+                        PkgWindow       *window)
+{
+	GtkWidget *child;
+
+	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(widget), page_num);
+	if (!PKG_IS_SESSION_VIEW(child)) {
+		g_warning("Child is not a PkgSessionView");
+		return;
+	}
+
+	window->priv->selected = PKG_SESSION_VIEW(child);
+}
+
+static void
 pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
 	GError *error = NULL;
 	GtkWidget *child,
-	          *prefsitem;
+	          *prefsitem,
+	          *notebook;
 	gchar *path;
 
 	/* create private data */
@@ -238,6 +264,13 @@ pkg_window_init (PkgWindow *window)
 	g_signal_connect(prefsitem,
 	                 "activate",
 	                 G_CALLBACK(pkg_window_prefs_activate),
+	                 window);
+
+	/* notebook */
+	notebook = GTK_WIDGET(gtk_builder_get_object(priv->builder, "notebook1"));
+	g_signal_connect(notebook,
+	                 "switch-page",
+	                 G_CALLBACK(pkg_window_session_set),
 	                 window);
 
 	/* add spinner */
