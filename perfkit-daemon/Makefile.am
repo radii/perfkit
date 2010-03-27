@@ -61,6 +61,7 @@ INST_H_FILES =								\
 	pkd-sample.h							\
 	pkd-source.h							\
 	pkd-source-info.h						\
+	pkd-source-simple.h						\
 	pkd-spawn-info.h						\
 	pkd-subscription.h						\
 	pkd-version.h							\
@@ -87,6 +88,7 @@ libperfkit_daemon_la_SOURCES =						\
 	pkd-sample.c							\
 	pkd-source.c							\
 	pkd-source-info.c						\
+	pkd-source-simple.c						\
 	pkd-subscription.c						\
 	$(top_srcdir)/cut-n-paste/egg-buffer.c				\
 	$(NULL)
