@@ -306,7 +306,7 @@ pk_channel_add_source (PkChannel    *channel,
 	    return NULL;
 	}
 
-	return g_object_new(PK_TYPE_CHANNEL,
+	return g_object_new(PK_TYPE_SOURCE,
 	                    "connection", channel->priv->conn,
 	                    "id", source_id,
 	                    NULL);
