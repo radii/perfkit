@@ -76,6 +76,7 @@ struct _PkgSessionViewPrivate
 	GtkObject         *vadj;            /* Vertical scroll adjustment */
 	GtkObject         *hadj;            /* Horizontal scroll adjustment */
 	GtkWidget         *ruler;
+	gint               end_y;           /* Offset for end of last row */
 };
 
 struct _PkgSessionViewRow
@@ -478,17 +479,15 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	gdouble row_height;
 	gchar *title;
 	gint height;
-	static gchar *names[] = { "CPU", "Memory", "Disk" };
-	static gint i = 0;
 
 	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
-	//g_return_val_if_fail(PK_IS_SOURCE(source), NULL);
+	g_return_val_if_fail(PK_IS_SOURCE(source), NULL);
 
 	priv = session_view->priv;
 	ratio = gtk_adjustment_get_value(GTK_ADJUSTMENT(priv->zadj));
 	row_height = DEFAULT_HEIGHT;
 	title = g_strdup_printf("<span weight=\"bold\">%s</span>",
-	                        names[i++]);
+	                        g_type_name(G_TYPE_FROM_INSTANCE(source)));
 
 	/*
 	 * Create state and actors.
@@ -647,6 +646,26 @@ pkg_session_view_style_set (GtkWidget *widget,
 }
 
 static void
+pkg_session_view_source_added (PkgSessionView *session_view,
+                               PkSource       *source)
+{
+	PkgSessionViewRow *row;
+	PkgSessionViewPrivate *priv;
+
+	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PK_IS_SOURCE(source));
+
+	priv = session_view->priv;
+
+	row = pkg_session_view_row_new(session_view, source);
+	priv->rows = g_list_append(priv->rows, row);
+	clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), row->group);
+	clutter_actor_set_position(row->group, 0, priv->end_y);
+	priv->end_y += clutter_actor_get_height(row->group);
+	gtk_widget_queue_resize(GTK_WIDGET(session_view));
+}
+
+static void
 pkg_session_view_stage_motion_event (ClutterActor   *stage,
                                      ClutterEvent   *event,
                                      PkgSessionView *session_view)
@@ -742,7 +761,10 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
 		                   "There was an error adding the data source.",
 		                   NULL,
 		                   FALSE);
+		return;
 	}
+
+	pkg_session_view_source_added(user_data, source);
 
 	g_debug("Added source plugin %s to channel. %dx%d",
 	        pk_source_info_get_uid(info), x, y);
@@ -954,6 +976,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	// tmp
 
 
+	/*
 	{
 		PkgSessionViewRow *row;
 
@@ -972,4 +995,5 @@ pkg_session_view_init (PkgSessionView *session_view)
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), row->group);
 		clutter_actor_set_position(row->group, 0, 80);
 	}
+	*/
 }
