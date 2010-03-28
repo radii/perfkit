@@ -26,6 +26,7 @@
 
 #include "pkd-config.h"
 #include "pkd-pipeline.h"
+#include "pkd-source-simple.h"
 
 /**
  * SECTION:pkd-pipeline
@@ -99,6 +100,11 @@ pkd_pipeline_init (void)
 		loop = g_main_loop_new(NULL, FALSE);
 		listeners = g_ptr_array_sized_new(4);
 		subscriptions = g_ptr_array_sized_new(4);
+
+		/*
+		 * Ensure certain types are loaded.
+		 */
+		g_debug("Registering type %s.", g_type_name(PKD_TYPE_SOURCE_SIMPLE));
 
 		/*
 		 * Dummy value storage for g_once_*().
