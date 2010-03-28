@@ -797,6 +797,45 @@ pkg_session_view_vscrollbar_changed (GtkWidget      *vscroller,
 }
 
 static void
+pkg_session_view_scroll_event (ClutterActor   *stage,
+                               ClutterEvent   *event,
+                               PkgSessionView *session_view)
+{
+	PkgSessionViewPrivate *priv;
+	GtkAdjustment *adj;
+	gboolean scroll_down;
+	gdouble page, value, upper;
+	gboolean down;
+
+	down = (event->scroll.modifier_state == 1);
+	if (!down) {
+		if (event->scroll.modifier_state != 0) {
+			return;
+		}
+	}
+
+	priv = session_view->priv;
+	adj = GTK_ADJUSTMENT(priv->vadj);
+	upper = gtk_adjustment_get_upper(adj);
+
+	if (priv->end_y < upper) {
+		gtk_adjustment_set_value(adj, 0.);
+		return;
+	}
+
+	page = gtk_adjustment_get_page_size(adj);
+	value = gtk_adjustment_get_value(adj);
+	value += down ? 40 : -40;
+
+	if (value > (upper - page))
+		value = upper - page;
+	else if (value < 0)
+		value = 0;
+
+	gtk_adjustment_set_value(adj, value);
+}
+
+static void
 pkg_session_view_finalize (GObject *object)
 {
 	PkgSessionViewPrivate *priv;
@@ -912,6 +951,10 @@ pkg_session_view_init (PkgSessionView *session_view)
 	g_signal_connect(embed,
 	                 "drag-drop",
 	                 G_CALLBACK(pkg_session_view_drag_drop),
+	                 session_view);
+	g_signal_connect(embed,
+	                 "scroll-event",
+	                 G_CALLBACK(pkg_session_view_scroll_event),
 	                 session_view);
 
 	/*
