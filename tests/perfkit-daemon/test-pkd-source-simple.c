@@ -10,6 +10,9 @@ test_PkdSourceSimple_threaded_cb (PkdSourceSimple *source,
 	(*((gint *)user_data))++;
 }
 
+/*
+ * Tests the dedicated threaded worker.
+ */
 static void
 test_PkdSourceSimple_threaded (void)
 {
@@ -30,6 +33,29 @@ test_PkdSourceSimple_threaded (void)
 	g_object_unref(source);
 }
 
+/*
+ * Tests the shared threaded worker.
+ */
+static void
+test_PkdSourceSimple_shared (void)
+{
+	PkdSourceSimple *source;
+	GTimeVal freq = {0, 500000};
+	PkdSpawnInfo info = {0};
+	gint i = 1;
+
+	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE, "use-thread", FALSE, NULL);
+	g_assert_cmpint(pkd_source_simple_get_use_thread(source), ==, FALSE);
+	pkd_source_simple_set_callback(source, test_PkdSourceSimple_threaded_cb, &i, NULL);
+	pkd_source_simple_set_frequency(source, &freq);
+	pkd_source_notify_started(PKD_SOURCE(source), &info);
+	g_usleep(2 * G_USEC_PER_SEC);
+	pkd_source_notify_stopped(PKD_SOURCE(source));
+	g_assert_cmpint(i, >=, 4); /* not perfect, but meh */
+
+	g_object_unref(source);
+}
+
 gint
 main (gint   argc,
       gchar *argv[])
@@ -39,6 +65,7 @@ main (gint   argc,
 	g_test_init(&argc, &argv, NULL);
 
 	g_test_add_func("/PkdSourceSimple/threaded", test_PkdSourceSimple_threaded);
+	g_test_add_func("/PkdSourceSimple/shared", test_PkdSourceSimple_shared);
 
 	return g_test_run();
 }
