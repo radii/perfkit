@@ -96,6 +96,7 @@ struct _PkgSessionViewRow
 	ClutterActor   *header_text2;       /* Row header title */
 	ClutterActor   *header_info;        /* Row header info button */
 	gboolean        header_info_pressed;/* Info button is pressed */
+	gint            offset;
 };
 
 static void pkg_session_view_row_set_style (PkgSessionViewRow*, GtkStyle*);
@@ -169,6 +170,28 @@ pkg_session_view_get_label (PkgSessionView *session_view)
 }
 
 static void
+pkg_session_view_scroll_to_row (PkgSessionView    *session_view,
+                                PkgSessionViewRow *row)
+{
+	PkgSessionViewPrivate *priv = session_view->priv;
+	GtkAdjustment *adj = GTK_ADJUSTMENT(priv->vadj);
+	gdouble value, page, height;
+	gint offset;
+
+	value = gtk_adjustment_get_value(adj);
+	page = gtk_adjustment_get_page_size(adj);
+	height = clutter_actor_get_height(row->group);
+
+	if (row->offset < value){
+		gtk_adjustment_set_value(adj, row->offset);
+	}
+	else if (row->offset > (value + page - height)){
+		value = row->offset - page + height;
+		gtk_adjustment_set_value(adj, value);
+	}
+}
+
+static void
 pkg_session_view_select_row (PkgSessionView    *session_view,
                              PkgSessionViewRow *row)
 {
@@ -193,6 +216,8 @@ pkg_session_view_select_row (PkgSessionView    *session_view,
 	if (old_row) {
 		pkg_session_view_row_set_style(old_row, GTK_WIDGET(session_view)->style);
 	}
+
+	pkg_session_view_scroll_to_row(session_view, row);
 }
 
 static void
@@ -682,6 +707,7 @@ pkg_session_view_source_added (PkgSessionView *session_view,
 	priv->rows = g_list_append(priv->rows, row);
 	clutter_container_add_actor(CLUTTER_CONTAINER(priv->row_group), row->group);
 	clutter_actor_set_position(row->group, 0, priv->end_y);
+	row->offset = priv->end_y;
 	priv->end_y += clutter_actor_get_height(row->group);
 	gtk_widget_queue_resize(GTK_WIDGET(session_view));
 }
