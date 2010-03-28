@@ -42,7 +42,7 @@ AM_CPPFLAGS =								\
 	$(NULL)
 
 memory_la_SOURCES =							\
-	pkd-memory.c							\
+	memory.c							\
 	$(NULL)
 
 memory_la_LIBADD =							\
@@ -53,7 +53,6 @@ memory_la_LIBADD =							\
 
 memory_la_LDFLAGS =							\
 	-export-dynamic							\
-	-export-symbols-regex "^pkd_.*"					\
 	-module								\
 	$(NULL)
 
