@@ -9,7 +9,8 @@ extern void pkd_sample_set_source_id   (PkdSample   *s, gint i);
     pkd_manifest_set_source_id((m), 3);                   \
     pkd_manifest_append((m), "bps", G_TYPE_UINT);         \
     pkd_manifest_append((m), "qps", G_TYPE_UINT);         \
-    g_assert_cmpint(pkd_manifest_get_n_rows((m)), ==, 2); \
+    pkd_manifest_append((m), "dbl", G_TYPE_DOUBLE);       \
+    g_assert_cmpint(pkd_manifest_get_n_rows((m)), ==, 3); \
 } G_STMT_END
 
 static void
@@ -56,7 +57,7 @@ test_PkdEncoder_encode_manifest (void)
 
 	/* data len */
 	egg_buffer_read_uint(b, &u2);
-	g_assert_cmpint(u2, ==, 20);
+	g_assert_cmpint(u2, ==, 30);
 
 	/* first column */
 	egg_buffer_read_uint(b, &u2);
@@ -95,6 +96,25 @@ test_PkdEncoder_encode_manifest (void)
 	g_assert_cmpint(t, ==, EGG_BUFFER_STRING);
 	egg_buffer_read_string(b, &c);
 	g_assert_cmpstr(c, ==, "qps");
+
+	/* third column */
+	egg_buffer_read_uint(b, &u2);
+	g_assert_cmpint(u2, ==, 9);
+	egg_buffer_read_tag(b, &f, &t);
+	g_assert_cmpint(f, ==, 1);
+	g_assert_cmpint(t, ==, EGG_BUFFER_UINT);
+	egg_buffer_read_uint(b, &u2);
+	g_assert_cmpint(u2, ==, 3);
+	egg_buffer_read_tag(b, &f, &t);
+	g_assert_cmpint(f, ==, 2);
+	g_assert_cmpint(t, ==, EGG_BUFFER_ENUM);
+	egg_buffer_read_uint(b, &u2);
+	g_assert_cmpint(u2, ==, G_TYPE_DOUBLE);
+	egg_buffer_read_tag(b, &f, &t);
+	g_assert_cmpint(f, ==, 3);
+	g_assert_cmpint(t, ==, EGG_BUFFER_STRING);
+	egg_buffer_read_string(b, &c);
+	g_assert_cmpstr(c, ==, "dbl");
 
 	egg_buffer_unref(b);
 }

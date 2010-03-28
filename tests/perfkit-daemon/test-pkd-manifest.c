@@ -22,14 +22,17 @@ test_PkdManifest_basic (void)
 	pkd_manifest_append(m, "id", G_TYPE_INT);
 	pkd_manifest_append(m, "name", G_TYPE_STRING);
 	pkd_manifest_append(m, "qps", G_TYPE_ULONG);
+	pkd_manifest_append(m, "dbl", G_TYPE_DOUBLE);
 
-	g_assert_cmpint(pkd_manifest_get_n_rows(m), ==, 3);
+	g_assert_cmpint(pkd_manifest_get_n_rows(m), ==, 4);
 	g_assert_cmpstr(pkd_manifest_get_row_name(m, 1), ==, "id");
 	g_assert_cmpstr(pkd_manifest_get_row_name(m, 2), ==, "name");
 	g_assert_cmpstr(pkd_manifest_get_row_name(m, 3), ==, "qps");
+	g_assert_cmpstr(pkd_manifest_get_row_name(m, 4), ==, "dbl");
 	g_assert_cmpint(pkd_manifest_get_row_type(m, 1), ==, G_TYPE_INT);
 	g_assert_cmpint(pkd_manifest_get_row_type(m, 2), ==, G_TYPE_STRING);
 	g_assert_cmpint(pkd_manifest_get_row_type(m, 3), ==, G_TYPE_ULONG);
+	g_assert_cmpint(pkd_manifest_get_row_type(m, 4), ==, G_TYPE_DOUBLE);
 }
 
 static void
