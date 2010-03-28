@@ -159,9 +159,8 @@ memory_new (void)
 
 	state = g_slice_new0(Memory);
 	return pkd_source_simple_new_full(memory_sample,
-	                                  state,
 	                                  memory_spawn,
-	                                  FALSE,
+	                                  state,
 	                                  memory_free);
 }
 

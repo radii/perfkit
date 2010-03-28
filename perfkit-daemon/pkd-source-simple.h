@@ -57,16 +57,21 @@ struct _PkdSourceSimpleClass
 GType      pkd_source_simple_get_type             (void) G_GNUC_CONST;
 PkdSource* pkd_source_simple_new                  (void);
 PkdSource* pkd_source_simple_new_full             (PkdSourceSimpleFunc   callback,
+                                                   PkdSourceSimpleSpawn  spawn,
                                                    gpointer              user_data,
-                                                   PkdSourceSimpleSpawn  spawn_callback,
-                                                   gboolean              use_thread,
                                                    GDestroyNotify        notify);
-void       pkd_source_simple_set_callback         (PkdSourceSimple     *source,
+void       pkd_source_simple_set_sample_callback  (PkdSourceSimple     *source,
                                                    PkdSourceSimpleFunc  callback,
                                                    gpointer             user_data,
                                                    GDestroyNotify       notify);
-void       pkd_source_simple_set_callback_closure (PkdSourceSimple *source,
+void       pkd_source_simple_set_sample_closure   (PkdSourceSimple *source,
                                                    GClosure        *closure);
+void       pkd_source_simple_set_spawn_callback   (PkdSourceSimple       *source,
+                                                   PkdSourceSimpleSpawn   spawn,
+                                                   gpointer               user_data,
+                                                   GDestroyNotify         notify);
+void       pkd_source_simple_set_spawn_closure    (PkdSourceSimple       *source,
+                                                   GClosure              *closure);
 gboolean   pkd_source_simple_get_use_thread       (PkdSourceSimple *source);
 void       pkd_source_simple_set_use_thread       (PkdSourceSimple *source,
                                                    gboolean         use_thread);

@@ -44,9 +44,8 @@ struct _PkdSourceSimplePrivate
 	gboolean              dedicated;
 	gboolean              running;
 	GThread              *thread;
-	GClosure             *closure;
-	PkdSourceSimpleSpawn  spawn_callback;
-	gpointer              user_data;
+	GClosure             *sample;
+	GClosure             *spawn;
 };
 
 enum
@@ -85,20 +84,17 @@ pkd_source_simple_new (void)
 
 PkdSource*
 pkd_source_simple_new_full (PkdSourceSimpleFunc  callback,
-                            gpointer             user_data,
                             PkdSourceSimpleSpawn spawn_callback,
-                            gboolean             use_thread,
+                            gpointer             user_data,
                             GDestroyNotify       notify)
 {
 	PkdSource *source;
 
-	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE,
-	                      "use-thread", use_thread,
-	                      NULL);
-	pkd_source_simple_set_callback(PKD_SOURCE_SIMPLE(source),
-	                               callback, user_data, notify);
-	PKD_SOURCE_SIMPLE(source)->priv->spawn_callback = spawn_callback;
-	PKD_SOURCE_SIMPLE(source)->priv->user_data = user_data;
+	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE, NULL);
+	pkd_source_simple_set_sample_callback(PKD_SOURCE_SIMPLE(source),
+	                                      callback, user_data, notify);
+	pkd_source_simple_set_spawn_callback(PKD_SOURCE_SIMPLE(source),
+	                                     spawn_callback, user_data, NULL);
 
 	return source;
 }
@@ -113,18 +109,18 @@ pkd_source_simple_new_full (PkdSourceSimpleFunc  callback,
  * Side effects: None.
  */
 void
-pkd_source_simple_set_callback_closure (PkdSourceSimple *source,
-                                        GClosure        *closure)
+pkd_source_simple_set_sample_closure (PkdSourceSimple *source,
+                                      GClosure        *closure)
 {
 	g_return_if_fail(PKD_IS_SOURCE_SIMPLE(source));
-	g_return_if_fail(source->priv->closure == NULL);
+	g_return_if_fail(source->priv->sample == NULL);
 
-	source->priv->closure = g_closure_ref(closure);
+	source->priv->sample = g_closure_ref(closure);
 	g_closure_sink(closure);
 }
 
 /**
- * pkd_source_simple_set_callback:
+ * pkd_source_simple_set_sample_callback:
  * @source: A #PkdSourceSimple.
  * @callback: The callback to execute.
  * @user_data: user data for @callback.
@@ -136,21 +132,50 @@ pkd_source_simple_set_callback_closure (PkdSourceSimple *source,
  * Side effects: None.
  */
 void
-pkd_source_simple_set_callback (PkdSourceSimple     *source,
-                                PkdSourceSimpleFunc  callback,
-                                gpointer             user_data,
-                                GDestroyNotify       notify)
+pkd_source_simple_set_sample_callback (PkdSourceSimple     *source,
+                                       PkdSourceSimpleFunc  callback,
+                                       gpointer             user_data,
+                                       GDestroyNotify       notify)
 {
 	GClosure *closure;
 
 	g_return_if_fail(PKD_IS_SOURCE_SIMPLE(source));
 	g_return_if_fail(callback != NULL);
-	g_return_if_fail(source->priv->closure == NULL);
+	g_return_if_fail(source->priv->sample == NULL);
 
 	closure = g_cclosure_new(G_CALLBACK(callback), user_data,
 	                         (GClosureNotify)notify);
 	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__VOID);
-	pkd_source_simple_set_callback_closure(source, closure);
+	pkd_source_simple_set_sample_closure(source, closure);
+}
+
+void
+pkd_source_simple_set_spawn_closure (PkdSourceSimple *source,
+                                     GClosure        *closure)
+{
+	g_return_if_fail(PKD_IS_SOURCE_SIMPLE(source));
+	g_return_if_fail(source->priv->spawn == NULL);
+
+	source->priv->spawn = g_closure_ref(closure);
+	g_closure_sink(closure);
+}
+
+void
+pkd_source_simple_set_spawn_callback (PkdSourceSimple      *source,
+                                      PkdSourceSimpleSpawn  spawn,
+                                      gpointer              user_data,
+                                      GDestroyNotify        notify)
+{
+	GClosure *closure;
+
+	g_return_if_fail(PKD_IS_SOURCE_SIMPLE(source));
+	g_return_if_fail(spawn != NULL);
+	g_return_if_fail(source->priv->spawn == NULL);
+
+	closure = g_cclosure_new(G_CALLBACK(spawn), user_data,
+	                         (GClosureNotify)notify);
+	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__POINTER);
+	pkd_source_simple_set_spawn_closure(source, closure);
 }
 
 /**
@@ -230,7 +255,7 @@ pkd_source_simple_invoke (PkdSourceSimple *source)
 	 */
 	g_value_init(&params, PKD_TYPE_SOURCE_SIMPLE);
 	g_value_set_object(&params, source);
-	g_closure_invoke(priv->closure, NULL, 1, &params, NULL);
+	g_closure_invoke(priv->sample, NULL, 1, &params, NULL);
 	g_value_unset(&params);
 }
 
@@ -369,8 +394,16 @@ pkd_source_simple_notify_started (PkdSource    *source,
 	PkdSourceSimplePrivate *priv = PKD_SOURCE_SIMPLE(source)->priv;
 	GError *error = NULL;
 
-	if (priv->spawn_callback) {
-		priv->spawn_callback(PKD_SOURCE_SIMPLE(source), spawn_info, priv->user_data);
+	if (priv->spawn) {
+		GValue params[2] = {{0}};
+
+		g_value_init(&params[0], PKD_TYPE_SOURCE);
+		g_value_init(&params[1], G_TYPE_POINTER);
+		g_value_set_object(&params[0], source);
+		g_value_set_pointer(&params[1], spawn_info);
+		g_closure_invoke(priv->spawn, NULL, 2, &params[0], NULL);
+		g_value_unset(&params[0]);
+		g_value_unset(&params[1]);
 	}
 
 	if (priv->dedicated) {
@@ -447,8 +480,8 @@ pkd_source_simple_finalize (GObject *object)
 	pthread_cond_destroy(&priv->cond);
 	pthread_mutex_destroy(&priv->mutex);
 
-	if (priv->closure) {
-		g_closure_unref(priv->closure);
+	if (priv->sample) {
+		g_closure_unref(priv->sample);
 	}
 
 	G_OBJECT_CLASS(pkd_source_simple_parent_class)->finalize(object);

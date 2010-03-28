@@ -23,7 +23,7 @@ test_PkdSourceSimple_threaded (void)
 
 	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE, "use-thread", TRUE, NULL);
 	g_assert_cmpint(pkd_source_simple_get_use_thread(source), ==, TRUE);
-	pkd_source_simple_set_callback(source, test_PkdSourceSimple_threaded_cb, &i, NULL);
+	pkd_source_simple_set_sample_callback(source, test_PkdSourceSimple_threaded_cb, &i, NULL);
 	pkd_source_simple_set_frequency(source, &freq);
 	pkd_source_notify_started(PKD_SOURCE(source), &info);
 	g_usleep(2 * G_USEC_PER_SEC);
@@ -46,7 +46,7 @@ test_PkdSourceSimple_shared (void)
 
 	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE, "use-thread", FALSE, NULL);
 	g_assert_cmpint(pkd_source_simple_get_use_thread(source), ==, FALSE);
-	pkd_source_simple_set_callback(source, test_PkdSourceSimple_threaded_cb, &i, NULL);
+	pkd_source_simple_set_sample_callback(source, test_PkdSourceSimple_threaded_cb, &i, NULL);
 	pkd_source_simple_set_frequency(source, &freq);
 	pkd_source_notify_started(PKD_SOURCE(source), &info);
 	g_usleep(2 * G_USEC_PER_SEC);
