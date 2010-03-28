@@ -914,7 +914,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	gtk_paned_add1(GTK_PANED(priv->vpaned), table);
 	gtk_widget_show(table);
 
-	priv->vadj = gtk_adjustment_new(0., 0., 0., 0., 0., 0.);
+	priv->vadj = gtk_adjustment_new(0., 0., 0., 10., 40., 0.);
 	vscroller = gtk_vscrollbar_new(GTK_ADJUSTMENT(priv->vadj));
 	gtk_table_attach(GTK_TABLE(table),
 	                 vscroller,
