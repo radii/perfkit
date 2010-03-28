@@ -265,6 +265,9 @@ pkd_manifest_append (PkdManifest *manifest,
 	g_return_val_if_fail(name != NULL, 0);
 	g_return_val_if_fail(type != 0, 0);
 
+	/*
+	 * Check for supported types.
+	 */
 	switch (type) {
 	case G_TYPE_INT:
 	case G_TYPE_UINT:
