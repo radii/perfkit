@@ -176,7 +176,7 @@ populate_manifest (PkdManifest *m,
                    GArray      *entries)
 {
 	SchedEntry *ent;
-	int i;
+	gint i;
 
 	for (i = 0; i < entries->len; i++) {
 		ent = &g_array_index(entries, SchedEntry, i);
@@ -186,8 +186,7 @@ populate_manifest (PkdManifest *m,
 			pkd_manifest_append(m, ent->name, G_TYPE_INT);
 			break;
 		case SCHED_DOUBLE:
-			//pkd_manifest_append(m, ent->name, G_TYPE_DOUBLE);
-			pkd_manifest_append(m, ent->name, G_TYPE_INT);
+			pkd_manifest_append(m, ent->name, G_TYPE_DOUBLE);
 			break;
 		case SCHED_UNKNOWN:
 		default:
@@ -212,8 +211,7 @@ populate_sample (PkdSample *s,
 			pkd_sample_append_uint(s, i + 1, ent->val.i);
 			break;
 		case SCHED_DOUBLE:
-			//pkd_sample_append_double(s, i + 1, ent->val.d);
-			pkd_sample_append_uint(s, i + 1, ent->val.d);
+			pkd_sample_append_double(s, i + 1, ent->val.d);
 			break;
 		case SCHED_UNKNOWN:
 		default:
