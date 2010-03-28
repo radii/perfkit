@@ -408,7 +408,9 @@ decode (PkManifest *manifest,
 
 	/* make sure all rows were sent */
 	for (i = 0; i < manifest->n_rows; i++) {
-		PkManifestRow *row = &g_array_index(manifest->rows, PkManifestRow, i);
+		PkManifestRow *row;
+
+		row = &g_array_index(manifest->rows, PkManifestRow, i);
 		if (row->id != (i + 1)) {
 			return FALSE;
 		}
