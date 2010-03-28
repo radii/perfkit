@@ -730,6 +730,7 @@ egg_buffer_read_double (EggBuffer *buffer,
 	if ((buffer->pos + 8) <= buffer->ar->len) {
 		d_ = *((gdouble *)&buffer->ar->data[buffer->pos]);
 		*d = GUINT64_FROM_LE(d_);
+		buffer->pos += 8;
 		return TRUE;
 	}
 
@@ -757,9 +758,10 @@ egg_buffer_read_float (EggBuffer *buffer,
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(f != NULL, FALSE);
 
-	if ((buffer->pos + 8) <= buffer->ar->len) {
+	if ((buffer->pos + 4) <= buffer->ar->len) {
 		f_ = *((gfloat *)&buffer->ar->data[buffer->pos]);
 		*f = GUINT32_FROM_LE(f_);
+		buffer->pos += 4;
 		return TRUE;
 	}
 
