@@ -608,6 +608,13 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 		pkg_session_view_row_set_style(row, GTK_WIDGET(session_view)->style);
 	}
 
+	clutter_actor_set_opacity(row->group, 0);
+	clutter_actor_animate(row->group,
+	                      CLUTTER_LINEAR,
+	                      250,
+	                      "opacity", 255,
+	                      NULL);
+
 	/*
 	 * Show actors.
 	 */
