@@ -212,12 +212,11 @@ pkg_session_view_select_row (PkgSessionView    *session_view,
 
 	if (row) {
 		pkg_session_view_row_set_style(row, GTK_WIDGET(session_view)->style);
+		pkg_session_view_scroll_to_row(session_view, row);
 	}
 	if (old_row) {
 		pkg_session_view_row_set_style(old_row, GTK_WIDGET(session_view)->style);
 	}
-
-	pkg_session_view_scroll_to_row(session_view, row);
 }
 
 static void
