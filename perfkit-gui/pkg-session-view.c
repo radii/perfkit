@@ -384,6 +384,19 @@ pkg_session_view_row_info_clicked (ClutterActor *info,
 }
 
 static void
+pkg_session_view_update_adjustments (PkgSessionView *session_view)
+{
+	PkgSessionViewPrivate *priv;
+	gdouble h;
+
+	priv = session_view->priv;
+
+	h = clutter_actor_get_height(priv->stage);
+	gtk_adjustment_set_upper(GTK_ADJUSTMENT(priv->vadj), priv->end_y);
+	gtk_adjustment_set_page_size(GTK_ADJUSTMENT(priv->vadj), h);
+}
+
+static void
 pkg_session_view_size_allocated (GtkWidget     *widget,
                                  GtkAllocation *alloc,
                                  gpointer       user_data)
@@ -396,7 +409,6 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 	g_return_if_fail(PKG_IS_SESSION_VIEW(user_data));
 
 	priv = PKG_SESSION_VIEW(user_data)->priv;
-
 
 	for (list = priv->rows; list; list = list->next) {
 		row = list->data;
@@ -415,6 +427,8 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 		pkg_session_view_row_paint_data_fg(row, row->data_fg);
 		pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
 	}
+
+	pkg_session_view_update_adjustments(user_data);
 }
 
 static void
@@ -659,7 +673,7 @@ pkg_session_view_source_added (PkgSessionView *session_view,
 
 	row = pkg_session_view_row_new(session_view, source);
 	priv->rows = g_list_append(priv->rows, row);
-	clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage), row->group);
+	clutter_container_add_actor(CLUTTER_CONTAINER(priv->row_group), row->group);
 	clutter_actor_set_position(row->group, 0, priv->end_y);
 	priv->end_y += clutter_actor_get_height(row->group);
 	gtk_widget_queue_resize(GTK_WIDGET(session_view));
@@ -771,6 +785,18 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
 }
 
 static void
+pkg_session_view_vscrollbar_changed (GtkWidget      *vscroller,
+                                     PkgSessionView *session_view)
+{
+	gdouble offset;
+
+	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+
+	offset = gtk_range_get_value(GTK_RANGE(vscroller));
+	clutter_actor_set_y(session_view->priv->row_group, -offset);
+}
+
+static void
 pkg_session_view_finalize (GObject *object)
 {
 	PkgSessionViewPrivate *priv;
@@ -842,13 +868,18 @@ pkg_session_view_init (PkgSessionView *session_view)
 	gtk_paned_add1(GTK_PANED(priv->vpaned), table);
 	gtk_widget_show(table);
 
-	vscroller = gtk_vscrollbar_new(NULL);
+	priv->vadj = gtk_adjustment_new(0., 0., 0., 0., 0., 0.);
+	vscroller = gtk_vscrollbar_new(GTK_ADJUSTMENT(priv->vadj));
 	gtk_table_attach(GTK_TABLE(table),
 	                 vscroller,
 	                 2, 3, 0, 2,
 	                 GTK_FILL,
 	                 GTK_FILL | GTK_EXPAND,
 	                 0, 0);
+	g_signal_connect(vscroller,
+	                 "value-changed",
+	                 G_CALLBACK(pkg_session_view_vscrollbar_changed),
+	                 session_view);
 	gtk_widget_show(vscroller);
 
 	hscroller = gtk_hscrollbar_new(NULL);
@@ -938,6 +969,12 @@ pkg_session_view_init (PkgSessionView *session_view)
 	clutter_actor_set_size(priv->src_col_sep, 1, 1000);
 	clutter_actor_set_position(priv->src_col_sep, 200, 0);
 	clutter_actor_show(priv->src_col_sep);
+
+	priv->row_group = clutter_group_new();
+	clutter_container_add_actor(CLUTTER_CONTAINER(priv->stage),
+	                            priv->row_group);
+	clutter_actor_set_position(priv->row_group, 0, 0);
+	clutter_actor_show(priv->row_group);
 
 	priv->zadj = gtk_adjustment_new(1., .5, 5., .25, 1., 1.);
 	g_object_set(scale, "adjustment", priv->zadj, NULL);
