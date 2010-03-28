@@ -36,13 +36,22 @@ G_DEFINE_TYPE(PkSource, pk_source, G_TYPE_OBJECT)
 struct _PkSourcePrivate
 {
 	PkConnection *conn;
+	gint id;
 };
 
 enum
 {
 	PROP_0,
 	PROP_CONN,
+	PROP_ID,
 };
+
+gint
+pk_source_get_id (PkSource *source)
+{
+	g_return_val_if_fail(PK_IS_SOURCE(source), -1);
+	return source->priv->id;
+}
 
 static void
 pk_source_finalize (GObject *object)
@@ -57,6 +66,42 @@ pk_source_dispose (GObject *object)
 }
 
 static void
+pk_source_get_property (GObject    *object,
+                        guint       prop_id,
+                        GValue     *value,
+                        GParamSpec *pspec)
+{
+	switch (prop_id) {
+	case PROP_ID:
+		g_value_set_int(value, pk_source_get_id(PK_SOURCE(object)));
+		break;
+	case PROP_CONN:
+		g_value_set_object(value, PK_SOURCE(object)->priv->conn);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
+pk_source_set_property (GObject      *object,
+                        guint         prop_id,
+                        const GValue *value,
+                        GParamSpec   *pspec)
+{
+	switch (prop_id) {
+	case PROP_ID:
+		PK_SOURCE(object)->priv->id = g_value_get_int(value);
+		break;
+	case PROP_CONN:
+		PK_SOURCE(object)->priv->conn = g_value_dup_object(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+static void
 pk_source_class_init (PkSourceClass *klass)
 {
 	GObjectClass *object_class;
@@ -64,7 +109,27 @@ pk_source_class_init (PkSourceClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pk_source_finalize;
 	object_class->dispose = pk_source_dispose;
-	g_type_class_add_private (object_class, sizeof (PkSourcePrivate));
+	object_class->set_property = pk_source_set_property;
+	object_class->get_property = pk_source_get_property;
+	g_type_class_add_private(object_class, sizeof(PkSourcePrivate));
+
+	g_object_class_install_property(object_class,
+	                                PROP_ID,
+	                                g_param_spec_int("id",
+	                                                 "Id",
+	                                                 "The source id",
+	                                                 0,
+	                                                 G_MAXINT,
+	                                                 0,
+	                                                 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(object_class,
+	                                PROP_CONN,
+	                                g_param_spec_object("connection",
+	                                                    "Connection",
+	                                                    "The source connection",
+	                                                    PK_TYPE_CONNECTION,
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void

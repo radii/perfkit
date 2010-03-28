@@ -287,6 +287,31 @@ pk_channel_unpause (PkChannel  *channel,
 	                                      error);
 }
 
+PkSource*
+pk_channel_add_source (PkChannel    *channel,
+                       PkSourceInfo *source_info)
+{
+	GError *error = NULL;
+	gint source_id = 0;
+
+	g_return_val_if_fail(PK_IS_CHANNEL(channel), NULL);
+	g_return_val_if_fail(PK_IS_SOURCE_INFO(source_info), NULL);
+
+	if (!pk_connection_channel_add_source(channel->priv->conn,
+	                                      channel->priv->id,
+	                                      pk_source_info_get_uid(source_info),
+	                                      &source_id,
+	                                      &error)) {
+	    g_error_free(error);
+	    return NULL;
+	}
+
+	return g_object_new(PK_TYPE_CHANNEL,
+	                    "connection", channel->priv->conn,
+	                    "id", source_id,
+	                    NULL);
+}
+
 static void
 pk_channel_finalize (GObject *object)
 {
