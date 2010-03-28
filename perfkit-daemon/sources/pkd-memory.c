@@ -24,6 +24,8 @@
 
 typedef struct
 {
+	PkdManifest *manifest;
+	GPid pid;
 	gint size;
 	gint resident;
 	gint share;
@@ -31,56 +33,54 @@ typedef struct
 	gint lib;
 	gint data;
 	gint dt;
-} proc_pid_statm;
+} Memory;
 
-typedef struct
-{
-	PkdManifest    *manifest;
-	GPid            pid;
-	proc_pid_statm  statm;
-} MemoryState;
-
+/*
+ * Read /proc/pid/statm and store to memory state.
+ */
 static inline gboolean
-proc_pid_statm_read (proc_pid_statm *pstat,
-                     GPid            pid)
+memory_read (Memory *state)
 {
 	gint fd;
 	gchar path[64];
 	gchar buffer[64];
  
-	memset (path, 0, sizeof (path));
-	snprintf (path, sizeof (path), "/proc/%d/statm", pid);
+	memset(path, 0, sizeof(path));
+	snprintf(path, sizeof(path), "/proc/%d/statm", state->pid);
+	fd = open(path, O_RDONLY);
 
-	fd = open (path, O_RDONLY);
 	if (fd < 0) {
 		return FALSE;
 	}
 
-	if (read (fd, buffer, sizeof (buffer)) < 1) {
-		close (fd);
+	if (read(fd, buffer, sizeof(buffer)) < 1) {
+		close(fd);
 		return FALSE;
 	}
- 
-	sscanf (buffer,
-	        "%d %d %d %d %d %d %d",
-	        &pstat->size,
-	        &pstat->resident,
-	        &pstat->share,
-	        &pstat->text,
-	        &pstat->lib,
-	        &pstat->data,
-	        &pstat->dt);
 
-	close (fd);
+	sscanf(buffer,
+	       "%d %d %d %d %d %d %d",
+	       &state->size,
+	       &state->resident,
+	       &state->share,
+	       &state->text,
+	       &state->lib,
+	       &state->data,
+	       &state->dt);
+
+	close(fd);
 
 	return TRUE;
 }
 
+/*
+ * Handle a sample callback from the PkdSourceSimple.
+ */
 static void
-pkd_memory_cb (PkdSourceSimple *source,
+memory_sample (PkdSourceSimple *source,
                gpointer         user_data)
 {
-	MemoryState *state = user_data;
+	Memory *state = user_data;
 	PkdSample *s;
 
 	/*
@@ -99,16 +99,16 @@ pkd_memory_cb (PkdSourceSimple *source,
 	/*
 	 * Retrieve the next sample.
 	 */
-	if (proc_pid_statm_read(&state->statm, state->pid)) {
+	if (memory_read(state)) {
 		/*
 		 * Create our data sample.
 		 */
 		s = pkd_sample_new();
-		pkd_sample_append_uint(s, 1, state->statm.size);
-		pkd_sample_append_uint(s, 2, state->statm.resident);
-		pkd_sample_append_uint(s, 3, state->statm.share);
-		pkd_sample_append_uint(s, 4, state->statm.text);
-		pkd_sample_append_uint(s, 5, state->statm.data);
+		pkd_sample_append_uint(s, 1, state->size);
+		pkd_sample_append_uint(s, 2, state->resident);
+		pkd_sample_append_uint(s, 3, state->share);
+		pkd_sample_append_uint(s, 4, state->text);
+		pkd_sample_append_uint(s, 5, state->data);
 
 		/*
 		 * Deliver the sample.
@@ -122,37 +122,53 @@ pkd_memory_cb (PkdSourceSimple *source,
 	}
 }
 
+/*
+ * Handle a spawn event from the PkdSourceSimple.
+ */
 static void
-pkd_memory_spawn_cb (PkdSourceSimple *source,
-                     PkdSpawnInfo    *info,
-                     gpointer         user_data)
+memory_spawn (PkdSourceSimple *source,
+              PkdSpawnInfo    *spawn_info,
+              gpointer         user_data)
 {
-	MemoryState *state = user_data;
-	state->pid = info->pid;
+	((Memory *)user_data)->pid = spawn_info->pid;
 }
 
+/*
+ * Free the memory state when source is destroyed.
+ */
 static void
-memory_state_free (gpointer data)
+memory_free (gpointer data)
 {
-	g_slice_free(MemoryState, data);
+	Memory *state = data;
+	g_assert(state);
+
+	if (state->manifest) {
+		pkd_manifest_unref(state->manifest);
+	}
+
+	g_slice_free(Memory, data);
 }
 
+/*
+ * Create a new PkdSourceSimple for memory sampling.
+ */
 PkdSource*
-pkd_memory_new (void)
+memory_new (void)
 {
-	MemoryState *state;
+	Memory *state;
 
-	state = g_slice_new0(MemoryState);
-	return pkd_source_simple_new_full(pkd_memory_cb, state,
-	                                  pkd_memory_spawn_cb, FALSE,
-	                                  memory_state_free);
+	state = g_slice_new0(Memory);
+	return pkd_source_simple_new_full(memory_sample,
+	                                  state,
+	                                  memory_spawn,
+	                                  FALSE,
+	                                  memory_free);
 }
 
 const PkdStaticSourceInfo pkd_source_plugin = {
 	.uid         = "Memory",
-	.name        = "Memory Data Source",
-	.description = "This source provides information memory usage of a target "
-	               "process or the entire system.",
-	.version     = "0.1.0",
-	.factory     = pkd_memory_new,
+	.name        = "Memory usage sampling",
+	.description = "This source provides memory usage of a target process.",
+	.version     = "0.1.1",
+	.factory     = memory_new,
 };
