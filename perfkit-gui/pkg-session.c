@@ -21,6 +21,7 @@
 #endif
 
 #include <perfkit/perfkit.h>
+#include <perfkit/perfkit-lowlevel.h>
 
 #include "pkg-session.h"
 
@@ -37,6 +38,7 @@ G_DEFINE_TYPE(PkgSession, pkg_session, G_TYPE_OBJECT)
 struct _PkgSessionPrivate
 {
 	PkConnection *conn;
+	PkChannel *channel;
 };
 
 enum
@@ -71,6 +73,33 @@ pkg_session_get_connection (PkgSession *session)
 {
 	g_return_val_if_fail(PKG_IS_SESSION(session), NULL);
 	return session->priv->conn;
+}
+
+PkChannel*
+pkg_session_get_channel (PkgSession *session)
+{
+	PkgSessionPrivate *priv;
+	GError *error = NULL;
+	gint channel_id = 0;
+	PkSpawnInfo info = {0};
+
+	g_return_val_if_fail(PKG_IS_SESSION(session), NULL);
+
+	priv = session->priv;
+
+	if (!priv->channel) {
+		if (!pk_connection_manager_create_channel(priv->conn, &info, &channel_id, &error)) {
+			g_warning("Error creating channel: %s", error->message);
+			g_error_free(error);
+			return NULL;
+		}
+		priv->channel = g_object_new(PK_TYPE_CHANNEL,
+		                             "connection", priv->conn,
+		                             "id", channel_id,
+		                             NULL);
+	}
+
+	return priv->channel;
 }
 
 static void

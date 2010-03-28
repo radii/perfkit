@@ -55,6 +55,7 @@ struct _PkgSessionClass
 GType         pkg_session_get_type       (void) G_GNUC_CONST;
 PkgSession*   pkg_session_new            (void);
 PkConnection* pkg_session_get_connection (PkgSession *session);
+PkChannel*    pkg_session_get_channel    (PkgSession *session);
 
 G_END_DECLS
 

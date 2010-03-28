@@ -25,6 +25,7 @@
 #include <clutter-gtk/clutter-gtk.h>
 #include <perfkit/perfkit.h>
 
+#include "pkg-dialog.h"
 #include "pkg-panels.h"
 #include "pkg-session-view.h"
 #include "pkg-source-renderer.h"
@@ -125,6 +126,13 @@ void
 pkg_session_view_set_session (PkgSessionView *session_view,
                               PkgSession     *session)
 {
+	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PKG_IS_SESSION(session));
+
+	if (session_view->priv->session) {
+		g_object_unref(session_view->priv->session);
+	}
+	session_view->priv->session = g_object_ref(session);
 }
 
 /**
@@ -714,13 +722,30 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
                             guint           time,
                             gpointer        user_data)
 {
-	PkSourceInfo *source = NULL;
+	PkSourceInfo *info;
+	PkgSession *session;
+	PkSource *source;
+	PkChannel *channel;
 
-	source = pkg_panels_get_selected_source_plugin();
-	g_assert(source);
+	info = pkg_panels_get_selected_source_plugin();
+	g_assert(info);
 
-	g_debug("Drop request of source plugin %s at %dx%d",
-	        pk_source_info_get_uid(source), x, y);
+	session = pkg_session_view_get_session(user_data);
+	g_assert(session);
+
+	channel = pkg_session_get_channel(session);
+	source = pk_channel_add_source(channel, info);
+
+	if (!source) {
+		pkg_dialog_warning(gtk_widget_get_toplevel(GTK_WIDGET(user_data)),
+		                   "",
+		                   "There was an error adding the data source.",
+		                   NULL,
+		                   FALSE);
+	}
+
+	g_debug("Added source plugin %s to channel. %dx%d",
+	        pk_source_info_get_uid(info), x, y);
 }
 
 static void
