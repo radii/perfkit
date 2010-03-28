@@ -122,7 +122,7 @@ test_PkdEncoder_encode_manifest (void)
 static void
 test_PkdEncoder_encode_samples (void)
 {
-	PkdSample *samples[3];
+	PkdSample *samples[4];
 	PkdManifest *m;
 	guchar *buf;
 	gsize len;
@@ -134,6 +134,7 @@ test_PkdEncoder_encode_samples (void)
 	samples[0] = pkd_sample_new();
 	samples[1] = pkd_sample_new();
 	samples[2] = pkd_sample_new();
+	samples[3] = pkd_sample_new();
 
 	/* empty samples test */
 	g_assert(pkd_encoder_encode_samples(NULL, m, samples, 3, (gchar **)&buf, &len));
@@ -155,8 +156,9 @@ test_PkdEncoder_encode_samples (void)
 	pkd_sample_append_uint(samples[0], 1, 123);
 	pkd_sample_append_uint(samples[1], 1, 321);
 	pkd_sample_append_uint(samples[2], 1, 111);
-	g_assert(pkd_encoder_encode_samples(NULL, m, samples, 3, (gchar **)&buf, &len));
-	g_assert_cmpint(len, ==, 19);
+	pkd_sample_append_double(samples[3], 3, 123.45);
+	g_assert(pkd_encoder_encode_samples(NULL, m, samples, 4, (gchar **)&buf, &len));
+	g_assert_cmpint(len, ==, 32);
 	g_assert_cmpint(buf[0],  ==, 0x8);
 	g_assert_cmpint(buf[1],  ==, 0x0);
 	g_assert_cmpint(buf[2],  ==, 0x12);
@@ -176,10 +178,24 @@ test_PkdEncoder_encode_samples (void)
 	g_assert_cmpint(buf[16], ==, 0x2);
 	g_assert_cmpint(buf[17], ==, 0x8);
 	g_assert_cmpint(buf[18], ==, 0x6F);
+	g_assert_cmpint(buf[19], ==, 0x8);
+	g_assert_cmpint(buf[20], ==, 0x0);
+	g_assert_cmpint(buf[21], ==, 0x12);
+	g_assert_cmpint(buf[22], ==, 0x9);
+	g_assert_cmpint(buf[23], ==, 0x19);
+	g_assert_cmpint(buf[24], ==, 0x0);
+	g_assert_cmpint(buf[25], ==, 0x0);
+	g_assert_cmpint(buf[26], ==, 0x0);
+	g_assert_cmpint(buf[27], ==, 0x0);
+	g_assert_cmpint(buf[28], ==, 0x0);
+	g_assert_cmpint(buf[29], ==, 0xc0);
+	g_assert_cmpint(buf[30], ==, 0x5e);
+	g_assert_cmpint(buf[31], ==, 0x40);
 
 	pkd_sample_unref(samples[0]);
 	pkd_sample_unref(samples[1]);
 	pkd_sample_unref(samples[2]);
+	pkd_sample_unref(samples[3]);
 }
 
 gint
