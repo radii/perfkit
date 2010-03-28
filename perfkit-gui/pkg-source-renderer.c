@@ -16,7 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+#include <gtk/gtk.h>
+
 #include "pkg-source-renderer.h"
+#include "pkg-runtime.h"
+
+#define BORDER_WIDTH 5.5
 
 /**
  * SECTION:pkg-source-renderer
@@ -189,34 +195,45 @@ pkg_source_renderer_real_render (PkgSourceRenderer *source_renderer,
 {
 	PkgSourceRendererPrivate *priv;
 	cairo_t *cr;
-	cairo_pattern_t *p;
+	//cairo_pattern_t *p;
 	gfloat w, h;
+	gdouble dashes[] = {1., 2.};
 	gint i;
 
 	g_return_if_fail(CLUTTER_IS_CAIRO_TEXTURE(actor));
 
 	priv = source_renderer->priv;
 	clutter_actor_get_size(actor, &w, &h);
-
 	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(actor));
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(actor));
-	p = cairo_pattern_create_linear(0, 0, 0, h);
-	cairo_pattern_add_color_stop_rgb(p, .0, 1., 0, 0);
-	cairo_pattern_add_color_stop_rgb(p, .4, .9411, .8862, .2039);
-	cairo_pattern_add_color_stop_rgb(p, .8, .4509, .8235, .0862);
-	cairo_set_source(cr, p);
 
+	cairo_set_line_width(cr, 1.);
+	cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0);
+
+	cairo_set_source_rgb(cr, 1, 1, 1);
+	cairo_rectangle(cr, 0, BORDER_WIDTH, w, h - (2 * BORDER_WIDTH));
+	cairo_fill(cr);
+
+	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_move_to(cr, 0, BORDER_WIDTH);
+	cairo_line_to(cr, w, BORDER_WIDTH);
+	cairo_move_to(cr, 0, floor(h) - BORDER_WIDTH);
+	cairo_line_to(cr, w, floor(h) - BORDER_WIDTH);
+	cairo_stroke(cr);
+
+	/*
+	 * Fake drawing for testing.
+	 */
+	cairo_set_dash(cr, NULL, 0, 0);
+	cairo_move_to(cr, 0, floor(h) - BORDER_WIDTH);
 	for (i = 0; i < width; i++) {
-		cairo_line_to(cr, i, g_random_double_range(5, h - 10.));
+		cairo_line_to(cr, i, g_random_double_range(BORDER_WIDTH*2, floor(h) - BORDER_WIDTH*2));
 		i += g_random_int_range(1, 5);
 	}
-
-	cairo_line_to(cr, x + width, h);
-	cairo_line_to(cr, 0, h);
-	cairo_fill_preserve(cr);
-	cairo_set_source_rgb(cr, 0.3058, 0.6039, 0.0235);
-	cairo_set_line_width(cr, 1.0);
+	GtkStyle *style = gtk_widget_get_style(GTK_WIDGET(pkg_runtime_get_active_window()));
+	gdk_cairo_set_source_color(cr, &style->dark[GTK_STATE_NORMAL]);
 	cairo_stroke(cr);
+
 	cairo_destroy(cr);
 }
 
@@ -265,5 +282,4 @@ pkg_source_renderer_init (PkgSourceRenderer *renderer)
 	                 "allocation-changed",
 	                 G_CALLBACK(pkg_source_renderer_allocation_changed),
 	                 renderer);
-	
 }
