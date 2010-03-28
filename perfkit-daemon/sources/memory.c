@@ -155,12 +155,12 @@ memory_free (gpointer data)
 PkdSource*
 memory_new (void)
 {
-	Memory *state;
+	Memory *memory;
 
-	state = g_slice_new0(Memory);
+	memory = g_slice_new0(Memory);
 	return pkd_source_simple_new_full(memory_sample,
 	                                  memory_spawn,
-	                                  state,
+	                                  memory,
 	                                  memory_free);
 }
 
