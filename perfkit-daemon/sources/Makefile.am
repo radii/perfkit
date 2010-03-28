@@ -2,7 +2,7 @@
 # Data source plugins.
 #
 
-source_LTLIBRARIES = memory.la
+source_LTLIBRARIES = memory.la sched.la
 sourcedir = $(libdir)/perfkit-daemon/sources
 
 WARNINGS =								\
@@ -41,18 +41,10 @@ AM_CPPFLAGS =								\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	$(NULL)
 
-memory_la_SOURCES =							\
-	memory.c							\
-	$(NULL)
-
-memory_la_LIBADD =							\
-	$(PERFKIT_DAEMON_LIBS)						\
-	$(top_builddir)/perfkit-daemon/libperfkit-daemon.la		\
-	-lz								\
-	$(NULL)
-
-memory_la_LDFLAGS =							\
+AM_LDFLAGS =								\
 	-export-dynamic							\
 	-module								\
 	$(NULL)
 
+memory_la_SOURCES = memory.c
+sched_la_SOURCES = sched.c

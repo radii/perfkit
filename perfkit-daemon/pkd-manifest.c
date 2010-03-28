@@ -273,6 +273,7 @@ pkd_manifest_append (PkdManifest *manifest,
 	case G_TYPE_STRING:
 	case G_TYPE_CHAR:
 	case G_TYPE_BOOLEAN:
+	case G_TYPE_DOUBLE:
 		break;
 	default:
 		g_warn_if_reached();

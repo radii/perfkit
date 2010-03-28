@@ -147,13 +147,20 @@ pk_sample_decode_timeval (PkSample   *sample,
 	return TRUE;
 }
 
-static gboolean
+static inline gboolean
 pk_sample_init_value (PkSample   *sample,
                       PkManifest *manifest,
                       guint       field,
                       GValue     *value)
 {
-	g_value_init(value, pk_manifest_get_row_type(manifest, field));
+	GType type_id;
+
+	type_id = pk_manifest_get_row_type(manifest, field);
+	if (type_id == G_TYPE_INVALID) {
+		return FALSE;
+	}
+
+	g_value_init(value, type_id);
 	return TRUE;
 }
 
