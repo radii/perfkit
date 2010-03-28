@@ -41,12 +41,7 @@ AM_CPPFLAGS =								\
 	$(PERFKIT_DAEMON_CFLAGS)					\
 	$(NULL)
 
-NOINST_H_FILES =							\
-	pkd-memory.h							\
-	$(NULL)
-
 memory_la_SOURCES =							\
-	$(NOINST_H_FILES)						\
 	pkd-memory.c							\
 	$(NULL)
 

@@ -39,6 +39,7 @@ typedef struct _PkdSourceSimple        PkdSourceSimple;
 typedef struct _PkdSourceSimpleClass   PkdSourceSimpleClass;
 typedef struct _PkdSourceSimplePrivate PkdSourceSimplePrivate;
 typedef void (*PkdSourceSimpleFunc) (PkdSourceSimple *source, gpointer user_data);
+typedef void (*PkdSourceSimpleSpawn) (PkdSourceSimple *source, PkdSpawnInfo *spawn_info, gpointer user_data);
 
 struct _PkdSourceSimple
 {
@@ -55,6 +56,11 @@ struct _PkdSourceSimpleClass
 
 GType      pkd_source_simple_get_type             (void) G_GNUC_CONST;
 PkdSource* pkd_source_simple_new                  (void);
+PkdSource* pkd_source_simple_new_full             (PkdSourceSimpleFunc   callback,
+                                                   gpointer              user_data,
+                                                   PkdSourceSimpleSpawn  spawn_callback,
+                                                   gboolean              use_thread,
+                                                   GDestroyNotify        notify);
 void       pkd_source_simple_set_callback         (PkdSourceSimple     *source,
                                                    PkdSourceSimpleFunc  callback,
                                                    gpointer             user_data,

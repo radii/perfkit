@@ -37,14 +37,16 @@ G_DEFINE_TYPE(PkdSourceSimple, pkd_source_simple, PKD_TYPE_SOURCE)
 
 struct _PkdSourceSimplePrivate
 {
-	pthread_mutex_t  mutex;
-	pthread_cond_t   cond;
-	struct timespec  freq;
-	struct timespec  timeout;
-	gboolean         dedicated;
-	gboolean         running;
-	GThread         *thread;
-	GClosure        *closure;
+	pthread_mutex_t       mutex;
+	pthread_cond_t        cond;
+	struct timespec       freq;
+	struct timespec       timeout;
+	gboolean              dedicated;
+	gboolean              running;
+	GThread              *thread;
+	GClosure             *closure;
+	PkdSourceSimpleSpawn  spawn_callback;
+	gpointer              user_data;
 };
 
 enum
@@ -79,6 +81,26 @@ PkdSource*
 pkd_source_simple_new (void)
 {
 	return g_object_new(PKD_TYPE_SOURCE_SIMPLE, NULL);
+}
+
+PkdSource*
+pkd_source_simple_new_full (PkdSourceSimpleFunc  callback,
+                            gpointer             user_data,
+                            PkdSourceSimpleSpawn spawn_callback,
+                            gboolean             use_thread,
+                            GDestroyNotify       notify)
+{
+	PkdSource *source;
+
+	source = g_object_new(PKD_TYPE_SOURCE_SIMPLE,
+	                      "use-thread", use_thread,
+	                      NULL);
+	pkd_source_simple_set_callback(PKD_SOURCE_SIMPLE(source),
+	                               callback, user_data, notify);
+	PKD_SOURCE_SIMPLE(source)->priv->spawn_callback = spawn_callback;
+	PKD_SOURCE_SIMPLE(source)->priv->user_data = user_data;
+
+	return source;
 }
 
 /**
@@ -347,6 +369,10 @@ pkd_source_simple_notify_started (PkdSource    *source,
 	PkdSourceSimplePrivate *priv = PKD_SOURCE_SIMPLE(source)->priv;
 	GError *error = NULL;
 
+	if (priv->spawn_callback) {
+		priv->spawn_callback(PKD_SOURCE_SIMPLE(source), spawn_info, priv->user_data);
+	}
+
 	if (priv->dedicated) {
 		g_assert(!priv->thread && !priv->running);
 		priv->running = TRUE;
@@ -420,6 +446,10 @@ pkd_source_simple_finalize (GObject *object)
 
 	pthread_cond_destroy(&priv->cond);
 	pthread_mutex_destroy(&priv->mutex);
+
+	if (priv->closure) {
+		g_closure_unref(priv->closure);
+	}
 
 	G_OBJECT_CLASS(pkd_source_simple_parent_class)->finalize(object);
 }
@@ -545,6 +575,7 @@ pkd_source_simple_init (PkdSourceSimple *source)
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKD_TYPE_SOURCE_SIMPLE,
 	                                           PkdSourceSimplePrivate);
+	source->priv->freq.tv_sec = 1;
 
 	/*
 	 * Initialize dedicated worker threading synchronization.
