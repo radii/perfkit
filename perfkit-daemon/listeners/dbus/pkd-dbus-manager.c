@@ -88,8 +88,18 @@ manifest_cb (gchar    *buffer,
              gsize     buffer_size,
              gpointer  data)
 {
+	DBusConnection *conn;
 	SubInfo *info = data;
 	GByteArray *ar;
+
+	/*
+	 * Ensure that we are still connected.
+	 */
+	conn = dbus_g_connection_get_connection(info->conn);
+	if (!dbus_connection_get_is_connected(conn)) {
+		g_warning("NOT CONNECTED, NOT SENDING DATA.");
+		return;
+	}
 
 	ar = g_byte_array_sized_new(buffer_size);
 	g_byte_array_append(ar, (guint8 *)buffer, buffer_size);
@@ -117,6 +127,13 @@ sample_cb (gchar    *buffer,
 	                           ar,
 	                           G_TYPE_INVALID,
 	                           G_TYPE_INVALID);
+}
+
+static void
+on_proxy_destroy (DBusGProxy      *proxy,
+                  PkdSubscription *sub)
+{
+	pkd_subscription_disable(sub, FALSE);
 }
 
 gboolean
@@ -180,6 +197,11 @@ pkd_dbus_manager_create_subscription (PkdDBusManager  *manager,
 		g_warning("Error creating subscription.");
 		goto error;
 	}
+
+	g_signal_connect(data->proxy,
+	                 "destroy",
+	                 G_CALLBACK(on_proxy_destroy),
+	                 sub);
 
 	/* notify the pipeline of the subscription */
 	pkd_pipeline_add_subscription(sub);
