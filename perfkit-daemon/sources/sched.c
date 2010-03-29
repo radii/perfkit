@@ -105,18 +105,17 @@ static gboolean
 sched_parse (Sched      *sched,
              GArray     *entries)
 {
-	static GRegex *regex     = NULL;
-	gchar         *contents  = NULL;
-	GMatchInfo    *matchInfo = NULL;
+	static gsize initialized = FALSE;
+	static GRegex *regex = NULL;
+	GMatchInfo *matchInfo = NULL;
+	gchar *contents = NULL;
 
-	if (g_once_init_enter ((gsize*) &regex)) {
-		GRegex *tmp;
-
-		tmp = g_regex_new("^([\\w\\.\\-]+)\\s*:\\s*([\\d\\.]+)$",
-		                  G_REGEX_CASELESS | G_REGEX_MULTILINE,
-		                  G_REGEX_MATCH_NOTBOL | G_REGEX_MATCH_NOTEOL,
-		                  NULL);
-		g_once_init_leave ((gsize *)&regex, (gsize)tmp);
+	if (g_once_init_enter(&initialized)) {
+		regex = g_regex_new("^([\\w\\.\\-]+)\\s*:\\s*([\\d\\.]+)$",
+		                    G_REGEX_CASELESS | G_REGEX_MULTILINE,
+		                    G_REGEX_MATCH_NOTBOL | G_REGEX_MATCH_NOTEOL,
+		                    NULL);
+		g_once_init_leave(&initialized, TRUE);
 	}
 
 	if (!(contents = sched_read(sched))) {
