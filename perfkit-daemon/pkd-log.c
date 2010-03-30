@@ -43,9 +43,35 @@ pkd_log_handler (const gchar    *log_domain,
 	struct tm tt;
 	gchar ftime[32], *buffer;
 	GPid pid;
+	const gchar *level;
 
 	if (!channel && !wants_stdout) {
 		return;
+	}
+
+	switch ((log_level & G_LOG_LEVEL_MASK)) {
+	case G_LOG_LEVEL_ERROR:
+		level = "ERROR";
+		break;
+	case G_LOG_LEVEL_CRITICAL:
+		level = "CRITICAL";
+		break;
+	case G_LOG_LEVEL_WARNING:
+		level = "WARNING";
+		break;
+	case G_LOG_LEVEL_MESSAGE:
+		level = "MESSAGE";
+		break;
+	case G_LOG_LEVEL_INFO:
+		level = "INFO";
+		break;
+	case G_LOG_LEVEL_DEBUG:
+		level = "DEBUG";
+		break;
+	default:
+		g_warn_if_reached();
+		level = "UNKNOWN";
+		break;
 	}
 
 	memset(&tt, 0, sizeof(tt));
@@ -54,11 +80,12 @@ pkd_log_handler (const gchar    *log_domain,
 	tt = *localtime(&t);
 	strftime(ftime, sizeof(ftime), "%b %d %X", &tt);
 	pid = (GPid)getpid();
-	buffer = g_strdup_printf("%s %s %s[%lu]: %s\n",
+	buffer = g_strdup_printf("%s %s %s[%lu]: %s: %s\n",
 	                         ftime,
 	                         hostname,
 	                         log_domain,
 	                         (gulong)pid,
+	                         level,
 	                         message);
 
 	if (wants_stdout) {
