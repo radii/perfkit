@@ -104,7 +104,7 @@ pkd_pipeline_init (void)
 		/*
 		 * Ensure certain types are loaded.
 		 */
-		g_debug("Registering type %s.", g_type_name(PKD_TYPE_SOURCE_SIMPLE));
+		g_message("Registering type %s.", g_type_name(PKD_TYPE_SOURCE_SIMPLE));
 
 		/*
 		 * Dummy value storage for g_once_*().
