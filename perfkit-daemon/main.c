@@ -117,6 +117,7 @@ main (gint   argc,
 	 * state.
 	 */
 	pkd_pipeline_shutdown();
+	g_option_context_free(context);
 
 	return EXIT_SUCCESS;
 }
