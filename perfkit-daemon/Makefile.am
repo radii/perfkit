@@ -116,4 +116,17 @@ debug:
 	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
-	gdb --args $(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
+	gdb --args $(builddir)/perfkit-daemon --stdout			\
+	-c $(srcdir)/daemon.conf
+
+valgrind:
+	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
+	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
+	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
+	G_SLICE=always-malloc G_DEBUG=gc-friendly			\
+	libtool --mode=execute valgrind --tool=memcheck			\
+	--leak-check=full --leak-resolution=high			\
+	--log-file=perfkit-daemon.valgrind				\
+	--suppressions=$(top_builddir)/cut-n-paste/gtk.suppression	\
+	$(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
+
