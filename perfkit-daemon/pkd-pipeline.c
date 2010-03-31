@@ -184,7 +184,7 @@ pkd_pipeline_shutdown (void)
 	g_message("Cleaning up after runtime.");
 
 	for (i = 0; i < listeners->len; i++) {
-		(void)g_object_ref(listeners->pdata[i]);
+		g_object_ref(listeners->pdata[i]);
 		pkd_listener_stop(listeners->pdata[i]);
 		g_object_unref(listeners->pdata[i]);
 	}
@@ -243,9 +243,11 @@ pkd_pipeline_add_source (PkdSource *source)
 	sources = g_list_prepend(sources, g_object_ref(source));
 	G_UNLOCK(sources);
 
+	g_object_ref(source);
 	g_ptr_array_foreach(listeners,
 	                    (GFunc)pkd_listener_source_added,
 	                    source);
+	g_object_unref(source);
 }
 
 /**
