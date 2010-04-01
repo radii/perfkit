@@ -191,9 +191,11 @@ finish:
 	/*
 	 * Close our connection to DBUS.
 	 */
-	dbus_g_connection_unref(priv->conn);
-	priv->conn = NULL;
-	dbus_conn = NULL;
+	if (priv->conn) {
+		dbus_g_connection_unref(priv->conn);
+		priv->conn = NULL;
+		dbus_conn = NULL;
+	}
 
 	g_message("DBus listener stopped.");
 }
