@@ -434,6 +434,8 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 
 	priv = PKG_SESSION_VIEW(user_data)->priv;
 
+	clutter_actor_set_height(priv->src_col_bg, alloc->height);
+
 	for (list = priv->rows; list; list = list->next) {
 		row = list->data;
 		clutter_actor_set_width(row->group, alloc->width);
