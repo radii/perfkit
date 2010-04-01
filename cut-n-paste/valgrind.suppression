@@ -395,6 +395,40 @@
    fun:g_set_application_name
 }
 
+{
+   gobject g_option_context_parse
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_set_prgname
+   fun:g_option_context_parse
+}
+
+{
+   gobject g_type_register_static
+   Memcheck:Leak
+   ...
+   fun:g_realloc
+   fun:type_add_flags_W
+   fun:g_type_register_static
+}
+
+{
+   gobject g_get_language_names
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_get_language_names
+}
+
+{
+   gobject g_type_init_with_debug_flags
+   Memcheck:Leak
+   ...
+   fun:g_type_init_with_debug_flags
+}
+
 #
 # dbus
 #
