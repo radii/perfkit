@@ -119,6 +119,8 @@ main (gint   argc,
 	pkd_pipeline_shutdown();
 	pkd_log_shutdown();
 	g_option_context_free(context);
+	g_free(opt_config);
+	g_free(opt_logfile);
 
 	return EXIT_SUCCESS;
 }
