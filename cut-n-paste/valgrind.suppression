@@ -311,3 +311,13 @@
    fun:g_type_register_static
 }
 
+#
+# dbus
+#
+
+{
+   dbus dbus_g_bus_get
+   Memcheck:Leak
+   ...
+   fun:dbus_g_bus_get
+}

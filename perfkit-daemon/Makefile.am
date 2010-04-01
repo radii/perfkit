@@ -127,6 +127,6 @@ valgrind:
 	libtool --mode=execute valgrind --tool=memcheck			\
 	--leak-check=full --leak-resolution=high			\
 	--log-file=perfkit-daemon.valgrind				\
-	--suppressions=$(top_builddir)/cut-n-paste/gtk.suppression	\
+	--suppressions=$(top_builddir)/cut-n-paste/valgrind.suppression	\
 	$(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
 
