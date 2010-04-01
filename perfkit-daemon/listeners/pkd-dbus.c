@@ -73,6 +73,9 @@ pkd_dbus_start(PkdListener  *listener,
 		return FALSE;
 	}
 
+	/*
+	 * Store a pointer to the connection for dbus helpers to retrieve.
+	 */
 	dbus_conn = priv->conn;
 
 	/*
@@ -145,7 +148,10 @@ pkd_dbus_start(PkdListener  *listener,
 static void
 pkd_dbus_stop(PkdListener *listener)
 {
+	PkdDBusPrivate *priv;
 	GList *list, *iter;
+
+	priv = PKD_DBUS(listener)->priv;
 
 	/*
 	 * Remove source plugins from DBUS.
@@ -168,6 +174,11 @@ pkd_dbus_stop(PkdListener *listener)
 	}
 	g_list_foreach(list, (GFunc)g_object_unref, NULL);
 	g_list_free(list);
+
+	/*
+	 * Close our connection to DBUS.
+	 */
+	dbus_g_connection_unref(priv->conn);
 
 	g_message("DBus listener stopped.");
 }
