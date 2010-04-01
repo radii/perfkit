@@ -336,7 +336,7 @@ pkd_plugins_shutdown (void)
 	 */
 	if (!g_getenv("PERFKIT_VALGRIND")) {
 		g_list_foreach(listeners, (GFunc)g_module_close, NULL);
-		g_list_free(listeners);
-		listeners = NULL;
 	}
+
+	g_list_free(listeners);
 }
