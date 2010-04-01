@@ -197,6 +197,9 @@ pkd_pipeline_shutdown (void)
 	g_ptr_array_foreach(subscriptions, (GFunc)pkd_subscription_unref, NULL);
 	g_list_foreach(sources, (GFunc)g_object_unref, NULL);
 	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
+
+	g_main_loop_unref(loop);
+	loop = NULL;
 }
 
 /**
