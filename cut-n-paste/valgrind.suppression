@@ -298,29 +298,113 @@
 #
 
 {
-   gobject g_type_init
+   gobject g_signal_new
    Memcheck:Leak
-   ...
-   fun:g_type_init_with_debug_flags
+   fun:malloc
+   fun:g_malloc
+   fun:g_memdup
+   fun:g_signal_newv
+   fun:g_signal_new_valist
+   fun:g_signal_new
 }
 
 {
-   gobject g_type_register_static
+   gobject g_thread_init_glib
    Memcheck:Leak
-   ...
-   fun:g_type_register_static
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_get_language_names
+   fun:g_thread_init_glib
+}
+
+{
+   gobject g_thread_init_glib
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   obj:/usr/lib/libgthread-2.0.so.*
+   fun:g_thread_init_glib
+}
+
+{
+   gobject g_thread_init_glib
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   obj:/usr/lib/libgthread-2.0.so*
+   obj:/lib/libglib-2.0.so*
+   fun:g_thread_init_glib
 }
 
 {
    gobject g_param_spec_internal
    Memcheck:Leak
-   ...
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
    fun:g_param_spec_internal
+   fun:g_param_spec_string
+}
+
+{
+   gobject g_param_spec_internal
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_intern_string
+   fun:g_param_spec_internal
+   fun:g_param_spec_string
+}
+
+{
+   gobject g_get_filename_charsets
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_get_filename_charsets
+}
+
+{
+   gobject g_type_register_static
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:type_data_make_W
+   fun:g_type_register_static
+}
+
+{
+   gobject g_type_register_static
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:type_node_any_new_W
+   fun:g_type_register_static
+}
+
+{
+   gobject g_set_application_name
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_set_application_name
 }
 
 #
 # dbus
 #
+
+{
+   dbus dbus_connection_set_watch_functions
+   Memcheck:Leak
+   ...
+   fun:dbus_connection_set_watch_functions
+}
 
 {
    dbus dbus_g_bus_get
