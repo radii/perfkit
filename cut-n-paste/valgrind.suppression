@@ -300,9 +300,7 @@
 {
    gobject g_signal_new
    Memcheck:Leak
-   fun:malloc
-   fun:g_malloc
-   fun:g_memdup
+   ...
    fun:g_signal_newv
    fun:g_signal_new_valist
    fun:g_signal_new
@@ -368,6 +366,16 @@
 }
 
 {
+   gobject g_get_filename_charsets
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_get_charset
+   fun:g_get_filename_charsets
+}
+
+{
    gobject g_type_register_static
    Memcheck:Leak
    fun:calloc
@@ -427,6 +435,69 @@
    Memcheck:Leak
    ...
    fun:g_type_init_with_debug_flags
+}
+
+{
+   gobject g_type_register_static_simple
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:type_add_flags_W
+   fun:g_type_register_static
+   fun:g_type_register_static_simple
+}
+
+{
+   gobject g_main_context_dispatch
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_slice_alloc0
+   fun:get_dispatch
+   fun:g_main_context_dispatch
+}
+
+{
+   gobject g_main_context_default
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_slist_append
+   fun:g_main_context_new
+   fun:g_main_context_default
+}
+
+{
+   gobject g_main_loop_run
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_main_context_iterate
+   fun:g_main_loop_run
+}
+
+{
+   gobject g_main_loop_new
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_main_context_add_poll_unlocked
+   fun:g_main_context_new
+   fun:g_main_context_default
+}
+
+{
+   gobject g_main_context_default
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_ptr_array_sized_new
+   fun:g_main_context_new
+   fun:g_main_context_default
 }
 
 #
