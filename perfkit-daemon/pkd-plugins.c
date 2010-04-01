@@ -330,7 +330,13 @@ pkd_plugins_init (void)
 void
 pkd_plugins_shutdown (void)
 {
-	g_list_foreach(listeners, (GFunc)g_module_close, NULL);
-	g_list_free(listeners);
-	listeners = NULL;
+	/*
+	 * Don't unload modules if we are running under valgrind.  This is required
+	 * because it will cause issues with valgrind resolving symbols.
+	 */
+	if (!g_getenv("PERFKIT_VALGRIND")) {
+		g_list_foreach(listeners, (GFunc)g_module_close, NULL);
+		g_list_free(listeners);
+		listeners = NULL;
+	}
 }

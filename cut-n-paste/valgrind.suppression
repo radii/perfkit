@@ -549,6 +549,13 @@
    fun:g_thread_init_glib
 }
 
+{
+   gobject g_thread_init_glib
+   Memcheck:Leak
+   ...
+   fun:g_thread_init_glib
+}
+
 #
 # dbus
 #
@@ -565,4 +572,27 @@
    Memcheck:Leak
    ...
    fun:dbus_g_bus_get
+}
+
+#
+# glibc
+#
+
+{
+   glibc _dl_new_object
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_new_object
+}
+
+#
+# perfkit-daemon
+#
+
+{
+   perfkit g_module_open
+   Memcheck:Leak
+   ...
+   fun:g_module_open
+   fun:pkd_plugins_init
 }

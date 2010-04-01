@@ -123,6 +123,7 @@ valgrind:
 	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
+	PERFKIT_VALGRIND=1						\
 	G_SLICE=always-malloc G_DEBUG=gc-friendly			\
 	libtool --mode=execute valgrind --tool=memcheck			\
 	--leak-check=full --leak-resolution=high			\
