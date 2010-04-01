@@ -27,7 +27,8 @@
 
 G_BEGIN_DECLS
 
-void pkd_log_init (gboolean stdout_, const gchar *filename);
+void pkd_log_init     (gboolean stdout_, const gchar *filename);
+void pkd_log_shutdown (void);
 
 G_END_DECLS
 

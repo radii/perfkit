@@ -29,9 +29,10 @@
 
 #include "pkd-log.h"
 
-static gboolean wants_stdout = FALSE;
-static GIOChannel *channel = NULL;
-static gchar hostname[64] = "";
+static gboolean    wants_stdout = FALSE;
+static GIOChannel *channel      = NULL;
+static gchar       hostname[64] = "";
+static guint       handler      = 0;
 
 static void
 pkd_log_handler (const gchar    *log_domain,
@@ -139,11 +140,28 @@ pkd_log_init (gboolean     stdout_,
 #endif /* __APPLE__ */
 #endif /* __linux__ */
 
-		g_log_set_handler(G_LOG_DOMAIN,
-		                  G_LOG_LEVEL_MASK,
-		                  pkd_log_handler,
-		                  NULL);
+		handler = g_log_set_handler(G_LOG_DOMAIN,
+		                            G_LOG_LEVEL_MASK,
+		                            pkd_log_handler,
+		                            NULL);
 
 		g_once_init_leave(&initialized, TRUE);
+	}
+}
+
+/**
+ * pkd_log_shutdown:
+ *
+ * Cleans up after the logging subsystem.
+ *
+ * Returns: None.
+ * Side effects: Logging handler is removed.
+ */
+void
+pkd_log_shutdown (void)
+{
+	if (handler) {
+		g_log_remove_handler(G_LOG_DOMAIN, handler);
+		handler = 0;
 	}
 }
