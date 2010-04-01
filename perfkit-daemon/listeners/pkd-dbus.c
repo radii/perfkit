@@ -42,6 +42,7 @@ static DBusGConnection *dbus_conn = NULL;
 struct _PkdDBusPrivate
 {
 	DBusGConnection *conn;
+	PkdDBusManager  *manager;
 };
 
 DBusGConnection*
@@ -112,7 +113,7 @@ pkd_dbus_start(PkdListener  *listener,
 	/*
 	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
 	 */
-	(void)g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
+	priv->manager = g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
 
 	/*
 	 * Export available encoder plugins.
@@ -176,9 +177,16 @@ pkd_dbus_stop(PkdListener *listener)
 	g_list_free(list);
 
 	/*
+	 * Cleanup our manager object.
+	 */
+	g_object_unref(priv->manager);
+	priv->manager = NULL;
+
+	/*
 	 * Close our connection to DBUS.
 	 */
 	dbus_g_connection_unref(priv->conn);
+	priv->conn = NULL;
 
 	g_message("DBus listener stopped.");
 }
@@ -210,16 +218,6 @@ pkd_dbus_source_added (PkdListener *listener,
 static void
 pkd_dbus_finalize(GObject *object)
 {
-	PkdDBusPrivate *priv;
-
-	g_return_if_fail(PKD_IS_DBUS(object));
-
-	priv = PKD_DBUS(object)->priv;
-
-	if (priv->conn) {
-		dbus_g_connection_unref(priv->conn);
-	}
-
 	G_OBJECT_CLASS(pkd_dbus_parent_class)->finalize(object);
 }
 
