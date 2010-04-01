@@ -179,14 +179,17 @@ pkd_dbus_stop(PkdListener *listener)
 	/*
 	 * Cleanup our manager object.
 	 */
-	g_object_unref(priv->manager);
-	priv->manager = NULL;
+	if (priv->manager) {
+		g_object_unref(priv->manager);
+		priv->manager = NULL;
+	}
 
 	/*
 	 * Close our connection to DBUS.
 	 */
 	dbus_g_connection_unref(priv->conn);
 	priv->conn = NULL;
+	dbus_conn = NULL;
 
 	g_message("DBus listener stopped.");
 }
