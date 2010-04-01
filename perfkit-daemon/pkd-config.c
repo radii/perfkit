@@ -81,8 +81,23 @@ pkd_config_init (const gchar *filename)
 		}
 
 		config = keyfile;
-		g_once_init_leave(&init, (gsize)keyfile);
+		g_once_init_leave(&init, TRUE);
 	}
+}
+
+/**
+ * pkd_config_shutdown:
+ *
+ * Shutdown the config subsystem.
+ *
+ * Returns: None.
+ * Side effects: Config subsystem released.
+ */
+void
+pkd_config_shutdown (void)
+{
+	g_key_file_free(config);
+	config = NULL;
 }
 
 /**

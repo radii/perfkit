@@ -28,6 +28,7 @@
 G_BEGIN_DECLS
 
 void     pkd_config_init         (const gchar *filename);
+void     pkd_config_shutdown     (void);
 gchar*   pkd_config_get_string   (const gchar *group,
                                   const gchar *key,
                                   const gchar *default_);

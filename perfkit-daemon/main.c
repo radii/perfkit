@@ -113,11 +113,15 @@ main (gint   argc,
 	pkd_pipeline_run();
 
 	/*
-	 * Cleanup after ourselves and try to leave the system in a consistent
-	 * state.
+	 * Shutdown subsystems.
 	 */
 	pkd_pipeline_shutdown();
+	pkd_config_shutdown();
 	pkd_log_shutdown();
+
+	/*
+	 * Cleanup after option parsing.
+	 */
 	g_option_context_free(context);
 	g_free(opt_config);
 	g_free(opt_logfile);
