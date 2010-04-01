@@ -574,6 +574,13 @@
    fun:dbus_g_bus_get
 }
 
+{
+   dbus dbus_g_object_type_install_info
+   Memcheck:Leak
+   ...
+   fun:dbus_g_object_type_install_info
+}
+
 #
 # glibc
 #
@@ -595,4 +602,12 @@
    ...
    fun:g_module_open
    fun:pkd_plugins_init
+}
+
+{
+   perfkit dbus_g_object_type_install_info
+   Memcheck:Leak
+   ...
+   fun:g_type_set_qdata
+   fun:pkd_dbus_start
 }
