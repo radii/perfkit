@@ -111,11 +111,6 @@ pkd_dbus_start(PkdListener  *listener,
 	g_message("Registering DBus Services.");
 
 	/*
-	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
-	 */
-	priv->manager = g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
-
-	/*
 	 * Export available encoder plugins.
 	 */
 	list = pkd_pipeline_get_encoder_plugins();
@@ -141,6 +136,11 @@ pkd_dbus_start(PkdListener  *listener,
 	g_list_foreach(list, (GFunc)g_object_unref, NULL);
 	g_list_free(list);
 
+	/*
+	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
+	 */
+	priv->manager = g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
+
 	g_message("DBus listener started.");
 
 	return TRUE;
@@ -153,6 +153,10 @@ pkd_dbus_stop(PkdListener *listener)
 	GList *list, *iter;
 
 	priv = PKD_DBUS(listener)->priv;
+
+	if (!priv->manager) {
+		goto finish;
+	}
 
 	/*
 	 * Remove source plugins from DBUS.
@@ -179,10 +183,10 @@ pkd_dbus_stop(PkdListener *listener)
 	/*
 	 * Cleanup our manager object.
 	 */
-	if (priv->manager) {
-		g_object_unref(priv->manager);
-		priv->manager = NULL;
-	}
+	g_object_unref(priv->manager);
+	priv->manager = NULL;
+
+finish:
 
 	/*
 	 * Close our connection to DBUS.
