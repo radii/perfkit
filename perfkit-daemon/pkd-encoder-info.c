@@ -303,6 +303,7 @@ pkd_encoder_info_finalize (GObject *object)
 	g_free(priv->name);
 	g_free(priv->description);
 	g_free(priv->version);
+	g_module_close(priv->module);
 
 	G_OBJECT_CLASS(pkd_encoder_info_parent_class)->finalize(object);
 }
