@@ -147,9 +147,22 @@ pkd_dbus_stop(PkdListener *listener)
 {
 	GList *list, *iter;
 
+	/*
+	 * Remove source plugins from DBUS.
+	 */
 	g_message("Removing source plugins from DBus.");
-
 	list = pkd_pipeline_get_source_plugins();
+	for (iter = list; iter; iter = iter->next) {
+		dbus_g_connection_unregister_g_object(dbus_conn, iter->data);
+	}
+	g_list_foreach(list, (GFunc)g_object_unref, NULL);
+	g_list_free(list);
+
+	/*
+	 * Remove encoder plugins from DBUS.
+	 */
+	g_message("Removing encoder plugins from DBus.");
+	list = pkd_pipeline_get_encoder_plugins();
 	for (iter = list; iter; iter = iter->next) {
 		dbus_g_connection_unregister_g_object(dbus_conn, iter->data);
 	}
