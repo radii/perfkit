@@ -192,14 +192,24 @@ pkd_pipeline_shutdown (void)
 	g_message("Listeners stopped.");
 
 	g_list_foreach(source_infos, (GFunc)g_object_unref, NULL);
+	g_list_free(source_infos);
+
 	g_list_foreach(encoder_infos, (GFunc)g_object_unref, NULL);
-	g_ptr_array_foreach(listeners, (GFunc)g_object_unref, NULL);
-	g_ptr_array_foreach(subscriptions, (GFunc)pkd_subscription_unref, NULL);
+	g_list_free(encoder_infos);
+
 	g_list_foreach(sources, (GFunc)g_object_unref, NULL);
+	g_list_free(sources);
+
 	g_list_foreach(channels, (GFunc)g_object_unref, NULL);
+	g_list_free(channels);
+
+	g_ptr_array_foreach(subscriptions, (GFunc)pkd_subscription_unref, NULL);
+	g_ptr_array_unref(subscriptions);
+
+	g_ptr_array_foreach(listeners, (GFunc)g_object_unref, NULL);
+	g_ptr_array_unref(listeners);
 
 	g_main_loop_unref(loop);
-	loop = NULL;
 }
 
 /**
