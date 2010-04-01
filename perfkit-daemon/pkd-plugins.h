@@ -28,7 +28,8 @@
 
 G_BEGIN_DECLS
 
-void pkd_plugins_init (void);
+void pkd_plugins_init     (void);
+void pkd_plugins_shutdown (void);
 
 G_END_DECLS
 

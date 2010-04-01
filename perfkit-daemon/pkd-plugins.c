@@ -47,6 +47,8 @@
  * accordingly.
  */
 
+static GList *listeners = NULL;
+
 /**
  * pkd_plugins_init_encoders:
  *
@@ -281,6 +283,7 @@ pkd_plugins_init_listeners (void)
 		 */
 		if (Pkd_listener_register) {
 			Pkd_listener_register();
+			listeners = g_list_append(listeners, module);
 		} else {
 			g_module_close(module);
 		}
@@ -314,4 +317,20 @@ pkd_plugins_init (void)
 	pkd_plugins_init_sources();
 	pkd_plugins_init_encoders();
 	pkd_plugins_init_listeners();
+}
+
+/**
+ * pkd_plugins_shutdown:
+ *
+ * Shuts down the plugin subsystem.
+ *
+ * Returns: None.
+ * Side effects: Listener modules are unloaded.
+ */
+void
+pkd_plugins_shutdown (void)
+{
+	g_list_foreach(listeners, (GFunc)g_module_close, NULL);
+	g_list_free(listeners);
+	listeners = NULL;
 }

@@ -116,6 +116,7 @@ main (gint   argc,
 	 * Shutdown subsystems.
 	 */
 	pkd_pipeline_shutdown();
+	pkd_plugins_shutdown();
 	pkd_config_shutdown();
 	pkd_log_shutdown();
 
