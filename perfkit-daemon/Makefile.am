@@ -126,7 +126,7 @@ valgrind:
 	G_SLICE=always-malloc G_DEBUG=gc-friendly			\
 	libtool --mode=execute valgrind --tool=memcheck			\
 	--leak-check=full --leak-resolution=high			\
-	--log-file=perfkit-daemon.valgrind				\
+	--log-file=perfkit-daemon.valgrind --show-reachable=yes		\
 	--suppressions=$(top_builddir)/cut-n-paste/valgrind.suppression	\
 	$(builddir)/perfkit-daemon --stdout -c $(srcdir)/daemon.conf
 
