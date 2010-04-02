@@ -566,6 +566,36 @@
    fun:type_node_new_W
 }
 
+{
+   gobject g_signal_new
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_closure_set_meta_marshal
+   fun:g_signal_type_cclosure_new
+   fun:g_signal_new
+}
+
+{
+   gobject g_type_class_ref
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_type_add_interface_check
+   fun:g_type_class_ref
+}
+
+{
+   gobject g_quark_from_string
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_strdup
+   fun:g_quark_from_string
+}
+
 #
 # dbus
 #
