@@ -338,11 +338,33 @@
 {
    gobject g_param_spec_internal
    Memcheck:Leak
-   fun:malloc
-   fun:g_malloc
-   fun:g_strdup
+   ...
    fun:g_param_spec_internal
    fun:g_param_spec_string
+}
+
+{
+   gobject g_param_spec_pool_insert
+   Memcheck:Leak
+   ...
+   fun:g_param_spec_pool_insert
+}
+
+{
+   gobject g_type_class_ref
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_type_class_ref
+}
+
+{
+   gobject g_main_context_default
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_main_context_new
+   fun:g_main_context_default
 }
 
 {
@@ -448,12 +470,61 @@
 }
 
 {
+   gobject g_type_register_static_simple
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:type_node_any_new_W
+   fun:g_type_register_static
+   fun:g_type_register_static_simple
+}
+
+{
+   gobject g_param_spec_pool_new
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_param_spec_pool_new
+}
+
+{
+   gobject g_param_spec_pool_new
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   fun:g_slice_alloc
+   fun:g_hash_table_new_full
+   fun:g_param_spec_pool_new
+}
+
+{
    gobject g_main_context_dispatch
    Memcheck:Leak
    fun:malloc
    fun:g_malloc
    fun:g_slice_alloc
    fun:g_slice_alloc0
+   fun:get_dispatch
+   fun:g_main_context_dispatch
+}
+
+{
+   gobject g_ptr_array_maybe_expand
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:g_ptr_array_maybe_expand
+}
+
+{
+   gobject g_main_context_dispatch
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_array_maybe_expand
+   fun:g_array_set_size
+   fun:g_static_private_set
    fun:get_dispatch
    fun:g_main_context_dispatch
 }
@@ -578,6 +649,25 @@
 }
 
 {
+   gobject g_signal_new
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_closure_new_simple
+   fun:g_signal_type_cclosure_new
+   fun:g_signal_new
+}
+
+{
+   gobject g_type_class_ref
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   fun:g_type_set_qdata
+   fun:g_type_class_ref
+}
+
+{
    gobject g_type_class_ref
    Memcheck:Leak
    fun:malloc
@@ -630,6 +720,13 @@
    Memcheck:Leak
    fun:calloc
    fun:_dl_new_object
+}
+
+{
+   glibc _dlerror_run
+   Memcheck:Leak
+   fun:calloc
+   fun:_dlerror_run
 }
 
 #
