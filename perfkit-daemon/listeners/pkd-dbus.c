@@ -275,4 +275,5 @@ pkd_listener_register(void)
 	 */
 	listener = g_object_new (PKD_TYPE_DBUS, NULL);
 	pkd_pipeline_add_listener(listener);
+	g_object_unref(listener);
 }
