@@ -140,6 +140,9 @@ pkd_dbus_start(PkdListener  *listener,
 	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
 	 */
 	priv->manager = g_object_new(PKD_DBUS_TYPE_MANAGER, NULL);
+	dbus_g_connection_register_g_object(dbus_conn,
+	                                    "/com/dronelabs/Perfkit/Manager",
+	                                    G_OBJECT(priv->manager));
 
 	g_message("DBus listener started.");
 

@@ -374,7 +374,4 @@ pkd_dbus_manager_class_init (PkdDBusManagerClass *klass)
 static void
 pkd_dbus_manager_init (PkdDBusManager *manager)
 {
-	dbus_g_connection_register_g_object(pkd_dbus_get_connection(),
-	                                    "/com/dronelabs/Perfkit/Manager",
-	                                    G_OBJECT(manager));
 }
