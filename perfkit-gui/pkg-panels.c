@@ -111,6 +111,15 @@ pkg_panels_sources_refresh (GtkWidget *button,
 	}
 }
 
+static gboolean
+sources_window_delete_event (GtkWidget *widget,
+                             GdkEvent  *event,
+                             gpointer   user_data)
+{
+	gtk_widget_hide(widget);
+	return TRUE;
+}
+
 static void
 pkg_panels_create_sources (void)
 {
@@ -200,6 +209,11 @@ pkg_panels_create_sources (void)
 	                 "clicked",
 	                 G_CALLBACK(pkg_panels_sources_refresh),
 	                 NULL);
+
+	g_signal_connect(panels.sources_window,
+	                 "delete-event",
+	                 G_CALLBACK(sources_window_delete_event),
+	                 NULL);
 }
 
 /**
@@ -230,6 +244,7 @@ void
 pkg_panels_show_sources (void)
 {
 	gtk_widget_show(panels.sources_window);
+	gtk_window_present(GTK_WINDOW(panels.sources_window));
 }
 
 /**

@@ -228,13 +228,20 @@ pkg_window_session_set (GtkWidget       *widget,
 }
 
 static void
+sources_menu_activated (void)
+{
+	pkg_panels_show_sources();
+}
+
+static void
 pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
 	GError *error = NULL;
 	GtkWidget *child,
 	          *prefsitem,
-	          *notebook;
+	          *notebook,
+	          *menuitem;
 	gchar *path;
 
 	/* create private data */
@@ -272,6 +279,20 @@ pkg_window_init (PkgWindow *window)
 	                 "switch-page",
 	                 G_CALLBACK(pkg_window_session_set),
 	                 window);
+
+	/* sources menu item */
+	menuitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "sourcesmenuitem"));
+	g_signal_connect(menuitem,
+	                 "activate",
+	                 G_CALLBACK(sources_menu_activated),
+	                 NULL);
+
+	/* quit menu item */
+	menuitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "quitmenuitem"));
+	g_signal_connect(menuitem,
+	                 "activate",
+	                 G_CALLBACK(gtk_main_quit),
+	                 NULL);
 
 	/* add spinner */
 	/*
