@@ -917,6 +917,10 @@ pkd_channel_finalize (GObject *object)
 	g_ptr_array_foreach(priv->sources, (GFunc)g_object_unref, NULL);
 	g_ptr_array_foreach(priv->subs, (GFunc)pkd_subscription_unref, NULL);
 
+	g_ptr_array_free(priv->sources, TRUE);
+	g_ptr_array_free(priv->subs, TRUE);
+	g_mutex_free(priv->mutex);
+
 	G_OBJECT_CLASS(pkd_channel_parent_class)->finalize(object);
 }
 
