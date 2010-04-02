@@ -183,6 +183,7 @@ pkd_dbus_stop(PkdListener *listener)
 	/*
 	 * Cleanup our manager object.
 	 */
+	dbus_g_connection_unregister_g_object(dbus_conn, G_OBJECT(priv->manager));
 	g_object_unref(priv->manager);
 	priv->manager = NULL;
 
