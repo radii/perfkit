@@ -556,6 +556,16 @@
    fun:g_thread_init_glib
 }
 
+{
+   gobject type_node_new_W
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   fun:type_node_any_new_W
+   fun:type_node_new_W
+}
+
 #
 # dbus
 #
