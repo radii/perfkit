@@ -252,6 +252,7 @@ pkd_encoder_info_create (PkdEncoderInfo *encoder_info)
 	g_return_val_if_fail(PKD_IS_ENCODER_INFO(encoder_info), NULL);
 	g_return_val_if_fail(encoder_info->priv->factory, NULL);
 
+	g_debug("Creating %s encoder.", encoder_info->priv->name);
 	return encoder_info->priv->factory();
 }
 

@@ -295,6 +295,7 @@ pkd_source_info_create (PkdSourceInfo *source_info)
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 	g_return_val_if_fail(source_info->priv->factory, NULL);
 
+	g_debug("Creating %s source.", source_info->priv->name);
 	return source_info->priv->factory();
 }
 
