@@ -1,1 +1,1 @@
-EXTRA_FILES = welcome.ui
+EXTRA_FILES = welcome.ui perfkit.ui prefs.ui

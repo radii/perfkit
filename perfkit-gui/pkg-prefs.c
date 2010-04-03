@@ -22,14 +22,17 @@
 
 #include <clutter/clutter.h>
 #include <glib/gi18n.h>
+#include <ethos/ethos-ui.h>
 #include <gtk/gtk.h>
 
 #include "pkg-prefs.h"
+#include "pkg-util.h"
 
 typedef struct
 {
 	GOptionContext *context;
 	GtkWidget      *window;
+	GtkBuilder     *builder;
 } PkdPrefs;
 
 static GOptionEntry entries[] = {
@@ -45,21 +48,52 @@ pkg_prefs_window_delete_event (GtkWidget *widget)
 	return TRUE;
 }
 
-static GtkWidget*
+static void
 pkg_prefs_create_window (void)
 {
 	GtkWidget *window;
+	GtkWidget *plugins;
+	GObject *alignment;
+	GObject *close_;
 
+	/*
+	 * Create the window.
+	 */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), _("Preferences"));
-	gtk_window_set_default_size(GTK_WINDOW(window), 600, 400);
+	gtk_window_set_title(GTK_WINDOW(window), _("Perfkit Preferences"));
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+	gtk_window_set_type_hint(GTK_WINDOW(window), GDK_WINDOW_TYPE_HINT_UTILITY);
+	gtk_widget_set_size_request(window, 400, 480);
+	gtk_container_set_border_width(GTK_CONTAINER(window), 12);
+
+	/*
+	 * Reparent the children widgets inside our window.
+	 */
+	prefs.window = window;
+	prefs.builder = pkg_util_get_builder("prefs.ui");
+	pkg_util_reparent(prefs.builder, "child", window);
+
+	/*
+	 * Add the plugins widget.
+	 */
+	plugins = ethos_ui_manager_widget_new();
+	alignment = gtk_builder_get_object(prefs.builder, "plugins_align");
+	gtk_container_add(GTK_CONTAINER(alignment), plugins);
+	gtk_widget_show(plugins);
+
+	/*
+	 * Hide the window when close is clicked.
+	 */
+	close_ = gtk_builder_get_object(prefs.builder, "close");
+	g_signal_connect_swapped(close_,
+	                         "clicked",
+	                         G_CALLBACK(gtk_widget_hide),
+	                         window);
 
 	g_signal_connect(window,
 	                 "delete-event",
 	                 G_CALLBACK(pkg_prefs_window_delete_event),
 	                 NULL);
-
-	return window;
 }
 
 /**
@@ -97,7 +131,7 @@ pkg_prefs_init (gint     *argc,
 	/*
 	 * Create preferences window.
 	 */
-	prefs.window = pkg_prefs_create_window();
+	pkg_prefs_create_window();
 
 	return TRUE;
 }
