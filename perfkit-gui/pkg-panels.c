@@ -120,6 +120,24 @@ sources_window_delete_event (GtkWidget *widget,
 	return TRUE;
 }
 
+static gboolean
+sources_window_focus_out (GtkWidget *widget,
+                          GdkEvent  *event,
+                          gpointer   user_data)
+{
+	gtk_window_set_opacity(GTK_WINDOW(widget), .5);
+	return FALSE;
+}
+
+static gboolean
+sources_window_focus_in (GtkWidget *widget,
+                         GdkEvent  *event,
+                         gpointer   user_data)
+{
+	gtk_window_set_opacity(GTK_WINDOW(widget), 1.);
+	return FALSE;
+}
+
 static void
 pkg_panels_create_sources (void)
 {
@@ -213,6 +231,16 @@ pkg_panels_create_sources (void)
 	g_signal_connect(panels.sources_window,
 	                 "delete-event",
 	                 G_CALLBACK(sources_window_delete_event),
+	                 NULL);
+
+	g_signal_connect(panels.sources_window,
+	                 "focus-out-event",
+	                 G_CALLBACK(sources_window_focus_out),
+	                 NULL);
+
+	g_signal_connect(panels.sources_window,
+	                 "focus-in-event",
+	                 G_CALLBACK(sources_window_focus_in),
 	                 NULL);
 }
 
