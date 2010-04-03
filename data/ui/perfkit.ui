@@ -174,7 +174,7 @@
           <object class="GtkHBox" id="hbox1">
             <property name="visible">True</property>
             <child>
-              <object class="GtkToolbar" id="toolbar1">
+              <object class="GtkToolbar" id="toolbar">
                 <property name="visible">True</property>
                 <child>
                   <object class="GtkToggleToolButton" id="toolbutton1">
@@ -256,7 +256,7 @@
             <property name="left_padding">3</property>
             <property name="right_padding">3</property>
             <child>
-              <object class="GtkNotebook" id="notebook1">
+              <object class="GtkNotebook" id="notebook">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
               </object>

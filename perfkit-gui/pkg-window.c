@@ -26,9 +26,11 @@
 #include "pkg-cmds.h"
 #include "pkg-paths.h"
 #include "pkg-panels.h"
+#include "pkg-prefs.h"
 #include "pkg-runtime.h"
 #include "pkg-session.h"
 #include "pkg-session-view.h"
+#include "pkg-util.h"
 #include "pkg-window.h"
 
 G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
@@ -53,23 +55,28 @@ struct _PkgWindowPrivate
 	GtkBuilder     *builder;
 	PkConnection   *conn;
 	PkgSessionView *selected;
+
+	/*
+	 * Imported widgets from GtkBuiler.
+	 */
+	GtkWidget *notebook;
+	GtkWidget *toolbar;
 };
 
 static GList *windows = NULL;
 
 /**
- * pkg_window_new:
+ * pkg_window_closure_new:
+ * @window: A #PkgWindow.
+ * @widget: A #GtkWidget.
+ * @func: A PkgCommandFunc.
  *
- * Creates a new instance of #PkgWindow.
+ * Creates a new closure to be used for dispatching commands from the
+ * window. @widget should be the calling widget.
  *
- * Return value: the newly created #PkgWindow instance.
+ * Returns: the newly created #PkgWindowClosure.
+ * Side effects: None.
  */
-GtkWidget*
-pkg_window_new (void)
-{
-	return g_object_new(PKG_TYPE_WINDOW, NULL);
-}
-
 static PkgWindowClosure*
 pkg_window_closure_new (PkgWindow      *window,
                         GtkWidget      *widget,
@@ -86,6 +93,15 @@ pkg_window_closure_new (PkgWindow      *window,
 	return closure;
 }
 
+/**
+ * pkg_window_closure_free:
+ * @closure: A #PkgWindowClosure.
+ *
+ * Frees #PkgWindowClosure resources.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pkg_window_closure_free (PkgWindowClosure *closure)
 {
@@ -94,6 +110,15 @@ pkg_window_closure_free (PkgWindowClosure *closure)
 	g_slice_free(PkgWindowClosure, closure);
 }
 
+/**
+ * pkg_window_closure_dispatch:
+ * @closure: A #PkgWIndowClosure.
+ *
+ * Dispatches a closure to the proper command handler.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pkg_window_closure_dispatch (PkgWindowClosure *closure)
 {
@@ -105,6 +130,19 @@ pkg_window_closure_dispatch (PkgWindowClosure *closure)
 	cmd.channel = NULL; /* TODO */
 	cmd.sources = NULL; /* TODO */
 	closure->func(&cmd);
+}
+
+/**
+ * pkg_window_new:
+ *
+ * Creates a new instance of #PkgWindow.
+ *
+ * Return value: the newly created #PkgWindow instance.
+ */
+GtkWidget*
+pkg_window_new (void)
+{
+	return g_object_new(PKG_TYPE_WINDOW, NULL);
 }
 
 /**
@@ -121,13 +159,23 @@ pkg_window_new_for_uri (const gchar *uri)
 	PkConnection *conn;
 	GtkWidget *window;
 
+	/*
+	 * Create connection.
+	 */
 	conn = pk_connection_new_from_uri(uri);
 	if (!conn) {
 		return NULL;
 	}
 
+	/*
+	 * Create window and attach connection.
+	 */
 	window = pkg_window_new();
 	pkg_window_set_connection(PKG_WINDOW(window), conn);
+
+	/*
+	 * Done with our connection reference.
+	 */
 	g_object_unref(conn);
 
 	return window;
@@ -147,6 +195,7 @@ pkg_window_count_windows (void)
 	return g_list_length(windows);
 }
 
+/* DELETE */
 static gboolean
 pkg_window_close_clicked (GtkButton *button,
                           PkgWindow *window)
@@ -155,6 +204,7 @@ pkg_window_close_clicked (GtkButton *button,
 	return FALSE;
 }
 
+/* DELETE */
 void
 pkg_window_add_session (PkgWindow  *window,
                         PkgSession *session)
@@ -179,8 +229,6 @@ pkg_window_add_session (PkgWindow  *window,
 	}
 
 	g_assert(pkg_session_get_connection(session) == priv->conn);
-	notebook = (GtkWidget *)gtk_builder_get_object(priv->builder, "notebook1");
-	g_assert(notebook);
 
 	close_img = gtk_image_new_from_stock(GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
 	gtk_widget_show(close_img);
@@ -205,9 +253,17 @@ pkg_window_add_session (PkgWindow  *window,
 	gtk_box_pack_start(GTK_BOX(label), close, FALSE, TRUE, 0);
 	gtk_widget_show(label);
 
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), view, label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(priv->notebook), view, label);
 }
 
+/**
+ * pkg_window_focus_in:
+ * @window: A #PkgWindow.
+ *
+ * Handle the "focus-in" event for the window.  Notifies the runtime
+ * that @window is the newly selected window.  Also sets the active
+ * connection so the panels can adjust accordingly.
+ */
 static gboolean
 pkg_window_focus_in (PkgWindow *window,
                      GdkEvent  *event,
@@ -233,55 +289,19 @@ void
 pkg_window_set_connection (PkgWindow    *window,
                            PkConnection *connection)
 {
-	PkgWindowPrivate *priv;
-
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 	g_return_if_fail(!window->priv->conn);
 
-	priv = window->priv;
-
-	priv->conn = g_object_ref(connection);
+	window->priv->conn = g_object_ref(connection);
 }
 
+/* DELETE */
 PkgSession*
 pkg_window_get_session (PkgWindow *window)
 {
 	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
 	return pkg_session_view_get_session(window->priv->selected);
-}
-
-static void
-pkg_window_finalize (GObject *object)
-{
-	G_OBJECT_CLASS(pkg_window_parent_class)->finalize(object);
-}
-
-static void
-pkg_window_class_init (PkgWindowClass *klass)
-{
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkg_window_finalize;
-	g_type_class_add_private(object_class, sizeof(PkgWindowPrivate));
-}
-
-static void
-pkg_window_session_set (GtkWidget       *widget,
-                        GtkNotebookPage *page,
-                        guint            page_num,
-                        PkgWindow       *window)
-{
-	GtkWidget *child;
-
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(widget), page_num);
-	if (!PKG_IS_SESSION_VIEW(child)) {
-		g_warning("Child is not a PkgSessionView");
-		return;
-	}
-
-	window->priv->selected = PKG_SESSION_VIEW(child);
 }
 
 /**
@@ -301,44 +321,109 @@ pkg_window_get_connection (PkgWindow *window)
 }
 
 static void
+pkg_window_dispose (GObject *object)
+{
+	PkgWindowPrivate *priv = PKG_WINDOW(object)->priv;
+
+	/*
+	 * Unregister the window.
+	 */
+	windows = g_list_remove(windows, object);
+
+	/*
+	 * Lose references.
+	 */
+	g_object_unref(priv->builder);
+	g_object_unref(priv->conn);
+
+	G_OBJECT_CLASS(pkg_window_parent_class)->dispose(object);
+}
+
+static void
+pkg_window_finalize (GObject *object)
+{
+	G_OBJECT_CLASS(pkg_window_parent_class)->finalize(object);
+}
+
+static void
+pkg_window_class_init (PkgWindowClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = pkg_window_finalize;
+	object_class->dispose = pkg_window_dispose;
+	g_type_class_add_private(object_class, sizeof(PkgWindowPrivate));
+}
+
+/* DELETE */
+static void
+pkg_window_session_set (GtkWidget       *widget,
+                        GtkNotebookPage *page,
+                        guint            page_num,
+                        PkgWindow       *window)
+{
+	GtkWidget *child;
+
+	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(widget), page_num);
+	if (!PKG_IS_SESSION_VIEW(child)) {
+		g_warning("Child is not a PkgSessionView");
+		return;
+	}
+
+	window->priv->selected = PKG_SESSION_VIEW(child);
+}
+
+static void
 pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
 	GError *error = NULL;
-	GtkWidget *child,
-	          *prefsitem,
-	          *notebook,
-	          *menuitem;
-	gchar *path;
+	GtkWidget *notebook;
+	gint width, height;
 
-	/* create private data */
-	priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
-	                                   PKG_TYPE_WINDOW,
-	                                   PkgWindowPrivate);
-	window->priv = priv;
+	window->priv = priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
+	                                                  PKG_TYPE_WINDOW,
+	                                                  PkgWindowPrivate);
 
-	/* set defaults */
+	/*
+	 * Register the window.
+	 */
+	windows = g_list_prepend(windows, window);
+
+	/*
+	 * Set window defaults.
+	 */
 	gtk_window_set_title(GTK_WINDOW(window), _("Perfkit"));
-	gtk_window_set_default_size(GTK_WINDOW(window), 800, 550);
+	pkg_prefs_get_window_size(&width, &height);
+	gtk_window_set_default_size(GTK_WINDOW(window), width, height);
 
-	/* load ui from gtkbuilder */
-	priv->builder = gtk_builder_new();
-	path = pkg_paths_build_data_path("ui", "perfkit.ui", NULL);
-	if (!gtk_builder_add_from_file(priv->builder, path, &error)) {
-		g_error("Error loading UI resources: %s", error->message);
-	}
-	g_free(path);
+	/*
+	 * Load UI components from GtkBuilder.
+	 */
+	priv->builder = pkg_util_get_builder("perfkit.ui");
+	pkg_util_reparent(priv->builder, "perfkit-child", GTK_WIDGET(window));
 
-	/* reparent child widget */
-	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "perfkit-child"));
-	gtk_widget_reparent(child, GTK_WIDGET(window));
+#define BUILDER_WIDGET(_name, _type) G_STMT_START {                            \
+    GObject *_obj;                                                             \
+                                                                               \
+    _obj = gtk_builder_get_object(priv->builder, #_name);                      \
+    if (!G_TYPE_CHECK_INSTANCE_TYPE(_obj, (_type))) {                          \
+    	g_critical("%s is of type %s, expected %s.",                           \
+                   #_name, g_type_name(G_TYPE_FROM_INSTANCE(_obj)),            \
+                   g_type_name((_type)));                                      \
+        break;                                                                 \
+	}                                                                          \
+	priv->_name = (gpointer)_obj;                                              \
+	g_object_add_weak_pointer(G_OBJECT(priv->_name),                           \
+                              (gpointer *)&priv->_name);                       \
+} G_STMT_END
 
-	/* notebook */
-	notebook = GTK_WIDGET(gtk_builder_get_object(priv->builder, "notebook1"));
-	g_signal_connect(notebook,
-	                 "switch-page",
-	                 G_CALLBACK(pkg_window_session_set),
-	                 window);
+	/*
+	 * Import widgets from GtkBuilder.
+	 */
+	BUILDER_WIDGET(notebook, GTK_TYPE_NOTEBOOK);
+	BUILDER_WIDGET(toolbar,  GTK_TYPE_TOOLBAR);
 
 #define MENU_ITEM_COMMAND(name, handler) G_STMT_START {                        \
     GObject *_widget;                                                          \
@@ -357,11 +442,11 @@ pkg_window_init (PkgWindow *window)
 	MENU_ITEM_COMMAND(mnuViewSources,    pkg_cmd_show_sources);
 	MENU_ITEM_COMMAND(mnuHelpAbout,      pkg_cmd_show_about);
 
+#undef MENU_ITEM_COMMAND
 
-
-	windows = g_list_prepend(windows, g_object_ref(window));
-	g_signal_connect(window,
-	                 "focus-in-event",
-	                 G_CALLBACK(pkg_window_focus_in),
-	                 NULL);
+	/*
+	 * Register signals.
+	 */
+	g_signal_connect(window, "focus-in-event",
+	                 G_CALLBACK(pkg_window_focus_in), NULL);
 }

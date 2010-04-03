@@ -131,3 +131,26 @@ pkg_prefs_show (void)
 	gtk_widget_show(prefs.window);
 	gtk_window_present(GTK_WINDOW(prefs.window));
 }
+
+/**
+ * pkg_prefs_get_window_size:
+ * @width: A location for the width.
+ * @height: A location for the height.
+ *
+ * Determines the preferred window size for a new #PkgWindow.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pkg_prefs_get_window_size (gint *width,
+                           gint *height)
+{
+	if (width != NULL) {
+		*width = 800;
+	}
+
+	if (height != NULL) {
+		*height = 550;
+	}
+}
