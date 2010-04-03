@@ -127,6 +127,7 @@ pkg_prefs_shutdown (void)
 void
 pkg_prefs_show (void)
 {
+	gtk_window_set_position(GTK_WINDOW(prefs.window), GTK_WIN_POS_CENTER);
 	gtk_widget_show(prefs.window);
 	gtk_window_present(GTK_WINDOW(prefs.window));
 }
