@@ -47,6 +47,7 @@ void pkg_cmd_show_sources (PkgCommand *command);
 void pkg_cmd_show_about   (PkgCommand *command);
 void pkg_cmd_quit         (PkgCommand *command);
 void pkg_cmd_about        (PkgCommand *command);
+void pkg_cmd_close        (PkgCommand *command);
 
 G_END_DECLS
 

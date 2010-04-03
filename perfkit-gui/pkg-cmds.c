@@ -51,6 +51,12 @@ pkg_cmd_quit (PkgCommand *command)
 }
 
 void
+pkg_cmd_close (PkgCommand *command)
+{
+	pkg_window_close(command->window);
+}
+
+void
 pkg_cmd_show_prefs (PkgCommand *command)
 {
 	pkg_prefs_show();

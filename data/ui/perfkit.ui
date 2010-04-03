@@ -55,6 +55,14 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkImageMenuItem" id="mnuFileClose">
+                        <property name="label">gtk-close</property>
+                        <property name="visible">True</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="mnuFileQuit">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>

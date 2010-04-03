@@ -230,8 +230,6 @@ pkg_window_attach (PkgWindow    *window,     /* IN */
 
 	priv = window->priv;
 
-	g_debug("HI");
-
 	priv->conn = g_object_ref(connection);
 	priv->channel = g_object_ref(channel);
 	pkg_channel_view_set_channel(PKG_CHANNEL_VIEW(priv->view), channel);
@@ -249,6 +247,30 @@ gint
 pkg_window_count_windows (void)
 {
 	return g_list_length(windows);
+}
+
+/**
+ * pkg_window_close:
+ * @window: A #PkgWindow.
+ *
+ * Closes the #PkgWindow.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pkg_window_close (PkgWindow *window)
+{
+	gtk_widget_hide(GTK_WIDGET(window));
+
+	/*
+	 * If last window, exit.
+	 */
+	if (pkg_window_count_windows() == 1) {
+		pkg_runtime_quit();
+	}
+
+	gtk_widget_destroy(GTK_WIDGET(window));
 }
 
 /**
@@ -282,13 +304,7 @@ pkg_window_focus_in (PkgWindow *window,
 static gboolean
 pkg_window_delete_event (PkgWindow *window)
 {
-	/*
-	 * If we are the last window, lets go ahead and exit.
-	 */
-	if (pkg_window_count_windows() == 1) {
-		pkg_runtime_quit();
-	}
-
+	pkg_window_close(window);
 	return FALSE;
 }
 
@@ -422,6 +438,7 @@ pkg_window_init (PkgWindow *window)
 } G_STMT_END
 
 	MENU_ITEM_COMMAND(mnuFileQuit,       pkg_cmd_quit);
+	MENU_ITEM_COMMAND(mnuFileClose,      pkg_cmd_close);
 	MENU_ITEM_COMMAND(mnuEditPrefs,      pkg_cmd_show_prefs);
 	MENU_ITEM_COMMAND(mnuViewSources,    pkg_cmd_show_sources);
 	MENU_ITEM_COMMAND(mnuHelpAbout,      pkg_cmd_show_about);

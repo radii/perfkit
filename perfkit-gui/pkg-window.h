@@ -62,6 +62,7 @@ void          pkg_window_attach         (PkgWindow    *window,
                                          PkChannel    *channel);
 PkConnection* pkg_window_get_connection (PkgWindow    *window) G_GNUC_PURE;
 PkChannel*    pkg_window_get_channel    (PkgWindow    *window) G_GNUC_PURE;
+void          pkg_window_close          (PkgWindow    *window);
 
 G_END_DECLS
 
