@@ -412,11 +412,16 @@ pkg_session_view_update_adjustments (PkgSessionView *session_view)
 {
 	PkgSessionViewPrivate *priv;
 	gdouble h;
+	gdouble u = 1.;
 
 	priv = session_view->priv;
 
 	h = clutter_actor_get_height(priv->stage);
-	gtk_adjustment_set_upper(GTK_ADJUSTMENT(priv->vadj), priv->end_y);
+	if (priv->end_y) {
+		u = priv->end_y;
+	}
+
+	gtk_adjustment_set_upper(GTK_ADJUSTMENT(priv->vadj), u);
 	gtk_adjustment_set_page_size(GTK_ADJUSTMENT(priv->vadj), h);
 }
 
@@ -941,7 +946,7 @@ pkg_session_view_init (PkgSessionView *session_view)
 	gtk_paned_add1(GTK_PANED(priv->vpaned), table);
 	gtk_widget_show(table);
 
-	priv->vadj = gtk_adjustment_new(0., 0., 0., 10., 40., 0.);
+	priv->vadj = gtk_adjustment_new(0., 0., 1., 10., 40., 1.);
 	vscroller = gtk_vscrollbar_new(GTK_ADJUSTMENT(priv->vadj));
 	gtk_table_attach(GTK_TABLE(table),
 	                 vscroller,
@@ -955,7 +960,8 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 session_view);
 	gtk_widget_show(vscroller);
 
-	hscroller = gtk_hscrollbar_new(NULL);
+	priv->hadj = gtk_adjustment_new(0., 0., 1., 10., 40., 1.);
+	hscroller = gtk_hscrollbar_new(GTK_ADJUSTMENT(priv->hadj));
 	gtk_table_attach(GTK_TABLE(table),
 	                 hscroller,
 	                 1, 2, 2, 3,
