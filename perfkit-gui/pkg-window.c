@@ -58,6 +58,7 @@ struct _PkgWindowPrivate
 	PkConnection   *conn;
 	PkChannel      *channel;
 	GtkWidget      *view;
+	GtkAccelGroup  *accelgroup;
 
 	/*
 	 * Imported widgets from GtkBuiler.
@@ -422,6 +423,7 @@ pkg_window_init (PkgWindow *window)
 	/*
 	 * Import widgets from GtkBuilder.
 	 */
+	BUILDER_WIDGET(accelgroup, GTK_TYPE_ACCEL_GROUP);
 	BUILDER_WIDGET(toolbar,    GTK_TYPE_TOOLBAR);
 	BUILDER_WIDGET(view_align, GTK_TYPE_ALIGNMENT);
 
@@ -443,14 +445,17 @@ pkg_window_init (PkgWindow *window)
 	MENU_ITEM_COMMAND(mnuViewSources,    pkg_cmd_show_sources);
 	MENU_ITEM_COMMAND(mnuHelpAbout,      pkg_cmd_show_about);
 
-#undef MENU_ITEM_COMMAND
-
 	/*
 	 * Add the PkgChannelView to the container.
 	 */
 	priv->view = pkg_channel_view_new();
 	gtk_container_add(GTK_CONTAINER(priv->view_align), priv->view);
 	gtk_widget_show(priv->view);
+
+	/*
+	 * Wire up accelerators.
+	 */
+	gtk_window_add_accel_group(GTK_WINDOW(window), priv->accelgroup);
 
 	/*
 	 * Register signals.
