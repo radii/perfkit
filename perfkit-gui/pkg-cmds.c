@@ -20,7 +20,9 @@
 #include "pkg-panels.h"
 #include "pkg-prefs.h"
 #include "pkg-runtime.h"
+#include "pkg-version.h"
 
+static const gchar* program = "Perfkit";
 static const gchar* authors[] = {
 	"Andrew Stiegmann",
 	"Andy Isaacson",
@@ -29,7 +31,10 @@ static const gchar* authors[] = {
 	NULL,
 };
 static const gchar* website = "http://perfkit.org";
-static const gchar* copyright = "Copyright 2009-2010 Christian Hergert";
+static const gchar* website_label = "Perfkit Website";
+static const gchar* copyright =
+	"Copyright © 2009-2010 Christian Hergert\n"
+	"Copyright © 2010 Others";
 static const gchar* license =
 	"This program is free software: you can redistribute it and/or modify\n"
 	"it under the terms of the GNU General Public License as published by\n"
@@ -83,9 +88,12 @@ pkg_cmd_show_about (PkgCommand *command)
 	g_object_set(about,
 	             "authors", authors,
 	             "copyright", copyright,
+	             "program-name", program,
 	             "license", license,
+	             "version", PKG_VERSION_S,
 	             "wrap-license", FALSE,
 	             "website", website,
+	             "website-label", website_label,
 	             NULL);
 
 	/*
