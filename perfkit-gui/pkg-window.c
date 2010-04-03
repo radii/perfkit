@@ -378,8 +378,6 @@ static void
 pkg_window_init (PkgWindow *window)
 {
 	PkgWindowPrivate *priv;
-	GError *error = NULL;
-	GtkWidget *notebook;
 	gint width, height;
 
 	window->priv = priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
