@@ -44,7 +44,7 @@
  *
  * Useful for display.
  */
-#define PKG_VERSION_S "@PKG_VERSION@"
+#define PKG_VERSION_S "@PKG_MAJOR_VERSION@.@PKG_MINOR_VERSION@.@PKG_MICRO_VERSION@"
 
 /**
  * PKG_VERSION_HEX:
