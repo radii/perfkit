@@ -19,6 +19,7 @@
 #include "pkg-cmds.h"
 #include "pkg-panels.h"
 #include "pkg-prefs.h"
+#include "pkg-runtime.h"
 
 static const gchar* authors[] = {
 	"Andrew Stiegmann",
@@ -46,7 +47,7 @@ static const gchar* license =
 void
 pkg_cmd_quit (PkgCommand *command)
 {
-	gtk_main_quit();
+	pkg_runtime_quit();
 }
 
 void
