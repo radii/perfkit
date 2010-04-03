@@ -17,6 +17,7 @@ AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
 
 INST_H_FILES =								\
 	perfkit-gui.h							\
+	pkg-cmds.h							\
 	pkg-dialog.h							\
 	pkg-panels.h							\
 	pkg-paths.h							\
@@ -32,6 +33,7 @@ INST_H_FILES =								\
 
 libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
+	pkg-cmds.c							\
 	pkg-dialog.c							\
 	pkg-panels.c							\
 	pkg-paths.c							\

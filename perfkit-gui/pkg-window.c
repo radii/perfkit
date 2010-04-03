@@ -23,6 +23,7 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
+#include "pkg-cmds.h"
 #include "pkg-paths.h"
 #include "pkg-panels.h"
 #include "pkg-runtime.h"
@@ -39,6 +40,13 @@ G_DEFINE_TYPE(PkgWindow, pkg_window, GTK_TYPE_WINDOW)
  *
  * 
  */
+
+typedef struct
+{
+	PkgWindow      *window;
+	GtkWidget      *widget;
+	PkgCommandFunc  func;
+} PkgWindowClosure;
 
 struct _PkgWindowPrivate
 {
@@ -60,6 +68,43 @@ GtkWidget*
 pkg_window_new (void)
 {
 	return g_object_new(PKG_TYPE_WINDOW, NULL);
+}
+
+static PkgWindowClosure*
+pkg_window_closure_new (PkgWindow      *window,
+                        GtkWidget      *widget,
+                        PkgCommandFunc  func)
+{
+	PkgWindowClosure *closure;
+
+	closure = g_slice_new(PkgWindowClosure);
+	closure->window = window;
+	closure->func = func;
+	g_object_add_weak_pointer(G_OBJECT(window),
+	                          (gpointer *)&closure->window);
+
+	return closure;
+}
+
+static void
+pkg_window_closure_free (PkgWindowClosure *closure)
+{
+	g_object_remove_weak_pointer(G_OBJECT(closure->window),
+	                             (gpointer *)&closure->window);
+	g_slice_free(PkgWindowClosure, closure);
+}
+
+static void
+pkg_window_closure_dispatch (PkgWindowClosure *closure)
+{
+	PkgCommand cmd = { NULL };
+
+	cmd.window = closure->window;
+	cmd.widget = closure->widget;
+	cmd.connection = pkg_window_get_connection(cmd.window);
+	cmd.channel = NULL; /* TODO */
+	cmd.sources = NULL; /* TODO */
+	closure->func(&cmd);
 }
 
 /**
@@ -88,6 +133,14 @@ pkg_window_new_for_uri (const gchar *uri)
 	return window;
 }
 
+/**
+ * pkg_window_count_windows:
+ *
+ * Counts the number of active #PkgWindow instances.
+ *
+ * Returns: the number of windows.
+ * Side effects: None.
+ */
 gint
 pkg_window_count_windows (void)
 {
@@ -165,6 +218,17 @@ pkg_window_focus_in (PkgWindow *window,
 	return FALSE;
 }
 
+/**
+ * pkg_window_set_connection:
+ * @window: A #PkgWindow.
+ * @connection: A #PkConnection.
+ *
+ * Sets the #PkConnection for the window.  This method may only be called
+ * once.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pkg_window_set_connection (PkgWindow    *window,
                            PkConnection *connection)
@@ -204,13 +268,6 @@ pkg_window_class_init (PkgWindowClass *klass)
 }
 
 static void
-pkg_window_prefs_activate (GtkWidget *prefs_menu_item,
-                           PkgWindow *window)
-{
-	g_debug("Show Preferences");
-}
-
-static void
 pkg_window_session_set (GtkWidget       *widget,
                         GtkNotebookPage *page,
                         guint            page_num,
@@ -227,10 +284,20 @@ pkg_window_session_set (GtkWidget       *widget,
 	window->priv->selected = PKG_SESSION_VIEW(child);
 }
 
-static void
-sources_menu_activated (void)
+/**
+ * pkg_window_get_connection:
+ * @window: A #PkgWindow.
+ *
+ * Retrieves the connection which the window represents.
+ *
+ * Returns: A #PkConnection or %NULL.
+ * Side effects: None.
+ */
+PkConnection*
+pkg_window_get_connection (PkgWindow *window)
 {
-	pkg_panels_show_sources();
+	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
+	return window->priv->conn;
 }
 
 static void
@@ -266,13 +333,6 @@ pkg_window_init (PkgWindow *window)
 	child = GTK_WIDGET(gtk_builder_get_object(priv->builder, "perfkit-child"));
 	gtk_widget_reparent(child, GTK_WIDGET(window));
 
-	/* hook preferences menu item */
-	prefsitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "prefs-menu-item"));
-	g_signal_connect(prefsitem,
-	                 "activate",
-	                 G_CALLBACK(pkg_window_prefs_activate),
-	                 window);
-
 	/* notebook */
 	notebook = GTK_WIDGET(gtk_builder_get_object(priv->builder, "notebook1"));
 	g_signal_connect(notebook,
@@ -280,32 +340,26 @@ pkg_window_init (PkgWindow *window)
 	                 G_CALLBACK(pkg_window_session_set),
 	                 window);
 
-	/* sources menu item */
-	menuitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "sourcesmenuitem"));
-	g_signal_connect(menuitem,
-	                 "activate",
-	                 G_CALLBACK(sources_menu_activated),
-	                 NULL);
+#define MENU_ITEM_COMMAND(name, handler) G_STMT_START {                        \
+    GObject *_widget;                                                          \
+    PkgWindowClosure *_closure;                                                \
+                                                                               \
+    _widget = gtk_builder_get_object(priv->builder, #name);                    \
+    _closure = pkg_window_closure_new(window, GTK_WIDGET(_widget), (handler)); \
+    g_signal_connect_swapped(_widget,                                          \
+                             "activate",                                       \
+                             G_CALLBACK(pkg_window_closure_dispatch),          \
+                             _closure);                                        \
+} G_STMT_END
 
-	/* quit menu item */
-	menuitem = GTK_WIDGET(gtk_builder_get_object(priv->builder, "quitmenuitem"));
-	g_signal_connect(menuitem,
-	                 "activate",
-	                 G_CALLBACK(gtk_main_quit),
-	                 NULL);
+	MENU_ITEM_COMMAND(mnuFileQuit,       pkg_cmd_quit);
+	MENU_ITEM_COMMAND(mnuEditPrefs,      pkg_cmd_show_prefs);
+	MENU_ITEM_COMMAND(mnuViewSources,    pkg_cmd_show_sources);
+	MENU_ITEM_COMMAND(mnuHelpAbout,      pkg_cmd_show_about);
 
-	/* add spinner */
-	/*
-	spinner_parent = GTK_WIDGET(gtk_builder_get_object(priv->builder, "spinner-parent"));
-	spinner = gtk_spinner_new();
-	gtk_container_add(GTK_CONTAINER(spinner_parent), spinner);
-	gtk_widget_set_size_request(spinner, 18, -1);
-	gtk_spinner_start(GTK_SPINNER(spinner));
-	gtk_widget_show(spinner);
-	*/
+
 
 	windows = g_list_prepend(windows, g_object_ref(window));
-
 	g_signal_connect(window,
 	                 "focus-in-event",
 	                 G_CALLBACK(pkg_window_focus_in),

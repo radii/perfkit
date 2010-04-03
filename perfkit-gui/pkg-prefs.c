@@ -26,9 +26,41 @@
 
 #include "pkg-prefs.h"
 
+typedef struct
+{
+	GOptionContext *context;
+	GtkWidget      *window;
+} PkdPrefs;
+
 static GOptionEntry entries[] = {
 	{ NULL }
 };
+
+static PkdPrefs prefs;
+
+static gboolean
+pkg_prefs_window_delete_event (GtkWidget *widget)
+{
+	gtk_widget_hide(widget);
+	return TRUE;
+}
+
+static GtkWidget*
+pkg_prefs_create_window (void)
+{
+	GtkWidget *window;
+
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(window), _("Preferences"));
+	gtk_window_set_default_size(GTK_WINDOW(window), 600, 400);
+
+	g_signal_connect(window,
+	                 "delete-event",
+	                 G_CALLBACK(pkg_prefs_window_delete_event),
+	                 NULL);
+
+	return window;
+}
 
 /**
  * pkg_prefs_init:
@@ -46,15 +78,55 @@ pkg_prefs_init (gint     *argc,
                 gchar  ***argv,
                 GError  **error)
 {
-	GOptionContext *context;
+	/*
+	 * Initialize preferences state.
+	 */
+	memset(&prefs, 0, sizeof(prefs));
 
-	context = g_option_context_new(_("- A Perfkit Gui"));
-	g_option_context_add_main_entries(context, entries, GETTEXT_PACKAGE);
-	g_option_context_add_group(context, gtk_get_option_group(TRUE));
-	g_option_context_add_group(context, clutter_get_option_group());
-	if (!g_option_context_parse(context, argc, argv, error)) {
+	/*
+	 * Parse runtime arguments.
+	 */
+	prefs.context = g_option_context_new(_("- A Perfkit Gui"));
+	g_option_context_add_main_entries(prefs.context, entries, GETTEXT_PACKAGE);
+	g_option_context_add_group(prefs.context, gtk_get_option_group(TRUE));
+	g_option_context_add_group(prefs.context, clutter_get_option_group());
+	if (!g_option_context_parse(prefs.context, argc, argv, error)) {
 		return FALSE;
 	}
 
+	/*
+	 * Create preferences window.
+	 */
+	prefs.window = pkg_prefs_create_window();
+
 	return TRUE;
+}
+
+/**
+ * pkg_prefs_shutdown:
+ *
+ * Shuts down the preferences subsystem.
+ *
+ * Returns: None.
+ * Side effects: Everything.
+ */
+void
+pkg_prefs_shutdown (void)
+{
+	g_option_context_free(prefs.context);
+}
+
+/**
+ * pkg_prefs_show:
+ *
+ * Shows the preferences window and brings it to the front.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pkg_prefs_show (void)
+{
+	gtk_widget_show(prefs.window);
+	gtk_window_present(GTK_WINDOW(prefs.window));
 }

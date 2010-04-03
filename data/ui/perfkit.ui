@@ -55,7 +55,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="quitmenuitem">
+                      <object class="GtkImageMenuItem" id="mnuFileQuit">
                         <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -112,7 +112,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="prefs-menu-item">
+                      <object class="GtkImageMenuItem" id="mnuEditPrefs">
                         <property name="label">gtk-preferences</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -132,8 +132,8 @@
                   <object class="GtkMenu" id="menu4">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="sourcesmenuitem">
-                        <property name="label" translatable="yes">Data Sources</property>
+                      <object class="GtkImageMenuItem" id="mnuViewSources">
+                        <property name="label" translatable="yes">Sources</property>
                         <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">View available data sources.</property>
                         <property name="image">image1</property>
@@ -153,7 +153,7 @@
                   <object class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem10">
+                      <object class="GtkImageMenuItem" id="mnuHelpAbout">
                         <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
