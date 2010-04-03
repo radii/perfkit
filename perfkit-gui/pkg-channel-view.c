@@ -243,10 +243,8 @@ pkg_channel_view_row_paint_header_bg (PkgChannelViewRow *row,
 	g_object_get(header_bg, "width", &width, "height", &height, NULL);
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(header_bg));
 	p = cairo_pattern_create_linear(0, 0, 0, height);
-	ADD_COLOR_STOP(p, .0, &style->light[state]);
-	ADD_COLOR_STOP(p, .5, &style->mid[state]);
-	ADD_COLOR_STOP(p, .51, &style->dark[state]);
-	ADD_COLOR_STOP(p, 1., &style->bg[state]);
+	ADD_COLOR_STOP(p, .0, &style->mid[state]);
+	ADD_COLOR_STOP(p, 1., &style->dark[state]);
 	cairo_set_source(cr, p);
 	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_fill(cr);
@@ -677,7 +675,7 @@ pkg_channel_view_style_set (GtkWidget *widget,
 	gtk_clutter_get_dark_color(widget, GTK_STATE_NORMAL, &dark);
 	g_object_set(priv->src_col_sep, "color", &dark, NULL);
 
-	gtk_clutter_get_bg_color(widget, GTK_STATE_ACTIVE, &bg);
+	gtk_clutter_get_bg_color(widget, GTK_STATE_NORMAL, &bg);
 	g_object_set(priv->src_col_bg, "color", &bg, NULL);
 }
 
