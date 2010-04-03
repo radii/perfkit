@@ -175,6 +175,13 @@ pk_connection_new_from_uri (const gchar *uri)
 }
 
 gboolean
+pk_connection_is_connected (PkConnection *connection)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	return PK_CONNECTION_GET_CLASS(connection)->is_connected(connection);
+}
+
+gboolean
 pk_connection_channel_get_state (PkConnection    *connection,
                                  gint             channel_id,
                                  PkChannelState  *state,

@@ -22,14 +22,16 @@
 
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <perfkit/perfkit.h>
+#include <perfkit/perfkit-lowlevel.h>
 
+#include "pkg-channel-view.h"
 #include "pkg-cmds.h"
+#include "pkg-dialog.h"
 #include "pkg-paths.h"
 #include "pkg-panels.h"
 #include "pkg-prefs.h"
 #include "pkg-runtime.h"
-#include "pkg-session.h"
-#include "pkg-session-view.h"
 #include "pkg-util.h"
 #include "pkg-window.h"
 
@@ -54,13 +56,14 @@ struct _PkgWindowPrivate
 {
 	GtkBuilder     *builder;
 	PkConnection   *conn;
-	PkgSessionView *selected;
+	PkChannel      *channel;
+	GtkWidget      *view;
 
 	/*
 	 * Imported widgets from GtkBuiler.
 	 */
-	GtkWidget *notebook;
 	GtkWidget *toolbar;
+	GtkWidget *view_align;
 };
 
 static GList *windows = NULL;
@@ -157,28 +160,81 @@ GtkWidget*
 pkg_window_new_for_uri (const gchar *uri)
 {
 	PkConnection *conn;
+	PkChannel *channel;
+	PkSpawnInfo info = {0};
 	GtkWidget *window;
+	GError *error = NULL;
+	gint chan_id;
 
-	/*
-	 * Create connection.
-	 */
+	window = pkg_window_new();
 	conn = pk_connection_new_from_uri(uri);
 	if (!conn) {
 		return NULL;
 	}
 
 	/*
-	 * Create window and attach connection.
+	 * TODO: Connect asynchronously.
 	 */
-	window = pkg_window_new();
-	pkg_window_set_connection(PKG_WINDOW(window), conn);
+	if (!pk_connection_is_connected(conn)) {
+		if (!pk_connection_connect(conn, &error)) {
+			pkg_dialog_warning(NULL,
+			                   _("Error connecting to perfkit node"),
+			                   _("There was an error while connecting to the "
+			                     "desired perfkit node"),
+			                   error ? error->message : _("Unknown error"),
+			                   TRUE);
+
+			/*
+			 * TODO: Handle errors.
+			 */
+			g_warning("Error connecting to daemon.");
+		}
+	}
 
 	/*
-	 * Done with our connection reference.
+	 * TODO: Extract a channel from the URI.
 	 */
+	if (pk_connection_manager_create_channel(conn, &info, &chan_id, NULL)) {
+		channel = g_object_new(PK_TYPE_CHANNEL,
+		                       "connection", conn,
+		                       "channel_id", chan_id,
+		                       NULL);
+		pkg_window_attach(PKG_WINDOW(window), conn, channel);
+		g_object_unref(channel);
+	}
+
 	g_object_unref(conn);
 
 	return window;
+}
+
+/**
+ * pkg_window_attach:
+ * @window: A #PkgWindow.
+ *
+ * Attaches a connection and channel to the window for viewing.
+ *
+ * Returns: None.
+ * Side effects: Everything.
+ */
+void
+pkg_window_attach (PkgWindow    *window,     /* IN */
+                   PkConnection *connection, /* IN */
+                   PkChannel    *channel)    /* IN */
+{
+	PkgWindowPrivate *priv;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(PK_IS_CHANNEL(channel));
+
+	priv = window->priv;
+
+	g_debug("HI");
+
+	priv->conn = g_object_ref(connection);
+	priv->channel = g_object_ref(channel);
+	pkg_channel_view_set_channel(PKG_CHANNEL_VIEW(priv->view), channel);
 }
 
 /**
@@ -193,67 +249,6 @@ gint
 pkg_window_count_windows (void)
 {
 	return g_list_length(windows);
-}
-
-/* DELETE */
-static gboolean
-pkg_window_close_clicked (GtkButton *button,
-                          PkgWindow *window)
-{
-	g_debug("close session matching close button");
-	return FALSE;
-}
-
-/* DELETE */
-void
-pkg_window_add_session (PkgWindow  *window,
-                        PkgSession *session)
-{
-	PkgWindowPrivate *priv;
-	GtkWidget *notebook,
-	          *view,
-	          *label,
-	          *close,
-	          *close_img;
-
-	g_return_if_fail(PKG_IS_WINDOW(window));
-	g_return_if_fail(!session || PKG_IS_SESSION(session));
-
-	priv = window->priv;
-
-	/* create new session if needed */
-	if (!session) {
-		session = g_object_new(PKG_TYPE_SESSION,
-		                       "connection", priv->conn,
-		                       NULL);
-	}
-
-	g_assert(pkg_session_get_connection(session) == priv->conn);
-
-	close_img = gtk_image_new_from_stock(GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
-	gtk_widget_show(close_img);
-
-	close = gtk_button_new();
-	gtk_widget_set_size_request(close, 22, 22);
-	gtk_container_add(GTK_CONTAINER(close), close_img);
-	gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
-	g_signal_connect(close, "clicked",
-	                 G_CALLBACK(pkg_window_close_clicked),
-	                 window);
-	gtk_widget_show(close);
-
-	view = pkg_session_view_new();
-	pkg_session_view_set_session(PKG_SESSION_VIEW(view), session);
-	gtk_widget_show(view);
-
-	label = gtk_hbox_new(FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(label),
-	                   pkg_session_view_get_label(PKG_SESSION_VIEW(view)),
-	                   TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(label), close, FALSE, TRUE, 0);
-	gtk_widget_show(label);
-
-	gtk_notebook_append_page(GTK_NOTEBOOK(priv->notebook), view, label);
 }
 
 /**
@@ -275,36 +270,6 @@ pkg_window_focus_in (PkgWindow *window,
 }
 
 /**
- * pkg_window_set_connection:
- * @window: A #PkgWindow.
- * @connection: A #PkConnection.
- *
- * Sets the #PkConnection for the window.  This method may only be called
- * once.
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pkg_window_set_connection (PkgWindow    *window,
-                           PkConnection *connection)
-{
-	g_return_if_fail(PKG_IS_WINDOW(window));
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(!window->priv->conn);
-
-	window->priv->conn = g_object_ref(connection);
-}
-
-/* DELETE */
-PkgSession*
-pkg_window_get_session (PkgWindow *window)
-{
-	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
-	return pkg_session_view_get_session(window->priv->selected);
-}
-
-/**
  * pkg_window_get_connection:
  * @window: A #PkgWindow.
  *
@@ -318,6 +283,22 @@ pkg_window_get_connection (PkgWindow *window)
 {
 	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
 	return window->priv->conn;
+}
+
+/**
+ * pkg_window_get_channel:
+ * @window: A #PkgWindow.
+ *
+ * Retrieves the channel for the window.
+ *
+ * Returns: A #PkChannel or %NULL.
+ * Side effects: None.
+ */
+PkChannel*
+pkg_window_get_channel (PkgWindow *window)
+{
+	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
+	return window->priv->channel;
 }
 
 static void
@@ -354,24 +335,6 @@ pkg_window_class_init (PkgWindowClass *klass)
 	object_class->finalize = pkg_window_finalize;
 	object_class->dispose = pkg_window_dispose;
 	g_type_class_add_private(object_class, sizeof(PkgWindowPrivate));
-}
-
-/* DELETE */
-static void
-pkg_window_session_set (GtkWidget       *widget,
-                        GtkNotebookPage *page,
-                        guint            page_num,
-                        PkgWindow       *window)
-{
-	GtkWidget *child;
-
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(widget), page_num);
-	if (!PKG_IS_SESSION_VIEW(child)) {
-		g_warning("Child is not a PkgSessionView");
-		return;
-	}
-
-	window->priv->selected = PKG_SESSION_VIEW(child);
 }
 
 static void
@@ -420,8 +383,8 @@ pkg_window_init (PkgWindow *window)
 	/*
 	 * Import widgets from GtkBuilder.
 	 */
-	BUILDER_WIDGET(notebook, GTK_TYPE_NOTEBOOK);
-	BUILDER_WIDGET(toolbar,  GTK_TYPE_TOOLBAR);
+	BUILDER_WIDGET(toolbar,    GTK_TYPE_TOOLBAR);
+	BUILDER_WIDGET(view_align, GTK_TYPE_ALIGNMENT);
 
 #define MENU_ITEM_COMMAND(name, handler) G_STMT_START {                        \
     GObject *_widget;                                                          \
@@ -441,6 +404,13 @@ pkg_window_init (PkgWindow *window)
 	MENU_ITEM_COMMAND(mnuHelpAbout,      pkg_cmd_show_about);
 
 #undef MENU_ITEM_COMMAND
+
+	/*
+	 * Add the PkgChannelView to the container.
+	 */
+	priv->view = pkg_channel_view_new();
+	gtk_container_add(GTK_CONTAINER(priv->view_align), priv->view);
+	gtk_widget_show(priv->view);
 
 	/*
 	 * Register signals.

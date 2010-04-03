@@ -1,4 +1,4 @@
-/* pkg-session-view.c
+/* pkg-channel-view.c
  *
  * Copyright (C) 2010 Christian Hergert
  *
@@ -27,7 +27,7 @@
 
 #include "pkg-dialog.h"
 #include "pkg-panels.h"
-#include "pkg-session-view.h"
+#include "pkg-channel-view.h"
 #include "pkg-source-renderer.h"
 
 #define DEFAULT_HEIGHT 40
@@ -45,23 +45,23 @@
     (c)->alpha = 0xFF;                                            \
 } G_STMT_END
 
-G_DEFINE_TYPE(PkgSessionView, pkg_session_view, GTK_TYPE_VBOX)
+G_DEFINE_TYPE(PkgChannelView, pkg_channel_view, GTK_TYPE_VBOX)
 
 /**
- * SECTION:pkg-session_view
- * @title: PkgSessionView
+ * SECTION:pkg-channel_view
+ * @title: PkgChannelView
  * @short_description: 
  *
  * 
  */
 
-typedef struct _PkgSessionViewRow PkgSessionViewRow;
+typedef struct _PkgChannelViewRow PkgChannelViewRow;
 
-struct _PkgSessionViewPrivate
+struct _PkgChannelViewPrivate
 {
-	PkgSession        *session;         /* Attached session */
-	PkgSessionViewRow *selected;        /* Currently selected row */
-	GList             *rows;            /* List of PkgSessionViewRow */
+	PkChannel         *channel;         /* Attached channel */
+	PkgChannelViewRow *selected;        /* Currently selected row */
+	GList             *rows;            /* List of PkgChannelViewRow */
 	GtkWidget         *label;           /* Label widget for the tab */
 	GtkWidget         *vpaned;          /* Separator between src and detail */
 	GtkWidget         *detail;          /* Detail container for source info */
@@ -79,9 +79,9 @@ struct _PkgSessionViewPrivate
 	gint               end_y;           /* Offset for end of last row */
 };
 
-struct _PkgSessionViewRow
+struct _PkgChannelViewRow
 {
-	PkgSessionView *view;
+	PkgChannelView *view;
 	PkSource       *source;
 	PkgSourceRenderer
 	               *renderer;           /* Graph renderer */
@@ -99,81 +99,65 @@ struct _PkgSessionViewRow
 	gint            offset;
 };
 
-static void pkg_session_view_row_set_style (PkgSessionViewRow*, GtkStyle*);
+static void pkg_channel_view_row_set_style (PkgChannelViewRow*, GtkStyle*);
 
 /**
- * pkg_session_view_new:
+ * pkg_channel_view_new:
  *
- * Creates a new instance of #PkgSessionView.
+ * Creates a new instance of #PkgChannelView.
  *
- * Return value: the newly created #PkgSessionView instance.
+ * Return value: the newly created #PkgChannelView instance.
  */
 GtkWidget*
-pkg_session_view_new (void)
+pkg_channel_view_new (void)
 {
-	return g_object_new(PKG_TYPE_SESSION_VIEW, NULL);
+	return g_object_new(PKG_TYPE_CHANNEL_VIEW, NULL);
 }
 
 /**
- * pkg_session_view_set_session:
- * @session_view: A #PkgSessionView.
- * @session: A #PkgSession.
+ * pkg_channel_view_set_channel:
+ * @channel_view: A #PkgChannelView.
+ * @channel: A #PkgChannel.
  *
- * Sets the current session for the session view.
+ * Sets the current channel for the channel view.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pkg_session_view_set_session (PkgSessionView *session_view,
-                              PkgSession     *session)
+pkg_channel_view_set_channel (PkgChannelView *channel_view,
+                              PkChannel      *channel)
 {
-	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
-	g_return_if_fail(PKG_IS_SESSION(session));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(channel_view));
+	g_return_if_fail(PK_IS_CHANNEL(channel));
 
-	if (session_view->priv->session) {
-		g_object_unref(session_view->priv->session);
+	if (channel_view->priv->channel) {
+		g_object_unref(channel_view->priv->channel);
 	}
-	session_view->priv->session = g_object_ref(session);
+	channel_view->priv->channel = g_object_ref(channel);
 }
 
 /**
- * pkg_session_view_get_session:
- * @session_view: A #PkgSessionView.
+ * pkg_channel_view_get_channel:
+ * @channel_view: A #PkgChannelView.
  *
- * Retrieves the #PkgSession attached to this view.
+ * Retrieves the #PkChannel attached to this view.
  *
- * Returns: A #PkgSessionView or %NULL.
+ * Returns: A #PkChannel or %NULL.
  * Side effects: None.
  */
-PkgSession*
-pkg_session_view_get_session (PkgSessionView *session_view)
+PkChannel*
+pkg_channel_view_get_channel (PkgChannelView *channel_view)
 {
-	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
-	return session_view->priv->session;
-}
-
-/**
- * pkg_session_view_get_label:
- * @session_view: A #PkgSessionView.
- *
- * Retrieves the label for the session view.
- *
- * Returns: A #GtkWidget.
- * Side effects: None.
- */
-GtkWidget*
-pkg_session_view_get_label (PkgSessionView *session_view)
-{
-	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
-	return session_view->priv->label;
+	g_return_val_if_fail(PKG_IS_CHANNEL_VIEW(channel_view), NULL);
+	return channel_view->priv->channel;
 }
 
 static void
-pkg_session_view_scroll_to_row (PkgSessionView    *session_view,
-                                PkgSessionViewRow *row)
+pkg_channel_view_scroll_to_row (PkgChannelView    *channel_view,
+                                PkgChannelViewRow *row)
 {
-	PkgSessionViewPrivate *priv = session_view->priv;
+	PkgChannelViewPrivate *priv = channel_view->priv;
 	GtkAdjustment *adj = GTK_ADJUSTMENT(priv->vadj);
 	gdouble value, page, height;
 	gint offset;
@@ -192,15 +176,15 @@ pkg_session_view_scroll_to_row (PkgSessionView    *session_view,
 }
 
 static void
-pkg_session_view_select_row (PkgSessionView    *session_view,
-                             PkgSessionViewRow *row)
+pkg_channel_view_select_row (PkgChannelView    *channel_view,
+                             PkgChannelViewRow *row)
 {
-	PkgSessionViewRow *old_row;
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewRow *old_row;
+	PkgChannelViewPrivate *priv;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(channel_view));
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 
 	old_row = priv->selected;
 
@@ -211,16 +195,16 @@ pkg_session_view_select_row (PkgSessionView    *session_view,
 	priv->selected = row;
 
 	if (row) {
-		pkg_session_view_row_set_style(row, GTK_WIDGET(session_view)->style);
-		pkg_session_view_scroll_to_row(session_view, row);
+		pkg_channel_view_row_set_style(row, GTK_WIDGET(channel_view)->style);
+		pkg_channel_view_scroll_to_row(channel_view, row);
 	}
 	if (old_row) {
-		pkg_session_view_row_set_style(old_row, GTK_WIDGET(session_view)->style);
+		pkg_channel_view_row_set_style(old_row, GTK_WIDGET(channel_view)->style);
 	}
 }
 
 static void
-pkg_session_view_row_paint_arrow (PkgSessionViewRow *row,
+pkg_channel_view_row_paint_arrow (PkgChannelViewRow *row,
                                   ClutterActor      *arrow)
 {
 	cairo_t *cr;
@@ -239,7 +223,7 @@ pkg_session_view_row_paint_arrow (PkgSessionViewRow *row,
 }
 
 static void
-pkg_session_view_row_paint_header_bg (PkgSessionViewRow *row,
+pkg_channel_view_row_paint_header_bg (PkgChannelViewRow *row,
                                       ClutterActor      *header_bg)
 {
 	cairo_t *cr;
@@ -271,7 +255,7 @@ pkg_session_view_row_paint_header_bg (PkgSessionViewRow *row,
 }
 
 static void
-pkg_session_view_row_paint_data_fg (PkgSessionViewRow *row,
+pkg_channel_view_row_paint_data_fg (PkgChannelViewRow *row,
                                     ClutterActor      *data_fg)
 {
 	float w;
@@ -284,7 +268,7 @@ pkg_session_view_row_paint_data_fg (PkgSessionViewRow *row,
 }
 
 static void
-pkg_session_view_row_paint_data_gloss (PkgSessionViewRow *row,
+pkg_channel_view_row_paint_data_gloss (PkgChannelViewRow *row,
                                        ClutterActor      *data_gloss)
 {
 	cairo_t *cr;
@@ -309,7 +293,7 @@ pkg_session_view_row_paint_data_gloss (PkgSessionViewRow *row,
 }
 
 static void
-pkg_session_view_row_paint_header_info (PkgSessionViewRow *row,
+pkg_channel_view_row_paint_header_info (PkgChannelViewRow *row,
                                         ClutterActor      *info)
 {
 	cairo_t *cr;
@@ -349,17 +333,17 @@ pkg_session_view_row_paint_header_info (PkgSessionViewRow *row,
 }
 
 static gboolean
-pkg_session_view_row_arrow_clicked (ClutterActor *arrow,
+pkg_channel_view_row_arrow_clicked (ClutterActor *arrow,
                                     ClutterEvent *event,
                                     gpointer      user_data)
 {
-	PkgSessionViewRow *row = user_data;
+	PkgChannelViewRow *row = user_data;
 	gdouble z = 1.0;
 
 	g_debug("Arrow clicked");
 
 	if (!ROW_IS_SELECTED(row)) {
-		pkg_session_view_select_row(row->view, row);
+		pkg_channel_view_select_row(row->view, row);
 	}
 
 	g_object_get(arrow, "rotation-angle-z", &z, NULL);
@@ -372,49 +356,49 @@ pkg_session_view_row_arrow_clicked (ClutterActor *arrow,
 }
 
 static gboolean
-pkg_session_view_row_info_released (ClutterActor *info,
+pkg_channel_view_row_info_released (ClutterActor *info,
                                     ClutterEvent *event,
                                     gpointer      user_data)
 {
-	PkgSessionViewRow *row = user_data;
+	PkgChannelViewRow *row = user_data;
 
 	g_return_val_if_fail(row != NULL, FALSE);
 
 	row->header_info_pressed = FALSE;
-	pkg_session_view_row_paint_header_info(row, row->header_info);
+	pkg_channel_view_row_paint_header_info(row, row->header_info);
 
 	return TRUE;
 }
 
 static gboolean
-pkg_session_view_row_info_clicked (ClutterActor *info,
+pkg_channel_view_row_info_clicked (ClutterActor *info,
                                    ClutterEvent *event,
                                    gpointer      user_data)
 {
-	PkgSessionViewRow *row = user_data;
+	PkgChannelViewRow *row = user_data;
 
 	if (event->button.click_count == 1) {
 		if (!ROW_IS_SELECTED(row)) {
-			pkg_session_view_select_row(row->view, row);
+			pkg_channel_view_select_row(row->view, row);
 		}
 
 		g_debug("Info single clicked");
 
 		row->header_info_pressed = TRUE;
-		pkg_session_view_row_paint_header_info(row, row->header_info);
+		pkg_channel_view_row_paint_header_info(row, row->header_info);
 	}
 
 	return TRUE;
 }
 
 static void
-pkg_session_view_update_adjustments (PkgSessionView *session_view)
+pkg_channel_view_update_adjustments (PkgChannelView *channel_view)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 	gdouble h;
 	gdouble u = 1.;
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 
 	h = clutter_actor_get_height(priv->stage);
 	if (priv->end_y) {
@@ -426,18 +410,18 @@ pkg_session_view_update_adjustments (PkgSessionView *session_view)
 }
 
 static void
-pkg_session_view_size_allocated (GtkWidget     *widget,
+pkg_channel_view_size_allocated (GtkWidget     *widget,
                                  GtkAllocation *alloc,
                                  gpointer       user_data)
 {
-	PkgSessionViewPrivate *priv;
-	PkgSessionViewRow *row;
+	PkgChannelViewPrivate *priv;
+	PkgChannelViewRow *row;
 	gfloat width;
 	GList *list;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(user_data));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(user_data));
 
-	priv = PKG_SESSION_VIEW(user_data)->priv;
+	priv = PKG_CHANNEL_VIEW(user_data)->priv;
 
 	clutter_actor_set_height(priv->src_col_bg, alloc->height);
 
@@ -455,15 +439,15 @@ pkg_session_view_size_allocated (GtkWidget     *widget,
 				CLUTTER_CAIRO_TEXTURE(row->data_fg),
 				alloc->width - 201,
 				clutter_actor_get_height(row->group));
-		pkg_session_view_row_paint_data_fg(row, row->data_fg);
-		pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
+		pkg_channel_view_row_paint_data_fg(row, row->data_fg);
+		pkg_channel_view_row_paint_data_gloss(row, row->data_gloss);
 	}
 
-	pkg_session_view_update_adjustments(user_data);
+	pkg_channel_view_update_adjustments(user_data);
 }
 
 static void
-pkg_session_view_row_set_style (PkgSessionViewRow *row,
+pkg_channel_view_row_set_style (PkgChannelViewRow *row,
                                 GtkStyle          *style)
 {
 	ClutterColor bg, text;
@@ -479,21 +463,21 @@ pkg_session_view_row_set_style (PkgSessionViewRow *row,
 	CLUTTER_COLOR_FROM_GDK(&bg, &style->bg[state]);
 	CLUTTER_COLOR_FROM_GDK(&text, &style->text[state]);
 
-	pkg_session_view_row_paint_arrow(row, row->header_arrow);
-	pkg_session_view_row_paint_header_bg(row, row->header_bg);
-	pkg_session_view_row_paint_header_info(row, row->header_info);
-	pkg_session_view_row_paint_data_gloss(row, row->data_gloss);
+	pkg_channel_view_row_paint_arrow(row, row->header_arrow);
+	pkg_channel_view_row_paint_header_bg(row, row->header_bg);
+	pkg_channel_view_row_paint_header_info(row, row->header_info);
+	pkg_channel_view_row_paint_data_gloss(row, row->data_gloss);
 	g_object_set(row->data_bg, "color", &bg, NULL);
 	g_object_set(row->header_text, "color", &bg, NULL);
 	g_object_set(row->header_text2, "color", &text, NULL);
 }
 
 static gboolean
-pkg_session_view_row_group_clicked (ClutterActor      *group,
+pkg_channel_view_row_group_clicked (ClutterActor      *group,
                                     ClutterEvent      *event,
-                                    PkgSessionViewRow *row)
+                                    PkgChannelViewRow *row)
 {
-	PkgSessionView *view;
+	PkgChannelView *view;
 
 	g_return_val_if_fail(group != NULL, FALSE);
 	g_return_val_if_fail(row != NULL, FALSE);
@@ -511,24 +495,24 @@ pkg_session_view_row_group_clicked (ClutterActor      *group,
 		}
 	}
 
-	pkg_session_view_select_row(view, row);
+	pkg_channel_view_select_row(view, row);
 }
 
-static PkgSessionViewRow*
-pkg_session_view_row_new (PkgSessionView *session_view,
+static PkgChannelViewRow*
+pkg_channel_view_row_new (PkgChannelView *channel_view,
                           PkSource       *source)
 {
-	PkgSessionViewPrivate *priv;
-	PkgSessionViewRow *row;
+	PkgChannelViewPrivate *priv;
+	PkgChannelViewRow *row;
 	gdouble ratio;
 	gdouble row_height;
 	gchar *title;
 	gint height;
 
-	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), NULL);
+	g_return_val_if_fail(PKG_IS_CHANNEL_VIEW(channel_view), NULL);
 	g_return_val_if_fail(PK_IS_SOURCE(source), NULL);
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 	ratio = gtk_adjustment_get_value(GTK_ADJUSTMENT(priv->zadj));
 	row_height = DEFAULT_HEIGHT;
 	title = g_strdup_printf("<span weight=\"bold\">%s</span>",
@@ -537,7 +521,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	/*
 	 * Create state and actors.
 	 */
-	row = g_slice_new0(PkgSessionViewRow);
+	row = g_slice_new0(PkgChannelViewRow);
 	row->source = source ? g_object_ref(source) : NULL;
 	row->row_ratio = 1.0;
 	row->renderer = pkg_source_renderer_new();
@@ -550,7 +534,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	row->header_text = clutter_text_new();
 	row->header_text2 = clutter_text_new();
 	row->header_info = clutter_cairo_texture_new(20, 20);
-	row->view = session_view;
+	row->view = channel_view;
 	g_object_add_weak_pointer(G_OBJECT(row->view), (gpointer *)&row->view);
 
 	/*
@@ -560,7 +544,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	clutter_actor_set_position(row->group, 0, 0);
 	clutter_actor_set_reactive(row->group, TRUE);
 	g_signal_connect(row->group, "button-press-event",
-	                 G_CALLBACK(pkg_session_view_row_group_clicked), row);
+	                 G_CALLBACK(pkg_channel_view_row_group_clicked), row);
 
 	/*
 	 * Setup background for row data.
@@ -612,7 +596,7 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	clutter_actor_set_anchor_point(row->header_arrow, 3.5, 5);
 	g_signal_connect(row->header_arrow,
 	                 "button-press-event",
-	                 G_CALLBACK(pkg_session_view_row_arrow_clicked),
+	                 G_CALLBACK(pkg_channel_view_row_arrow_clicked),
 	                 row);
 
 	/*
@@ -624,19 +608,19 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 	clutter_actor_set_reactive(row->header_info, TRUE);
 	g_signal_connect(row->header_info,
 	                 "button-press-event",
-	                 G_CALLBACK(pkg_session_view_row_info_clicked),
+	                 G_CALLBACK(pkg_channel_view_row_info_clicked),
 	                 row);
 	g_signal_connect(row->header_info,
 	                 "button-release-event",
-	                 G_CALLBACK(pkg_session_view_row_info_released),
+	                 G_CALLBACK(pkg_channel_view_row_info_released),
 	                 row);
 	
 
 	/*
 	 * Attach styling.
 	 */
-	if (GTK_WIDGET(session_view)->style) {
-		pkg_session_view_row_set_style(row, GTK_WIDGET(session_view)->style);
+	if (GTK_WIDGET(channel_view)->style) {
+		pkg_channel_view_row_set_style(row, GTK_WIDGET(channel_view)->style);
 	}
 
 	clutter_actor_set_opacity(row->group, 0);
@@ -663,31 +647,31 @@ pkg_session_view_row_new (PkgSessionView *session_view,
 }
 
 static void
-pkg_session_view_row_free (PkgSessionViewRow *row)
+pkg_channel_view_row_free (PkgChannelViewRow *row)
 {
 	g_return_if_fail(row != NULL);
 
 	g_object_unref(row->source);
-	g_slice_free(PkgSessionViewRow, row);
+	g_slice_free(PkgChannelViewRow, row);
 }
 
 static void
-pkg_session_view_style_set (GtkWidget *widget,
+pkg_channel_view_style_set (GtkWidget *widget,
                             GtkStyle  *old_style,
                             gpointer   user_data)
 {
-	PkgSessionViewPrivate *priv;
-	PkgSessionView *view;
+	PkgChannelViewPrivate *priv;
+	PkgChannelView *view;
 	ClutterColor dark, bg;
 	GList *list;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(user_data));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(user_data));
 
 	view = user_data;
 	priv = view->priv;
 
 	for (list = priv->rows; list; list = list->next) {
-		pkg_session_view_row_set_style(list->data, GTK_WIDGET(view)->style);
+		pkg_channel_view_row_set_style(list->data, GTK_WIDGET(view)->style);
 	}
 
 	gtk_clutter_get_dark_color(widget, GTK_STATE_NORMAL, &dark);
@@ -698,38 +682,38 @@ pkg_session_view_style_set (GtkWidget *widget,
 }
 
 static void
-pkg_session_view_source_added (PkgSessionView *session_view,
+pkg_channel_view_source_added (PkgChannelView *channel_view,
                                PkSource       *source)
 {
-	PkgSessionViewRow *row;
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewRow *row;
+	PkgChannelViewPrivate *priv;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(channel_view));
 	g_return_if_fail(PK_IS_SOURCE(source));
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 
-	row = pkg_session_view_row_new(session_view, source);
+	row = pkg_channel_view_row_new(channel_view, source);
 	priv->rows = g_list_append(priv->rows, row);
 	clutter_container_add_actor(CLUTTER_CONTAINER(priv->row_group), row->group);
 	clutter_actor_set_position(row->group, 0, priv->end_y);
 	row->offset = priv->end_y;
 	priv->end_y += clutter_actor_get_height(row->group);
-	gtk_widget_queue_resize(GTK_WIDGET(session_view));
+	gtk_widget_queue_resize(GTK_WIDGET(channel_view));
 }
 
 static void
-pkg_session_view_stage_motion_event (ClutterActor   *stage,
+pkg_channel_view_stage_motion_event (ClutterActor   *stage,
                                      ClutterEvent   *event,
-                                     PkgSessionView *session_view)
+                                     PkgChannelView *channel_view)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 	gfloat w, x, ratio;
 	gdouble lower, upper, pos;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(channel_view));
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 
 	w = clutter_actor_get_width(stage);
 	ratio = (event->motion.x - 200) / (w - 200);
@@ -741,16 +725,16 @@ pkg_session_view_stage_motion_event (ClutterActor   *stage,
 }
 
 static gboolean
-pkg_session_view_embed_key_press (GtkWidget      *embed,
+pkg_channel_view_embed_key_press (GtkWidget      *embed,
                                   GdkEvent       *event,
-                                  PkgSessionView *session_view)
+                                  PkgChannelView *channel_view)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 	GList *iter;
 
-	g_return_val_if_fail(PKG_IS_SESSION_VIEW(session_view), FALSE);
+	g_return_val_if_fail(PKG_IS_CHANNEL_VIEW(channel_view), FALSE);
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 	if (!priv->selected) {
 		return FALSE;
 	}
@@ -759,7 +743,7 @@ pkg_session_view_embed_key_press (GtkWidget      *embed,
 	case GDK_Down:
 		for (iter = priv->rows; iter; iter = iter->next) {
 			if (iter->data == priv->selected && iter->next) {
-				pkg_session_view_select_row(session_view, iter->next->data);
+				pkg_channel_view_select_row(channel_view, iter->next->data);
 				break;
 			}
 		}
@@ -767,7 +751,7 @@ pkg_session_view_embed_key_press (GtkWidget      *embed,
 	case GDK_Up:
 		for (iter = g_list_last(priv->rows); iter; iter = iter->prev) {
 			if (iter->data == priv->selected && iter->prev) {
-				pkg_session_view_select_row(session_view, iter->prev->data);
+				pkg_channel_view_select_row(channel_view, iter->prev->data);
 				break;
 			}
 		}
@@ -778,7 +762,7 @@ pkg_session_view_embed_key_press (GtkWidget      *embed,
 }
 
 static gboolean
-pkg_session_view_embed_button_press (GtkWidget *widget,
+pkg_channel_view_embed_button_press (GtkWidget *widget,
                                      GdkEvent  *event,
                                      gpointer   user_data)
 {
@@ -787,7 +771,7 @@ pkg_session_view_embed_button_press (GtkWidget *widget,
 }
 
 static void
-pkg_session_view_drag_drop (GtkWidget      *embed,
+pkg_channel_view_drag_drop (GtkWidget      *embed,
                             GdkDragContext *context,
                             gint            x,
                             gint            y,
@@ -795,18 +779,17 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
                             gpointer        user_data)
 {
 	PkSourceInfo *info;
-	PkgSession *session;
-	PkSource *source;
 	PkChannel *channel;
+	PkSource *source;
 
 	info = pkg_panels_get_selected_source_plugin();
 	g_assert(info);
 
-	session = pkg_session_view_get_session(user_data);
-	g_assert(session);
+	channel = pkg_channel_view_get_channel(user_data);
+	g_assert(channel);
 
-	channel = pkg_session_get_channel(session);
 	source = pk_channel_add_source(channel, info);
+	g_assert(source);
 
 	if (!source) {
 		pkg_dialog_warning(gtk_widget_get_toplevel(GTK_WIDGET(user_data)),
@@ -817,30 +800,30 @@ pkg_session_view_drag_drop (GtkWidget      *embed,
 		return;
 	}
 
-	pkg_session_view_source_added(user_data, source);
+	pkg_channel_view_source_added(user_data, source);
 
 	g_debug("Added source plugin %s to channel. %dx%d",
 	        pk_source_info_get_uid(info), x, y);
 }
 
 static void
-pkg_session_view_vscrollbar_changed (GtkWidget      *vscroller,
-                                     PkgSessionView *session_view)
+pkg_channel_view_vscrollbar_changed (GtkWidget      *vscroller,
+                                     PkgChannelView *channel_view)
 {
 	gdouble offset;
 
-	g_return_if_fail(PKG_IS_SESSION_VIEW(session_view));
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(channel_view));
 
 	offset = gtk_range_get_value(GTK_RANGE(vscroller));
-	clutter_actor_set_y(session_view->priv->row_group, -offset);
+	clutter_actor_set_y(channel_view->priv->row_group, -offset);
 }
 
 static void
-pkg_session_view_scroll_event (ClutterActor   *stage,
+pkg_channel_view_scroll_event (ClutterActor   *stage,
                                ClutterEvent   *event,
-                               PkgSessionView *session_view)
+                               PkgChannelView *channel_view)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 	GtkAdjustment *adj;
 	gboolean scroll_down;
 	gdouble page, value, upper;
@@ -853,7 +836,7 @@ pkg_session_view_scroll_event (ClutterActor   *stage,
 		}
 	}
 
-	priv = session_view->priv;
+	priv = channel_view->priv;
 	adj = GTK_ADJUSTMENT(priv->vadj);
 	upper = gtk_adjustment_get_upper(adj);
 
@@ -875,33 +858,33 @@ pkg_session_view_scroll_event (ClutterActor   *stage,
 }
 
 static void
-pkg_session_view_finalize (GObject *object)
+pkg_channel_view_finalize (GObject *object)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 
-	g_return_if_fail (PKG_IS_SESSION_VIEW (object));
+	g_return_if_fail (PKG_IS_CHANNEL_VIEW (object));
 
-	priv = PKG_SESSION_VIEW (object)->priv;
+	priv = PKG_CHANNEL_VIEW (object)->priv;
 
-	g_list_foreach(priv->rows, (GFunc)pkg_session_view_row_free, NULL);
+	g_list_foreach(priv->rows, (GFunc)pkg_channel_view_row_free, NULL);
 
-	G_OBJECT_CLASS (pkg_session_view_parent_class)->finalize (object);
+	G_OBJECT_CLASS (pkg_channel_view_parent_class)->finalize (object);
 }
 
 static void
-pkg_session_view_class_init (PkgSessionViewClass *klass)
+pkg_channel_view_class_init (PkgChannelViewClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
-	object_class->finalize = pkg_session_view_finalize;
-	g_type_class_add_private(object_class, sizeof(PkgSessionViewPrivate));
+	object_class->finalize = pkg_channel_view_finalize;
+	g_type_class_add_private(object_class, sizeof(PkgChannelViewPrivate));
 }
 
 static void
-pkg_session_view_init (PkgSessionView *session_view)
+pkg_channel_view_init (PkgChannelView *channel_view)
 {
-	PkgSessionViewPrivate *priv;
+	PkgChannelViewPrivate *priv;
 	GtkWidget *icon,
 	          *text,
 	          *table,
@@ -920,10 +903,10 @@ pkg_session_view_init (PkgSessionView *session_view)
 		{ "text/x-perfkit-source-info", GTK_TARGET_SAME_APP, 0 },
 	};
 
-	session_view->priv = G_TYPE_INSTANCE_GET_PRIVATE(session_view,
-	                                                 PKG_TYPE_SESSION_VIEW,
-	                                                 PkgSessionViewPrivate);
-	priv = session_view->priv;
+	channel_view->priv = G_TYPE_INSTANCE_GET_PRIVATE(channel_view,
+	                                                 PKG_TYPE_CHANNEL_VIEW,
+	                                                 PkgChannelViewPrivate);
+	priv = channel_view->priv;
 
 	/* setup label */
 	priv->label = gtk_hbox_new(FALSE, 3);
@@ -933,12 +916,12 @@ pkg_session_view_init (PkgSessionView *session_view)
 	gtk_box_pack_start(GTK_BOX(priv->label), icon, FALSE, TRUE, 0);
 	gtk_widget_show(icon);
 
-	text = gtk_label_new("Session 0");
+	text = gtk_label_new("Channel 0");
 	gtk_box_pack_start(GTK_BOX(priv->label), text, TRUE, TRUE, 0);
 	gtk_widget_show(text);
 
 	priv->vpaned = gtk_vpaned_new();
-	gtk_container_add(GTK_CONTAINER(session_view), priv->vpaned);
+	gtk_container_add(GTK_CONTAINER(channel_view), priv->vpaned);
 	gtk_widget_show(priv->vpaned);
 
 	/* setup main layout */
@@ -956,8 +939,8 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                 0, 0);
 	g_signal_connect(vscroller,
 	                 "value-changed",
-	                 G_CALLBACK(pkg_session_view_vscrollbar_changed),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_vscrollbar_changed),
+	                 channel_view);
 	gtk_widget_show(vscroller);
 
 	priv->hadj = gtk_adjustment_new(0., 0., 1., 10., 40., 1.);
@@ -986,16 +969,16 @@ pkg_session_view_init (PkgSessionView *session_view)
 	                  GDK_ACTION_COPY);
 	g_signal_connect(embed,
 	                 "style-set",
-	                 G_CALLBACK(pkg_session_view_style_set),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_style_set),
+	                 channel_view);
 	g_signal_connect(embed,
 	                 "drag-drop",
-	                 G_CALLBACK(pkg_session_view_drag_drop),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_drag_drop),
+	                 channel_view);
 	g_signal_connect(embed,
 	                 "scroll-event",
-	                 G_CALLBACK(pkg_session_view_scroll_event),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_scroll_event),
+	                 channel_view);
 
 	/*
 	 * Setup stage signals.
@@ -1003,15 +986,15 @@ pkg_session_view_init (PkgSessionView *session_view)
 	priv->stage = stage = gtk_clutter_embed_get_stage(GTK_CLUTTER_EMBED(embed));
 	g_signal_connect(stage,
 	                 "motion-event",
-	                 G_CALLBACK(pkg_session_view_stage_motion_event),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_stage_motion_event),
+	                 channel_view);
 	g_signal_connect(embed,
 	                 "key-press-event",
-	                 G_CALLBACK(pkg_session_view_embed_key_press),
-	                 session_view);
+	                 G_CALLBACK(pkg_channel_view_embed_key_press),
+	                 channel_view);
 	g_signal_connect(embed,
 	                 "button-press-event",
-	                 G_CALLBACK(pkg_session_view_embed_button_press),
+	                 G_CALLBACK(pkg_channel_view_embed_button_press),
 	                 NULL);
 	gtk_widget_show(embed);
 
@@ -1087,9 +1070,9 @@ pkg_session_view_init (PkgSessionView *session_view)
 	g_object_set(lbl, "ypad", 3, NULL);
 	gtk_widget_show(lbl);
 
-	g_signal_connect(session_view, "size-allocate",
-	                 G_CALLBACK(pkg_session_view_size_allocated),
-	                 session_view);
+	g_signal_connect(channel_view, "size-allocate",
+	                 G_CALLBACK(pkg_channel_view_size_allocated),
+	                 channel_view);
 
 
 
@@ -1098,19 +1081,19 @@ pkg_session_view_init (PkgSessionView *session_view)
 
 	/*
 	{
-		PkgSessionViewRow *row;
+		PkgChannelViewRow *row;
 
-		row = pkg_session_view_row_new(session_view, NULL);
+		row = pkg_channel_view_row_new(channel_view, NULL);
 		priv->rows = g_list_append(priv->rows, row);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), row->group);
 		clutter_actor_set_position(row->group, 0, 0);
 
-		row = pkg_session_view_row_new(session_view, NULL);
+		row = pkg_channel_view_row_new(channel_view, NULL);
 		priv->rows = g_list_append(priv->rows, row);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), row->group);
 		clutter_actor_set_position(row->group, 0, 40);
 
-		row = pkg_session_view_row_new(session_view, NULL);
+		row = pkg_channel_view_row_new(channel_view, NULL);
 		priv->rows = g_list_append(priv->rows, row);
 		clutter_container_add_actor(CLUTTER_CONTAINER(stage), row->group);
 		clutter_actor_set_position(row->group, 0, 80);

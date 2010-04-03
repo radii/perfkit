@@ -249,17 +249,14 @@
           </packing>
         </child>
         <child>
-          <object class="GtkAlignment" id="alignment1">
+          <object class="GtkAlignment" id="view_align">
             <property name="visible">True</property>
             <property name="top_padding">3</property>
             <property name="bottom_padding">3</property>
             <property name="left_padding">3</property>
             <property name="right_padding">3</property>
             <child>
-              <object class="GtkNotebook" id="notebook">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-              </object>
+              <placeholder/>
             </child>
           </object>
           <packing>

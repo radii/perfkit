@@ -76,6 +76,12 @@ channel_proxy_new(DBusGConnection *conn,
 }
 
 static gboolean
+pk_dbus_is_connected (PkConnection *connection)
+{
+	return (PK_DBUS(connection)->priv->dbus != NULL);
+}
+
+static gboolean
 pk_dbus_manager_ping (PkConnection  *connection,
                       GTimeVal      *tv,
                       GError       **error)
@@ -774,6 +780,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class = PK_CONNECTION_CLASS(klass);
 	conn_class->connect = pk_dbus_connect;
 	conn_class->disconnect = pk_dbus_disconnect;
+	conn_class->is_connected = pk_dbus_is_connected;
 	conn_class->manager_ping = pk_dbus_manager_ping;
 	conn_class->channel_get_state = pk_dbus_channel_get_state;
 	conn_class->channel_get_pid = pk_dbus_channel_get_pid;

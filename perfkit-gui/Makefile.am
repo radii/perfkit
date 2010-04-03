@@ -17,14 +17,13 @@ AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
 
 INST_H_FILES =								\
 	perfkit-gui.h							\
+	pkg-channel-view.h						\
 	pkg-cmds.h							\
 	pkg-dialog.h							\
 	pkg-panels.h							\
 	pkg-paths.h							\
 	pkg-prefs.h							\
 	pkg-runtime.h							\
-	pkg-session.h							\
-	pkg-session-view.h						\
 	pkg-source-renderer.h						\
 	pkg-util.h							\
 	pkg-welcome.h							\
@@ -34,14 +33,13 @@ INST_H_FILES =								\
 
 libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
+	pkg-channel-view.c						\
 	pkg-cmds.c							\
 	pkg-dialog.c							\
 	pkg-panels.c							\
 	pkg-paths.c							\
 	pkg-prefs.c							\
 	pkg-runtime.c							\
-	pkg-session.c							\
-	pkg-session-view.c						\
 	pkg-source-renderer.c						\
 	pkg-util.c							\
 	pkg-welcome.c							\

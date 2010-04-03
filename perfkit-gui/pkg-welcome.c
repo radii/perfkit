@@ -100,21 +100,17 @@ pkg_welcome_local_clicked (GtkWidget *button,
                            gpointer   user_data)
 {
 	GtkWidget *window;
-	PkgSession *session;
 
 	/* create new create new window for session */
 	window = pkg_window_new_for_uri("dbus://");
 	gtk_window_present(GTK_WINDOW(window));
 	gtk_widget_show(window);
 
-	/* add a new session */
-	pkg_window_add_session(PKG_WINDOW(window), NULL);
-
 	/* show the sources toolboox */
 	pkg_panels_show_sources();
 
 	/* hide the welcome window */
-	gtk_widget_hide(gtk_widget_get_toplevel(button));
+	gtk_widget_hide(user_data);
 }
 
 static gboolean
