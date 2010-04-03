@@ -270,6 +270,29 @@ pkg_window_focus_in (PkgWindow *window,
 }
 
 /**
+ * pkg_window_delete_event:
+ * @window: A #PkgWindow.
+ *
+ * Handles the "delete-event" for the #PkgWindow.  If the window is the last
+ * window, the application will exit.
+ *
+ * Returns: %FALSE.
+ * Side effects: Everything.
+ */
+static gboolean
+pkg_window_delete_event (PkgWindow *window)
+{
+	/*
+	 * If we are the last window, lets go ahead and exit.
+	 */
+	if (pkg_window_count_windows() == 1) {
+		pkg_runtime_quit();
+	}
+
+	return FALSE;
+}
+
+/**
  * pkg_window_get_connection:
  * @window: A #PkgWindow.
  *
@@ -417,4 +440,6 @@ pkg_window_init (PkgWindow *window)
 	 */
 	g_signal_connect(window, "focus-in-event",
 	                 G_CALLBACK(pkg_window_focus_in), NULL);
+	g_signal_connect(window, "delete-event",
+	                 G_CALLBACK(pkg_window_delete_event), NULL);
 }
