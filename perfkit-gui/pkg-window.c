@@ -197,7 +197,7 @@ pkg_window_new_for_uri (const gchar *uri)
 	if (pk_connection_manager_create_channel(conn, &info, &chan_id, NULL)) {
 		channel = g_object_new(PK_TYPE_CHANNEL,
 		                       "connection", conn,
-		                       "channel_id", chan_id,
+		                       "id", chan_id,
 		                       NULL);
 		pkg_window_attach(PKG_WINDOW(window), conn, channel);
 		g_object_unref(channel);
