@@ -42,6 +42,10 @@ AM_CPPFLAGS =								\
 	$(DBUS_CFLAGS)							\
 	$(NULL)
 
+if HAVE_DBUS_0_82
+AM_CPPFLAGS += -DHAVE_DBUS_0_82
+endif
+
 NOINST_H_FILES =							\
 	pkd-dbus.h							\
 	dbus/pkd-dbus-manager.h						\

@@ -87,6 +87,15 @@ PKG_CHECK_MODULES(DBUS,           [dbus-glib-1      >= 0.80])
 
 
 dnl ************************************************************************
+dnl Enable additional DBUS features
+dnl ************************************************************************
+PKG_CHECK_MODULES(DBUS_0_82, [dbus-glib-1 >= 0.82],
+                             [have_dbus_0_82=yes],
+                             [have_dbus_0_82=no])
+AM_CONDITIONAL(HAVE_DBUS_0_82, test "x$have_dbus_0_82" = "xyes")
+
+
+dnl ************************************************************************
 dnl Additional Headers
 dnl ************************************************************************
 AC_CHECK_HEADERS([readline/readline.h readline/history.h],

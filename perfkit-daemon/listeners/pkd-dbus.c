@@ -153,7 +153,10 @@ static void
 pkd_dbus_stop(PkdListener *listener)
 {
 	PkdDBusPrivate *priv;
-	GList *list, *iter;
+	GList *list;
+#ifdef HAVE_DBUS_0_82
+	GList *iter;
+#endif
 
 	priv = PKD_DBUS(listener)->priv;
 
@@ -164,29 +167,35 @@ pkd_dbus_stop(PkdListener *listener)
 	/*
 	 * Remove source plugins from DBUS.
 	 */
-	g_message("Removing source plugins from DBus.");
 	list = pkd_pipeline_get_source_plugins();
+#ifdef HAVE_DBUS_0_82
+	g_message("Removing source plugins from DBus.");
 	for (iter = list; iter; iter = iter->next) {
 		dbus_g_connection_unregister_g_object(dbus_conn, iter->data);
 	}
+#endif
 	g_list_foreach(list, (GFunc)g_object_unref, NULL);
 	g_list_free(list);
 
 	/*
 	 * Remove encoder plugins from DBUS.
 	 */
-	g_message("Removing encoder plugins from DBus.");
 	list = pkd_pipeline_get_encoder_plugins();
+#ifdef HAVE_DBUS_0_82
+	g_message("Removing encoder plugins from DBus.");
 	for (iter = list; iter; iter = iter->next) {
 		dbus_g_connection_unregister_g_object(dbus_conn, iter->data);
 	}
+#endif
 	g_list_foreach(list, (GFunc)g_object_unref, NULL);
 	g_list_free(list);
 
 	/*
 	 * Cleanup our manager object.
 	 */
+#ifdef HAVE_DBUS_0_82
 	dbus_g_connection_unregister_g_object(dbus_conn, G_OBJECT(priv->manager));
+#endif
 	g_object_unref(priv->manager);
 	priv->manager = NULL;
 
