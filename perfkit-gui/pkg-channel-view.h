@@ -58,6 +58,8 @@ GtkWidget*  pkg_channel_view_new         (void);
 void        pkg_channel_view_set_channel (PkgChannelView *channel_view,
                                           PkChannel      *channel);
 PkChannel*  pkg_channel_view_get_channel (PkgChannelView *channel_view) G_GNUC_PURE;
+void        pkg_channel_view_add_source  (PkgChannelView *channel_view,
+                                          PkSourceInfo   *source_info);
 
 G_END_DECLS
 

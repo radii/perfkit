@@ -768,6 +768,37 @@ pkg_channel_view_embed_button_press (GtkWidget *widget,
 	return FALSE;
 }
 
+void
+pkg_channel_view_add_source (PkgChannelView *view,
+                             PkSourceInfo   *info)
+{
+	PkgChannelViewPrivate *priv;
+	GtkWidget *toplevel;
+	PkSource *source;
+
+	g_return_if_fail(PKG_IS_CHANNEL_VIEW(view));
+
+	priv = view->priv;
+
+	if (!priv->channel) {
+		g_warning("No channel attached to view");
+		return;
+	}
+
+	source = pk_channel_add_source(priv->channel, info);
+	if (!source) {
+		toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
+		pkg_dialog_warning(toplevel, "",
+		                   _("There was an error adding the data source."),
+		                   NULL,
+		                   FALSE);
+		return;
+	}
+
+	pkg_channel_view_source_added(view, source);
+	g_object_unref(source);
+}
+
 static void
 pkg_channel_view_drag_drop (GtkWidget      *embed,
                             GdkDragContext *context,
@@ -778,30 +809,11 @@ pkg_channel_view_drag_drop (GtkWidget      *embed,
 {
 	PkSourceInfo *info;
 	PkChannel *channel;
-	PkSource *source;
 
 	info = pkg_panels_get_selected_source_plugin();
 	g_assert(info);
 
-	channel = pkg_channel_view_get_channel(user_data);
-	g_assert(channel);
-
-	source = pk_channel_add_source(channel, info);
-	g_assert(source);
-
-	if (!source) {
-		pkg_dialog_warning(gtk_widget_get_toplevel(GTK_WIDGET(user_data)),
-		                   "",
-		                   "There was an error adding the data source.",
-		                   NULL,
-		                   FALSE);
-		return;
-	}
-
-	pkg_channel_view_source_added(user_data, source);
-
-	g_debug("Added source plugin %s to channel. %dx%d",
-	        pk_source_info_get_uid(info), x, y);
+	pkg_channel_view_add_source(user_data, info);
 }
 
 static void

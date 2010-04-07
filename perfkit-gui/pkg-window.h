@@ -63,6 +63,7 @@ void          pkg_window_attach         (PkgWindow    *window,
 PkConnection* pkg_window_get_connection (PkgWindow    *window) G_GNUC_PURE;
 PkChannel*    pkg_window_get_channel    (PkgWindow    *window) G_GNUC_PURE;
 void          pkg_window_close          (PkgWindow    *window);
+GtkWidget*    pkg_window_get_view       (PkgWindow    *window) G_GNUC_PURE;
 
 G_END_DECLS
 

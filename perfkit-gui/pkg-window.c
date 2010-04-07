@@ -237,6 +237,22 @@ pkg_window_attach (PkgWindow    *window,     /* IN */
 }
 
 /**
+ * pkg_window_get_view:
+ * @window: A #PkgWindow.
+ *
+ * Retrieve the #PkgChannelView for the window.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+GtkWidget*
+pkg_window_get_view (PkgWindow *window)
+{
+	g_return_val_if_fail(PKG_IS_WINDOW(window), NULL);
+	return window->priv->view;
+}
+
+/**
  * pkg_window_count_windows:
  *
  * Counts the number of active #PkgWindow instances.

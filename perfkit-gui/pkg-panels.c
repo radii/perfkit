@@ -23,8 +23,9 @@
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
-#include "pkg-panels.h"
+#include "pkg-channel-view.h"
 #include "pkg-dialog.h"
+#include "pkg-panels.h"
 #include "pkg-runtime.h"
 
 typedef struct
@@ -52,7 +53,8 @@ pkg_panels_sources_text_func (GtkTreeViewColumn   *tree_column,
 	desc = pk_source_info_get_description(info);
 
 	if (desc && strlen(desc)) {
-		markup = g_strdup_printf("<b>%s</b>\n<span size=\"smaller\"><i>%s</i></span>",
+		markup = g_strdup_printf("<b>%s</b>\n"
+		                         "<span size=\"smaller\"><i>%s</i></span>",
 								 pk_source_info_get_name(info),
 								 pk_source_info_get_description(info));
 	} else {
@@ -139,6 +141,34 @@ sources_window_focus_in (GtkWidget *widget,
 }
 
 static void
+sources_window_row_activated (GtkTreeView       *treeview,
+                              GtkTreePath       *path,
+                              GtkTreeViewColumn *column,
+                              gpointer           user_data)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	PkSourceInfo *info = NULL;
+	PkgWindow *window;
+	GtkWidget *view;
+
+	window = pkg_runtime_get_active_window();
+	g_assert(window);
+
+	model = gtk_tree_view_get_model(treeview);
+	g_assert(model);
+
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
+		gtk_tree_model_get(model, &iter, 0, &info, -1);
+		if (info) {
+			view = pkg_window_get_view(window);
+			g_assert(view);
+			pkg_channel_view_add_source(PKG_CHANNEL_VIEW(view), info);
+		}
+	}
+}
+
+static void
 pkg_panels_create_sources (void)
 {
 	GtkWidget *vbox,
@@ -207,7 +237,8 @@ pkg_panels_create_sources (void)
 	                        GTK_TREE_MODEL(panels.sources_store));
 
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column), GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
+	                                GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(treeview), column);
 
 	cell = gtk_cell_renderer_pixbuf_new();
@@ -217,7 +248,8 @@ pkg_panels_create_sources (void)
 	g_object_set(cell, "yalign", .5, NULL);
 
 	cell = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_text_set_fixed_height_from_font(GTK_CELL_RENDERER_TEXT(cell), 2);
+	gtk_cell_renderer_text_set_fixed_height_from_font(
+			GTK_CELL_RENDERER_TEXT(cell), 2);
 	g_object_set(cell, "xpad", 6, NULL);
 	gtk_tree_view_column_pack_start(column, cell, TRUE);
 	gtk_tree_view_column_set_cell_data_func(column, cell,
@@ -239,8 +271,14 @@ pkg_panels_create_sources (void)
 	                 NULL);
 
 	g_signal_connect(panels.sources_window,
+
 	                 "focus-in-event",
 	                 G_CALLBACK(sources_window_focus_in),
+	                 NULL);
+
+	g_signal_connect(treeview,
+	                 "row-activated",
+	                 G_CALLBACK(sources_window_row_activated),
 	                 NULL);
 }
 
@@ -313,7 +351,7 @@ pkg_panels_set_connection (PkConnection *connection)
 	 */
 	if (!pk_connection_connect(connection, &error)) {
 		pkg_dialog_warning(GTK_WIDGET(pkg_runtime_get_active_window()), "",
-		                   "There was an error connecting to the Perfkit system.",
+		                   "There was an error connecting to Perfkit.",
 		                   error ? error->message : _("An uknown occured"),
 		                   TRUE);
 		return;
