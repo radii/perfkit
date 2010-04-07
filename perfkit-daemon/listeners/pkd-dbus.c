@@ -33,6 +33,7 @@
 #include "pkd-channel-dbus.h"
 #include "pkd-encoder-info-dbus.h"
 #include "pkd-source-info-dbus.h"
+#include "pkd-source-glue.h"
 #include "pkd-source-dbus.h"
 
 G_DEFINE_TYPE (PkdDBus, pkd_dbus, PKD_TYPE_LISTENER)

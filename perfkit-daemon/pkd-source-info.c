@@ -292,11 +292,17 @@ pkd_source_info_conflicts (PkdSourceInfo *source_info,
 PkdSource*
 pkd_source_info_create (PkdSourceInfo *source_info)
 {
+	PkdSource *source;
+
 	g_return_val_if_fail(PKD_IS_SOURCE_INFO(source_info), NULL);
 	g_return_val_if_fail(source_info->priv->factory, NULL);
 
 	g_debug("Creating %s source.", source_info->priv->name);
-	return source_info->priv->factory();
+	source = source_info->priv->factory();
+	g_object_set_qdata(G_OBJECT(source),
+	                   g_quark_from_static_string("pkd-source-info"),
+	                   g_object_ref(source_info));
+	return source;
 }
 
 GQuark

@@ -51,6 +51,7 @@ NOINST_H_FILES =							\
 	dbus/pkd-dbus-manager.h						\
 	dbus/pkd-dbus-subscription.h					\
 	dbus/pkd-channel-dbus.h						\
+	dbus/pkd-source-glue.h						\
 	$(NULL)
 
 dbus_la_SOURCES =							\

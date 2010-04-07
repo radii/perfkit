@@ -53,19 +53,67 @@ G_BEGIN_DECLS
 #endif /* !G_ENABLE_DEBUG */
 
 
+/* BOOLEAN:POINTER,POINTER */
+extern void dbus_glib_marshal_pkd_source_BOOLEAN__POINTER_POINTER (GClosure     *closure,
+                                                                   GValue       *return_value,
+                                                                   guint         n_param_values,
+                                                                   const GValue *param_values,
+                                                                   gpointer      invocation_hint,
+                                                                   gpointer      marshal_data);
+void
+dbus_glib_marshal_pkd_source_BOOLEAN__POINTER_POINTER (GClosure     *closure,
+                                                       GValue       *return_value G_GNUC_UNUSED,
+                                                       guint         n_param_values,
+                                                       const GValue *param_values,
+                                                       gpointer      invocation_hint G_GNUC_UNUSED,
+                                                       gpointer      marshal_data)
+{
+  typedef gboolean (*GMarshalFunc_BOOLEAN__POINTER_POINTER) (gpointer     data1,
+                                                             gpointer     arg_1,
+                                                             gpointer     arg_2,
+                                                             gpointer     data2);
+  register GMarshalFunc_BOOLEAN__POINTER_POINTER callback;
+  register GCClosure *cc = (GCClosure*) closure;
+  register gpointer data1, data2;
+  gboolean v_return;
+
+  g_return_if_fail (return_value != NULL);
+  g_return_if_fail (n_param_values == 3);
+
+  if (G_CCLOSURE_SWAP_DATA (closure))
+    {
+      data1 = closure->data;
+      data2 = g_value_peek_pointer (param_values + 0);
+    }
+  else
+    {
+      data1 = g_value_peek_pointer (param_values + 0);
+      data2 = closure->data;
+    }
+  callback = (GMarshalFunc_BOOLEAN__POINTER_POINTER) (marshal_data ? marshal_data : cc->callback);
+
+  v_return = callback (data1,
+                       g_marshal_value_peek_pointer (param_values + 1),
+                       g_marshal_value_peek_pointer (param_values + 2),
+                       data2);
+
+  g_value_set_boolean (return_value, v_return);
+}
+
 G_END_DECLS
 
 #endif /* __dbus_glib_marshal_pkd_source_MARSHAL_H__ */
 
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pkd_source_methods[] = {
+  { (GCallback) pkd_source_dbus_get_plugin, dbus_glib_marshal_pkd_source_BOOLEAN__POINTER_POINTER, 0 },
 };
 
 const DBusGObjectInfo dbus_glib_pkd_source_object_info = {
   0,
   dbus_glib_pkd_source_methods,
-  0,
-"\0",
+  1,
+"com.dronelabs.Perfkit.Source\0GetPlugin\0S\0path\0O\0F\0N\0o\0\0\0",
 "\0",
 "\0"
 };

@@ -2,5 +2,18 @@
 <node>
     <interface name="com.dronelabs.Perfkit.Source">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source"/>
+
+        <!--
+            Source::GetPlugin
+
+                Retrieves the path to the plugin for the source.
+
+            Returns: the path.
+        -->
+        <method name="GetPlugin">
+            <annotation name="org.freedesktop.DBus.GLib.CSymbol"
+                value="pkd_source_dbus_get_plugin"/>
+            <arg name="path" type="o" direction="out"/>
+        </method>
     </interface>
 </node>
