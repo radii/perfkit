@@ -268,9 +268,9 @@ main (gint   argc,
 {
 	static GPid pid = 0;
 	static gchar *args[] = {
-		"./perfkit-daemon",
+		"./perfkit-agent",
 		"--stdout",
-		"-c", "daemon.conf",
+		"-c", "agent.conf",
 		"-l", "/tmp/test-suite.log",
 		NULL };
 	static gchar *env[] = {
@@ -293,8 +293,8 @@ main (gint   argc,
 	env[3] = g_strdup_printf("DBUS_SESSION_BUS_ADDRESS=%s",
 	                         g_getenv("DBUS_SESSION_BUS_ADDRESS"));
 
-	/* Start the daemon */
-	if (!g_spawn_async(DAEMON_DIR, args, env,
+	/* Start the agent */
+	if (!g_spawn_async(AGENT_DIR, args, env,
 	                   G_SPAWN_STDOUT_TO_DEV_NULL,
 	                   NULL, NULL, &pid, &error))
 	{
@@ -306,7 +306,7 @@ main (gint   argc,
 	g_usleep(G_USEC_PER_SEC / 2);
 
 	/*
-	 * Test various aspects of the daemon.  Order of tests somewhat matters
+	 * Test various aspects of the agent.  Order of tests somewhat matters
 	 * here so that its easy to determine where things went wrong.
 	 */
 	g_test_add_func("/TestSuite/manager_ping",
@@ -322,7 +322,7 @@ main (gint   argc,
 	g_test_add_func("/TestSuite/stop",
 	                test_TestSuite_stop);
 
-	/* Kill the daemon */
+	/* Kill the agent */
 	res = g_test_run();
 	kill(pid, SIGINT);
 

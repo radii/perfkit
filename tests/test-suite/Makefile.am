@@ -9,19 +9,19 @@ TEST_PROGS +=								\
 	$(NULL)
 
 AM_CPPFLAGS =								\
-	$(PERFKIT_DAEMON_CFLAGS)					\
+	$(PERFKIT_AGENT_CFLAGS)						\
 	-I$(top_srcdir)							\
 	-I$(top_srcdir)/cut-n-paste					\
-	-DDAEMON="\"$(top_builddir)/perfkit-daemon/perfkit-daemon\""	\
-	-DDAEMON_DIR="\"$(top_builddir)/perfkit-daemon\""		\
+	-DAGENT="\"$(top_builddir)/perfkit-agent/perfkit-agent\""	\
+	-DAGENT_DIR="\"$(top_builddir)/perfkit-agent\""			\
 	$(DBUS_CFLAGS)							\
 	$(WARNINGS)							\
 	$(NULL)
 
 AM_LDFLAGS =								\
-	$(PERFKIT_DAEMON_LIBS)						\
+	$(PERFKIT_AGENT_LIBS)						\
 	$(DBUS_LIBS)							\
-	$(top_builddir)/perfkit-daemon/libperfkit-daemon.la		\
+	$(top_builddir)/perfkit-agent/libperfkit-agent.la		\
 	$(NULL)
 
 test_suite_SOURCES = test-suite.c

@@ -1,1 +1,1 @@
-SUBDIRS = perfkit-daemon perfkit
+SUBDIRS = perfkit perfkit-agent perfkit-gui

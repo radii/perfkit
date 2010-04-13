@@ -12,46 +12,46 @@ Source Overview
   |  Various build system scripts and utilities required.  This includes such
   |  things as m4 macros and autotools plugins.
   |
-  +- perfkit-daemon/
+  +- perfkit-agent/
   |
-  |  The daemon which runs on the target machine to manage perfkit plugins
-  |  and child processes.  The daemon orchestrates *how* things happen on
+  |  The agent which runs on the target machine to manage perfkit plugins
+  |  and child processes.  The agent orchestrates *how* things happen on
   |  the target (as opposted to *what*).  This could also be called the
   |  Agent.
   |
-  +- perfkit-daemon/encoders/
+  +- perfkit-agent/encoders/
   |
   |  Encoders are responsible for convering recoreded Samples and Manifests
   |  (which describe a series of samples) into buffers which can be decoded
   |  on the other end.  They can provide various features such as compression
   |  and encryption.
   |
-  +- perfkit-daemon/listeners/
+  +- perfkit-agent/listeners/
   |
-  |  Listeners provide connectivity into the daemon over a form of RPC.  This
+  |  Listeners provide connectivity into the agent over a form of RPC.  This
   |  includes DBus, TCP, or another transport.
   |
-  +- perfkit-daemon/sources/
+  +- perfkit-agent/sources/
   |
-  |  Sources are the plugins into the daemon which extract information from
+  |  Sources are the plugins into the agent which extract information from
   |  a single or group of processes.  They, for example, could extract memory
   |  or network throughput and create samples to be passed on to the client.
   |
   +- perfkit/
   |
   |  This directory contains the shared-library that can be used to talk to
-  |  a perfkit-daemon.  It abstracts the communication protocol for the
+  |  a perfkit-agent.  It abstracts the communication protocol for the
   |  host process so they need not be concerned whether it is DBUS, HTTP,
   |  or some other protocol.
   |
   |  The shared library provides proxy objects that represent the objects
-  |  available on the connected daemon.
+  |  available on the connected agent.
   |
   +- tools/
   |
   |  The tools directory contains various tools to help manage or interact
   |  with a target running perfkit.  The perfkit-shell provides an
-  |  interactive, readline-based, shell for controlling a daemon.  A
+  |  interactive, readline-based, shell for controlling a agent.  A
   |  support script is also provided that will eventually dump a significant
   |  amount of data on the target machine for someone to debug any problems
   |  that are occuring.
@@ -75,16 +75,16 @@ Source Overview
   |  within critical paths.
   |
 
-perfkit-daemon
+perfkit-agent
 ==============
 
-  The perfkit daemon is a process which runs on a target system that manages
+  The perfkit agent is a process which runs on a target system that manages
   the profiling or systems monitoring.  It can spawn processes to profile
   as well as profile existing ones.  It provides an RPC mechanism to control
-  the daemon remotely over such transports as DBUS.
+  the agent remotely over such transports as DBUS.
 
   Data sources, which provide profiling instrumentation, are provided through
-  perfkit-daemon plugins.  Good examples of a data sources would be memory
+  perfkit-agent plugins.  Good examples of a data sources would be memory
   profilers, network bandwidth monitors, or cpu recorders.
 
   Data sources, when recording, create "Samples".  Samples are nuggets of
@@ -96,10 +96,10 @@ perfkit-daemon
   A rough visual pictogram would look like:
 
 
-    {client} --- {DBUS,...} --- {Daemon} --- {Channel} --- {Source,...}
+    {client} --- {DBUS,...} --- {Agent} --- {Channel} --- {Source,...}
 
-  In this case, the client is connecting to the perfkit-daemon over DBUS.
-  Inside the daemon exists a Channel which has various Sources attached
+  In this case, the client is connecting to the perfkit-agent over DBUS.
+  Inside the agent exists a Channel which has various Sources attached
   to it.  When those data sources yield new instrumentation samples, they
   are delivered to the Channel who then aggregates them.  The client can
   receive the channels and is free to do with them what it desires.
@@ -112,7 +112,7 @@ libperfkit-1.0
 ==============
 
   Libperfkit is a shared library that reduces the complexity in talking to
-  a remote perfkit-daemon.  It provides a transport abstraction so the
+  a remote perfkit-agent.  It provides a transport abstraction so the
   physical transport used is not the problem of the client.  The standard
   connection used is DBUS for local profiling.  You can use the library
   to create a new connection as such:
@@ -123,41 +123,41 @@ libperfkit-1.0
 
   You have two ways of using libperfkit.  You can use the lowlevel API
   which is lightweight and direct.  Alternatively, you can use the object
-  model API which creates proxy objects for the remote daemon.  This might
+  model API which creates proxy objects for the remote agent.  This might
   be more friendly to GUI developers as GObject properties can be binded
   to Gtk objects like GtkCellRenderers.
 
   The basic format of the shared library follows the semantics of the
-  perfkit-daemon.
+  perfkit-agent.
 
     / PkConnection
     |
-    |   Abstracts the transport protocol used to talk to the daemon.
+    |   Abstracts the transport protocol used to talk to the agent.
     |   Currently, DBUS is supported.  Provides all RPCs via the
     |   <perfkit/perfkit-lowlevel.h> API.
     |
     +- PkManager
     |
-    |  Highlevel abstraction for managing a daemon on the opposite end-point
+    |  Highlevel abstraction for managing a agent on the opposite end-point
     |  of the connection.  Gives access of locating objects and various
     |  accounting information.
     |
     +--- PkChannel
        |
-       |  Proxy for an individual channel found on the remote perfkit-daemon.
+       |  Proxy for an individual channel found on the remote perfkit-agent.
        |  Provides access to manipulate the channel.  Also can start, stop,
        |  pause, unpause, and receive samplse from the channel.
     
     +--- PkSource
        |
-       |  Proxy for an individual source found on the remote perfkit-daemon.
+       |  Proxy for an individual source found on the remote perfkit-agent.
        |  Provides access to manipulate the source.
 
   Profiling sample delivery is a critical path in the lifecycle of the
-  perfkit-daemon and client.  Perfkit, by default, uses the DBUS for
+  perfkit-agent and client.  Perfkit, by default, uses the DBUS for
   communicating with clients.  The particular DBUS connection used is managed
-  by the DBUS daemon and therefore has a decent amount of overhead. Therefore,
-  a private connection between the client and the daemon is created and the
+  by the DBUS agent and therefore has a decent amount of overhead. Therefore,
+  a private connection between the client and the agent is created and the
   DBUS serialization protocol is used in a peer-to-peer manner.
 
 perfkit-shell
@@ -167,15 +167,15 @@ perfkit-shell
   forward and uses EggLine to provide the shell interaction.  EmtFmt is used
   to format console based text where appropriate so that it is easy to read.
 
-  The shell uses libperfkit to communicate to the perfkit-daemon.  The goal
+  The shell uses libperfkit to communicate to the perfkit-agent.  The goal
   is for the shell to be able to talk to remote servers as well as the local
-  daemon.
+  agent.
 
 perfkit-support
 ===============
 
   Perfkit-support provides a support tool for administrators to dump
-  information about a malfunctioning perfkit-daemon for post analysis.
+  information about a malfunctioning perfkit-agent for post analysis.
   Ideally, it will include any necessary core-dumps, information about
   running processes, their children, loaded libraries, logs, and other
   troubleshooting information.

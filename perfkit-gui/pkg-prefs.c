@@ -33,13 +33,13 @@ typedef struct
 	GOptionContext *context;
 	GtkWidget      *window;
 	GtkBuilder     *builder;
-} PkdPrefs;
+} PkgPrefs;
 
 static GOptionEntry entries[] = {
 	{ NULL }
 };
 
-static PkdPrefs prefs;
+static PkgPrefs prefs;
 
 static gboolean
 pkg_prefs_window_delete_event (GtkWidget *widget)

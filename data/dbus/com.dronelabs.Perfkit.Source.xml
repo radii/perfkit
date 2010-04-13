@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <node>
     <interface name="com.dronelabs.Perfkit.Source">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_source"/>
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_source"/>
 
         <!--
             Source::GetPlugin
@@ -12,7 +12,7 @@
         -->
         <method name="GetPlugin">
             <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-                value="pkd_source_dbus_get_plugin"/>
+                value="pka_source_dbus_get_plugin"/>
             <arg name="path" type="o" direction="out"/>
         </method>
     </interface>

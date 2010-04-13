@@ -1,0 +1,91 @@
+
+                 
+
+             +------------------------------+
+             +  Client (Perfkit Gui/Shell)  |
+  Client     +------------------------------+
+                        |       |
+                        | DBus, |
+                        | TCP,  |
+                        | etc.  |
+   - - - - - - - - - - -|- - - -|- - - - - - - - - - -
+                        |       |
+             +------------------------------+
+  Agent      |          PdkListener         |    Listens for incoming RPC Connections;
+             +------------------------------+    DBusListener, TCPListener, etc.
+                        |       |
+                        |       |
+                        |       |
+             +------------------------------+    Clients can request subscriptions.  Listener
+             |          PkaEncoder          |    will create them as necessary.  PkaSubscription
+             |                              |    will manage the hard work for it.  Listener just
+             |                              |    needs to ship the bytes off that subscription
+             |       PkaSubscription        |    yields.
+             |                              |
+             |                              |    Subscription uses a PkaEncoder internally to
+             +------------------------------+    encode samples and manifests into buffers.
+                        |       |
+                        |       |
+             +------------------------------+    PkaChannel aggregates a series of data sources
+             |          PkaChannel          |    together.  It can also spawn processes for you.
+             +------------------------------+    It basically does the hard setup work.
+                  ||     ||     ||     ||
+                  ||     ||     ||     ||
+                  ||   Sources  ||     ||
+                  ||     ||     ||     ||
+                 +--+   +--+   +--+   +--+
+                 |  |   |  |   |  |   |  |
+                 |  |   |  |   |  |   |  |       Data sources for extracting data during runtime.
+                 |  |   |  |   |  |   |  |       Generates samples and notifies the channel of
+                 |  |   |  |   |  |   |  |       manifest updates.
+                 |  |   |  |   |  |   |  |
+                 +--+   +--+   +--+   +--+
+
+
+=========
+
+
+There is some additional stuff worth noting.
+
+pka-pipeline.c     - Global hooks to a majoring of the plumbing.
+pka-plugins.c      - Manages plugins such as sources, listeners, and encoders.
+pka-log.c          - Manages logging hooks.
+pka-source-info.c  - Metadata about a source plugin.
+pka-encoder-info.c - Metadata about an encoder plugin.
+pka-spawn-info.c   - Information about how a process is spawned.
+pka-config.c       - Access to the configuration file (agent.conf).
+
+=========
+
+This is somewhat what the protocol buffer looks like.
+
+
+  message ManifestColumn {
+    required uint32 id   = 1;
+    required uint32 type = 2;
+    optional string name = 3;
+  }
+
+  enum Resolution {
+  	PRECISE = 0;
+  	MICROSECOND = 1;
+  	MILLISECOND = 2;
+  	SECOND = 3;
+  	MINUTE = 4;
+  	HOUR = 5;
+  }
+
+  message Manifest {
+    optional int64 timestamp = 1;
+    optional Resolution resolution = 2;
+    optional int32 source = 3;
+    repeated ManifestColumn columns = 4;
+  }
+
+  message Sample {
+    optional int64 reltime = 1;
+    optional data buffer = 2;
+  }
+
+=========
+

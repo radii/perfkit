@@ -1,0 +1,76 @@
+#ifndef __PKA_VERSION_H__
+#define __PKA_VERSION_H__
+
+/**
+ * SECTION:pka-version
+ * @title: Versioning API
+ * @short_description: compile-time version checking
+ *
+ * provides some API and definitions for compile-time version checking.
+ */
+
+/**
+ * PKA_MAJOR_VERSION:
+ *
+ * Major version of Pka, e.g. 1 in "1.2.3"
+ */
+#define PKA_MAJOR_VERSION (@PKA_MAJOR_VERSION@)
+
+/**
+ * PKA_MINOR_VERSION:
+ *
+ * Minor version of Pka, e.g. 2 in "1.2.3"
+ */
+#define PKA_MINOR_VERSION (@PKA_MINOR_VERSION@)
+
+/**
+ * PKA_MICRO_VERSION:
+ *
+ * Micro version of Pka, e.g. 3 in "1.2.3"
+ */
+#define PKA_MICRO_VERSION (@PKA_MICRO_VERSION@)
+
+/**
+ * PKA_API_VERSION_S:
+ *
+ * Version of the API of Pka
+ */
+#define PKA_API_VERSION_S "@PKA_API_VERSION@"
+
+/**
+ * PKA_VERSION_S:
+ *
+ * Stringified version of Pka, e.g. "1.2.3".
+ *
+ * Useful for display.
+ */
+#define PKA_VERSION_S "@PKA_VERSION@"
+
+/**
+ * PKA_VERSION_HEX:
+ *
+ * Hexadecimally encoded version of Pka, e.g. 0x01020300"
+ *
+ * Useful for comparisons.
+ */
+#define PKA_VERSION_HEX (PKA_MAJOR_VERSION << 24 | PKA_MINOR_VERSION << 16 | PKA_MICRO_VERSION << 8)
+
+/**
+ * PKA_CHECK_VERSION:
+ * @major: major component of the version to check
+ * @minor: minor component of the version to check
+ * @micro: micro component of the version to check
+ *
+ * Checks whether the decomposed version (@major, @minor, @micro) is
+ * bigger than the version of Pka. This is a compile-time
+ * check only.
+ */
+#define PKA_CHECK_VERSION(major,minor,micro)   \
+        (PKA_MAJOR_VERSION >= (major) ||       \
+         (PKA_MAJOR_VERSION == (major) &&      \
+          PKA_MINOR_VERSION > (minor)) ||      \
+         (PKA_MAJOR_VERSION == (major) &&      \
+          PKA_MINOR_VERSION == (minor) &&      \
+          PKA_MICRO_VERSION >= (micro)))
+
+#endif /* __PKA_VERSION_H__ */

@@ -22,8 +22,8 @@ Perfkit is packaged in the standard format for most GNU/Linux-based software.
 Use the standard `./configure', `make', `make install' to build and install
 Perfkit.
 
-Perfkit contains a runtime daemon that manages profiling and systems
-monitoring.  It can be run using `perfkit-daemon'.
+Perfkit contains a runtime agent that manages profiling and systems
+monitoring.  It can be run using `perfkit-agent'.
 
 In the near future, a GUI will be provided to manage Perfkit recording
 sessions.

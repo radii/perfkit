@@ -33,11 +33,11 @@ AM_PROG_CC_C_O
 dnl ************************************************************************
 dnl Versioning Definitions
 dnl ************************************************************************
-PKD_MAJOR_VERSION=perfkit_major_version
-PKD_MINOR_VERSION=perfkit_minor_version
-PKD_MICRO_VERSION=perfkit_micro_version
-PKD_API_VERSION=1.0
-PKD_VERSION=perfkit_version
+PKA_MAJOR_VERSION=perfkit_major_version
+PKA_MINOR_VERSION=perfkit_minor_version
+PKA_MICRO_VERSION=perfkit_micro_version
+PKA_API_VERSION=1.0
+PKA_VERSION=perfkit_version
 PK_MAJOR_VERSION=perfkit_major_version
 PK_MINOR_VERSION=perfkit_minor_version
 PK_MICRO_VERSION=perfkit_micro_version
@@ -48,11 +48,11 @@ PKG_MINOR_VERSION=perfkit_minor_version
 PKG_MICRO_VERSION=perfkit_micro_version
 PKG_API_VERSION=1.0
 PK_VERSION=perfkit_version
-AC_SUBST(PKD_MAJOR_VERSION)
-AC_SUBST(PKD_MINOR_VERSION)
-AC_SUBST(PKD_MICRO_VERSION)
-AC_SUBST(PKD_API_VERSION)
-AC_SUBST(PKD_VERSION)
+AC_SUBST(PKA_MAJOR_VERSION)
+AC_SUBST(PKA_MINOR_VERSION)
+AC_SUBST(PKA_MICRO_VERSION)
+AC_SUBST(PKA_API_VERSION)
+AC_SUBST(PKA_VERSION)
 AC_SUBST(PK_MAJOR_VERSION)
 AC_SUBST(PK_MINOR_VERSION)
 AC_SUBST(PK_MICRO_VERSION)
@@ -68,21 +68,21 @@ AC_SUBST(PKG_VERSION)
 dnl ************************************************************************
 dnl Check for Required Modules
 dnl ************************************************************************
-PKG_CHECK_MODULES(PERFKIT_DAEMON, [gobject-2.0      >= 2.20
+PKG_CHECK_MODULES(PERFKIT_AGENT,  [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gmodule-2.0      >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0      >= 2.20
-				   gthread-2.0      >= 2.20
-				   gio-2.0          >= 2.20])
+                                   gthread-2.0      >= 2.20
+                                   gio-2.0          >= 2.20])
 PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0      >= 2.20
-				   gthread-2.0      >= 2.20
-				   gio-2.0          >= 2.20])
+                                   gthread-2.0      >= 2.20
+                                   gio-2.0          >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0      >= 2.20
-				   gthread-2.0      >= 2.20
-				   gtk+-2.0         >= 2.18
-				   ethos-1.0        >= 0.2.2
-				   ethos-ui-1.0     >= 0.2.2
-				   clutter-gtk-0.10 >= 0.10.2])
+                                   gthread-2.0      >= 2.20
+                                   gtk+-2.0         >= 2.18
+                                   ethos-1.0        >= 0.2.2
+                                   ethos-ui-1.0     >= 0.2.2
+                                   clutter-gtk-0.10 >= 0.10.2])
 PKG_CHECK_MODULES(DBUS,           [dbus-glib-1      >= 0.80])
 
 
@@ -139,8 +139,8 @@ AC_OUTPUT([
 	doc/reference/Makefile
 	doc/reference/perfkit/Makefile
 	doc/reference/perfkit/version.xml
-	doc/reference/perfkit-daemon/Makefile
-	doc/reference/perfkit-daemon/version.xml
+	doc/reference/perfkit-agent/Makefile
+	doc/reference/perfkit-agent/version.xml
 	doc/reference/perfkit-gui/Makefile
 	doc/reference/perfkit-gui/version.xml
 
@@ -150,11 +150,11 @@ AC_OUTPUT([
 	perfkit/connections/Makefile
 	perfkit/pk-version.h
 
-	perfkit-daemon/Makefile
-	perfkit-daemon/sources/Makefile
-	perfkit-daemon/encoders/Makefile
-	perfkit-daemon/listeners/Makefile
-	perfkit-daemon/pkd-version.h
+	perfkit-agent/Makefile
+	perfkit-agent/sources/Makefile
+	perfkit-agent/encoders/Makefile
+	perfkit-agent/listeners/Makefile
+	perfkit-agent/pka-version.h
 
 	perfkit-gui/Makefile
 	perfkit-gui/pkg-version.h
@@ -164,7 +164,7 @@ AC_OUTPUT([
 
 	tests/Makefile
 	tests/perfkit/Makefile
-	tests/perfkit-daemon/Makefile
+	tests/perfkit-agent/Makefile
 	tests/test-suite/Makefile
 ])
 

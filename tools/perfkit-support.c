@@ -30,7 +30,7 @@
 #include <glib/gi18n.h>
 
 #include <perfkit/perfkit.h>
-#include <perfkit-daemon/perfkit-daemon.h>
+#include <perfkit-agent/perfkit-agent.h>
 
 static gchar *opt_filename = NULL;
 
@@ -95,13 +95,13 @@ generate_channels (GIOChannel *channel)
 	g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 
 	if (!(conn = pk_connection_new_for_uri ("dbus://"))) {
-		g_io_channel_write_chars (channel, "## Could not access perfkit-daemon!\n",
+		g_io_channel_write_chars (channel, "## Could not access perfkit-agent!\n",
 		                          -1, NULL, NULL);
 		goto finish;
 	}
 
 	if (!pk_connection_connect (conn, &error)) {
-		g_printerr ("Could not talk to perfkit-daemon: %s\n", error->message);
+		g_printerr ("Could not talk to perfkit-agent: %s\n", error->message);
 		g_error_free (error);
 		return;
 	}
@@ -179,7 +179,7 @@ generate_support_data (const gchar *filename)
 
 	g_io_channel_write_chars (channel, "[perfkit]\n", -1, NULL, NULL);
 	write_kv (channel, "lib.version", PK_VERSION_S);
-	write_kv (channel, "daemon.version", PKD_VERSION_S);
+	write_kv (channel, "agent.version", PKA_VERSION_S);
 	g_io_channel_write_chars (channel, "\n", -1, NULL, NULL);
 
 	generate_channels (channel);

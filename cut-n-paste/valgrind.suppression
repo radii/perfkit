@@ -730,7 +730,7 @@
 }
 
 #
-# perfkit-daemon
+# perfkit-agent
 #
 
 {
@@ -738,7 +738,7 @@
    Memcheck:Leak
    ...
    fun:g_module_open
-   fun:pkd_plugins_init
+   fun:pka_plugins_init
 }
 
 {
@@ -746,5 +746,5 @@
    Memcheck:Leak
    ...
    fun:g_type_set_qdata
-   fun:pkd_dbus_start
+   fun:pka_dbus_start
 }

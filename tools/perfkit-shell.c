@@ -146,7 +146,7 @@ pk_shell_connect (const gchar  *uri,   // IN
 	}
 
 	/*
-	 * Connect to the daemon.
+	 * Connect to the agent.
 	 */
 	if (!pk_connection_connect(connection, error)) {
 		g_object_unref(connection);
@@ -475,7 +475,7 @@ pk_shell_cmd_version (EggLine  *line,
 		lerror = NULL;
 	}
 	else {
-		g_print("Daemon.....:  %s\n", ver);
+		g_print("Agent......:  %s\n", ver);
 		g_free(ver);
 	}
 
@@ -602,7 +602,7 @@ pk_shell_cmd_sleep (EggLine  *line,
  *
  * pk_shell_cmd_channel_list --
  *
- *    Lists the avaialble channels on the daemon.
+ *    Lists the avaialble channels on the agent.
  *
  * Returns:
  *    Command exit status.
@@ -627,7 +627,7 @@ pk_shell_cmd_channel_list (EggLine  *line,
 	} s = {0,0};
 
 	/*
-	 * Get list of channels from daemon.
+	 * Get list of channels from agent.
 	 */
 	if (!pk_connection_manager_get_channels(connection,
 	                                        &s.channels,
@@ -669,7 +669,7 @@ finish:
  *
  * pk_shell_cmd_channel_add --
  *
- *    Add a new channel on the daemon.
+ *    Add a new channel on the agent.
  *
  * Returns:
  *    Command exit status.
@@ -1413,7 +1413,7 @@ pk_shell_iter_channel (EggLine   *line,
  *
  * pk_shell_cmd_ping --
  *
- *    Pings the perfkit daemon and displays the network latency.
+ *    Pings the perfkit agent and displays the network latency.
  *
  * Returns:
  *    Command exit code.
@@ -1469,7 +1469,7 @@ static EggLineCommand commands[] = {
 	  N_("Change working directory"),
 	  "cd [DIRECTORY]..." },
 	{ "ping", NULL, pk_shell_cmd_ping,
-	  N_("Ping the perfkit-daemon"),
+	  N_("Ping the perfkit-agent"),
 	  "ping" },
 	{ "version", NULL, pk_shell_cmd_version,
 	  N_("Display version information"),
@@ -1525,7 +1525,7 @@ main (gint   argc,
 	g_thread_init(NULL);
 	g_type_init ();
 
-	/* connect to the daemon */
+	/* connect to the agent */
 	if (!pk_shell_connect ("dbus://", &error)) {
 		g_printerr ("%s\n", error->message);
 		return EXIT_FAILURE;

@@ -1,14 +1,14 @@
 <?xml version="1.0" ?>
 <node>
     <interface name="com.dronelabs.Perfkit.Manager">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_dbus_manager"/>
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_dbus_manager"/>
 
         <!--
             Manager::Ping()
 
-                A dummy method for clients to test connectivity to the daemon.
+                A dummy method for clients to test connectivity to the agent.
 
-            Returns: The current time on the daemon.
+            Returns: The current time on the agent.
         -->
         <method name="Ping">
             <arg name="time" type="s" direction="out"/>
@@ -22,7 +22,7 @@
             @env: Array of KEY=VALUE environment variables
             @working_dir: working directory for @target.
 
-                Creates a new PkdChannel.
+                Creates a new PkaChannel.
 
             Returns: A path to the newly created channel.
         -->
@@ -39,11 +39,11 @@
             Manager::CreateSubscription()
             @delivery_address: A private DBus address to connect and deliver manifests and samples.
             @delivery_path: A path to the service on private DBus.
-            @channel: A path to a PkdChannel.
+            @channel: A path to a PkaChannel.
             @buffer_size: Buffer size in bytes. 0 for no size-based buffer.
             @buffer_timeout: Timeout in milliseconds that buffer should flush.
               Zero for no timeout-based buffer flushing.
-            @encoder_info: A path to a PkdEncoderInfo.
+            @encoder_info: A path to a PkaEncoderInfo.
 
                 Creates a new subscription using the parameters.
 
@@ -86,7 +86,7 @@
         <!--
             Manager::GetVersion()
 
-                Retrieves the version of the daemon.
+                Retrieves the version of the agent.
 
             Returns: A string containing the version.
         -->

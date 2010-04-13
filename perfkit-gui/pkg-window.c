@@ -151,7 +151,7 @@ pkg_window_new (void)
 
 /**
  * pkg_window_new_for_uri:
- * @uri: A uri to a daemon
+ * @uri: A uri to an agent.
  *
  * Creates a new instance of #PkgWindow setting the connection using @uri.
  *
@@ -188,7 +188,7 @@ pkg_window_new_for_uri (const gchar *uri)
 			/*
 			 * TODO: Handle errors.
 			 */
-			g_warning("Error connecting to daemon.");
+			g_warning("Error connecting to agent.");
 		}
 	}
 

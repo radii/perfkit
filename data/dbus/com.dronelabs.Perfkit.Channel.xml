@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
 <node>
   <interface name="com.dronelabs.Perfkit.Channel">
-    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pkd_channel"/>
+    <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_channel"/>
 
     <!--
-        PkdChannel::AddSource()
+        PkaChannel::AddSource()
 
             Adds a source to the channel for instrumentation.  Channel must
             not be started.
@@ -13,15 +13,15 @@
     -->
     <method name="AddSource">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_add_source_dbus"/>
+            value="pka_channel_add_source_dbus"/>
         <arg name="source_info_path" type="o" direction="in"/>
         <arg name="source_path" type="o" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::Start()
+        PkaChannel::Start()
 
-            Starts the PkdChannels profiling.  If necessary, a process is
+            Starts the PkaChannels profiling.  If necessary, a process is
             spawned.
 
         Returns: True on success.
@@ -30,10 +30,10 @@
     </method>
 
     <!--
-        PkdChannel::Stop()
+        PkaChannel::Stop()
         @killpid: True if the inferior process should be killed.
 
-            Stops the PkdChannels profiling.  Attached data sources are
+            Stops the PkaChannels profiling.  Attached data sources are
             notified to stop as well.  This method terminates any future
             state changes to the channe.
 
@@ -44,9 +44,9 @@
     </method>
 
     <!--
-        PkdChannel::Pause()
+        PkaChannel::Pause()
 
-            Pauses a PkdChannels profiling.  Attached data sources are
+            Pauses a PkaChannels profiling.  Attached data sources are
             notified to stop producing samples.  If the source does not
             support pausing the samples will be dropped.
 
@@ -56,9 +56,9 @@
     </method>
 
     <!--
-        PkdChannel::Unpause()
+        PkaChannel::Unpause()
 
-            Unpauses a PkdChannels profiling.  Attached data sources
+            Unpauses a PkaChannels profiling.  Attached data sources
             are notified to wake up and continue producing samples.
             If any source manifests have changed during the time the
             channel was paused, they will be delivered to the
@@ -70,7 +70,7 @@
     </method>
 
     <!--
-        PkdChannel::GetState()
+        PkaChannel::GetState()
 
             Retrieves the state of a channel.
 
@@ -78,12 +78,12 @@
     -->
     <method name="GetState">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_state_dbus"/>
+            value="pka_channel_get_state_dbus"/>
         <arg name="state" type="i" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::GetPid()
+        PkaChannel::GetPid()
 
             Retrieves the pid of the channels target.
 
@@ -91,12 +91,12 @@
     -->
     <method name="GetPid">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_pid_dbus"/>
+            value="pka_channel_get_pid_dbus"/>
         <arg name="pid" type="i" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::GetTarget()
+        PkaChannel::GetTarget()
 
             Retrieves the target of the channel.
 
@@ -104,12 +104,12 @@
     -->
     <method name="GetTarget">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_target_dbus"/>
+            value="pka_channel_get_target_dbus"/>
         <arg name="target" type="s" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::GetWorkingDir()
+        PkaChannel::GetWorkingDir()
 
             Retrieves the working-dir of the channel.
 
@@ -117,12 +117,12 @@
     -->
     <method name="GetWorkingDir">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_working_dir_dbus"/>
+            value="pka_channel_get_working_dir_dbus"/>
         <arg name="working_dir" type="s" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::GetArgs()
+        PkaChannel::GetArgs()
 
             Retrieves the target arguments of the channel.
 
@@ -130,12 +130,12 @@
     -->
     <method name="GetArgs">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_args_dbus"/>
+            value="pka_channel_get_args_dbus"/>
         <arg name="args" type="as" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::GetEnv()
+        PkaChannel::GetEnv()
 
             Retrieves the environment of the channel.
 
@@ -143,12 +143,12 @@
     -->
     <method name="GetEnv">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_get_env_dbus"/>
+            value="pka_channel_get_env_dbus"/>
         <arg name="env" type="as" direction="out"/>
     </method>
 
     <!--
-        PkdChannel::RemoveSource()
+        PkaChannel::RemoveSource()
 
             Removes a source from a channel.
 
@@ -156,7 +156,7 @@
     -->
     <method name="RemoveSource">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol"
-            value="pkd_channel_remove_source"/>
+            value="pka_channel_remove_source"/>
         <arg name="source_id" type="i" direction="in"/>
     </method>
   </interface>
