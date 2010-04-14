@@ -32,7 +32,7 @@
 static gboolean    wants_stdout = FALSE;
 static GIOChannel *channel      = NULL;
 static gchar       hostname[64] = "";
-static guint       handler      = 0;
+static GLogFunc    last_handler = NULL;
 
 static void
 pka_log_handler (const gchar    *log_domain,
@@ -140,11 +140,7 @@ pka_log_init (gboolean     stdout_,
 #endif /* __APPLE__ */
 #endif /* __linux__ */
 
-		handler = g_log_set_handler(G_LOG_DOMAIN,
-		                            G_LOG_LEVEL_MASK,
-		                            pka_log_handler,
-		                            NULL);
-
+		g_log_set_default_handler(pka_log_handler, NULL);
 		g_once_init_leave(&initialized, TRUE);
 	}
 }
@@ -160,8 +156,8 @@ pka_log_init (gboolean     stdout_,
 void
 pka_log_shutdown (void)
 {
-	if (handler) {
-		g_log_remove_handler(G_LOG_DOMAIN, handler);
-		handler = 0;
+	if (last_handler) {
+		g_log_set_default_handler(last_handler, NULL);
+		last_handler = NULL;
 	}
 }

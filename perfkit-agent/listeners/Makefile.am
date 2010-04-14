@@ -35,7 +35,7 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
 	-DHAVE_CONFIG_H							\
-	-DG_LOG_DOMAIN=\"PerfkitAgent\"					\
+	-DG_LOG_DOMAIN=\"DBusListener\"					\
 	-I$(srcdir)/dbus						\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\
