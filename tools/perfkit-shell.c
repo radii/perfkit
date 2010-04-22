@@ -48,10 +48,10 @@ enum
 /*
  * Global state.
  */
-static EggFmtFunc    formatter    = NULL;
-static PkConnection *connection   = NULL;
-static gboolean      opt_csv      = FALSE;
-static GMainLoop    *monitorLoop  = NULL;
+static EggFmtFunc    formatter  = NULL;
+static PkConnection *connection = NULL;
+static gboolean      opt_csv    = FALSE;
+static GMainLoop    *mainloop   = NULL;
 /*
  * Command line arguments.
  */
@@ -1308,8 +1308,8 @@ show_manifest (gpointer data)
 static void
 monitor_sigint_handler(int sig)
 {
-  g_print("Quitting monitor\n");
-  g_main_loop_quit(monitorLoop);
+	g_print("\nStopping monitor\n");
+	g_main_loop_quit(mainloop);
 }
 
 
@@ -1323,14 +1323,15 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	struct sigaction sa;
 
 	/*
-	 * Catch Ctrl-C so we can exit the shell
+	 * Catch Ctrl-C so we can exit the shell.  Auto reset the signal handler
+	 * after the call.
 	 */
 	sa.sa_handler = monitor_sigint_handler;
-	sa.sa_flags = SA_RESETHAND;  //Reset the handler after the call.
-	
-	if (sigaction(SIGINT, &sa, NULL) == -1)
-               g_printerr("Failed to set Signal Handler.\n");
+	sa.sa_flags = SA_RESETHAND;
 
+	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		g_printerr("Failed to set signal handler.\n");
+	}
 
 	if (argc < 1) {
 		return EGG_LINE_STATUS_BAD_ARGS;
@@ -1340,8 +1341,8 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 		return EGG_LINE_STATUS_BAD_ARGS;
 	}
 
-	/* Create main monitorLoop */
-	monitorLoop = g_main_loop_new(NULL, FALSE);
+	/* Create main mainloop */
+	mainloop = g_main_loop_new(NULL, FALSE);
 
 	/* Create subscription to channel */
 	if (!pk_connection_manager_create_subscription(connection,
@@ -1369,7 +1370,7 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	g_timeout_add_seconds(20, show_manifest, NULL);
 
 	/* Start main loop */
-	g_main_loop_run(monitorLoop);
+	g_main_loop_run(mainloop);
 
 	/*
 	if (!pk_connection_subscription_disable(connection, sub_id, error)) {
