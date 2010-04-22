@@ -1372,11 +1372,10 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	/* Start main loop */
 	g_main_loop_run(mainloop);
 
-	/*
-	if (!pk_connection_subscription_disable(connection, sub_id, error)) {
+	if (!pk_connection_subscription_disable(connection, sub_id, FALSE, error)) {
+		g_printerr("Failed to disable subscription: %d\n", sub_id);
 		return EGG_LINE_STATUS_FAILURE;
 	}
-	*/
 
 	return EGG_LINE_STATUS_OK;
 }
