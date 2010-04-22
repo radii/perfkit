@@ -161,6 +161,7 @@ pk_connection_subscription_enable (PkConnection  *connection,
 gboolean
 pk_connection_subscription_disable (PkConnection  *connection,
                                     gint           subscription_id,
+                                    gboolean       drain,
                                     GError       **error);
 
 G_END_DECLS

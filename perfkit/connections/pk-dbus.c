@@ -586,6 +586,29 @@ pk_dbus_subscription_enable (PkConnection  *connection,
 }
 
 static gboolean
+pk_dbus_subscription_disable (PkConnection  *connection,
+                              gint           subscription_id,
+                              gboolean       drain,
+                              GError       **error)
+{
+	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
+	DBusGProxy *proxy;
+	gchar *path;
+	gboolean ret;
+
+	path = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	                       subscription_id);
+	proxy = dbus_g_proxy_new_for_name(priv->dbus,
+	                                  "com.dronelabs.Perfkit",
+	                                  path,
+	                                  "com.dronelabs.Perfkit.Subscription");
+	g_free(path);
+	ret = com_dronelabs_Perfkit_Subscription_disable(proxy, drain, error);
+	g_object_unref(proxy);
+	return ret;
+}
+
+static gboolean
 pk_dbus_connect (PkConnection  *connection,
                  GError       **error)
 {
@@ -801,6 +824,7 @@ pk_dbus_class_init (PkDbusClass *klass)
 	conn_class->manager_get_source_plugins = pk_dbus_manager_get_source_plugins;
 	conn_class->manager_remove_channel = pk_dbus_manager_remove_channel;
 	conn_class->subscription_enable = pk_dbus_subscription_enable;
+	conn_class->subscription_disable = pk_dbus_subscription_disable;
 }
 
 static void

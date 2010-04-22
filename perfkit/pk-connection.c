@@ -658,6 +658,19 @@ pk_connection_subscription_enable (PkConnection  *connection,
 		subscription_enable(connection, subscription_id, error);
 }
 
+gboolean
+pk_connection_subscription_disable (PkConnection  *connection,
+                                    gint           subscription_id,
+                                    gboolean       drain,
+                                    GError       **error)
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+	g_return_val_if_fail(subscription_id >= 0, FALSE);
+
+	return PK_CONNECTION_GET_CLASS(connection)->
+		subscription_disable(connection, subscription_id, drain, error);
+}
+
 static void
 pk_connection_get_property (GObject    *object,
                             guint       prop_id,

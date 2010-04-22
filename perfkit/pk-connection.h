@@ -191,6 +191,11 @@ struct _PkConnectionClass
 	                                               gint             subscription_id,
 	                                               GError         **error);
 
+	gboolean       (*subscription_disable)        (PkConnection    *connection,
+	                                               gint             subscription_id,
+	                                               gboolean         drain,
+	                                               GError         **error);
+
 	/*
 	 * Source Operations.
 	 */
