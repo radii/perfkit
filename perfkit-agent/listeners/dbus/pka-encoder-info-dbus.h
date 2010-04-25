@@ -67,6 +67,6 @@ const DBusGObjectInfo dbus_glib_pka_encoder_info_object_info = {
   0,
 "\0",
 "\0",
-"com.dronelabs.Perfkit.EncoderInfo\0Uid\0com.dronelabs.Perfkit.EncoderInfo\0Name\0com.dronelabs.Perfkit.EncoderInfo\0Description\0com.dronelabs.Perfkit.EncoderInfo\0Version\0\0"
+"org.perfkit.Agent.EncoderInfo\0Uid\0org.perfkit.Agent.EncoderInfo\0Name\0org.perfkit.Agent.EncoderInfo\0Description\0org.perfkit.Agent.EncoderInfo\0Version\0\0"
 };
 

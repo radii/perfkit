@@ -50,6 +50,7 @@ G_BEGIN_DECLS
  */
 typedef enum
 {
+	PKA_CHANNEL_ERROR_UNKNOWN,
 	PKA_CHANNEL_ERROR_STATE,
 } PkaChannelError;
 

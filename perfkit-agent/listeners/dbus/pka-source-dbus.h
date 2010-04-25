@@ -113,7 +113,7 @@ const DBusGObjectInfo dbus_glib_pka_source_object_info = {
   0,
   dbus_glib_pka_source_methods,
   1,
-"com.dronelabs.Perfkit.Source\0GetPlugin\0S\0path\0O\0F\0N\0o\0\0\0",
+"org.perfkit.Agent.Source\0GetPlugin\0S\0path\0O\0F\0N\0o\0\0\0",
 "\0",
 "\0"
 };

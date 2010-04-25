@@ -270,20 +270,20 @@ G_END_DECLS
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pka_dbus_manager_methods[] = {
   { (GCallback) pka_dbus_manager_ping, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 0 },
-  { (GCallback) pka_dbus_manager_create_channel, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER, 51 },
-  { (GCallback) pka_dbus_manager_create_subscription, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER, 168 },
-  { (GCallback) pka_dbus_manager_get_processes, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 344 },
-  { (GCallback) pka_dbus_manager_get_channels, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 414 },
-  { (GCallback) pka_dbus_manager_get_version, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 477 },
-  { (GCallback) pka_dbus_manager_remove_channel, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__BOXED_POINTER, 537 },
-  { (GCallback) pka_dbus_manager_get_source_plugins, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 593 },
+  { (GCallback) pka_dbus_manager_create_channel, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__UINT_STRING_BOXED_BOXED_STRING_POINTER_POINTER, 47 },
+  { (GCallback) pka_dbus_manager_create_subscription, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__STRING_STRING_BOXED_UINT_UINT_BOXED_POINTER_POINTER, 160 },
+  { (GCallback) pka_dbus_manager_get_processes, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 332 },
+  { (GCallback) pka_dbus_manager_get_channels, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 398 },
+  { (GCallback) pka_dbus_manager_get_version, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 457 },
+  { (GCallback) pka_dbus_manager_remove_channel, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__BOXED_POINTER, 513 },
+  { (GCallback) pka_dbus_manager_get_source_plugins, dbus_glib_marshal_pka_dbus_manager_BOOLEAN__POINTER_POINTER, 565 },
 };
 
 const DBusGObjectInfo dbus_glib_pka_dbus_manager_object_info = {
   0,
   dbus_glib_pka_dbus_manager_methods,
   8,
-"com.dronelabs.Perfkit.Manager\0Ping\0S\0time\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0com.dronelabs.Perfkit.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Manager\0GetVersion\0S\0version\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Manager\0RemoveChannel\0S\0path\0I\0o\0\0com.dronelabs.Perfkit.Manager\0GetSourcePlugins\0S\0paths\0O\0F\0N\0as\0\0\0",
+"org.perfkit.Agent.Manager\0Ping\0S\0time\0O\0F\0N\0s\0\0org.perfkit.Agent.Manager\0CreateChannel\0S\0pid\0I\0u\0target\0I\0s\0args\0I\0as\0env\0I\0as\0working_dir\0I\0s\0channel\0O\0F\0N\0o\0\0org.perfkit.Agent.Manager\0CreateSubscription\0S\0delivery_address\0I\0s\0delivery_path\0I\0s\0channel\0I\0o\0buffer_size\0I\0u\0buffer_timeout\0I\0u\0encoder_info\0I\0o\0subscription\0O\0F\0N\0o\0\0org.perfkit.Agent.Manager\0GetProcesses\0S\0processes\0O\0F\0N\0a(usss)\0\0org.perfkit.Agent.Manager\0GetChannels\0S\0channels\0O\0F\0N\0as\0\0org.perfkit.Agent.Manager\0GetVersion\0S\0version\0O\0F\0N\0s\0\0org.perfkit.Agent.Manager\0RemoveChannel\0S\0path\0I\0o\0\0org.perfkit.Agent.Manager\0GetSourcePlugins\0S\0paths\0O\0F\0N\0as\0\0\0",
 "\0",
 "\0"
 };

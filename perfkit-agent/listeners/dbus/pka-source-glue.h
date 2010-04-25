@@ -21,6 +21,9 @@
 
 #include <perfkit-agent/perfkit-agent.h>
 
+#define SOURCE_INFO_PATH  "/org/perfkit/Agent/Plugins/Sources/%s"
+#define SOURCE_INFO_QUARK g_quark_from_static_string("pka-source-info")
+
 gboolean
 pka_source_dbus_get_plugin (PkaSource  *source,
                             gchar     **path,
@@ -31,10 +34,8 @@ pka_source_dbus_get_plugin (PkaSource  *source,
 	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
 	g_return_val_if_fail(path != NULL, FALSE);
 
-	info = g_object_get_qdata(G_OBJECT(source),
-	                          g_quark_from_static_string("pka-source-info"));
-	*path = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
-	                        pka_source_info_get_uid(info));
+	info = g_object_get_qdata(G_OBJECT(source), SOURCE_INFO_QUARK);
+	*path = g_strdup_printf(SOURCE_INFO_PATH, pka_source_info_get_uid(info));
 
 	return TRUE;
 }

@@ -1,8 +1,8 @@
 EXTRA_DIST =						\
-	com.dronelabs.Perfkit.Channel.xml		\
-	com.dronelabs.Perfkit.EncoderInfo.xml		\
-	com.dronelabs.Perfkit.Manager.xml		\
-	com.dronelabs.Perfkit.SourceInfo.xml		\
-	com.dronelabs.Perfkit.Source.xml		\
-	com.dronelabs.Perfkit.Subscription.xml		\
+	org.perfkit.Agent.Channel.xml			\
+	org.perfkit.Agent.EncoderInfo.xml		\
+	org.perfkit.Agent.Manager.xml			\
+	org.perfkit.Agent.SourceInfo.xml		\
+	org.perfkit.Agent.Source.xml			\
+	org.perfkit.Agent.Subscription.xml		\
 	$(NULL)

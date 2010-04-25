@@ -295,24 +295,24 @@ G_END_DECLS
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pka_channel_methods[] = {
   { (GCallback) pka_channel_add_source_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__BOXED_POINTER_POINTER, 0 },
-  { (GCallback) pka_channel_start, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 84 },
-  { (GCallback) pka_channel_stop, dbus_glib_marshal_pka_channel_BOOLEAN__BOOLEAN_POINTER, 123 },
-  { (GCallback) pka_channel_pause, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 173 },
-  { (GCallback) pka_channel_unpause, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 212 },
-  { (GCallback) pka_channel_get_state_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 253 },
-  { (GCallback) pka_channel_get_pid_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 309 },
-  { (GCallback) pka_channel_get_target_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 361 },
-  { (GCallback) pka_channel_get_working_dir_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 419 },
-  { (GCallback) pka_channel_get_args_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 486 },
-  { (GCallback) pka_channel_get_env_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 541 },
-  { (GCallback) pka_channel_remove_source, dbus_glib_marshal_pka_channel_BOOLEAN__INT_POINTER, 594 },
+  { (GCallback) pka_channel_start, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 80 },
+  { (GCallback) pka_channel_stop, dbus_glib_marshal_pka_channel_BOOLEAN__BOOLEAN_POINTER, 115 },
+  { (GCallback) pka_channel_pause, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 161 },
+  { (GCallback) pka_channel_unpause, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER, 196 },
+  { (GCallback) pka_channel_get_state_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 233 },
+  { (GCallback) pka_channel_get_pid_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 285 },
+  { (GCallback) pka_channel_get_target_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 333 },
+  { (GCallback) pka_channel_get_working_dir_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 387 },
+  { (GCallback) pka_channel_get_args_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 450 },
+  { (GCallback) pka_channel_get_env_dbus, dbus_glib_marshal_pka_channel_BOOLEAN__POINTER_POINTER, 501 },
+  { (GCallback) pka_channel_remove_source, dbus_glib_marshal_pka_channel_BOOLEAN__INT_POINTER, 550 },
 };
 
 const DBusGObjectInfo dbus_glib_pka_channel_object_info = {
   0,
   dbus_glib_pka_channel_methods,
   12,
-"com.dronelabs.Perfkit.Channel\0AddSource\0S\0source_info_path\0I\0o\0source_path\0O\0F\0N\0o\0\0com.dronelabs.Perfkit.Channel\0Start\0S\0\0com.dronelabs.Perfkit.Channel\0Stop\0S\0killpid\0I\0b\0\0com.dronelabs.Perfkit.Channel\0Pause\0S\0\0com.dronelabs.Perfkit.Channel\0Unpause\0S\0\0com.dronelabs.Perfkit.Channel\0GetState\0S\0state\0O\0F\0N\0i\0\0com.dronelabs.Perfkit.Channel\0GetPid\0S\0pid\0O\0F\0N\0i\0\0com.dronelabs.Perfkit.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0GetWorkingDir\0S\0working_dir\0O\0F\0N\0s\0\0com.dronelabs.Perfkit.Channel\0GetArgs\0S\0args\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0GetEnv\0S\0env\0O\0F\0N\0as\0\0com.dronelabs.Perfkit.Channel\0RemoveSource\0S\0source_id\0I\0i\0\0\0",
+"org.perfkit.Agent.Channel\0AddSource\0S\0source_info_path\0I\0o\0source_path\0O\0F\0N\0o\0\0org.perfkit.Agent.Channel\0Start\0S\0\0org.perfkit.Agent.Channel\0Stop\0S\0killpid\0I\0b\0\0org.perfkit.Agent.Channel\0Pause\0S\0\0org.perfkit.Agent.Channel\0Unpause\0S\0\0org.perfkit.Agent.Channel\0GetState\0S\0state\0O\0F\0N\0i\0\0org.perfkit.Agent.Channel\0GetPid\0S\0pid\0O\0F\0N\0i\0\0org.perfkit.Agent.Channel\0GetTarget\0S\0target\0O\0F\0N\0s\0\0org.perfkit.Agent.Channel\0GetWorkingDir\0S\0working_dir\0O\0F\0N\0s\0\0org.perfkit.Agent.Channel\0GetArgs\0S\0args\0O\0F\0N\0as\0\0org.perfkit.Agent.Channel\0GetEnv\0S\0env\0O\0F\0N\0as\0\0org.perfkit.Agent.Channel\0RemoveSource\0S\0source_id\0I\0i\0\0\0",
 "\0",
 "\0"
 };

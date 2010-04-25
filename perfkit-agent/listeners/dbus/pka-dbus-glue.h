@@ -32,7 +32,7 @@ pka_channel_add_source_dbus (PkaChannel   *channel,
 		return FALSE;
 	}
 
-	*spath = g_strdup_printf("/com/dronelabs/Perfkit/Sources/%d",
+	*spath = g_strdup_printf("/org/perfkit/Agent/Sources/%d",
 	                         pka_source_get_id(source));
 
 	return TRUE;

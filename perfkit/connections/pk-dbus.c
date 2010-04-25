@@ -67,9 +67,9 @@ channel_proxy_new(DBusGConnection *conn,
 	DBusGProxy *proxy;
 	gchar *path;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d", channel_id);
-    proxy = dbus_g_proxy_new_for_name(conn, "com.dronelabs.Perfkit", path,
-                                      "com.dronelabs.Perfkit.Channel");
+	path = g_strdup_printf("/org/perfkit/Agent/Channels/%d", channel_id);
+	proxy = dbus_g_proxy_new_for_name(conn, "org.perfkit.Agent", path,
+	                                  "org.perfkit.Agent.Channel");
     g_free(path);
 
     return proxy;
@@ -90,7 +90,7 @@ pk_dbus_manager_ping (PkConnection  *connection,
 	gchar *str = NULL;
 	gboolean res;
 
-	res = com_dronelabs_Perfkit_Manager_ping(priv->manager, &str, error);
+	res = org_perfkit_Agent_Manager_ping(priv->manager, &str, error);
 	if (res) {
 		g_time_val_from_iso8601(str, tv);
 	}
@@ -104,7 +104,7 @@ pk_dbus_manager_get_version (PkConnection  *connection,
 {
 	PkDbusPrivate *priv = PK_DBUS(connection)->priv;
 
-	return com_dronelabs_Perfkit_Manager_get_version(priv->manager, version, error);
+	return org_perfkit_Agent_Manager_get_version(priv->manager, version, error);
 }
 
 static gboolean
@@ -118,7 +118,7 @@ pk_dbus_channel_get_state (PkConnection    *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_state(proxy,
+	result = org_perfkit_Agent_Channel_get_state(proxy,
 	                                                 (gint *)state,
 	                                                 error);
 	g_object_unref(proxy);
@@ -137,7 +137,7 @@ pk_dbus_channel_get_pid (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_pid(proxy,
+	result = org_perfkit_Agent_Channel_get_pid(proxy,
 	                                               (gint *)pid,
 	                                               error);
 	g_object_unref(proxy);
@@ -156,7 +156,7 @@ pk_dbus_channel_get_target (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_target(proxy,
+	result = org_perfkit_Agent_Channel_get_target(proxy,
 	                                                  target,
 	                                                  error);
 	g_object_unref(proxy);
@@ -175,7 +175,7 @@ pk_dbus_channel_get_working_dir (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_working_dir(proxy,
+	result = org_perfkit_Agent_Channel_get_working_dir(proxy,
 	                                                       working_dir,
 	                                                       error);
 	g_object_unref(proxy);
@@ -194,7 +194,7 @@ pk_dbus_channel_get_args (PkConnection   *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_args(proxy, args, error);
+	result = org_perfkit_Agent_Channel_get_args(proxy, args, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -211,7 +211,7 @@ pk_dbus_channel_get_env (PkConnection   *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_get_env(proxy, env, error);
+	result = org_perfkit_Agent_Channel_get_env(proxy, env, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -227,7 +227,7 @@ pk_dbus_channel_start (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_start(proxy, error);
+	result = org_perfkit_Agent_Channel_start(proxy, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -244,7 +244,7 @@ pk_dbus_channel_stop (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_stop(proxy, killpid, error);
+	result = org_perfkit_Agent_Channel_stop(proxy, killpid, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -260,7 +260,7 @@ pk_dbus_channel_pause (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_pause(proxy, error);
+	result = org_perfkit_Agent_Channel_pause(proxy, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -276,7 +276,7 @@ pk_dbus_channel_unpause (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_unpause(proxy, error);
+	result = org_perfkit_Agent_Channel_unpause(proxy, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -293,7 +293,7 @@ pk_dbus_channel_remove_source (PkConnection  *connection,
 	gboolean result;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	result = com_dronelabs_Perfkit_Channel_remove_source(proxy, source_id, error);
+	result = org_perfkit_Agent_Channel_remove_source(proxy, source_id, error);
 	g_object_unref(proxy);
 
 	return result;
@@ -335,7 +335,7 @@ handle_msg (DBusConnection *conn,
 	gsize length = 0;
 	gint sub_id = 0;
 
-	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription")) {
+	if (!HAS_INTERFACE(msg, "org.perfkit.Agent.Subscription")) {
 		g_warning("Not subscription interface.");
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	}
@@ -524,16 +524,16 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	 */
 	if (encoder_info_uid) {
 		encoder_path = g_strdup_printf(
-				"/com/dronelabs/Perfkit/Plugins/Encoders/%s",
+				"/org/perfkit/Agent/Plugins/Encoders/%s",
 				encoder_info_uid);
 	} else {
 		encoder_path = g_strdup("/");
 	}
-	channel_path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	channel_path = g_strdup_printf("/org/perfkit/Agent/Channels/%d",
 	                               channel_id);
 	sub_path = g_strdup_printf("/Subscriptions/%d", sub_id);
 
-	if (!com_dronelabs_Perfkit_Manager_create_subscription(priv->manager,
+	if (!org_perfkit_Agent_Manager_create_subscription(priv->manager,
 	                                                       priv->sub_addr,
 	                                                       sub_path,
 	                                                       channel_path,
@@ -546,7 +546,7 @@ pk_dbus_manager_create_subscription (PkConnection  *connection,
 	}
 
 	if (sscanf(sub_handle,
-	           "/com/dronelabs/Perfkit/Subscriptions/%d",
+	           "/org/perfkit/Agent/Subscriptions/%d",
 	           subscription_id) != 1) {
 		goto cleanup;
 	}
@@ -573,14 +573,14 @@ pk_dbus_subscription_enable (PkConnection  *connection,
 	gchar *path;
 	gboolean ret;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	path = g_strdup_printf("/org/perfkit/Agent/Subscriptions/%d",
 	                       subscription_id);
 	proxy = dbus_g_proxy_new_for_name(priv->dbus,
-	                                  "com.dronelabs.Perfkit",
+	                                  "org.perfkit.Agent",
 	                                  path,
-	                                  "com.dronelabs.Perfkit.Subscription");
+	                                  "org.perfkit.Agent.Subscription");
 	g_free(path);
-	ret = com_dronelabs_Perfkit_Subscription_enable(proxy, error);
+	ret = org_perfkit_Agent_Subscription_enable(proxy, error);
 	g_object_unref(proxy);
 	return ret;
 }
@@ -596,14 +596,14 @@ pk_dbus_subscription_disable (PkConnection  *connection,
 	gchar *path;
 	gboolean ret;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	path = g_strdup_printf("/org/perfkit/Agent/Subscriptions/%d",
 	                       subscription_id);
 	proxy = dbus_g_proxy_new_for_name(priv->dbus,
-	                                  "com.dronelabs.Perfkit",
+	                                  "org.perfkit.Agent",
 	                                  path,
-	                                  "com.dronelabs.Perfkit.Subscription");
+	                                  "org.perfkit.Agent.Subscription");
 	g_free(path);
-	ret = com_dronelabs_Perfkit_Subscription_disable(proxy, drain, error);
+	ret = org_perfkit_Agent_Subscription_disable(proxy, drain, error);
 	g_object_unref(proxy);
 	return ret;
 }
@@ -616,9 +616,9 @@ pk_dbus_connect (PkConnection  *connection,
 
 	priv->dbus = dbus_g_bus_get(DBUS_BUS_SESSION, error);
 	priv->manager = dbus_g_proxy_new_for_name(priv->dbus,
-			"com.dronelabs.Perfkit",
-			"/com/dronelabs/Perfkit/Manager",
-			"com.dronelabs.Perfkit.Manager");
+			"org.perfkit.Agent",
+			"/org/perfkit/Agent/Manager",
+			"org.perfkit.Agent.Manager");
 
 	return TRUE;
 }
@@ -632,8 +632,8 @@ pk_dbus_manager_remove_channel (PkConnection  *connection,
 	gboolean ret;
 	gchar *path;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d", channel_id);
-	ret = com_dronelabs_Perfkit_Manager_remove_channel(priv->manager,
+	path = g_strdup_printf("/org/perfkit/Agent/Channels/%d", channel_id);
+	ret = org_perfkit_Agent_Manager_remove_channel(priv->manager,
 	                                                   path,
 	                                                   error);
 	g_free(path);
@@ -668,7 +668,7 @@ pk_dbus_manager_get_channels (PkConnection  *connection,
 	g_return_val_if_fail(channels != NULL, FALSE);
 	g_return_val_if_fail(n_channels != NULL, FALSE);
 
-	if (!com_dronelabs_Perfkit_Manager_get_channels(priv->manager, &sc, error))
+	if (!org_perfkit_Agent_Manager_get_channels(priv->manager, &sc, error))
 	    return FALSE;
 
 	if (!sc) {
@@ -685,7 +685,7 @@ pk_dbus_manager_get_channels (PkConnection  *connection,
 		*n_channels = l;
 
 		for (i = 0; i < l; i++) {
-			sscanf(sc[i], "/com/dronelabs/Perfkit/Channels/%d", &(*channels)[i]);
+			sscanf(sc[i], "/org/perfkit/Agent/Channels/%d", &(*channels)[i]);
 		}
 	}
 
@@ -706,7 +706,7 @@ pk_dbus_manager_create_channel (PkConnection  *connection,
 	g_return_val_if_fail(spawn_info != NULL, FALSE);
 	g_return_val_if_fail(channel_id != NULL, FALSE);
 
-	if (com_dronelabs_Perfkit_Manager_create_channel(priv->manager,
+	if (org_perfkit_Agent_Manager_create_channel(priv->manager,
 	                                                 spawn_info->pid,
 	                                                 spawn_info->target,
 	                                                 (const gchar **)spawn_info->args,
@@ -715,7 +715,7 @@ pk_dbus_manager_create_channel (PkConnection  *connection,
 	                                                 &path,
 	                                                 error))
 	{
-		sscanf(path, "/com/dronelabs/Perfkit/Channels/%d", channel_id);
+		sscanf(path, "/org/perfkit/Agent/Channels/%d", channel_id);
 		g_free(path);
 		return TRUE;
 	}
@@ -734,7 +734,7 @@ pk_dbus_manager_get_source_plugins (PkConnection   *connection,
 
 	ENSURE_CONNECTED(connection, error);
 
-	if (!com_dronelabs_Perfkit_Manager_get_source_plugins(priv->manager, &p, error)) {
+	if (!org_perfkit_Agent_Manager_get_source_plugins(priv->manager, &p, error)) {
 		return FALSE;
 	}
 
@@ -745,7 +745,7 @@ pk_dbus_manager_get_source_plugins (PkConnection   *connection,
 			continue;
 		}
 		memset(uid, 0, sizeof(uid));
-		sscanf(p[i], "/com/dronelabs/Perfkit/Plugins/Sources/%s", uid);
+		sscanf(p[i], "/org/perfkit/Agent/Plugins/Sources/%s", uid);
 		(*plugins)[j++] = g_strdup(uid);
 	}
 
@@ -765,14 +765,14 @@ pk_dbus_channel_add_source (PkConnection  *connection,
 	gboolean res;
 
 	proxy = channel_proxy_new(priv->dbus, channel_id);
-	spath = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+	spath = g_strdup_printf("/org/perfkit/Agent/Plugins/Sources/%s",
 	                        source_type);
-	res = com_dronelabs_Perfkit_Channel_add_source(proxy, spath, &path, error);
+	res = org_perfkit_Agent_Channel_add_source(proxy, spath, &path, error);
 	g_object_unref(proxy);
 	g_free(spath);
 
 	if (res) {
-		if (sscanf(path, "/com/dronelabs/Perfkit/Sources/%d", source_id) != 1) {
+		if (sscanf(path, "/org/perfkit/Agent/Sources/%d", source_id) != 1) {
 			res = FALSE;
 		} else if ((*source_id) < 0) {
 			res = FALSE;

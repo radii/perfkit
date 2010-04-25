@@ -67,6 +67,6 @@ const DBusGObjectInfo dbus_glib_pka_source_info_object_info = {
   0,
 "\0",
 "\0",
-"com.dronelabs.Perfkit.SourceInfo\0Uid\0com.dronelabs.Perfkit.SourceInfo\0Name\0com.dronelabs.Perfkit.SourceInfo\0Description\0com.dronelabs.Perfkit.SourceInfo\0Version\0\0"
+"org.perfkit.Agent.SourceInfo\0Uid\0org.perfkit.Agent.SourceInfo\0Name\0org.perfkit.Agent.SourceInfo\0Description\0org.perfkit.Agent.SourceInfo\0Version\0\0"
 };
 

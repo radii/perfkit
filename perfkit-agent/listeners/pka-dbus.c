@@ -36,6 +36,12 @@
 #include "pka-source-glue.h"
 #include "pka-source-dbus.h"
 
+#define MANAGER_PATH        "/org/perfkit/Agent/Manager"
+#define ENCODER_PLUGIN_PATH "/org/perfkit/Agent/Plugins/Encoders/%s"
+#define SOURCE_PLUGIN_PATH  "/org/perfkit/Agent/Plugins/Sources/%s"
+#define CHANNEL_PATH        "/org/perfkit/Agent/Channels/%d"
+#define SOURCE_PATH         "/org/perfkit/Agent/Sources/%d"
+
 G_DEFINE_TYPE (PkaDBus, pka_dbus, PKA_TYPE_LISTENER)
 
 static DBusGConnection *dbus_conn = NULL;
@@ -84,7 +90,7 @@ pka_dbus_start(PkaListener  *listener,
 	 * Request our known bus name.
 	 */
 	if (dbus_bus_request_name(dbus_g_connection_get_connection(priv->conn),
-	                          "com.dronelabs.Perfkit",
+	                          "org.perfkit.Agent",
 	                          DBUS_NAME_FLAG_DO_NOT_QUEUE,
 	                          NULL) == DBUS_REQUEST_NAME_REPLY_EXISTS)
 	{
@@ -116,7 +122,7 @@ pka_dbus_start(PkaListener  *listener,
 	 */
 	list = pka_pipeline_get_encoder_plugins();
 	for (iter = list; iter; iter = iter->next) {
-		path = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Encoders/%s",
+		path = g_strdup_printf(ENCODER_PLUGIN_PATH,
 		                       pka_encoder_info_get_uid(iter->data));
 		dbus_g_connection_register_g_object(dbus_conn, path, iter->data);
 		g_free(path);
@@ -129,7 +135,7 @@ pka_dbus_start(PkaListener  *listener,
 	 */
 	list = pka_pipeline_get_source_plugins();
 	for (iter = list; iter; iter = iter->next) {
-		path = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+		path = g_strdup_printf(SOURCE_PLUGIN_PATH,
 		                       pka_source_info_get_uid(iter->data));
 		dbus_g_connection_register_g_object(dbus_conn, path, iter->data);
 		g_free(path);
@@ -138,11 +144,11 @@ pka_dbus_start(PkaListener  *listener,
 	g_list_free(list);
 
 	/*
-	 * Manager Servce (/com/dronelabs/Perfkit/Manager)
+	 * Manager Service.
 	 */
 	priv->manager = g_object_new(PKA_DBUS_TYPE_MANAGER, NULL);
 	dbus_g_connection_register_g_object(dbus_conn,
-	                                    "/com/dronelabs/Perfkit/Manager",
+	                                    MANAGER_PATH,
 	                                    G_OBJECT(priv->manager));
 
 	g_message("DBus listener started.");
@@ -220,7 +226,7 @@ pka_dbus_channel_added (PkaListener *listener,
 {
 	gchar *path;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	path = g_strdup_printf(CHANNEL_PATH,
 	                       pka_channel_get_id(channel));
 	dbus_g_connection_register_g_object(dbus_conn, path, G_OBJECT(channel));
 	g_free(path);
@@ -232,7 +238,7 @@ pka_dbus_source_added (PkaListener *listener,
 {
 	gchar *path;
 
-	path = g_strdup_printf("/com/dronelabs/Perfkit/Sources/%d",
+	path = g_strdup_printf(SOURCE_PATH,
 	                       pka_source_get_id(source));
 	dbus_g_connection_register_g_object(dbus_conn, path, G_OBJECT(source));
 	g_free(path);

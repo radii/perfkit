@@ -23,27 +23,27 @@ static DBusGProxy*
 get_manager_proxy (void)
 {
 	return dbus_g_proxy_new_for_name(get_conn(),
-	                                 "com.dronelabs.Perfkit",
-	                                 "/com/dronelabs/Perfkit/Manager",
-	                                 "com.dronelabs.Perfkit.Manager");
+	                                 "org.perfkit.Agent",
+	                                 "/org/perfkit/Agent/Manager",
+	                                 "org.perfkit.Agent.Manager");
 }
 
 static DBusGProxy*
 get_channel_proxy (const gchar *path)
 {
 	return dbus_g_proxy_new_for_name(get_conn(),
-	                                 "com.dronelabs.Perfkit",
+	                                 "org.perfkit.Agent",
 	                                 path,
-	                                 "com.dronelabs.Perfkit.Channel");
+	                                 "org.perfkit.Agent.Channel");
 }
 
 static DBusGProxy*
 get_sub_proxy (const gchar *path)
 {
 	return dbus_g_proxy_new_for_name(get_conn(),
-	                                 "com.dronelabs.Perfkit",
+	                                 "org.perfkit.Agent",
 	                                 path,
-	                                 "com.dronelabs.Perfkit.Subscription");
+	                                 "org.perfkit.Agent.Subscription");
 }
 
 static void
@@ -89,7 +89,7 @@ test_TestSuite_create_channel (void)
 	                       G_TYPE_INVALID))
 		g_error("%s", error->message);
 
-	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Channels/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Channels/0");
 	g_free(path);
 	g_object_unref(proxy);
 }
@@ -101,9 +101,9 @@ test_TestSuite_add_source (void)
 	gchar *path = NULL;
 	GError *error = NULL;
 
-	#define MEM_INFO "/com/dronelabs/Perfkit/Plugins/Sources/Memory"
+	#define MEM_INFO "/org/perfkit/Agent/Plugins/Sources/Memory"
 
-	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
 	if (!dbus_g_proxy_call(proxy, "AddSource", &error,
 	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(MEM_INFO),
 	                       G_TYPE_INVALID,
@@ -111,7 +111,7 @@ test_TestSuite_add_source (void)
 	                       G_TYPE_INVALID))
 	    g_error("%s", error->message);
 
-	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Sources/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Sources/0");
 	g_free(path);
 	g_object_unref(proxy);
 }
@@ -122,7 +122,7 @@ test_TestSuite_start (void)
 	DBusGProxy *proxy;
 	GError *error = NULL;
 
-	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
 	if (!dbus_g_proxy_call(proxy, "Start", &error,
 	                       G_TYPE_INVALID,
 	                       G_TYPE_INVALID))
@@ -136,7 +136,7 @@ test_TestSuite_stop (void)
 	DBusGProxy *proxy;
 	GError *error = NULL;
 
-	proxy = get_channel_proxy("/com/dronelabs/Perfkit/Channels/0");
+	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
 	if (!dbus_g_proxy_call(proxy, "Stop", &error,
 	                       G_TYPE_BOOLEAN, TRUE,
 	                       G_TYPE_INVALID,
@@ -175,7 +175,7 @@ handle_msg (DBusConnection *conn,
             DBusMessage    *msg,
             void           *data)
 {
-	if (!HAS_INTERFACE(msg, "com.dronelabs.Perfkit.Subscription"))
+	if (!HAS_INTERFACE(msg, "org.perfkit.Agent.Subscription"))
 		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
 	switch (get_msg_type(msg)) {
@@ -221,7 +221,7 @@ test_TestSuite_subscription (void)
 	GMainContext *context;
 
 	#define SUB_PATH "/Subscriptions/0"
-	#define CHANNEL_PATH "/com/dronelabs/Perfkit/Channels/0"
+	#define CHANNEL_PATH "/org/perfkit/Agent/Channels/0"
 
 	loop = g_main_loop_new(NULL, FALSE);
 	addr = g_strdup_printf("unix:path=%s" G_DIR_SEPARATOR_S "subscription.socket", tmpdir);
@@ -243,7 +243,7 @@ test_TestSuite_subscription (void)
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
 		g_error("%s", error->message);
-	g_assert_cmpstr(path, ==, "/com/dronelabs/Perfkit/Subscriptions/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Subscriptions/0");
 	subproxy = get_sub_proxy(path);
 	if (!dbus_g_proxy_call(subproxy, "Enable", &error,
 	                       G_TYPE_INVALID, G_TYPE_INVALID))

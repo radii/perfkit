@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <node>
-  <interface name="com.dronelabs.Perfkit.Channel">
+  <interface name="org.perfkit.Agent.Channel">
     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_channel"/>
 
     <!--

@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <node>
-    <interface name="com.dronelabs.Perfkit.SourceInfo">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_source_info"/>
+    <interface name="org.perfkit.Agent.EncoderInfo">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="pka_encoder_info"/>
 
         <property name="Uid" type="s" access="read"/>
         <property name="Name" type="s" access="read"/>

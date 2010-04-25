@@ -41,6 +41,10 @@ static gboolean pka_dbus_manager_ping         (PkaDBusManager   *manager,
 
 #include "pka-dbus-manager-dbus.h"
 
+#define CHANNEL_PATH       "/org/perfkit/Agent/Channels/%d"
+#define SOURCE_PLUGIN_PATH "/org/perfkit/Agent/Plugins/Sources/%s"
+#define SUBSCRIPTION_PATH  "/org/perfkit/Agent/Subscriptions/%d"
+
 G_DEFINE_TYPE (PkaDBusManager, pka_dbus_manager, G_TYPE_OBJECT)
 
 typedef struct {
@@ -72,12 +76,14 @@ pka_dbus_manager_create_channel (PkaDBusManager  *manager,
 
 	real_channel = pka_channel_new(&spawn);
 	if (!real_channel) {
-		/* TODO: Set error */
+		g_set_error(error, PKA_CHANNEL_ERROR,
+		            PKA_CHANNEL_ERROR_UNKNOWN,
+		            "An error occurred creating channel");
 		return FALSE;
 	}
 
 	pka_pipeline_add_channel(real_channel);
-	*channel = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+	*channel = g_strdup_printf(CHANNEL_PATH,
 	                           pka_channel_get_id(real_channel));
 
 	return TRUE;
@@ -181,7 +187,7 @@ pka_dbus_manager_create_subscription (PkaDBusManager  *manager,
 	}
 	data->manager = manager;
 	data->proxy = dbus_g_proxy_new_for_peer(data->conn, delivery_path,
-	                                        "com.dronelabs.Perfkit.Subscription");
+	                                        "org.perfkit.Agent.Subscription");
 
 	/* subscribe to the channel */
 	sub = pka_subscription_new(real_channel,
@@ -206,7 +212,7 @@ pka_dbus_manager_create_subscription (PkaDBusManager  *manager,
 	/* notify the pipeline of the subscription */
 	pka_pipeline_add_subscription(sub);
 
-	*subscription = g_strdup_printf("/com/dronelabs/Perfkit/Subscriptions/%d",
+	*subscription = g_strdup_printf(SUBSCRIPTION_PATH,
 	                                pka_subscription_get_id(sub));
 
 	dbus_g_connection_register_g_object(conn,
@@ -249,7 +255,7 @@ pka_dbus_manager_get_source_plugins (PkaDBusManager   *manager,
 
 	p = g_malloc0((g_list_length(list) + 1) * sizeof(gchar*));
 	for (iter = list, i = 0; iter; iter = iter->next, i++) {
-		p[i] = g_strdup_printf("/com/dronelabs/Perfkit/Plugins/Sources/%s",
+		p[i] = g_strdup_printf(SOURCE_PLUGIN_PATH,
 		                       pka_source_info_get_uid(iter->data));
 	}
 
@@ -301,7 +307,7 @@ pka_dbus_manager_get_channels (PkaDBusManager   *manager,
 	cpaths = g_malloc0(sizeof(gchar*) * (g_list_length(channels) + 1));
 
 	for (iter = channels, i = 0; iter; iter = iter->next, i++) {
-		cpaths[i] = g_strdup_printf("/com/dronelabs/Perfkit/Channels/%d",
+		cpaths[i] = g_strdup_printf(CHANNEL_PATH,
 		                            pka_channel_get_id(iter->data));
 	}
 

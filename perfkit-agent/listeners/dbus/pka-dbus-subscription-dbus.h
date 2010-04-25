@@ -152,14 +152,14 @@ G_END_DECLS
 #include <dbus/dbus-glib.h>
 static const DBusGMethodInfo dbus_glib_pka_dbus_subscription_methods[] = {
   { (GCallback) pka_dbus_subscription_enable, dbus_glib_marshal_pka_dbus_subscription_BOOLEAN__POINTER, 0 },
-  { (GCallback) pka_dbus_subscription_disable, dbus_glib_marshal_pka_dbus_subscription_BOOLEAN__BOOLEAN_POINTER, 45 },
+  { (GCallback) pka_dbus_subscription_disable, dbus_glib_marshal_pka_dbus_subscription_BOOLEAN__BOOLEAN_POINTER, 41 },
 };
 
 const DBusGObjectInfo dbus_glib_pka_dbus_subscription_object_info = {
   0,
   dbus_glib_pka_dbus_subscription_methods,
   2,
-"com.dronelabs.Perfkit.Subscription\0Enable\0S\0\0com.dronelabs.Perfkit.Subscription\0Disable\0S\0drain\0I\0b\0\0\0",
+"org.perfkit.Agent.Subscription\0Enable\0S\0\0org.perfkit.Agent.Subscription\0Disable\0S\0drain\0I\0b\0\0\0",
 "\0",
 "\0"
 };
