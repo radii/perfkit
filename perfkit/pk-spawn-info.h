@@ -1,4 +1,4 @@
-/* perfkit.h
+/* pk-spawn-info.h
  *
  * Copyright (C) 2009 Christian Hergert <chris@dronelabs.com>
  *
@@ -16,15 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __PERFKIT_H__
-#define __PERFKIT_H__
+#ifndef __PK_SPAWN_INFO_H__
+#define __PK_SPAWN_INFO_H__
 
-#define __PERFKIT_INSIDE__
+typedef struct _PkSpawnInfo PkSpawnInfo;
 
-#include "pk-connection.h"
-#include "pk-spawn-info.h"
-#include "pk-version.h"
-
-#undef __PERFKIT_INSIDE__
-
-#endif /* __PERFKIT_H__ */
+#endif /* __PK_SPAWN_INFO_H__ */

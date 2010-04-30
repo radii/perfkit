@@ -32,19 +32,19 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\""perfkit"\"					\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Perfkit\"					\
-	-I$(srcdir)/dbus						\
+	-I$(top_srcdir)/perfkit						\
 	$(WARNINGS)							\
 	$(PERFKIT_CFLAGS)						\
 	$(DBUS_CFLAGS)							\
 	$(NULL)
 
 NOINST_H_FILES =							\
-	pk-dbus.h							\
+	pk-connection-dbus.h						\
 	$(NULL)
 
 libdbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
-	pk-dbus.c							\
+	pk-connection-dbus.c						\
 	$(NULL)
 
 libdbus_la_LIBADD =							\
