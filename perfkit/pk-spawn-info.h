@@ -19,6 +19,20 @@
 #ifndef __PK_SPAWN_INFO_H__
 #define __PK_SPAWN_INFO_H__
 
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 typedef struct _PkSpawnInfo PkSpawnInfo;
+
+struct _PkSpawnInfo
+{
+	const gchar  *target;
+	GPid          pid;
+	gchar       **args;
+	gchar       **env;
+};
+
+G_END_DECLS
 
 #endif /* __PK_SPAWN_INFO_H__ */
