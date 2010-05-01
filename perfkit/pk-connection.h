@@ -37,12 +37,14 @@ G_BEGIN_DECLS
 /**
  * PkConnectionError:
  * @PK_CONNECTION_ERROR_NOT_SUPPORTED: The operation is not supported.
+ * @PK_CONNECTION_ERROR_STATE: The connection is in an invalid state.
  *
  * The #PkConnection error enumeration.
  */
 typedef enum
 {
 	PK_CONNECTION_ERROR_NOT_SUPPORTED,
+	PK_CONNECTION_ERROR_STATE,
 } PkConnectionError;
 
 /**
