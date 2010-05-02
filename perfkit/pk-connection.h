@@ -406,6 +406,20 @@ struct _PkConnectionClass
 	                                                GError               **error);
 
 	/**
+	 * The "channel_get_sources" RPC.
+	 */
+	void     (*channel_get_sources_async)          (PkConnection          *connection,
+	                                                gint                   channel,
+	                                                GCancellable          *cancellable,
+	                                                GAsyncReadyCallback    callback,
+	                                                gpointer               user_data);
+	gboolean (*channel_get_sources_finish)         (PkConnection          *connection,
+	                                                GAsyncResult          *result,
+	                                                gint                 **sources,
+	                                                gsize                 *sources_len,
+	                                                GError               **error);
+
+	/**
 	 * The "channel_add_source" RPC.
 	 */
 	void     (*channel_add_source_async)           (PkConnection          *connection,
@@ -536,7 +550,7 @@ struct _PkConnectionClass
 	/*
 	 * Padding for future ABI additions.
 	 */
-	gpointer reserved[190];
+	gpointer reserved[188];
 
 };
 

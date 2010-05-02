@@ -100,6 +100,14 @@ gboolean   pk_channel_get_working_dir_finish (PkChannel            *channel,
                                               GAsyncResult         *result,
                                               gchar               **working_dir,
                                               GError              **error);
+void       pk_channel_get_sources_async      (PkChannel           *channel,
+                                              GCancellable        *cancellable,
+                                              GAsyncReadyCallback  callback,
+                                              gpointer             user_data);
+gboolean   pk_channel_get_sources_finish     (PkChannel            *channel,
+                                              GAsyncResult         *result,
+                                              GList               **sources,
+                                              GError              **error);
 void       pk_channel_add_source_async       (PkChannel           *channel,
                                               const gchar         *plugin,
                                               GCancellable        *cancellable,

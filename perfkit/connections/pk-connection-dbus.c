@@ -4637,6 +4637,188 @@ finish:
 }
 
 /**
+ * pk_connection_dbus_channel_get_sources_async:
+ * @connection: A #PkConnectionDBus.
+ * @cancellable: A #GCancellable to cancel an async request or %NULL.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: user data for @callback.
+ *
+ * Asynchronously requests the "channel_get_sources" RPC.
+ * This method is called via the PkConnectionClass vtable.
+ * @callback is executed upon completion of the request.  @callback should
+ * call pk_connection_channel_get_sources_finish().
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_dbus_channel_get_sources_async (PkConnection        *connection,  /* IN */
+                                              gint                 channel,     /* IN */
+                                              GCancellable        *cancellable, /* IN */
+                                              GAsyncReadyCallback  callback,    /* IN */
+                                              gpointer             user_data)   /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusPendingCall *call = NULL;
+	GSimpleAsyncResult *result;
+	DBusMessageIter iter;
+	DBusMessage *msg;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+
+	/*
+	 * Allocate DBus message.
+	 */
+	msg = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+	g_assert(msg);
+
+	/*
+	 * Create asynchronous connection handle.
+	 */
+	result = g_simple_async_result_new(
+			G_OBJECT(connection), callback, user_data,
+			pk_connection_dbus_channel_get_sources_async);
+
+	/*
+	 * Wire cancellable if needed.
+	 */
+	if (cancellable) {
+		g_cancellable_connect(cancellable,
+		                      G_CALLBACK(pk_connection_dbus_cancel),
+		                      g_object_ref(result), g_object_unref);
+	}
+
+	/*
+	 * Build the DBus message.
+	 */
+	dbus_message_set_destination(msg, "org.perfkit.Agent");
+	dbus_message_set_interface(msg, "org.perfkit.Agent.Channel");
+	dbus_message_set_path(msg, "/org/perfkit/Agent/Manager"); /* XXX: Set proper path */
+	dbus_message_set_member(msg, "GetSources");
+
+	/*
+	 * Add message parameters.
+	 */
+	dbus_message_iter_init_append(msg, &iter);
+	APPEND_INT_PARAM(channel);
+
+	/*
+	 * Send message to agent and schedule to be notified of the result.
+	 */
+	if (!dbus_connection_send_with_reply(priv->dbus, msg, &call, -1)) {
+		g_warning("Error dispatching message to %s/%s",
+		          dbus_message_get_path(msg),
+		          dbus_message_get_member(msg));
+		dbus_message_unref(msg);
+		EXIT;
+	}
+
+	/*
+	 * Get notified when the reply is received or timeout expires.
+	 */
+	dbus_pending_call_set_notify(call, pk_connection_dbus_notify,
+	                             result, g_object_unref);
+
+	/*
+	 * Release resources.
+	 */
+	dbus_message_unref(msg);
+
+	EXIT;
+}
+
+/**
+ * pk_connection_dbus_channel_get_sources_finish:
+ * @connection: A #PkConnectionDBus.
+ * @result: A #GAsyncResult received in callback from
+ *          pk_connection_dbus_channel_get_sources_async().
+ * @error: A location for a #GError or %NULL.
+ *
+ * Completes an asynchronous request of the "channel_get_sources" RPC.
+ * This should be called from a callback supplied to
+ * pk_connection_dbus_channel_get_sources_async().
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+static gboolean
+pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN */
+                                               GAsyncResult  *result,      /* IN */
+                                               gint         **sources,     /* OUT */
+                                               gsize         *sources_len, /* OUT */
+                                               GError       **error)       /* OUT */
+{
+	DBusPendingCall *call;
+	DBusMessage *msg;
+	gboolean ret = FALSE;
+	DBusMessageIter iter;
+	gint param_type;
+	gint i = 0;
+
+	g_return_val_if_fail(sources != NULL, FALSE);
+	g_return_val_if_fail(sources_len != NULL, FALSE);
+	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_get_sources), FALSE);
+	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
+	                     FALSE);
+
+	/*
+	 * Clear out params.
+	 */
+	*sources = 0;
+	*sources_len = 0;
+
+	/*
+	 * Check if call was cancelled.
+	 */
+	if (!(msg = dbus_pending_call_steal_reply(call))) {
+		g_simple_async_result_propagate_error(
+				G_SIMPLE_ASYNC_RESULT(result),
+				error);
+		goto finish;
+	}
+
+	/*
+	 * Check if response is an error.
+	 */
+	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s", dbus_message_get_error_name(msg));
+		goto finish;
+	}
+
+	/*
+	 * Process message arguments.
+	 */
+	if (!dbus_message_iter_init(msg, &iter)) {
+		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
+		                    PK_CONNECTION_DBUS_ERROR_DBUS,
+		                    "Unknown error iterating arguments");
+		goto finish;
+	}
+
+	do {
+		param_type = dbus_message_iter_get_arg_type(&iter);
+		switch (i++) {
+		CASE_INTV_PARAM(0, sources);
+		CASE_MISSING_PARAM;
+		}
+	} while (dbus_message_iter_next(&iter));
+	
+
+	ret = TRUE;
+
+finish:
+	dbus_message_unref(msg);
+	g_object_unref(result);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_dbus_channel_add_source_async:
  * @connection: A #PkConnectionDBus.
  * @cancellable: A #GCancellable to cancel an async request or %NULL.
@@ -6284,6 +6466,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	OVERRIDE_VTABLE(channel_get_state);
 	OVERRIDE_VTABLE(channel_get_target);
 	OVERRIDE_VTABLE(channel_get_working_dir);
+	OVERRIDE_VTABLE(channel_get_sources);
 	OVERRIDE_VTABLE(channel_add_source);
 	OVERRIDE_VTABLE(channel_remove_source);
 	OVERRIDE_VTABLE(channel_start);

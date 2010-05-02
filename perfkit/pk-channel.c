@@ -17,8 +17,10 @@
  */
 
 #include "pk-channel.h"
-#include "pk-util.h"
 #include "pk-connection-lowlevel.h"
+#include "pk-source.h"
+#include "pk-util.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkChannel, pk_channel, G_TYPE_INITIALLY_UNOWNED)
 
@@ -183,6 +185,7 @@ pk_channel_get_args_finish (PkChannel      *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*args = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_args_finish(channel->priv->connection,
 	                                            res,
@@ -278,6 +281,7 @@ pk_channel_get_env_finish (PkChannel      *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*env = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_env_finish(channel->priv->connection,
 	                                           res,
@@ -373,6 +377,7 @@ pk_channel_get_pid_finish (PkChannel     *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*pid = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_pid_finish(channel->priv->connection,
 	                                           res,
@@ -468,6 +473,7 @@ pk_channel_get_state_finish (PkChannel     *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*state = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_state_finish(channel->priv->connection,
 	                                             res,
@@ -563,6 +569,7 @@ pk_channel_get_target_finish (PkChannel     *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*target = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_target_finish(channel->priv->connection,
 	                                              res,
@@ -658,11 +665,123 @@ pk_channel_get_working_dir_finish (PkChannel     *channel,     /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*working_dir = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_get_working_dir_finish(channel->priv->connection,
 	                                                   res,
 	                                                   working_dir,
 	                                                   error);
+	RETURN(ret);
+}
+
+/**
+ * pk_channel_get_sources_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback for #PkConnection<!-- -->'s "channel_Channel" RPC.
+ * Dispatches the real #GAsyncResult for the operation.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_channel_get_sources_cb (GObject      *object,    /* IN */
+                           GAsyncResult *result,    /* IN */
+                           gpointer      user_data) /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(object));
+	g_return_if_fail(G_IS_SIMPLE_ASYNC_RESULT(user_data));
+
+	g_simple_async_result_set_op_res_gpointer(user_data,
+	                                          g_object_ref(result),
+	                                          (GDestroyNotify)g_object_unref);
+	g_simple_async_result_complete(user_data);
+}
+
+/**
+ * pk_channel_get_sources_async:
+ * @channel: A #PkChannel.
+ * @cancellable: A #GCancellable or %NULL.
+ * @callback: A #GAsyncCallback to call when the result is ready.
+ * @user_data: user data for @callback.
+ *
+ * Asynchronously executes the "channel_get_sources" RPC.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_channel_get_sources_async (PkChannel           *channel,     /* IN */
+                              GCancellable        *cancellable, /* IN */
+                              GAsyncReadyCallback  callback,    /* IN */
+                              gpointer             user_data)   /* IN */
+{
+	GSimpleAsyncResult *res;
+
+	g_return_if_fail(PK_IS_CHANNEL(channel));
+	g_return_if_fail(!cancellable || G_IS_CANCELLABLE(cancellable));
+	g_return_if_fail(callback != NULL);
+
+	res = ASYNC_NEW(channel, callback, user_data,
+                    pk_channel_get_sources_async);
+	ASYNC_ERROR_IF_NOT_CONNECTED(res, channel->priv->connection);
+	pk_connection_channel_get_sources_async(channel->priv->connection,
+	                                        channel->priv->id,
+	                                        cancellable,
+	                                        pk_channel_get_sources_cb,
+	                                        res);
+}
+
+/**
+ * pk_channel_get_sources_finish:
+ * @channel: A #PkChannel.
+ * @result: A #GAsyncResult.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Completes an asynchronous request for the "channel_get_sources" RPC.
+ *
+ * Returns: %TRUE if RPC was successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pk_channel_get_sources_finish (PkChannel     *channel, /* IN */
+                               GAsyncResult  *result,  /* IN */
+                               GList        **sources, /* OUT */
+                               GError       **error)   /* OUT */
+{
+	GAsyncResult *res;
+	gboolean ret;
+	gint *p_sources = NULL;
+	gsize p_sources_len = 0;
+	gint i;
+
+	g_return_val_if_fail(PK_IS_CHANNEL(channel), FALSE);
+	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
+	g_return_val_if_fail(ASYNC_IS_VALID(result, channel,
+	                                    pk_channel_get_sources_async),
+	                     FALSE);
+	g_return_val_if_fail(sources != NULL, FALSE);
+
+	ENTRY;
+	*sources = NULL;
+	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
+	ret = pk_connection_channel_get_sources_finish(channel->priv->connection,
+	                                               res,
+	                                               &p_sources,
+	                                               &p_sources_len,
+	                                               error);
+	if (ret) {
+		for (i = 0; p_sources[i]; i++) {
+			(*sources) = g_list_append((*sources),
+			                           g_object_new(PK_TYPE_SOURCE,
+			                                        "connection", channel->priv->connection,
+			                                        "id", p_sources[i],
+			                                        NULL));
+		}
+		g_free(p_sources);
+	}
 	RETURN(ret);
 }
 
@@ -756,6 +875,7 @@ pk_channel_add_source_finish (PkChannel     *channel, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*source = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_channel_add_source_finish(channel->priv->connection,
 	                                              res,

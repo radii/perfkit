@@ -420,6 +420,25 @@ gboolean pk_connection_channel_get_working_dir            (PkConnection         
                                                            GError               **error);
 
 /*
+ * The "channel_get_sources" RPC.
+ */
+void     pk_connection_channel_get_sources_async          (PkConnection          *connection,
+                                                           gint                   channel,
+                                                           GCancellable          *cancellable,
+                                                           GAsyncReadyCallback    callback,
+                                                           gpointer               user_data);
+gboolean pk_connection_channel_get_sources_finish         (PkConnection          *connection,
+                                                           GAsyncResult          *result,
+                                                           gint                 **sources,
+                                                           gsize                 *sources_len,
+                                                           GError               **error);
+gboolean pk_connection_channel_get_sources                (PkConnection          *connection,
+                                                           gint                   channel,
+                                                           gint                 **sources,
+                                                           gsize                 *sources_len,
+                                                           GError               **error);
+
+/*
  * The "channel_add_source" RPC.
  */
 void     pk_connection_channel_add_source_async           (PkConnection          *connection,

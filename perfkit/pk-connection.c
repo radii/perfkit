@@ -3379,6 +3379,150 @@ pk_connection_channel_get_working_dir (PkConnection  *connection,  /* IN */
 }
 
 /**
+ * pk_connection_channel_get_sources_async:
+ * @connection: A #PkConnection.
+ * @cancellable: A #GCancellable to cancel an async request or %NULL.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: user data for @callback.
+ *
+ * Asynchronously requests the "channel_get_sources" RPC.
+ * @callback is executed upon completion of the request.  @callback should
+ * call pk_connection_channel_get_sources_finish().
+ *
+ * See pk_connection_channel_get_sources().
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_sources_async (PkConnection        *connection,  /* IN */
+                                         gint                 channel,     /* IN */
+                                         GCancellable        *cancellable, /* IN */
+                                         GAsyncReadyCallback  callback,    /* IN */
+                                         gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_sources)(connection,
+	                               channel,
+	                               cancellable,
+	                               callback,
+	                               user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_sources_finish:
+ * @connection: A #PkConnection
+ * @result: A #GAsyncResult received in callback from
+ *          pk_connection_channel_get_sources_async().
+ * @error: A location for a #GError or %NULL.
+ *
+ * Completes an asynchronous request of the "channel_get_sources" RPC.
+ * This should be called from a callback supplied to
+ * pk_connection_channel_get_sources_async().
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_sources_finish (PkConnection  *connection,  /* IN */
+                                          GAsyncResult  *result,      /* IN */
+                                          gint         **sources,     /* OUT */
+                                          gsize         *sources_len, /* OUT */
+                                          GError       **error)       /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_sources)(connection,
+	                                     result,
+	                                     sources,
+	                                     sources_len,
+	                                     error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_sources_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: User data supplied to pk_connection_channel_get_sources_async().
+ *
+ * Callback executed when an asynchronous request for the
+ * "channel_get_sources" RPC has been completed.
+ *
+ * Results are proxied to the thread that is blocking until the request
+ * has completed.  The blocking thread is woken up.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_sources_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+
+{
+	PkConnectionSync *async = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(user_data != NULL);
+
+	ENTRY;
+	async->result = pk_connection_channel_get_sources_finish(
+			PK_CONNECTION(source),
+			result,
+			async->params[0],
+			async->params[1],
+			async->error);
+	pk_connection_async_signal(async);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_sources:
+ * @connection: A #PkConnection
+ * @error: A location for a #GError or %NULL.
+ *
+ * The "channel_get_sources" RPC.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_sources (PkConnection  *connection,  /* IN */
+                                   gint           channel,     /* IN */
+                                   gint         **sources,     /* OUT */
+                                   gsize         *sources_len, /* OUT */
+                                   GError       **error)       /* OUT */
+{
+	PkConnectionSync async;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_sources);
+	pk_connection_async_init(&async);
+	async.error = error;
+	async.params[0] = (gpointer)sources;
+	async.params[1] = (gpointer)sources_len;
+	pk_connection_channel_get_sources_async(
+			connection,
+			channel,
+			NULL,
+			pk_connection_channel_get_sources_cb,
+			&async);
+	pk_connection_async_wait(&async);
+	pk_connection_async_destroy(&async);
+	RETURN(async.result);
+}
+
+/**
  * pk_connection_channel_add_source_async:
  * @connection: A #PkConnection.
  * @cancellable: A #GCancellable to cancel an async request or %NULL.
