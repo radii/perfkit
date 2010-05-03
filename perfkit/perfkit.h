@@ -21,8 +21,16 @@
 
 #define __PERFKIT_INSIDE__
 
+#include "pk-channel.h"
 #include "pk-connection.h"
+#include "pk-connection-lowlevel.h"
+#include "pk-encoder.h"
+#include "pk-manager.h"
+#include "pk-plugin.h"
+#include "pk-source.h"
 #include "pk-spawn-info.h"
+#include "pk-subscription.h"
+#include "pk-util.h"
 #include "pk-version.h"
 
 #undef __PERFKIT_INSIDE__
