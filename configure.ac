@@ -17,6 +17,7 @@ m4_define([lt_age], [m4_eval(perfkit_binary_age - perfkit_interface_age)])
 dnl ************************************************************************
 dnl Initialize Automake
 dnl ************************************************************************
+AC_PREREQ(2.62)
 AC_INIT(perfkit, perfkit_version)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AC_CONFIG_HEADERS([config.h])
@@ -28,6 +29,7 @@ AC_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
+GOBJECT_INTROSPECTION_CHECK([0.6.7])
 
 
 dnl ************************************************************************

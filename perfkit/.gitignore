@@ -1,2 +1,5 @@
 libperfkit-1.0.la
+Perfkit-1.0.gir
+Perfkit-1.0.typelib
 pk-version.h
+tmp-*

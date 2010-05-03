@@ -1,3 +1,5 @@
+-include $(INTROSPECTION_MAKEFILE)
+
 SUBDIRS = . connections
 
 lib_LTLIBRARIES = libperfkit-1.0.la
@@ -72,4 +74,27 @@ libperfkit_1_0_la_CPPFLAGS =						\
 	$(PERFKIT_CFLAGS)						\
 	$(NULL)
 
+INTROSPECTION_GIRS =
+CLEANFILES =
 DISTCLEANFILES = $(BUILD_SOURCES)
+
+if HAVE_INTROSPECTION
+introspection_files = $(INST_H_FILES) pk-*.c
+
+Perfkit-1.0.gir: $(INTROSPECTION_SCANNER) libperfkit-1.0.la Makefile
+Perfkit_1_0_gir_SCANNERFLAGS = --strip-prefix=Pk
+Perfkit_1_0_gir_INCLUDES = Gio-2.0
+Perfkit_1_0_gir_CFLAGS = $(INCLUDES)
+Perfkit_1_0_gir_LIBS = libperfkit-1.0.la
+Perfkit_1_0_gir_FILES = $(addprefix $(srcdir)/, $(introspection_files))
+
+INTROSPECTION_GIRS += Perfkit-1.0.gir
+
+girdir = $(datadir)/gir-1.0
+dist_gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibsdir = $(libdir)/girepository-1.0
+typelibs_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES += $(dist_gir_DATA) $(typelibs_DATA)
+endif
