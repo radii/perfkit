@@ -5154,12 +5154,11 @@ pk_connection_get_protocol_plugin_path (const gchar *protocol) /* IN */
 	gchar *path;
 
 	if (g_getenv("PK_CONNECTIONS_DIR") != NULL) {
-		plugin_dir = g_build_filename(g_getenv("PK_CONNECTIONS_DIR"),
-		                              protocol, NULL);
+		plugin_dir = g_build_filename(g_getenv("PK_CONNECTIONS_DIR"), NULL);
 	}
 	else {
 		plugin_dir = g_build_filename(PACKAGE_LIB_DIR, "perfkit",
-		                              "connections", protocol, NULL);
+		                              "connections", NULL);
 	}
 
 	path = g_module_build_path(plugin_dir, protocol);
@@ -5302,15 +5301,28 @@ pk_connection_new_from_uri (const gchar *uri) /* IN */
 	PkConnection *connection = NULL;
 	gchar protocol[32] = { 0 };
 	GType protocol_type;
+	gboolean done = FALSE;
+	gint i;
 
 	g_return_val_if_fail(uri != NULL, NULL);
 
 	/*
 	 * Determine protocol handler for uri.
 	 */
-	if (sscanf(uri, "%31s://", protocol) != 1) {
-		return NULL;
+	for (i = 0; uri[i] && i < (sizeof(protocol) - 1); i++) {
+		switch (uri[i]) {
+		case ':':
+			done = TRUE;
+			break;
+		default:
+			protocol[i] = uri[i];
+			break;
+		}
+		if (done) {
+			break;
+		}
 	}
+	protocol[i++] = '\0';
 
 	/*
 	 * Lookup protocol implementation by name.

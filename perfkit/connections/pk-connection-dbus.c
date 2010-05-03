@@ -6512,3 +6512,17 @@ pk_connection_dbus_error_quark (void)
 {
 	return g_quark_from_string("pk-connection-dbus-error-quark");
 }
+
+/**
+ * pk_connection_register:
+ *
+ * Module entry point.  Retrieves the #GType for the PkConnectionDBus class.
+ *
+ * Returns: A #GType.
+ * Side effects: None.
+ */
+G_MODULE_EXPORT GType
+pk_connection_register (void)
+{
+	return PK_TYPE_CONNECTION_DBUS;
+}
