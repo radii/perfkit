@@ -30,6 +30,7 @@ AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 
 
 dnl ************************************************************************
@@ -118,7 +119,6 @@ dnl Miscellaneous
 dnl ************************************************************************
 AM_PROG_LIBTOOL
 GTK_DOC_CHECK([1.11])
-SHAVE_INIT([build], [enable])
 SHAMROCK_EXPAND_LIBDIR
 SHAMROCK_EXPAND_BINDIR
 SHAMROCK_EXPAND_DATADIR
@@ -129,9 +129,6 @@ dnl Output
 dnl ************************************************************************
 AC_OUTPUT([
 	Makefile
-
-	build/shave
-	build/shave-libtool
 
 	data/Makefile
 	data/dbus/Makefile
