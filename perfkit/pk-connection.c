@@ -43,6 +43,7 @@ typedef struct
 {
 	GMutex    *mutex;
 	GCond     *cond;
+	gboolean   completed;
 	gboolean   result;
 	GError   **error;
 	gpointer   params[16];
@@ -122,6 +123,10 @@ static inline void
 pk_connection_async_init (PkConnectionSync *async) /* IN */
 {
 	memset(async, 0, sizeof(*async));
+
+	async->completed = FALSE;
+	async->result = FALSE;
+	async->error = NULL;
 	async->mutex = g_mutex_new();
 	async->cond = g_cond_new();
 	g_mutex_lock(async->mutex);
@@ -139,6 +144,7 @@ pk_connection_async_init (PkConnectionSync *async) /* IN */
 static inline void
 pk_connection_async_destroy (PkConnectionSync *async) /* IN */
 {
+	g_mutex_unlock(async->mutex);
 	g_mutex_free(async->mutex);
 	g_cond_free(async->cond);
 }
@@ -152,10 +158,33 @@ pk_connection_async_destroy (PkConnectionSync *async) /* IN */
  * Returns: None.
  * Side effects: None.
  */
-static inline void
+static void
 pk_connection_async_wait (PkConnectionSync *async) /* IN */
 {
-	g_cond_wait(async->cond, async->mutex);
+	GMainContext *context;
+
+	/*
+	 * Get the application main context.
+	 */
+	context = g_main_context_default();
+
+	/*
+	 * If we acquire the context, we can use it for blocking. Otherwise,
+	 * another thread owns it and it is safe to block on the condition.
+	 */
+	if (g_main_context_acquire(context)) {
+		g_mutex_unlock(async->mutex);
+		do {
+			g_main_context_iteration(context, TRUE);
+		} while (!g_atomic_int_get(&async->completed));
+		g_mutex_lock(async->mutex);
+		g_main_context_release(context);
+	} else {
+		/*
+		 * Block on the condition which will be signaled by the main thread.
+		 */
+		g_cond_wait(async->cond, async->mutex);
+	}
 }
 
 /**
@@ -172,6 +201,7 @@ static inline void
 pk_connection_async_signal (PkConnectionSync *async) /* IN */
 {
 	g_mutex_lock(async->mutex);
+	g_atomic_int_set(&async->completed, TRUE);
 	g_cond_signal(async->cond);
 	g_mutex_unlock(async->mutex);
 }
