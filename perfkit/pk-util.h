@@ -40,7 +40,7 @@ G_BEGIN_DECLS
         return (_r);                                                        \
     } G_STMT_END
 
-#define CASE_STR_RETURN(_s) case _s: return #_s
+#define CASE_RETURN_STR(_s) case _s: return #_s
 
 #define ASYNC_NEW(_o, _c, _d, _f)                                           \
     g_simple_async_result_new(G_OBJECT(_o), _c, _f, _d)
@@ -49,13 +49,23 @@ G_BEGIN_DECLS
     g_simple_async_result_is_valid(G_ASYNC_RESULT((_r)),                    \
                             G_OBJECT((_o)), _f)
 
+#define ASYNC_COMPLETE(_r)                                                  \
+    G_STMT_START {                                                          \
+        if (g_main_context_is_owner(g_main_context_default())) {            \
+            g_simple_async_result_complete(G_SIMPLE_ASYNC_RESULT(_r));      \
+        } else {                                                            \
+            g_simple_async_result_complete_in_idle(                         \
+                    G_SIMPLE_ASYNC_RESULT(_r));                             \
+        }                                                                   \
+    } G_STMT_END
+
 #define ASYNC_ERROR_IF_NOT_CONNECTED(_r, _c)                                \
     G_STMT_START {                                                          \
         if (!(_c) || !pk_connection_is_connected((_c))) {                   \
             g_simple_async_result_set_error(_r, PK_CONNECTION_ERROR,        \
                                             PK_CONNECTION_ERROR_STATE,      \
                                             "Not connected to Agent");      \
-            g_simple_async_result_complete_in_idle(_r);                     \
+            ASYNC_COMPLETE((_r));                                           \
             return;                                                         \
         }                                                                   \
     } G_STMT_END
