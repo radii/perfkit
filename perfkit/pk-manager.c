@@ -16,9 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "pk-manager.h"
-#include "pk-util.h"
+#include "pk-channel.h"
 #include "pk-connection-lowlevel.h"
+#include "pk-manager.h"
+#include "pk-plugin.h"
+#include "pk-util.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkManager, pk_manager, G_TYPE_INITIALLY_UNOWNED)
 
@@ -182,6 +185,7 @@ pk_manager_get_channels_finish (PkManager     *manager,      /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*channels = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_get_channels_finish(manager->priv->connection,
 	                                                res,
@@ -277,6 +281,7 @@ pk_manager_get_source_plugins_finish (PkManager      *manager, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*plugins = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_get_source_plugins_finish(manager->priv->connection,
 	                                                      res,
@@ -371,6 +376,7 @@ pk_manager_get_version_finish (PkManager     *manager, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*version = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_get_version_finish(manager->priv->connection,
 	                                               res,
@@ -465,6 +471,7 @@ pk_manager_ping_finish (PkManager     *manager, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	memset(tv, 0, sizeof(*tv));
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_ping_finish(manager->priv->connection,
 	                                        res,
@@ -561,6 +568,7 @@ pk_manager_add_channel_finish (PkManager     *manager, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*channel = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_add_channel_finish(manager->priv->connection,
 	                                               res,
@@ -758,6 +766,7 @@ pk_manager_add_subscription_finish (PkManager     *manager,      /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*subscription = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_add_subscription_finish(manager->priv->connection,
 	                                                    res,

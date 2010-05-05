@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-connection-lowlevel.h"
 #include "pk-plugin.h"
 #include "pk-util.h"
-#include "pk-connection-lowlevel.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkPlugin, pk_plugin, G_TYPE_INITIALLY_UNOWNED)
 
@@ -183,6 +184,7 @@ pk_plugin_get_name_finish (PkPlugin      *plugin, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*name = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_plugin_get_name_finish(plugin->priv->connection,
 	                                           res,
@@ -278,6 +280,7 @@ pk_plugin_get_description_finish (PkPlugin      *plugin,      /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*description = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_plugin_get_description_finish(plugin->priv->connection,
 	                                                  res,
@@ -373,6 +376,7 @@ pk_plugin_get_version_finish (PkPlugin      *plugin,  /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*version = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_plugin_get_version_finish(plugin->priv->connection,
 	                                              res,
@@ -468,6 +472,7 @@ pk_plugin_get_plugin_type_finish (PkPlugin      *plugin, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*type = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_plugin_get_plugin_type_finish(plugin->priv->connection,
 	                                                  res,

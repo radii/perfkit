@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-connection-lowlevel.h"
 #include "pk-source.h"
 #include "pk-util.h"
-#include "pk-connection-lowlevel.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkSource, pk_source, G_TYPE_INITIALLY_UNOWNED)
 
@@ -284,6 +285,7 @@ pk_source_get_property_finish (PkSource      *source, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	memset(value, 0, sizeof(*value));
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_source_get_property_finish(source->priv->connection,
 	                                               res,
@@ -379,6 +381,7 @@ pk_source_get_plugin_finish (PkSource      *source, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*plugin = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_source_get_plugin_finish(source->priv->connection,
 	                                             res,

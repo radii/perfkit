@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-connection-lowlevel.h"
 #include "pk-encoder.h"
 #include "pk-util.h"
-#include "pk-connection-lowlevel.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkEncoder, pk_encoder, G_TYPE_INITIALLY_UNOWNED)
 
@@ -284,6 +285,7 @@ pk_encoder_get_property_finish (PkEncoder     *encoder, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	memset(value, 0, sizeof(*value));
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_encoder_get_property_finish(encoder->priv->connection,
 	                                                res,

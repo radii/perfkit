@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pk-connection-lowlevel.h"
 #include "pk-subscription.h"
 #include "pk-util.h"
-#include "pk-connection-lowlevel.h"
+#include "string.h"
 
 G_DEFINE_TYPE(PkSubscription, pk_subscription, G_TYPE_INITIALLY_UNOWNED)
 
@@ -466,6 +467,7 @@ pk_subscription_get_encoder_finish (PkSubscription  *subscription, /* IN */
 	                     FALSE);
 
 	ENTRY;
+	*encoder = 0;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_subscription_get_encoder_finish(subscription->priv->connection,
 	                                                    res,
