@@ -58,17 +58,16 @@ void       pk_manager_get_channels_async         (PkManager           *manager,
                                                   gpointer             user_data);
 gboolean   pk_manager_get_channels_finish        (PkManager            *manager,
                                                   GAsyncResult         *result,
-                                                  gint                **channels,
-                                                  gsize                *channels_len,
+                                                  GList               **channels,
                                                   GError              **error);
 void       pk_manager_get_source_plugins_async   (PkManager           *manager,
                                                   GCancellable        *cancellable,
                                                   GAsyncReadyCallback  callback,
                                                   gpointer             user_data);
-gboolean   pk_manager_get_source_plugins_finish  (PkManager             *manager,
-                                                  GAsyncResult          *result,
-                                                  gchar               ***plugins,
-                                                  GError               **error);
+gboolean   pk_manager_get_source_plugins_finish  (PkManager            *manager,
+                                                  GAsyncResult         *result,
+                                                  GList               **plugins,
+                                                  GError              **error);
 void       pk_manager_get_version_async          (PkManager           *manager,
                                                   GCancellable        *cancellable,
                                                   GAsyncReadyCallback  callback,

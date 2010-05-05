@@ -169,29 +169,42 @@ pk_manager_get_channels_async (PkManager           *manager,     /* IN */
  * Side effects: None.
  */
 gboolean
-pk_manager_get_channels_finish (PkManager     *manager,      /* IN */
-                                GAsyncResult  *result,       /* IN */
-                                gint         **channels,     /* OUT */
-                                gsize         *channels_len, /* OUT */
-                                GError       **error)        /* OUT */
+pk_manager_get_channels_finish (PkManager     *manager,  /* IN */
+                                GAsyncResult  *result,   /* IN */
+                                GList        **channels, /* OUT */
+                                GError       **error)    /* OUT */
 {
 	GAsyncResult *res;
 	gboolean ret;
+	gint *p_channels = NULL;
+	gsize p_channels_len = 0;
+	gint i;
 
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(ASYNC_IS_VALID(result, manager,
 	                                    pk_manager_get_channels_async),
 	                     FALSE);
+	g_return_val_if_fail(channels != NULL, FALSE);
 
 	ENTRY;
 	*channels = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_get_channels_finish(manager->priv->connection,
 	                                                res,
-	                                                channels,
-	                                                channels_len,
+	                                                &p_channels,
+	                                                &p_channels_len,
 	                                                error);
+	if (ret) {
+		for (i = 0; p_channels[i]; i++) {
+			(*channels) = g_list_append((*channels),
+			                            g_object_new(PK_TYPE_CHANNEL,
+			                                         "connection", manager->priv->connection,
+			                                         "id", p_channels[i],
+			                                         NULL));
+		}
+		g_free(p_channels);
+	}
 	RETURN(ret);
 }
 
@@ -266,27 +279,40 @@ pk_manager_get_source_plugins_async (PkManager           *manager,     /* IN */
  * Side effects: None.
  */
 gboolean
-pk_manager_get_source_plugins_finish (PkManager      *manager, /* IN */
-                                      GAsyncResult   *result,  /* IN */
-                                      gchar        ***plugins, /* OUT */
-                                      GError        **error)   /* OUT */
+pk_manager_get_source_plugins_finish (PkManager     *manager, /* IN */
+                                      GAsyncResult  *result,  /* IN */
+                                      GList        **plugins, /* OUT */
+                                      GError       **error)   /* OUT */
 {
 	GAsyncResult *res;
 	gboolean ret;
+	gchar **p_plugins = NULL;
+	gint i;
 
 	g_return_val_if_fail(PK_IS_MANAGER(manager), FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(ASYNC_IS_VALID(result, manager,
 	                                    pk_manager_get_source_plugins_async),
 	                     FALSE);
+	g_return_val_if_fail(plugins != NULL, FALSE);
 
 	ENTRY;
 	*plugins = NULL;
 	res = g_simple_async_result_get_op_res_gpointer(G_SIMPLE_ASYNC_RESULT(result));
 	ret = pk_connection_manager_get_source_plugins_finish(manager->priv->connection,
 	                                                      res,
-	                                                      plugins,
+	                                                      &p_plugins,
 	                                                      error);
+	if (ret) {
+		for (i = 0; p_plugins[i]; i++) {
+			(*plugins) = g_list_append((*plugins),
+			                           g_object_new(PK_TYPE_PLUGIN,
+			                                        "connection", manager->priv->connection,
+			                                        "id", p_plugins[i],
+			                                        NULL));
+		}
+		g_free(p_plugins);
+	}
 	RETURN(ret);
 }
 
