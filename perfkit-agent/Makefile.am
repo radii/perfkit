@@ -107,20 +107,20 @@ perfkit_agent_LDFLAGS =							\
 	$(NULL)
 
 test:
-	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
+	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
 	$(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf
 
 debug:
-	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
+	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
 	gdb --args $(builddir)/perfkit-agent --stdout			\
 	-c $(srcdir)/agent.conf
 
 valgrind:
-	PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
+	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
 	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
 	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
 	PERFKIT_VALGRIND=1						\
