@@ -44,9 +44,13 @@
 
 #define NOTIFY_LISTENERS(_c, _o)                                    \
     G_STMT_START {                                                  \
+    	gint _i = 0;                                                \
         G_LOCK(listeners);                                          \
-        g_ptr_array_foreach(manager.listeners,                      \
-                            (GFunc)pka_listener_##_c, _o);          \
+        for (_i = 0; _i < manager.listeners->len; _i++) {           \
+            pka_listener_##_c(                                      \
+                g_ptr_array_index(manager.listeners, _i),           \
+                (_o));                                              \
+        }                                                           \
         G_UNLOCK(listeners);                                        \
     } G_STMT_END
 
@@ -316,17 +320,21 @@ pka_manager_add_channel (PkaContext  *context, /* IN */
                          PkaChannel **channel, /* OUT */
                          GError     **error)   /* OUT */
 {
+	gint channel_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(channel != NULL, FALSE);
 
 	ENTRY;
 	AUTHORIZE_IOCTL(context, ADD_CHANNEL);
-	*channel = NULL;
-	g_warn_if_reached();
+	*channel = g_object_new(PKA_TYPE_CHANNEL, NULL);
+	channel_id = pka_channel_get_id(*channel);
+	INFO(Channel, "Added channel %d on behalf of context %d.",
+	     channel_id, pka_context_get_id(context));
 	G_LOCK(channels);
 	g_ptr_array_add(manager.channels, g_object_ref(*channel));
 	G_UNLOCK(channels);
-	NOTIFY_LISTENERS(channel_added, *channel);
+	NOTIFY_LISTENERS(channel_added, channel_id);
 	RETURN(TRUE);
 }
 
@@ -354,6 +362,8 @@ pka_manager_add_encoder (PkaContext  *context, /* IN */
                          PkaEncoder **encoder, /* OUT */
                          GError     **error)   /* OUT */
 {
+	gint encoder_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(encoder != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_PLUGIN(plugin), FALSE);
@@ -368,10 +378,13 @@ pka_manager_add_encoder (PkaContext  *context, /* IN */
 	if (!(*encoder = PKA_ENCODER(pka_plugin_create(plugin, error)))) {
 		RETURN(FALSE);
 	}
+	encoder_id = pka_encoder_get_id(*encoder);
+	INFO(Encoder, "Added encoder %d on behalf of context %d.",
+	     encoder_id, pka_context_get_id(context));
 	G_LOCK(encoders);
 	g_ptr_array_add(manager.encoders, g_object_ref(*encoder));
 	G_UNLOCK(encoders);
-	NOTIFY_LISTENERS(encoder_added, *encoder);
+	NOTIFY_LISTENERS(encoder_added, encoder_id);
 	RETURN(TRUE);
 }
 
@@ -399,6 +412,8 @@ pka_manager_add_source (PkaContext  *context, /* IN */
                         PkaSource  **source,  /* OUT */
                         GError     **error)   /* OUT */
 {
+	gint source_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(source != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_PLUGIN(plugin), FALSE);
@@ -413,10 +428,13 @@ pka_manager_add_source (PkaContext  *context, /* IN */
 	if (!(*source = PKA_SOURCE(pka_plugin_create(plugin, error)))) {
 		RETURN(FALSE);
 	}
+	source_id = pka_source_get_id(*source);
+	INFO(Source, "Added source %d on behalf of context %d.",
+	     source_id, pka_context_get_id(context));
 	G_LOCK(sources);
 	g_ptr_array_add(manager.sources, g_object_ref(*source));
 	G_UNLOCK(sources);
-	NOTIFY_LISTENERS(source_added, *source);
+	NOTIFY_LISTENERS(source_added, source_id);
 	RETURN(TRUE);
 }
 
@@ -441,18 +459,23 @@ pka_manager_add_subscription (PkaContext       *context,      /* IN */
                               PkaSubscription **subscription, /* OUT */
                               GError          **error)        /* OUT */
 {
+	gint subscription_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(subscription != NULL, FALSE);
 
 	ENTRY;
 	AUTHORIZE_IOCTL(context, ADD_SUBSCRIPTION);
 	*subscription = NULL;
+	subscription_id = 0;
 	g_warn_if_reached();
+	INFO(Subscription, "Added subscription %d on behalf of context %d.",
+	     subscription_id, pka_context_get_id(context));
 	G_LOCK(subscriptions);
 	g_ptr_array_add(manager.subscriptions,
 	                pka_subscription_ref(*subscription));
 	G_UNLOCK(subscriptions);
-	NOTIFY_LISTENERS(subscription_added, *subscription);
+	NOTIFY_LISTENERS(subscription_added, subscription_id);
 	RETURN(TRUE);
 }
 
@@ -913,6 +936,8 @@ pka_manager_remove_channel (PkaContext  *context, /* IN */
                             PkaChannel  *channel, /* IN */
                             GError     **error)   /* OUT */
 {
+	gint channel_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
 
@@ -928,10 +953,13 @@ pka_manager_remove_channel (PkaContext  *context, /* IN */
 	 *
 	 */
 	if (FALSE) {
+		channel_id = pka_channel_get_id(channel);
+		INFO(Channel, "Removing channel %d on behalf of context %d.",
+		     channel_id, pka_context_get_id(context));
 		G_LOCK(channels);
 		g_ptr_array_remove(manager.channels, channel);
 		G_UNLOCK(channels);
-		NOTIFY_LISTENERS(channel_removed, channel);
+		NOTIFY_LISTENERS(channel_removed, channel_id);
 		g_object_unref(channel);
 	}
 	RETURN(TRUE);
@@ -954,6 +982,8 @@ pka_manager_remove_encoder (PkaContext  *context, /* IN */
                             PkaEncoder  *encoder, /* IN */
                             GError     **error)   /* OUT */
 {
+	gint encoder_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_ENCODER(encoder), FALSE);
 
@@ -966,10 +996,13 @@ pka_manager_remove_encoder (PkaContext  *context, /* IN */
 	 *
 	 */
 	if (FALSE) {
+		encoder_id = pka_encoder_get_id(encoder);
+		INFO(Encoder, "Removing encoder %d on behalf of context %d.",
+		     encoder_id, pka_context_get_id(context));
 		G_LOCK(encoders);
 		g_ptr_array_remove(manager.encoders, encoder);
 		G_UNLOCK(encoders);
-		NOTIFY_LISTENERS(encoder_removed, encoder);
+		NOTIFY_LISTENERS(encoder_removed, encoder_id);
 		g_object_unref(encoder);
 	}
 	RETURN(TRUE);
@@ -992,6 +1025,8 @@ pka_manager_remove_source (PkaContext  *context, /* IN */
                            PkaSource   *source,  /* IN */
                            GError     **error)   /* OUT */
 {
+	gint source_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
 
@@ -1005,10 +1040,13 @@ pka_manager_remove_source (PkaContext  *context, /* IN */
 	 *
 	 */
 	if (FALSE) {
+		source_id = pka_source_get_id(source);
+		INFO(Source, "Removing source %d on behalf of context %d.",
+		     source_id, pka_context_get_id(context));
 		G_LOCK(sources);
 		g_ptr_array_remove(manager.sources, source);
 		G_UNLOCK(sources);
-		NOTIFY_LISTENERS(source_removed, source);
+		NOTIFY_LISTENERS(source_removed, source_id);
 		g_object_unref(source);
 	}
 	RETURN(TRUE);
@@ -1031,6 +1069,8 @@ pka_manager_remove_subscription (PkaContext       *context,      /* IN */
                                  PkaSubscription  *subscription, /* IN */
                                  GError          **error)        /* OUT */
 {
+	gint subscription_id;
+
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(subscription != NULL, FALSE);
 
@@ -1043,10 +1083,13 @@ pka_manager_remove_subscription (PkaContext       *context,      /* IN */
 	 *
 	 */
 	if (FALSE) {
+		subscription_id = pka_subscription_get_id(subscription);
+		INFO(Subscription, "Removing subscription %d on behalf of context %d",
+		     subscription_id, pka_context_get_id(context));
 		G_LOCK(subscriptions);
 		g_ptr_array_remove(manager.subscriptions, subscription);
 		G_UNLOCK(subscriptions);
-		NOTIFY_LISTENERS(subscription_removed, subscription);
+		NOTIFY_LISTENERS(subscription_removed, subscription_id);
 		pka_subscription_unref(subscription);
 	}
 	RETURN(TRUE);
