@@ -27,7 +27,6 @@
 
 #include "pka-manifest.h"
 #include "pka-sample.h"
-#include "pka-source-info.h"
 #include "pka-spawn-info.h"
 
 G_BEGIN_DECLS
@@ -108,11 +107,6 @@ gboolean        pka_channel_stop            (PkaChannel          *channel,
 gboolean        pka_channel_pause           (PkaChannel          *channel,
                                              GError             **error);
 gboolean        pka_channel_unpause         (PkaChannel          *channel,
-                                             GError             **error);
-PkaSource*      pka_channel_add_source      (PkaChannel          *channel,
-                                             PkaSourceInfo       *source_info);
-gboolean        pka_channel_remove_source   (PkaChannel          *channel,
-                                             gint                 source_id,
                                              GError             **error);
 
 G_END_DECLS

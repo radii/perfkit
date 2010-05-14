@@ -1,6 +1,6 @@
 /* pka-listener.h
  *
- * Copyright (C) 2009 Christian Hergert
+ * Copyright 2010 Christian Hergert <chris@dronelabs.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,20 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if !defined (__PERFKIT_AGENT_INSIDE__) && !defined (PERFKIT_COMPILATION)
-#error "Only <perfkit-agent/perfkit-agent.h> can be included directly."
-#endif
-
 #ifndef __PKA_LISTENER_H__
 #define __PKA_LISTENER_H__
 
-#include <glib-object.h>
-
-#include "pka-channel.h"
-#include "pka-encoder-info.h"
-#include "pka-source.h"
-#include "pka-source-info.h"
-#include "pka-subscription.h"
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -57,36 +47,59 @@ struct _PkaListenerClass
 {
 	GObjectClass parent_class;
 
-	/*
-	 * Listener methods.
-	 */
-	gboolean (*start) (PkaListener  *listener,
-	                   GError      **error);
-	void     (*stop)  (PkaListener  *listener);
+	gboolean (*listen) (PkaListener *listener, GError **error);
+	void     (*close)  (PkaListener *listener);
 
-	/*
-	 * Pipeline Events.
-	 */
-	void (*channel_added)      (PkaListener     *listener,
-	                            PkaChannel      *channel);
-	void (*encoder_added)      (PkaListener     *listener,
-	                            PkaEncoder      *encoder);
-	void (*encoder_info_added) (PkaListener     *listener,
-	                            PkaEncoderInfo  *encoder_info);
-	void (*source_info_added)  (PkaListener     *listener,
-	                            PkaSourceInfo   *source_info);
-	void (*source_added)       (PkaListener     *listener,
-	                            PkaSource       *source);
-	void (*subscription_added) (PkaListener     *listener,
-	                            PkaSubscription *subscription);
+	void     (*plugin_added)         (PkaListener *listener,
+	                                  const gchar *plugin);
+	void     (*plugin_removed)       (PkaListener *listener,
+	                                  const gchar *plugin);
 
-	gpointer reserved[32];
+	void     (*encoder_added)        (PkaListener *listener,
+	                                  gint         encoder);
+	void     (*encoder_removed)      (PkaListener *listener,
+	                                  gint         encoder);
+
+	void     (*source_added)         (PkaListener *listener,
+	                                  gint         source);
+	void     (*source_removed)       (PkaListener *listener,
+	                                  gint         source);
+
+	void     (*channel_added)        (PkaListener *listener,
+	                                  gint         channel);
+	void     (*channel_removed)      (PkaListener *listener,
+	                                  gint         channel);
+
+	void     (*subscription_added)   (PkaListener *listener,
+	                                  gint         subscription);
+	void     (*subscription_removed) (PkaListener *listener,
+	                                  gint         subscription);
 };
 
 GType    pka_listener_get_type (void) G_GNUC_CONST;
-gboolean pka_listener_start    (PkaListener  *listener,
-                                GError      **error);
-void     pka_listener_stop     (PkaListener  *listener);
+gboolean pka_listener_listen   (PkaListener *listener, GError **error);
+void     pka_listener_close    (PkaListener *listener);
+
+void     pka_listener_plugin_added         (PkaListener *listener,
+                                            const gchar *plugin);
+void     pka_listener_plugin_removed       (PkaListener *listener,
+                                            const gchar *plugin);
+void     pka_listener_encoder_added        (PkaListener *listener,
+                                            gint         encoder);
+void     pka_listener_encoder_removed      (PkaListener *listener,
+                                            gint         encoder);
+void     pka_listener_source_added         (PkaListener *listener,
+                                            gint         source);
+void     pka_listener_source_removed       (PkaListener *listener,
+                                            gint         source);
+void     pka_listener_channel_added        (PkaListener *listener,
+                                            gint         channel);
+void     pka_listener_channel_removed      (PkaListener *listener,
+                                            gint         channel);
+void     pka_listener_subscription_added   (PkaListener *listener,
+                                            gint         subscription);
+void     pka_listener_subscription_removed (PkaListener *listener,
+                                            gint         subscription);
 
 G_END_DECLS
 

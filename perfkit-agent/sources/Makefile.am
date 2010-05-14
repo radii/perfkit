@@ -3,7 +3,7 @@
 #
 
 source_LTLIBRARIES = memory.la sched.la
-sourcedir = $(libdir)/perfkit-agent/sources
+sourcedir = $(libdir)/perfkit-agent/plugins
 
 WARNINGS =								\
 	-Wall								\
@@ -35,7 +35,7 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
 	-DHAVE_CONFIG_H							\
-	-DG_LOG_DOMAIN=\"PerfkitAgent\"					\
+	-DG_LOG_DOMAIN=\"Source\"					\
 	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\

@@ -27,7 +27,6 @@
 
 #include "pka-channel.h"
 #include "pka-encoder.h"
-#include "pka-encoder-info.h"
 #include "pka-manifest.h"
 #include "pka-sample.h"
 
@@ -64,6 +63,7 @@ typedef void (*PkaSampleFunc) (gchar *buf, gsize buflen, gpointer user_data);
  */
 typedef struct _PkaSubscription PkaSubscription;
 
+#if 0
 PkaSubscription* pka_subscription_new         (PkaChannel      *channel,
                                                PkaEncoderInfo  *encoder_info,
                                                gsize            buffer_max,
@@ -72,6 +72,7 @@ PkaSubscription* pka_subscription_new         (PkaChannel      *channel,
                                                gpointer         manifest_data,
                                                PkaSampleFunc    sample_func,
                                                gpointer         sample_data);
+#endif
 PkaSubscription* pka_subscription_ref         (PkaSubscription *subscription);
 void             pka_subscription_unref       (PkaSubscription *subscription);
 guint            pka_subscription_get_id      (PkaSubscription *subscription);

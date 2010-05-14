@@ -32,6 +32,7 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\""perfkit"\"					\
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Perfkit\"					\
+	-D_GNU_SOURCE							\
 	-I$(top_srcdir)/perfkit						\
 	$(WARNINGS)							\
 	$(PERFKIT_CFLAGS)						\

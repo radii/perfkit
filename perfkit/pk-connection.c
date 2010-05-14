@@ -1,12 +1,12 @@
 /* pk-connection.c
  *
- * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
+ * Copyright 2010 Christian Hergert <chris@dronelabs.com>
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
+ * version 3 of the License, or (at your option) any later version.
+ * 
  * This file is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -16,37 +16,109 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include <stdio.h>
 #include <gmodule.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "pk-connection.h"
 #include "pk-connection-lowlevel.h"
 
 /**
- * SECTION:pk-connection
- * @title: PkConnection
- * @short_description:
+ * SECTION:pk-connection:
+ * @title: Perfkit client connection
+ * @short_description: 
  *
- * 
+ * #PkConnection provides the client communication for Perfkit.
+ * Connections are established through the use of URIs using
+ * pk_connection_new_from_uri().
+ *
+ * For example, to create a connection using the DBus implementation:
+ *
+ * [[
+ * PkConnection *conn = pk_connection_new_from_uri("dbus://");
+ * ]]
  */
+
+#ifndef DISABLE_TRACE
+#define TRACE(_m,...)                                               \
+    G_STMT_START {                                                  \
+        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
+              _m, __VA_ARGS__);                                     \
+    } G_STMT_END
+#else
+#define TRACE(_m,...)
+#endif
+
+#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
+
+#define EXIT                                                        \
+    G_STMT_START {                                                  \
+        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
+        return;                                                     \
+    } G_STMT_END
+
+#define RETURN(_r)                                                  \
+    G_STMT_START {                                                  \
+        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
+        return _r;                                                  \
+    } G_STMT_END
+
+#define GOTO(_l)                                                    \
+    G_STMT_START {                                                  \
+        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
+        goto _l;                                                    \
+    } G_STMT_END
+
+#define CASE_RETURN_STR(_l) case _l: return #_l
+
+#define RPC_ASYNC(_n)                                               \
+    if (!PK_CONNECTION_GET_CLASS(connection)->_n##_async) {         \
+        g_warning("%s does not support the #_n RPC.",               \
+                  g_type_name(G_TYPE_FROM_INSTANCE(connection)));   \
+        EXIT;                                                       \
+    }                                                               \
+    PK_CONNECTION_GET_CLASS(connection)->_n##_async
+
+#define RPC_FINISH(_r, _n)                                          \
+    if (!PK_CONNECTION_GET_CLASS(connection)->_n##_finish) {        \
+        g_critical("%s does not support the #_n RPC.",              \
+                   g_type_name(G_TYPE_FROM_INSTANCE(connection)));  \
+        g_set_error(error, PK_CONNECTION_ERROR,                     \
+                    PK_CONNECTION_ERROR_NOT_IMPLEMENTED,            \
+                    "The #_n RPC is not supported over your "       \
+                    "connection.");                                 \
+        RETURN(FALSE);                                              \
+    }                                                               \
+    _r = PK_CONNECTION_GET_CLASS(connection)->_n##_finish
+
+#define CHECK_FOR_RPC(_n)                                           \
+    G_STMT_START {                                                  \
+        if ((!PK_CONNECTION_GET_CLASS(connection)->_n##_async) ||   \
+            (!PK_CONNECTION_GET_CLASS(connection)->_n##_finish)) {  \
+            g_set_error(error, PK_CONNECTION_ERROR,                 \
+                        PK_CONNECTION_ERROR_NOT_IMPLEMENTED,        \
+                        "The #_n RPC is not supported over "        \
+                        "your connection.");                        \
+            RETURN(FALSE);                                          \
+        }                                                           \
+    } G_STMT_END
 
 G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
-	gchar             *uri;
-	PkConnectionState  state;
+	gchar *uri;
+	PkConnectionState state;
 };
 
 typedef struct
 {
-	GMutex    *mutex;
-	GCond     *cond;
-	gboolean   completed;
-	gboolean   result;
-	GError   **error;
-	gpointer   params[16];
+	GMutex     *mutex;
+	GCond      *cond;
+	gboolean    completed;
+	gboolean    result;
+	GError    **error;
+	gpointer    params[16];
 } PkConnectionSync;
 
 enum
@@ -65,54 +137,9 @@ static guint         signals[LAST_SIGNAL] = { 0 };
 static GStaticMutex  protocol_mutex       = G_STATIC_MUTEX_INIT;
 static GHashTable   *protocol_types       = NULL;
 
-#define ENTRY G_STMT_START {                                       \
-        g_debug("ENTRY: %s():%d", G_STRFUNC, __LINE__);            \
-    } G_STMT_END
-
-#define EXIT G_STMT_START {                                        \
-        g_debug("EXIT:  %s():%d", G_STRFUNC, __LINE__);            \
-        return;                                                    \
-    } G_STMT_END
-
-#define RETURN(_r) G_STMT_START {                                  \
-        g_debug("EXIT:  %s():%d", G_STRFUNC, __LINE__);            \
-        return _r;                                                 \
-    } G_STMT_END
-
-#define RPC_ASYNC(_n)                                              \
-    if (!PK_CONNECTION_GET_CLASS(connection)->_n##_async) {        \
-        g_warning("%s does not support the #_n RPC.",              \
-                  g_type_name(G_TYPE_FROM_INSTANCE(connection)));  \
-        EXIT;                                                      \
-    }                                                              \
-    PK_CONNECTION_GET_CLASS(connection)->_n##_async
-
-#define RPC_FINISH(_r, _n)                                         \
-    if (!PK_CONNECTION_GET_CLASS(connection)->_n##_finish) {       \
-        g_critical("%s does not support the #_n RPC.",             \
-                   g_type_name(G_TYPE_FROM_INSTANCE(connection))); \
-        g_set_error(error, PK_CONNECTION_ERROR,                    \
-                    PK_CONNECTION_ERROR_NOT_SUPPORTED,             \
-                    "The #_n RPC is not supported over your "      \
-                    "connection.");                                \
-        RETURN(FALSE);                                             \
-    }                                                              \
-    _r = PK_CONNECTION_GET_CLASS(connection)->_n##_finish
-
-#define CHECK_FOR_RPC(_n) G_STMT_START {                           \
-        if ((!PK_CONNECTION_GET_CLASS(connection)->_n##_async) ||  \
-            (!PK_CONNECTION_GET_CLASS(connection)->_n##_finish)) { \
-            g_set_error(error, PK_CONNECTION_ERROR,                \
-                        PK_CONNECTION_ERROR_NOT_SUPPORTED,         \
-                        "The #_n RPC is not supported over "       \
-                        "your connection.");                       \
-            RETURN(FALSE);                                         \
-        }                                                          \
-    } G_STMT_END
-
 /**
- * pk_connection_async_init:
- * @async: A #PkConnectionSync.
+ * pk_connection_sync_init:
+ * @sync: A #PkConnectionSync.
  *
  * Initializes a #PkConnectionSync allocated on the stack.
  *
@@ -120,21 +147,21 @@ static GHashTable   *protocol_types       = NULL;
  * Side effects: None.
  */
 static inline void
-pk_connection_async_init (PkConnectionSync *async) /* IN */
+pk_connection_sync_init (PkConnectionSync *sync) /* IN */
 {
-	memset(async, 0, sizeof(*async));
+	memset(sync, 0, sizeof(*sync));
 
-	async->completed = FALSE;
-	async->result = FALSE;
-	async->error = NULL;
-	async->mutex = g_mutex_new();
-	async->cond = g_cond_new();
-	g_mutex_lock(async->mutex);
+	sync->completed = FALSE;
+	sync->result = FALSE;
+	sync->error = NULL;
+	sync->mutex = g_mutex_new();
+	sync->cond = g_cond_new();
+	g_mutex_lock(sync->mutex);
 }
 
 /**
- * pk_connection_async_destroy:
- * @async: A #PkConnectionSync.
+ * pk_connection_sync_destroy:
+ * @sync: A #PkConnectionSync.
  *
  * Cleans up dynamically allocated data within the structure.
  *
@@ -142,24 +169,24 @@ pk_connection_async_init (PkConnectionSync *async) /* IN */
  * Side effects: None.
  */
 static inline void
-pk_connection_async_destroy (PkConnectionSync *async) /* IN */
+pk_connection_sync_destroy (PkConnectionSync *sync) /* IN */
 {
-	g_mutex_unlock(async->mutex);
-	g_mutex_free(async->mutex);
-	g_cond_free(async->cond);
+	g_mutex_unlock(sync->mutex);
+	g_mutex_free(sync->mutex);
+	g_cond_free(sync->cond);
 }
 
 /**
- * pk_connection_async_wait:
- * @async: A #PkConnectionSync.
+ * pk_connection_sync_wait:
+ * @sync: A #PkConnectionSync.
  *
- * Waits for an async operation in a secondary thread to complete.
+ * Waits for an sync operation in a secondary thread to complete.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_async_wait (PkConnectionSync *async) /* IN */
+pk_connection_sync_wait (PkConnectionSync *sync) /* IN */
 {
 	GMainContext *context;
 
@@ -173,1732 +200,120 @@ pk_connection_async_wait (PkConnectionSync *async) /* IN */
 	 * another thread owns it and it is safe to block on the condition.
 	 */
 	if (g_main_context_acquire(context)) {
-		g_mutex_unlock(async->mutex);
+		g_mutex_unlock(sync->mutex);
 		do {
 			g_main_context_iteration(context, TRUE);
-		} while (!g_atomic_int_get(&async->completed));
-		g_mutex_lock(async->mutex);
+		} while (!g_atomic_int_get(&sync->completed));
+		g_mutex_lock(sync->mutex);
 		g_main_context_release(context);
 	} else {
 		/*
 		 * Block on the condition which will be signaled by the main thread.
 		 */
-		g_cond_wait(async->cond, async->mutex);
+		g_cond_wait(sync->cond, sync->mutex);
 	}
 }
 
 /**
- * pk_connection_async_signal:
- * @async: A #PkConnectionSync.
+ * pk_connection_sync_signal:
+ * @sync: A #PkConnectionSync.
  *
- * Signals a thread blocked in pk_connection_async_wait() that an async
+ * Signals a thread blocked in pk_connection_sync_wait() that an sync
  * operation has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static inline void
-pk_connection_async_signal (PkConnectionSync *async) /* IN */
+pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
 {
-	g_mutex_lock(async->mutex);
-	g_atomic_int_set(&async->completed, TRUE);
-	g_cond_signal(async->cond);
-	g_mutex_unlock(async->mutex);
+	g_mutex_lock(sync->mutex);
+	g_atomic_int_set(&sync->completed, TRUE);
+	g_cond_signal(sync->cond);
+	g_mutex_unlock(sync->mutex);
 }
 
 /**
- * pk_connection_plugin_get_name_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "plugin_get_name" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_plugin_get_name_finish().
- *
- * See pk_connection_plugin_get_name().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_plugin_get_name_async (PkConnection        *connection,  /* IN */
-                                     gchar               *plugin,      /* IN */
-                                     GCancellable        *cancellable, /* IN */
-                                     GAsyncReadyCallback  callback,    /* IN */
-                                     gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_get_name)(connection,
-	                           plugin,
-	                           cancellable,
-	                           callback,
-	                           user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_name_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_plugin_get_name_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "plugin_get_name" RPC.
- * This should be called from a callback supplied to
- * pk_connection_plugin_get_name_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_name_finish (PkConnection  *connection, /* IN */
-                                      GAsyncResult  *result,     /* IN */
-                                      gchar        **name,       /* OUT */
-                                      GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_get_name)(connection,
-	                                 result,
-	                                 name,
-	                                 error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_get_name_cb:
+ * pk_connection_channel_cork_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_plugin_get_name_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "plugin_get_name" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "channel_cork" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_plugin_get_name_cb (GObject      *source,    /* IN */
-                                  GAsyncResult *result,    /* IN */
-                                  gpointer      user_data) /* IN */
-
+pk_connection_channel_cork_cb (GObject      *source,    /* IN */
+                               GAsyncResult *result,    /* IN */
+                               gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_plugin_get_name_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_channel_cork_finish(PK_CONNECTION(source),
+	                                                 result,
+	                                                 sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_plugin_get_name:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
+ * pk_connection_channel_cork:
+ * @connection: A #PkConnection.
  *
- * The "plugin_get_name" RPC.
+ * Synchronous implemenation of the "channel_cork" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Notifies @channel to silently drop manifest and sample updates until
+ * uncork() is called.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_plugin_get_name (PkConnection  *connection, /* IN */
-                               gchar         *plugin,     /* IN */
-                               gchar        **name,       /* OUT */
-                               GError       **error)      /* OUT */
+pk_connection_channel_cork (PkConnection  *connection, /* IN */
+                            gint           channel,    /* IN */
+                            GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(plugin_get_name);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)name;
-	pk_connection_plugin_get_name_async(
-			connection,
-			plugin,
-			NULL,
-			pk_connection_plugin_get_name_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(channel_cork);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_cork_async(connection,
+	                                 channel,
+	                                 NULL,
+	                                 pk_connection_channel_cork_cb,
+	                                 &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
- * pk_connection_plugin_get_description_async:
+ * pk_connection_channel_cork_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "plugin_get_description" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_plugin_get_description_finish().
+ * Asynchronous implementation of the "channel_cork_async" RPC.
  *
- * See pk_connection_plugin_get_description().
+ * Notifies @channel to silently drop manifest and sample updates until
+ * uncork() is called.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_plugin_get_description_async (PkConnection        *connection,  /* IN */
-                                            gchar               *plugin,      /* IN */
-                                            GCancellable        *cancellable, /* IN */
-                                            GAsyncReadyCallback  callback,    /* IN */
-                                            gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_get_description)(connection,
-	                                  plugin,
-	                                  cancellable,
-	                                  callback,
-	                                  user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_description_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_plugin_get_description_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "plugin_get_description" RPC.
- * This should be called from a callback supplied to
- * pk_connection_plugin_get_description_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_description_finish (PkConnection  *connection,  /* IN */
-                                             GAsyncResult  *result,      /* IN */
-                                             gchar        **description, /* OUT */
-                                             GError       **error)       /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_get_description)(connection,
-	                                        result,
-	                                        description,
-	                                        error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_get_description_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_plugin_get_description_async().
- *
- * Callback executed when an asynchronous request for the
- * "plugin_get_description" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_plugin_get_description_cb (GObject      *source,    /* IN */
-                                         GAsyncResult *result,    /* IN */
-                                         gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_plugin_get_description_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_description:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "plugin_get_description" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_description (PkConnection  *connection,  /* IN */
-                                      gchar         *plugin,      /* IN */
-                                      gchar        **description, /* OUT */
-                                      GError       **error)       /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(plugin_get_description);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)description;
-	pk_connection_plugin_get_description_async(
-			connection,
-			plugin,
-			NULL,
-			pk_connection_plugin_get_description_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_plugin_get_version_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "plugin_get_version" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_plugin_get_version_finish().
- *
- * See pk_connection_plugin_get_version().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_plugin_get_version_async (PkConnection        *connection,  /* IN */
-                                        gchar               *plugin,      /* IN */
-                                        GCancellable        *cancellable, /* IN */
-                                        GAsyncReadyCallback  callback,    /* IN */
-                                        gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_get_version)(connection,
-	                              plugin,
-	                              cancellable,
-	                              callback,
-	                              user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_version_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_plugin_get_version_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "plugin_get_version" RPC.
- * This should be called from a callback supplied to
- * pk_connection_plugin_get_version_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_version_finish (PkConnection  *connection, /* IN */
-                                         GAsyncResult  *result,     /* IN */
-                                         gchar        **version,    /* OUT */
-                                         GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_get_version)(connection,
-	                                    result,
-	                                    version,
-	                                    error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_get_version_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_plugin_get_version_async().
- *
- * Callback executed when an asynchronous request for the
- * "plugin_get_version" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_plugin_get_version_cb (GObject      *source,    /* IN */
-                                     GAsyncResult *result,    /* IN */
-                                     gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_plugin_get_version_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_version:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "plugin_get_version" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_version (PkConnection  *connection, /* IN */
-                                  gchar         *plugin,     /* IN */
-                                  gchar        **version,    /* OUT */
-                                  GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(plugin_get_version);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)version;
-	pk_connection_plugin_get_version_async(
-			connection,
-			plugin,
-			NULL,
-			pk_connection_plugin_get_version_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_plugin_get_plugin_type_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "plugin_get_plugin_type" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_plugin_get_plugin_type_finish().
- *
- * See pk_connection_plugin_get_plugin_type().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_plugin_get_plugin_type_async (PkConnection        *connection,  /* IN */
-                                            gchar               *plugin,      /* IN */
-                                            GCancellable        *cancellable, /* IN */
-                                            GAsyncReadyCallback  callback,    /* IN */
-                                            gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_get_plugin_type)(connection,
-	                                  plugin,
-	                                  cancellable,
-	                                  callback,
-	                                  user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_plugin_type_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_plugin_get_plugin_type_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "plugin_get_plugin_type" RPC.
- * This should be called from a callback supplied to
- * pk_connection_plugin_get_plugin_type_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_plugin_type_finish (PkConnection  *connection, /* IN */
-                                             GAsyncResult  *result,     /* IN */
-                                             gint          *type,       /* OUT */
-                                             GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_get_plugin_type)(connection,
-	                                        result,
-	                                        type,
-	                                        error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_get_plugin_type_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_plugin_get_plugin_type_async().
- *
- * Callback executed when an asynchronous request for the
- * "plugin_get_plugin_type" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_plugin_get_plugin_type_cb (GObject      *source,    /* IN */
-                                         GAsyncResult *result,    /* IN */
-                                         gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_plugin_get_plugin_type_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_get_plugin_type:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "plugin_get_plugin_type" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_get_plugin_type (PkConnection  *connection, /* IN */
-                                      gchar         *plugin,     /* IN */
-                                      gint          *type,       /* OUT */
-                                      GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(plugin_get_plugin_type);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)type;
-	pk_connection_plugin_get_plugin_type_async(
-			connection,
-			plugin,
-			NULL,
-			pk_connection_plugin_get_plugin_type_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_encoder_set_property_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "encoder_set_property" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_encoder_set_property_finish().
- *
- * See pk_connection_encoder_set_property().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_encoder_set_property_async (PkConnection        *connection,  /* IN */
-                                          gint                 encoder,     /* IN */
-                                          const gchar         *name,        /* IN */
-                                          const GValue        *value,       /* IN */
-                                          GCancellable        *cancellable, /* IN */
-                                          GAsyncReadyCallback  callback,    /* IN */
-                                          gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(encoder_set_property)(connection,
-	                                encoder,
-	                                name,
-	                                value,
-	                                cancellable,
-	                                callback,
-	                                user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_encoder_set_property_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_encoder_set_property_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "encoder_set_property" RPC.
- * This should be called from a callback supplied to
- * pk_connection_encoder_set_property_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_encoder_set_property_finish (PkConnection  *connection, /* IN */
-                                           GAsyncResult  *result,     /* IN */
-                                           GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, encoder_set_property)(connection,
-	                                      result,
-	                                      error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_encoder_set_property_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_encoder_set_property_async().
- *
- * Callback executed when an asynchronous request for the
- * "encoder_set_property" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_encoder_set_property_cb (GObject      *source,    /* IN */
-                                       GAsyncResult *result,    /* IN */
-                                       gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_encoder_set_property_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_encoder_set_property:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "encoder_set_property" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_encoder_set_property (PkConnection  *connection, /* IN */
-                                    gint           encoder,    /* IN */
-                                    const gchar   *name,       /* IN */
-                                    const GValue  *value,      /* IN */
-                                    GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(encoder_set_property);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_encoder_set_property_async(
-			connection,
-			encoder,
-			name,
-			value,
-			NULL,
-			pk_connection_encoder_set_property_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_encoder_get_property_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "encoder_get_property" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_encoder_get_property_finish().
- *
- * See pk_connection_encoder_get_property().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_encoder_get_property_async (PkConnection        *connection,  /* IN */
-                                          gint                 encoder,     /* IN */
-                                          const gchar         *name,        /* IN */
-                                          GCancellable        *cancellable, /* IN */
-                                          GAsyncReadyCallback  callback,    /* IN */
-                                          gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(encoder_get_property)(connection,
-	                                encoder,
-	                                name,
-	                                cancellable,
-	                                callback,
-	                                user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_encoder_get_property_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_encoder_get_property_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "encoder_get_property" RPC.
- * This should be called from a callback supplied to
- * pk_connection_encoder_get_property_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_encoder_get_property_finish (PkConnection  *connection, /* IN */
-                                           GAsyncResult  *result,     /* IN */
-                                           GValue        *value,      /* OUT */
-                                           GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, encoder_get_property)(connection,
-	                                      result,
-	                                      value,
-	                                      error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_encoder_get_property_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_encoder_get_property_async().
- *
- * Callback executed when an asynchronous request for the
- * "encoder_get_property" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_encoder_get_property_cb (GObject      *source,    /* IN */
-                                       GAsyncResult *result,    /* IN */
-                                       gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_encoder_get_property_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_encoder_get_property:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "encoder_get_property" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_encoder_get_property (PkConnection  *connection, /* IN */
-                                    gint           encoder,    /* IN */
-                                    const gchar   *name,       /* IN */
-                                    GValue        *value,      /* OUT */
-                                    GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(encoder_get_property);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)value;
-	pk_connection_encoder_get_property_async(
-			connection,
-			encoder,
-			name,
-			NULL,
-			pk_connection_encoder_get_property_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_source_set_property_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "source_set_property" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_source_set_property_finish().
- *
- * See pk_connection_source_set_property().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_source_set_property_async (PkConnection        *connection,  /* IN */
-                                         gint                 source,      /* IN */
-                                         const gchar         *name,        /* IN */
-                                         const GValue        *value,       /* IN */
-                                         GCancellable        *cancellable, /* IN */
-                                         GAsyncReadyCallback  callback,    /* IN */
-                                         gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(source_set_property)(connection,
-	                               source,
-	                               name,
-	                               value,
-	                               cancellable,
-	                               callback,
-	                               user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_source_set_property_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_source_set_property_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "source_set_property" RPC.
- * This should be called from a callback supplied to
- * pk_connection_source_set_property_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_set_property_finish (PkConnection  *connection, /* IN */
-                                          GAsyncResult  *result,     /* IN */
-                                          GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, source_set_property)(connection,
-	                                     result,
-	                                     error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_source_set_property_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_source_set_property_async().
- *
- * Callback executed when an asynchronous request for the
- * "source_set_property" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_source_set_property_cb (GObject      *source,    /* IN */
-                                      GAsyncResult *result,    /* IN */
-                                      gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_source_set_property_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_source_set_property:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "source_set_property" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_set_property (PkConnection  *connection, /* IN */
-                                   gint           source,     /* IN */
-                                   const gchar   *name,       /* IN */
-                                   const GValue  *value,      /* IN */
-                                   GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(source_set_property);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_source_set_property_async(
-			connection,
-			source,
-			name,
-			value,
-			NULL,
-			pk_connection_source_set_property_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_source_get_property_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "source_get_property" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_source_get_property_finish().
- *
- * See pk_connection_source_get_property().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_source_get_property_async (PkConnection        *connection,  /* IN */
-                                         gint                 source,      /* IN */
-                                         const gchar         *name,        /* IN */
-                                         GCancellable        *cancellable, /* IN */
-                                         GAsyncReadyCallback  callback,    /* IN */
-                                         gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(source_get_property)(connection,
-	                               source,
-	                               name,
-	                               cancellable,
-	                               callback,
-	                               user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_source_get_property_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_source_get_property_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "source_get_property" RPC.
- * This should be called from a callback supplied to
- * pk_connection_source_get_property_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_get_property_finish (PkConnection  *connection, /* IN */
-                                          GAsyncResult  *result,     /* IN */
-                                          GValue        *value,      /* OUT */
-                                          GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, source_get_property)(connection,
-	                                     result,
-	                                     value,
-	                                     error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_source_get_property_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_source_get_property_async().
- *
- * Callback executed when an asynchronous request for the
- * "source_get_property" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_source_get_property_cb (GObject      *source,    /* IN */
-                                      GAsyncResult *result,    /* IN */
-                                      gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_source_get_property_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_source_get_property:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "source_get_property" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_get_property (PkConnection  *connection, /* IN */
-                                   gint           source,     /* IN */
-                                   const gchar   *name,       /* IN */
-                                   GValue        *value,      /* OUT */
-                                   GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(source_get_property);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)value;
-	pk_connection_source_get_property_async(
-			connection,
-			source,
-			name,
-			NULL,
-			pk_connection_source_get_property_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_source_get_plugin_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "source_get_plugin" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_source_get_plugin_finish().
- *
- * See pk_connection_source_get_plugin().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_source_get_plugin_async (PkConnection        *connection,  /* IN */
-                                       gint                 source,      /* IN */
-                                       GCancellable        *cancellable, /* IN */
-                                       GAsyncReadyCallback  callback,    /* IN */
-                                       gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(source_get_plugin)(connection,
-	                             source,
-	                             cancellable,
-	                             callback,
-	                             user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_source_get_plugin_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_source_get_plugin_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "source_get_plugin" RPC.
- * This should be called from a callback supplied to
- * pk_connection_source_get_plugin_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_get_plugin_finish (PkConnection  *connection, /* IN */
-                                        GAsyncResult  *result,     /* IN */
-                                        gchar        **plugin,     /* OUT */
-                                        GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, source_get_plugin)(connection,
-	                                   result,
-	                                   plugin,
-	                                   error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_source_get_plugin_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_source_get_plugin_async().
- *
- * Callback executed when an asynchronous request for the
- * "source_get_plugin" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_source_get_plugin_cb (GObject      *source,    /* IN */
-                                    GAsyncResult *result,    /* IN */
-                                    gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_source_get_plugin_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_source_get_plugin:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "source_get_plugin" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_source_get_plugin (PkConnection  *connection, /* IN */
-                                 gint           source,     /* IN */
-                                 gchar        **plugin,     /* OUT */
-                                 GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(source_get_plugin);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)plugin;
-	pk_connection_source_get_plugin_async(
-			connection,
-			source,
-			NULL,
-			pk_connection_source_get_plugin_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_get_channels_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_get_channels" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_get_channels_finish().
- *
- * See pk_connection_manager_get_channels().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_get_channels_async (PkConnection        *connection,  /* IN */
-                                          GCancellable        *cancellable, /* IN */
-                                          GAsyncReadyCallback  callback,    /* IN */
-                                          gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_get_channels)(connection,
-	                                cancellable,
-	                                callback,
-	                                user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_channels_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_get_channels_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_get_channels" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_get_channels_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_channels_finish (PkConnection  *connection,   /* IN */
-                                           GAsyncResult  *result,       /* IN */
-                                           gint         **channels,     /* OUT */
-                                           gsize         *channels_len, /* OUT */
-                                           GError       **error)        /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_get_channels)(connection,
-	                                      result,
-	                                      channels,
-	                                      channels_len,
-	                                      error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_get_channels_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_get_channels_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_get_channels" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_get_channels_cb (GObject      *source,    /* IN */
-                                       GAsyncResult *result,    /* IN */
-                                       gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_get_channels_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->params[1],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_channels:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_get_channels" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_channels (PkConnection  *connection,   /* IN */
-                                    gint         **channels,     /* OUT */
-                                    gsize         *channels_len, /* OUT */
-                                    GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_get_channels);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)channels;
-	async.params[1] = (gpointer)channels_len;
-	pk_connection_manager_get_channels_async(
-			connection,
-			NULL,
-			pk_connection_manager_get_channels_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_get_source_plugins_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_get_source_plugins" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_get_source_plugins_finish().
- *
- * See pk_connection_manager_get_source_plugins().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_get_source_plugins_async (PkConnection        *connection,  /* IN */
-                                                GCancellable        *cancellable, /* IN */
-                                                GAsyncReadyCallback  callback,    /* IN */
-                                                gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_get_source_plugins)(connection,
-	                                      cancellable,
-	                                      callback,
-	                                      user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_source_plugins_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_get_source_plugins_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_get_source_plugins" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_get_source_plugins_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_source_plugins_finish (PkConnection   *connection, /* IN */
-                                                 GAsyncResult   *result,     /* IN */
-                                                 gchar        ***plugins,    /* OUT */
-                                                 GError        **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_get_source_plugins)(connection,
-	                                            result,
-	                                            plugins,
-	                                            error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_get_source_plugins_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_get_source_plugins_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_get_source_plugins" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_get_source_plugins_cb (GObject      *source,    /* IN */
-                                             GAsyncResult *result,    /* IN */
-                                             gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_get_source_plugins_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_source_plugins:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_get_source_plugins" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_source_plugins (PkConnection   *connection, /* IN */
-                                          gchar        ***plugins,    /* OUT */
-                                          GError        **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_get_source_plugins);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)plugins;
-	pk_connection_manager_get_source_plugins_async(
-			connection,
-			NULL,
-			pk_connection_manager_get_source_plugins_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_get_version_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_get_version" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_get_version_finish().
- *
- * See pk_connection_manager_get_version().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_get_version_async (PkConnection        *connection,  /* IN */
-                                         GCancellable        *cancellable, /* IN */
-                                         GAsyncReadyCallback  callback,    /* IN */
-                                         gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_get_version)(connection,
-	                               cancellable,
-	                               callback,
-	                               user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_version_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_get_version_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_get_version" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_get_version_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_version_finish (PkConnection  *connection, /* IN */
-                                          GAsyncResult  *result,     /* IN */
-                                          gchar        **version,    /* OUT */
-                                          GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_get_version)(connection,
-	                                     result,
-	                                     version,
-	                                     error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_get_version_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_get_version_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_get_version" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_get_version_cb (GObject      *source,    /* IN */
-                                      GAsyncResult *result,    /* IN */
-                                      gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_get_version_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_get_version:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_get_version" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_get_version (PkConnection  *connection, /* IN */
-                                   gchar        **version,    /* OUT */
-                                   GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_get_version);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)version;
-	pk_connection_manager_get_version_async(
-			connection,
-			NULL,
-			pk_connection_manager_get_version_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_ping_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_ping" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_ping_finish().
- *
- * See pk_connection_manager_ping().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_ping_async (PkConnection        *connection,  /* IN */
+pk_connection_channel_cork_async (PkConnection        *connection,  /* IN */
+                                  gint                 channel,     /* IN */
                                   GCancellable        *cancellable, /* IN */
                                   GAsyncReadyCallback  callback,    /* IN */
                                   gpointer             user_data)   /* IN */
@@ -1907,7 +322,8 @@ pk_connection_manager_ping_async (PkConnection        *connection,  /* IN */
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(manager_ping)(connection,
+	RPC_ASYNC(channel_cork)(connection,
+	                        channel,
 	                        cancellable,
 	                        callback,
 	                        user_data);
@@ -1915,23 +331,20 @@ pk_connection_manager_ping_async (PkConnection        *connection,  /* IN */
 }
 
 /**
- * pk_connection_manager_ping_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_ping_async().
- * @error: A location for a #GError or %NULL.
+ * pk_connection_channel_cork_finish:
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "manager_ping" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_ping_async().
+ * Completion of an asynchronous call to the "channel_cork_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Notifies @channel to silently drop manifest and sample updates until
+ * uncork() is called.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_manager_ping_finish (PkConnection  *connection, /* IN */
+pk_connection_channel_cork_finish (PkConnection  *connection, /* IN */
                                    GAsyncResult  *result,     /* IN */
-                                   GTimeVal      *tv,         /* OUT */
                                    GError       **error)      /* OUT */
 {
 	gboolean ret;
@@ -1939,1487 +352,90 @@ pk_connection_manager_ping_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, manager_ping)(connection,
+	RPC_FINISH(ret, channel_cork)(connection,
 	                              result,
-	                              tv,
 	                              error);
 	RETURN(ret);
 }
 
 /**
- * pk_connection_manager_ping_cb:
+ * pk_connection_channel_get_sources_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_ping_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "manager_ping" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "channel_get_sources" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_manager_ping_cb (GObject      *source,    /* IN */
-                               GAsyncResult *result,    /* IN */
-                               gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_ping_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_ping:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_ping" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_ping (PkConnection  *connection, /* IN */
-                            GTimeVal      *tv,         /* OUT */
-                            GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_ping);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)tv;
-	pk_connection_manager_ping_async(
-			connection,
-			NULL,
-			pk_connection_manager_ping_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_add_channel_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_add_channel" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_add_channel_finish().
- *
- * See pk_connection_manager_add_channel().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_add_channel_async (PkConnection        *connection,  /* IN */
-                                         const PkSpawnInfo   *spawn_info,  /* IN */
-                                         GCancellable        *cancellable, /* IN */
-                                         GAsyncReadyCallback  callback,    /* IN */
-                                         gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_add_channel)(connection,
-	                               spawn_info,
-	                               cancellable,
-	                               callback,
-	                               user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_add_channel_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_add_channel_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_add_channel" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_add_channel_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_add_channel_finish (PkConnection  *connection, /* IN */
-                                          GAsyncResult  *result,     /* IN */
-                                          gint          *channel,    /* OUT */
-                                          GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_add_channel)(connection,
-	                                     result,
-	                                     channel,
-	                                     error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_add_channel_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_add_channel_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_add_channel" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_add_channel_cb (GObject      *source,    /* IN */
+pk_connection_channel_get_sources_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
-
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_manager_add_channel_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_channel_get_sources_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->params[0],
+	                                                        sync->params[1],
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_manager_add_channel:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_add_channel" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_add_channel (PkConnection       *connection, /* IN */
-                                   const PkSpawnInfo  *spawn_info, /* IN */
-                                   gint               *channel,    /* OUT */
-                                   GError            **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_add_channel);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)channel;
-	pk_connection_manager_add_channel_async(
-			connection,
-			spawn_info,
-			NULL,
-			pk_connection_manager_add_channel_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_remove_channel_async:
+ * pk_connection_channel_get_sources:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "manager_remove_channel" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_remove_channel_finish().
+ * Synchronous implemenation of the "channel_get_sources" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * See pk_connection_manager_remove_channel().
+ * Retrieves the available sources.
  *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_remove_channel_async (PkConnection        *connection,  /* IN */
-                                            gint                 channel,     /* IN */
-                                            GCancellable        *cancellable, /* IN */
-                                            GAsyncReadyCallback  callback,    /* IN */
-                                            gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_remove_channel)(connection,
-	                                  channel,
-	                                  cancellable,
-	                                  callback,
-	                                  user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_remove_channel_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_remove_channel_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_remove_channel" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_remove_channel_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_manager_remove_channel_finish (PkConnection  *connection, /* IN */
-                                             GAsyncResult  *result,     /* IN */
-                                             GError       **error)      /* OUT */
+pk_connection_channel_get_sources (PkConnection  *connection,  /* IN */
+                                   gint           channel,     /* IN */
+                                   gint         **sources,     /* OUT */
+                                   gsize         *sources_len, /* OUT */
+                                   GError       **error)       /* OUT */
 {
-	gboolean ret;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, manager_remove_channel)(connection,
-	                                        result,
-	                                        error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_remove_channel_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_remove_channel_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_remove_channel" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_remove_channel_cb (GObject      *source,    /* IN */
-                                         GAsyncResult *result,    /* IN */
-                                         gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_remove_channel_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_remove_channel:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_remove_channel" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_remove_channel (PkConnection  *connection, /* IN */
-                                      gint           channel,    /* IN */
-                                      GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_remove_channel);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_manager_remove_channel_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_manager_remove_channel_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_add_subscription_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_add_subscription" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_add_subscription_finish().
- *
- * See pk_connection_manager_add_subscription().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_add_subscription_async (PkConnection        *connection,     /* IN */
-                                              gint                 channel,        /* IN */
-                                              gsize                buffer_size,    /* IN */
-                                              gulong               buffer_timeout, /* IN */
-                                              const gchar         *encoder,        /* IN */
-                                              GCancellable        *cancellable,    /* IN */
-                                              GAsyncReadyCallback  callback,       /* IN */
-                                              gpointer             user_data)      /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_add_subscription)(connection,
-	                                    channel,
-	                                    buffer_size,
-	                                    buffer_timeout,
-	                                    encoder,
-	                                    cancellable,
-	                                    callback,
-	                                    user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_add_subscription_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_add_subscription_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_add_subscription" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_add_subscription_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_add_subscription_finish (PkConnection  *connection,   /* IN */
-                                               GAsyncResult  *result,       /* IN */
-                                               gint          *subscription, /* OUT */
-                                               GError       **error)        /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_add_subscription)(connection,
-	                                          result,
-	                                          subscription,
-	                                          error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_add_subscription_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_add_subscription_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_add_subscription" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_add_subscription_cb (GObject      *source,    /* IN */
-                                           GAsyncResult *result,    /* IN */
-                                           gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_add_subscription_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_add_subscription:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_add_subscription" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_add_subscription (PkConnection  *connection,     /* IN */
-                                        gint           channel,        /* IN */
-                                        gsize          buffer_size,    /* IN */
-                                        gulong         buffer_timeout, /* IN */
-                                        const gchar   *encoder,        /* IN */
-                                        gint          *subscription,   /* OUT */
-                                        GError       **error)          /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_add_subscription);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)subscription;
-	pk_connection_manager_add_subscription_async(
-			connection,
-			channel,
-			buffer_size,
-			buffer_timeout,
-			encoder,
-			NULL,
-			pk_connection_manager_add_subscription_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_manager_remove_subscription_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "manager_remove_subscription" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_manager_remove_subscription_finish().
- *
- * See pk_connection_manager_remove_subscription().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_manager_remove_subscription_async (PkConnection        *connection,   /* IN */
-                                                 gint                 subscription, /* IN */
-                                                 GCancellable        *cancellable,  /* IN */
-                                                 GAsyncReadyCallback  callback,     /* IN */
-                                                 gpointer             user_data)    /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(manager_remove_subscription)(connection,
-	                                       subscription,
-	                                       cancellable,
-	                                       callback,
-	                                       user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_remove_subscription_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_manager_remove_subscription_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "manager_remove_subscription" RPC.
- * This should be called from a callback supplied to
- * pk_connection_manager_remove_subscription_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_remove_subscription_finish (PkConnection  *connection, /* IN */
-                                                  GAsyncResult  *result,     /* IN */
-                                                  GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, manager_remove_subscription)(connection,
-	                                             result,
-	                                             error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_manager_remove_subscription_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_manager_remove_subscription_async().
- *
- * Callback executed when an asynchronous request for the
- * "manager_remove_subscription" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_manager_remove_subscription_cb (GObject      *source,    /* IN */
-                                              GAsyncResult *result,    /* IN */
-                                              gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_manager_remove_subscription_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_manager_remove_subscription:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "manager_remove_subscription" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_manager_remove_subscription (PkConnection  *connection,   /* IN */
-                                           gint           subscription, /* IN */
-                                           GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(manager_remove_subscription);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_manager_remove_subscription_async(
-			connection,
-			subscription,
-			NULL,
-			pk_connection_manager_remove_subscription_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_args_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_args" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_args_finish().
- *
- * See pk_connection_channel_get_args().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_args_async (PkConnection        *connection,  /* IN */
-                                      gint                 channel,     /* IN */
-                                      GCancellable        *cancellable, /* IN */
-                                      GAsyncReadyCallback  callback,    /* IN */
-                                      gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_args)(connection,
-	                            channel,
-	                            cancellable,
-	                            callback,
-	                            user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_args_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_args_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_args" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_args_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_args_finish (PkConnection   *connection, /* IN */
-                                       GAsyncResult   *result,     /* IN */
-                                       gchar        ***args,       /* OUT */
-                                       GError        **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_args)(connection,
-	                                  result,
-	                                  args,
-	                                  error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_args_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_args_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_args" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
-                                   GAsyncResult *result,    /* IN */
-                                   gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_args_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_args:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_args" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_args (PkConnection   *connection, /* IN */
-                                gint            channel,    /* IN */
-                                gchar        ***args,       /* OUT */
-                                GError        **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_args);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)args;
-	pk_connection_channel_get_args_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_args_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_env_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_env" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_env_finish().
- *
- * See pk_connection_channel_get_env().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_env_async (PkConnection        *connection,  /* IN */
-                                     gint                 channel,     /* IN */
-                                     GCancellable        *cancellable, /* IN */
-                                     GAsyncReadyCallback  callback,    /* IN */
-                                     gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_env)(connection,
-	                           channel,
-	                           cancellable,
-	                           callback,
-	                           user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_env_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_env_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_env" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_env_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_env_finish (PkConnection   *connection, /* IN */
-                                      GAsyncResult   *result,     /* IN */
-                                      gchar        ***env,        /* OUT */
-                                      GError        **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_env)(connection,
-	                                 result,
-	                                 env,
-	                                 error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_env_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_env_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_env" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_env_cb (GObject      *source,    /* IN */
-                                  GAsyncResult *result,    /* IN */
-                                  gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_env_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_env:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_env" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_env (PkConnection   *connection, /* IN */
-                               gint            channel,    /* IN */
-                               gchar        ***env,        /* OUT */
-                               GError        **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_env);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)env;
-	pk_connection_channel_get_env_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_env_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_pid_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_pid" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_pid_finish().
- *
- * See pk_connection_channel_get_pid().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_pid_async (PkConnection        *connection,  /* IN */
-                                     gint                 channel,     /* IN */
-                                     GCancellable        *cancellable, /* IN */
-                                     GAsyncReadyCallback  callback,    /* IN */
-                                     gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_pid)(connection,
-	                           channel,
-	                           cancellable,
-	                           callback,
-	                           user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_pid_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_pid_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_pid" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_pid_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_pid_finish (PkConnection  *connection, /* IN */
-                                      GAsyncResult  *result,     /* IN */
-                                      GPid          *pid,        /* OUT */
-                                      GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_pid)(connection,
-	                                 result,
-	                                 pid,
-	                                 error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_pid_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_pid_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_pid" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_pid_cb (GObject      *source,    /* IN */
-                                  GAsyncResult *result,    /* IN */
-                                  gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_pid_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_pid:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_pid" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_pid (PkConnection  *connection, /* IN */
-                               gint           channel,    /* IN */
-                               GPid          *pid,        /* OUT */
-                               GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_pid);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)pid;
-	pk_connection_channel_get_pid_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_pid_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_state_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_state" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_state_finish().
- *
- * See pk_connection_channel_get_state().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_state_async (PkConnection        *connection,  /* IN */
-                                       gint                 channel,     /* IN */
-                                       GCancellable        *cancellable, /* IN */
-                                       GAsyncReadyCallback  callback,    /* IN */
-                                       gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_state)(connection,
-	                             channel,
-	                             cancellable,
-	                             callback,
-	                             user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_state_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_state_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_state" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_state_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_state_finish (PkConnection  *connection, /* IN */
-                                        GAsyncResult  *result,     /* IN */
-                                        gint          *state,      /* OUT */
-                                        GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_state)(connection,
-	                                   result,
-	                                   state,
-	                                   error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_state_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_state_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_state" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_state_cb (GObject      *source,    /* IN */
-                                    GAsyncResult *result,    /* IN */
-                                    gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_state_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_state:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_state" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_state (PkConnection  *connection, /* IN */
-                                 gint           channel,    /* IN */
-                                 gint          *state,      /* OUT */
-                                 GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_state);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)state;
-	pk_connection_channel_get_state_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_state_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_target_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_target" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_target_finish().
- *
- * See pk_connection_channel_get_target().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_target_async (PkConnection        *connection,  /* IN */
-                                        gint                 channel,     /* IN */
-                                        GCancellable        *cancellable, /* IN */
-                                        GAsyncReadyCallback  callback,    /* IN */
-                                        gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_target)(connection,
-	                              channel,
-	                              cancellable,
-	                              callback,
-	                              user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_target_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_target_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_target" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_target_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_target_finish (PkConnection  *connection, /* IN */
-                                         GAsyncResult  *result,     /* IN */
-                                         gchar        **target,     /* OUT */
-                                         GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_target)(connection,
-	                                    result,
-	                                    target,
-	                                    error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_target_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_target_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_target" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_target_cb (GObject      *source,    /* IN */
-                                     GAsyncResult *result,    /* IN */
-                                     gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_target_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_target:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_target" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_target (PkConnection  *connection, /* IN */
-                                  gint           channel,    /* IN */
-                                  gchar        **target,     /* OUT */
-                                  GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_target);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)target;
-	pk_connection_channel_get_target_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_target_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_get_working_dir_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_get_working_dir" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_working_dir_finish().
- *
- * See pk_connection_channel_get_working_dir().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_get_working_dir_async (PkConnection        *connection,  /* IN */
-                                             gint                 channel,     /* IN */
-                                             GCancellable        *cancellable, /* IN */
-                                             GAsyncReadyCallback  callback,    /* IN */
-                                             gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_get_working_dir)(connection,
-	                                   channel,
-	                                   cancellable,
-	                                   callback,
-	                                   user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_working_dir_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_working_dir_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_get_working_dir" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_working_dir_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_working_dir_finish (PkConnection  *connection,  /* IN */
-                                              GAsyncResult  *result,      /* IN */
-                                              gchar        **working_dir, /* OUT */
-                                              GError       **error)       /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_get_working_dir)(connection,
-	                                         result,
-	                                         working_dir,
-	                                         error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_get_working_dir_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_working_dir_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_get_working_dir" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_get_working_dir_cb (GObject      *source,    /* IN */
-                                          GAsyncResult *result,    /* IN */
-                                          gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_get_working_dir_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_get_working_dir:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_working_dir" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_working_dir (PkConnection  *connection,  /* IN */
-                                       gint           channel,     /* IN */
-                                       gchar        **working_dir, /* OUT */
-                                       GError       **error)       /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_working_dir);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)working_dir;
-	pk_connection_channel_get_working_dir_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_working_dir_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(channel_get_sources);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = sources;
+	sync.params[1] = sources_len;
+	pk_connection_channel_get_sources_async(connection,
+	                                        channel,
+	                                        NULL,
+	                                        pk_connection_channel_get_sources_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
  * pk_connection_channel_get_sources_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_get_sources" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_get_sources_finish().
+ * Asynchronous implementation of the "channel_get_sources_async" RPC.
  *
- * See pk_connection_channel_get_sources().
+ * Retrieves the available sources.
  *
  * Returns: None.
  * Side effects: None.
@@ -3445,16 +461,13 @@ pk_connection_channel_get_sources_async (PkConnection        *connection,  /* IN
 
 /**
  * pk_connection_channel_get_sources_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_get_sources_async().
- * @error: A location for a #GError or %NULL.
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "channel_get_sources" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_get_sources_async().
+ * Completion of an asynchronous call to the "channel_get_sources_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Retrieves the available sources.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
@@ -3478,373 +491,77 @@ pk_connection_channel_get_sources_finish (PkConnection  *connection,  /* IN */
 }
 
 /**
- * pk_connection_channel_get_sources_cb:
+ * pk_connection_channel_start_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_get_sources_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "channel_get_sources" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "channel_start" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_get_sources_cb (GObject      *source,    /* IN */
-                                      GAsyncResult *result,    /* IN */
-                                      gpointer      user_data) /* IN */
-
+pk_connection_channel_start_cb (GObject      *source,    /* IN */
+                                GAsyncResult *result,    /* IN */
+                                gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_channel_get_sources_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->params[1],
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_channel_start_finish(PK_CONNECTION(source),
+	                                                  result,
+	                                                  sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_get_sources:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_get_sources" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_get_sources (PkConnection  *connection,  /* IN */
-                                   gint           channel,     /* IN */
-                                   gint         **sources,     /* OUT */
-                                   gsize         *sources_len, /* OUT */
-                                   GError       **error)       /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_get_sources);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)sources;
-	async.params[1] = (gpointer)sources_len;
-	pk_connection_channel_get_sources_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_get_sources_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_add_source_async:
+ * pk_connection_channel_start:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_add_source" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_add_source_finish().
+ * Synchronous implemenation of the "channel_start" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * See pk_connection_channel_add_source().
+ * Start the channel. If required, the process will be spawned.
  *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_add_source_async (PkConnection        *connection,  /* IN */
-                                        gint                 channel,     /* IN */
-                                        const gchar         *plugin,      /* IN */
-                                        GCancellable        *cancellable, /* IN */
-                                        GAsyncReadyCallback  callback,    /* IN */
-                                        gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_add_source)(connection,
-	                              channel,
-	                              plugin,
-	                              cancellable,
-	                              callback,
-	                              user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_add_source_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_add_source_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_add_source" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_add_source_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_add_source_finish (PkConnection  *connection, /* IN */
-                                         GAsyncResult  *result,     /* IN */
-                                         gint          *source,     /* OUT */
-                                         GError       **error)      /* OUT */
+pk_connection_channel_start (PkConnection  *connection, /* IN */
+                             gint           channel,    /* IN */
+                             GError       **error)      /* OUT */
 {
-	gboolean ret;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, channel_add_source)(connection,
-	                                    result,
-	                                    source,
-	                                    error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_add_source_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_add_source_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_add_source" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_add_source_cb (GObject      *source,    /* IN */
-                                     GAsyncResult *result,    /* IN */
-                                     gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_add_source_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_add_source:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_add_source" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_add_source (PkConnection  *connection, /* IN */
-                                  gint           channel,    /* IN */
-                                  const gchar   *plugin,     /* IN */
-                                  gint          *source,     /* OUT */
-                                  GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_add_source);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)source;
-	pk_connection_channel_add_source_async(
-			connection,
-			channel,
-			plugin,
-			NULL,
-			pk_connection_channel_add_source_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_channel_remove_source_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "channel_remove_source" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_remove_source_finish().
- *
- * See pk_connection_channel_remove_source().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_channel_remove_source_async (PkConnection        *connection,  /* IN */
-                                           gint                 channel,     /* IN */
-                                           gint                 source,      /* IN */
-                                           GCancellable        *cancellable, /* IN */
-                                           GAsyncReadyCallback  callback,    /* IN */
-                                           gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(channel_remove_source)(connection,
-	                                 channel,
-	                                 source,
-	                                 cancellable,
-	                                 callback,
-	                                 user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_remove_source_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_remove_source_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "channel_remove_source" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_remove_source_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_remove_source_finish (PkConnection  *connection, /* IN */
-                                            GAsyncResult  *result,     /* IN */
-                                            GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, channel_remove_source)(connection,
-	                                       result,
-	                                       error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_channel_remove_source_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_remove_source_async().
- *
- * Callback executed when an asynchronous request for the
- * "channel_remove_source" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_channel_remove_source_cb (GObject      *source,    /* IN */
-                                        GAsyncResult *result,    /* IN */
-                                        gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_channel_remove_source_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_channel_remove_source:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "channel_remove_source" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_channel_remove_source (PkConnection  *connection, /* IN */
-                                     gint           channel,    /* IN */
-                                     gint           source,     /* IN */
-                                     GError       **error)      /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(channel_remove_source);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_channel_remove_source_async(
-			connection,
-			channel,
-			source,
-			NULL,
-			pk_connection_channel_remove_source_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(channel_start);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_start_async(connection,
+	                                  channel,
+	                                  NULL,
+	                                  pk_connection_channel_start_cb,
+	                                  &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
  * pk_connection_channel_start_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_start" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_start_finish().
+ * Asynchronous implementation of the "channel_start_async" RPC.
  *
- * See pk_connection_channel_start().
+ * Start the channel. If required, the process will be spawned.
  *
  * Returns: None.
  * Side effects: None.
@@ -3870,16 +587,13 @@ pk_connection_channel_start_async (PkConnection        *connection,  /* IN */
 
 /**
  * pk_connection_channel_start_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_start_async().
- * @error: A location for a #GError or %NULL.
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "channel_start" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_start_async().
+ * Completion of an asynchronous call to the "channel_start_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Start the channel. If required, the process will be spawned.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
@@ -3899,86 +613,79 @@ pk_connection_channel_start_finish (PkConnection  *connection, /* IN */
 }
 
 /**
- * pk_connection_channel_start_cb:
+ * pk_connection_channel_stop_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_start_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "channel_start" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "channel_stop" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_start_cb (GObject      *source,    /* IN */
-                                GAsyncResult *result,    /* IN */
-                                gpointer      user_data) /* IN */
-
+pk_connection_channel_stop_cb (GObject      *source,    /* IN */
+                               GAsyncResult *result,    /* IN */
+                               gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_channel_start_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_channel_stop_finish(PK_CONNECTION(source),
+	                                                 result,
+	                                                 sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_start:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
+ * pk_connection_channel_stop:
+ * @connection: A #PkConnection.
  *
- * The "channel_start" RPC.
+ * Synchronous implemenation of the "channel_stop" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Stop the channel. If @killpid, the inferior process is terminated.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_start (PkConnection  *connection, /* IN */
-                             gint           channel,    /* IN */
-                             GError       **error)      /* OUT */
+pk_connection_channel_stop (PkConnection  *connection, /* IN */
+                            gint           channel,    /* IN */
+                            gboolean       killpid,    /* IN */
+                            GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_start);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_channel_start_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_start_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(channel_stop);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_stop_async(connection,
+	                                 channel,
+	                                 killpid,
+	                                 NULL,
+	                                 pk_connection_channel_stop_cb,
+	                                 &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
  * pk_connection_channel_stop_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_stop" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_stop_finish().
+ * Asynchronous implementation of the "channel_stop_async" RPC.
  *
- * See pk_connection_channel_stop().
+ * Stop the channel. If @killpid, the inferior process is terminated.
  *
  * Returns: None.
  * Side effects: None.
@@ -4006,16 +713,13 @@ pk_connection_channel_stop_async (PkConnection        *connection,  /* IN */
 
 /**
  * pk_connection_channel_stop_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_stop_async().
- * @error: A location for a #GError or %NULL.
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "channel_stop" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_stop_async().
+ * Completion of an asynchronous call to the "channel_stop_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Stop the channel. If @killpid, the inferior process is terminated.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
@@ -4035,229 +739,1883 @@ pk_connection_channel_stop_finish (PkConnection  *connection, /* IN */
 }
 
 /**
- * pk_connection_channel_stop_cb:
+ * pk_connection_channel_uncork_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_stop_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "channel_stop" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "channel_uncork" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_stop_cb (GObject      *source,    /* IN */
-                               GAsyncResult *result,    /* IN */
-                               gpointer      user_data) /* IN */
-
+pk_connection_channel_uncork_cb (GObject      *source,    /* IN */
+                                 GAsyncResult *result,    /* IN */
+                                 gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_channel_stop_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_channel_uncork_finish(PK_CONNECTION(source),
+	                                                   result,
+	                                                   sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_stop:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
+ * pk_connection_channel_uncork:
+ * @connection: A #PkConnection.
  *
- * The "channel_stop" RPC.
+ * Synchronous implemenation of the "channel_uncork" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Resumes delivery of manifest and samples for sources within the channel.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_stop (PkConnection  *connection, /* IN */
-                            gint           channel,    /* IN */
-                            gboolean       killpid,    /* IN */
-                            GError       **error)      /* OUT */
+pk_connection_channel_uncork (PkConnection  *connection, /* IN */
+                              gint           channel,    /* IN */
+                              GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_stop);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_channel_stop_async(
-			connection,
-			channel,
-			killpid,
-			NULL,
-			pk_connection_channel_stop_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(channel_uncork);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_uncork_async(connection,
+	                                   channel,
+	                                   NULL,
+	                                   pk_connection_channel_uncork_cb,
+	                                   &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
- * pk_connection_channel_pause_async:
+ * pk_connection_channel_uncork_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_pause" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_pause_finish().
+ * Asynchronous implementation of the "channel_uncork_async" RPC.
  *
- * See pk_connection_channel_pause().
+ * Resumes delivery of manifest and samples for sources within the channel.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_channel_pause_async (PkConnection        *connection,  /* IN */
-                                   gint                 channel,     /* IN */
-                                   GCancellable        *cancellable, /* IN */
-                                   GAsyncReadyCallback  callback,    /* IN */
-                                   gpointer             user_data)   /* IN */
+pk_connection_channel_uncork_async (PkConnection        *connection,  /* IN */
+                                    gint                 channel,     /* IN */
+                                    GCancellable        *cancellable, /* IN */
+                                    GAsyncReadyCallback  callback,    /* IN */
+                                    gpointer             user_data)   /* IN */
 {
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(channel_pause)(connection,
-	                         channel,
-	                         cancellable,
-	                         callback,
-	                         user_data);
+	RPC_ASYNC(channel_uncork)(connection,
+	                          channel,
+	                          cancellable,
+	                          callback,
+	                          user_data);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_pause_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_pause_async().
- * @error: A location for a #GError or %NULL.
+ * pk_connection_channel_uncork_finish:
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "channel_pause" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_pause_async().
+ * Completion of an asynchronous call to the "channel_uncork_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Resumes delivery of manifest and samples for sources within the channel.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_pause_finish (PkConnection  *connection, /* IN */
-                                    GAsyncResult  *result,     /* IN */
-                                    GError       **error)      /* OUT */
+pk_connection_channel_uncork_finish (PkConnection  *connection, /* IN */
+                                     GAsyncResult  *result,     /* IN */
+                                     GError       **error)      /* OUT */
 {
 	gboolean ret;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, channel_pause)(connection,
-	                               result,
-	                               error);
+	RPC_FINISH(ret, channel_uncork)(connection,
+	                                result,
+	                                error);
 	RETURN(ret);
 }
 
 /**
- * pk_connection_channel_pause_cb:
+ * pk_connection_encoder_get_plugin_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_pause_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "channel_pause" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "encoder_get_plugin" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_pause_cb (GObject      *source,    /* IN */
-                                GAsyncResult *result,    /* IN */
-                                gpointer      user_data) /* IN */
-
+pk_connection_encoder_get_plugin_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_channel_pause_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_encoder_get_plugin_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->params[0],
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_pause:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
+ * pk_connection_encoder_get_plugin:
+ * @connection: A #PkConnection.
  *
- * The "channel_pause" RPC.
+ * Synchronous implemenation of the "encoder_get_plugin" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Retrieves the plugin which created the encoder instance.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_pause (PkConnection  *connection, /* IN */
-                             gint           channel,    /* IN */
-                             GError       **error)      /* OUT */
+pk_connection_encoder_get_plugin (PkConnection  *connection, /* IN */
+                                  gint           encoder,    /* IN */
+                                  gchar        **pluign,     /* OUT */
+                                  GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_pause);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_channel_pause_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_pause_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(encoder_get_plugin);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = pluign;
+	pk_connection_encoder_get_plugin_async(connection,
+	                                       encoder,
+	                                       NULL,
+	                                       pk_connection_encoder_get_plugin_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
- * pk_connection_channel_unpause_async:
+ * pk_connection_encoder_get_plugin_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "channel_unpause" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_channel_unpause_finish().
+ * Asynchronous implementation of the "encoder_get_plugin_async" RPC.
  *
- * See pk_connection_channel_unpause().
+ * Retrieves the plugin which created the encoder instance.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_channel_unpause_async (PkConnection        *connection,  /* IN */
-                                     gint                 channel,     /* IN */
+pk_connection_encoder_get_plugin_async (PkConnection        *connection,  /* IN */
+                                        gint                 encoder,     /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(encoder_get_plugin)(connection,
+	                              encoder,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_encoder_get_plugin_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "encoder_get_plugin_finish" RPC.
+ *
+ * Retrieves the plugin which created the encoder instance.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_encoder_get_plugin_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         gchar        **pluign,     /* OUT */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, encoder_get_plugin)(connection,
+	                                    result,
+	                                    pluign,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_add_channel_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_add_channel" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_add_channel_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_add_channel_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->params[0],
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_channel:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_add_channel" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Adds a channel to the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_channel (PkConnection  *connection, /* IN */
+                                   gint          *channel,    /* OUT */
+                                   GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_add_channel);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = channel;
+	pk_connection_manager_add_channel_async(connection,
+	                                        NULL,
+	                                        pk_connection_manager_add_channel_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_add_channel_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_add_channel_async" RPC.
+ *
+ * Adds a channel to the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_add_channel_async (PkConnection        *connection,  /* IN */
+                                         GCancellable        *cancellable, /* IN */
+                                         GAsyncReadyCallback  callback,    /* IN */
+                                         gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_add_channel)(connection,
+	                               cancellable,
+	                               callback,
+	                               user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_channel_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_add_channel_finish" RPC.
+ *
+ * Adds a channel to the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_channel_finish (PkConnection  *connection, /* IN */
+                                          GAsyncResult  *result,     /* IN */
+                                          gint          *channel,    /* OUT */
+                                          GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_add_channel)(connection,
+	                                     result,
+	                                     channel,
+	                                     error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_add_subscription_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_add_subscription" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_add_subscription_cb (GObject      *source,    /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_add_subscription_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             sync->params[0],
+	                                                             sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_subscription:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_add_subscription" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Adds a new subscription to the agent. @buffer_size is the size of the
+ * internal buffer in bytes to queue before flushing data to the subscriber.
+ * @timeout is the maximum number of milliseconds that should pass before
+ * flushing data to the subscriber.
+ * 
+ * If @buffer_size and @timeout are 0, then no buffering will occur.
+ * 
+ * @encoder is an optional encoder that can be used to encode the data
+ * into a particular format the subscriber is expecting.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_subscription (PkConnection  *connection,   /* IN */
+                                        gsize          buffer_size,  /* IN */
+                                        gsize          timeout,      /* IN */
+                                        gint           encoder,      /* IN */
+                                        gint          *subscription, /* OUT */
+                                        GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_add_subscription);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = subscription;
+	pk_connection_manager_add_subscription_async(connection,
+	                                             buffer_size,
+	                                             timeout,
+	                                             encoder,
+	                                             NULL,
+	                                             pk_connection_manager_add_subscription_cb,
+	                                             &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_add_subscription_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_add_subscription_async" RPC.
+ *
+ * Adds a new subscription to the agent. @buffer_size is the size of the
+ * internal buffer in bytes to queue before flushing data to the subscriber.
+ * @timeout is the maximum number of milliseconds that should pass before
+ * flushing data to the subscriber.
+ * 
+ * If @buffer_size and @timeout are 0, then no buffering will occur.
+ * 
+ * @encoder is an optional encoder that can be used to encode the data
+ * into a particular format the subscriber is expecting.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_add_subscription_async (PkConnection        *connection,  /* IN */
+                                              gsize                buffer_size, /* IN */
+                                              gsize                timeout,     /* IN */
+                                              gint                 encoder,     /* IN */
+                                              GCancellable        *cancellable, /* IN */
+                                              GAsyncReadyCallback  callback,    /* IN */
+                                              gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_add_subscription)(connection,
+	                                    buffer_size,
+	                                    timeout,
+	                                    encoder,
+	                                    cancellable,
+	                                    callback,
+	                                    user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_subscription_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_add_subscription_finish" RPC.
+ *
+ * Adds a new subscription to the agent. @buffer_size is the size of the
+ * internal buffer in bytes to queue before flushing data to the subscriber.
+ * @timeout is the maximum number of milliseconds that should pass before
+ * flushing data to the subscriber.
+ * 
+ * If @buffer_size and @timeout are 0, then no buffering will occur.
+ * 
+ * @encoder is an optional encoder that can be used to encode the data
+ * into a particular format the subscriber is expecting.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_subscription_finish (PkConnection  *connection,   /* IN */
+                                               GAsyncResult  *result,       /* IN */
+                                               gint          *subscription, /* OUT */
+                                               GError       **error)        /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_add_subscription)(connection,
+	                                          result,
+	                                          subscription,
+	                                          error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_get_channels_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_get_channels" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_get_channels_cb (GObject      *source,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_get_channels_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         sync->params[0],
+	                                                         sync->params[1],
+	                                                         sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_channels:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_get_channels" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the list of channels located within the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_channels (PkConnection  *connection,   /* IN */
+                                    gint         **channels,     /* OUT */
+                                    gsize         *channels_len, /* OUT */
+                                    GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_get_channels);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = channels;
+	sync.params[1] = channels_len;
+	pk_connection_manager_get_channels_async(connection,
+	                                         NULL,
+	                                         pk_connection_manager_get_channels_cb,
+	                                         &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_get_channels_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_get_channels_async" RPC.
+ *
+ * Retrieves the list of channels located within the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_get_channels_async (PkConnection        *connection,  /* IN */
+                                          GCancellable        *cancellable, /* IN */
+                                          GAsyncReadyCallback  callback,    /* IN */
+                                          gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_get_channels)(connection,
+	                                cancellable,
+	                                callback,
+	                                user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_channels_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_get_channels_finish" RPC.
+ *
+ * Retrieves the list of channels located within the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_channels_finish (PkConnection  *connection,   /* IN */
+                                           GAsyncResult  *result,       /* IN */
+                                           gint         **channels,     /* OUT */
+                                           gsize         *channels_len, /* OUT */
+                                           GError       **error)        /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_get_channels)(connection,
+	                                      result,
+	                                      channels,
+	                                      channels_len,
+	                                      error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_get_plugins_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_get_plugins" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_get_plugins_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_get_plugins_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->params[0],
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_plugins:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_get_plugins" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the list of available plugins within the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_plugins (PkConnection   *connection, /* IN */
+                                   gchar        ***plugins,    /* OUT */
+                                   GError        **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_get_plugins);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = plugins;
+	pk_connection_manager_get_plugins_async(connection,
+	                                        NULL,
+	                                        pk_connection_manager_get_plugins_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_get_plugins_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_get_plugins_async" RPC.
+ *
+ * Retrieves the list of available plugins within the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_get_plugins_async (PkConnection        *connection,  /* IN */
+                                         GCancellable        *cancellable, /* IN */
+                                         GAsyncReadyCallback  callback,    /* IN */
+                                         gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_get_plugins)(connection,
+	                               cancellable,
+	                               callback,
+	                               user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_plugins_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_get_plugins_finish" RPC.
+ *
+ * Retrieves the list of available plugins within the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_plugins_finish (PkConnection   *connection, /* IN */
+                                          GAsyncResult   *result,     /* IN */
+                                          gchar        ***plugins,    /* OUT */
+                                          GError        **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_get_plugins)(connection,
+	                                     result,
+	                                     plugins,
+	                                     error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_get_version_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_get_version" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_get_version_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_get_version_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->params[0],
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_version:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_get_version" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the version of the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_version (PkConnection  *connection, /* IN */
+                                   gchar        **version,    /* OUT */
+                                   GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_get_version);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = version;
+	pk_connection_manager_get_version_async(connection,
+	                                        NULL,
+	                                        pk_connection_manager_get_version_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_get_version_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_get_version_async" RPC.
+ *
+ * Retrieves the version of the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_get_version_async (PkConnection        *connection,  /* IN */
+                                         GCancellable        *cancellable, /* IN */
+                                         GAsyncReadyCallback  callback,    /* IN */
+                                         gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_get_version)(connection,
+	                               cancellable,
+	                               callback,
+	                               user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_version_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_get_version_finish" RPC.
+ *
+ * Retrieves the version of the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_version_finish (PkConnection  *connection, /* IN */
+                                          GAsyncResult  *result,     /* IN */
+                                          gchar        **version,    /* OUT */
+                                          GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_get_version)(connection,
+	                                     result,
+	                                     version,
+	                                     error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_ping_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_ping" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_ping_cb (GObject      *source,    /* IN */
+                               GAsyncResult *result,    /* IN */
+                               gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_ping_finish(PK_CONNECTION(source),
+	                                                 result,
+	                                                 sync->params[0],
+	                                                 sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_ping:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_ping" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Pings the agent over the RPC protocol to determine one-way latency.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_ping (PkConnection  *connection, /* IN */
+                            GTimeVal      *tv,         /* OUT */
+                            GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_ping);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = tv;
+	pk_connection_manager_ping_async(connection,
+	                                 NULL,
+	                                 pk_connection_manager_ping_cb,
+	                                 &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_ping_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_ping_async" RPC.
+ *
+ * Pings the agent over the RPC protocol to determine one-way latency.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_ping_async (PkConnection        *connection,  /* IN */
+                                  GCancellable        *cancellable, /* IN */
+                                  GAsyncReadyCallback  callback,    /* IN */
+                                  gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_ping)(connection,
+	                        cancellable,
+	                        callback,
+	                        user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_ping_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_ping_finish" RPC.
+ *
+ * Pings the agent over the RPC protocol to determine one-way latency.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_ping_finish (PkConnection  *connection, /* IN */
+                                   GAsyncResult  *result,     /* IN */
+                                   GTimeVal      *tv,         /* OUT */
+                                   GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_ping)(connection,
+	                              result,
+	                              tv,
+	                              error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_remove_channel_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_remove_channel" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_remove_channel_cb (GObject      *source,    /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_remove_channel_finish(PK_CONNECTION(source),
+	                                                           result,
+	                                                           sync->params[0],
+	                                                           sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_channel:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_remove_channel" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Removes a channel from the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_channel (PkConnection  *connection, /* IN */
+                                      gint           channel,    /* IN */
+                                      gboolean      *removed,    /* OUT */
+                                      GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_remove_channel);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = removed;
+	pk_connection_manager_remove_channel_async(connection,
+	                                           channel,
+	                                           NULL,
+	                                           pk_connection_manager_remove_channel_cb,
+	                                           &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_remove_channel_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_remove_channel_async" RPC.
+ *
+ * Removes a channel from the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_remove_channel_async (PkConnection        *connection,  /* IN */
+                                            gint                 channel,     /* IN */
+                                            GCancellable        *cancellable, /* IN */
+                                            GAsyncReadyCallback  callback,    /* IN */
+                                            gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_remove_channel)(connection,
+	                                  channel,
+	                                  cancellable,
+	                                  callback,
+	                                  user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_channel_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_remove_channel_finish" RPC.
+ *
+ * Removes a channel from the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_channel_finish (PkConnection  *connection, /* IN */
+                                             GAsyncResult  *result,     /* IN */
+                                             gboolean      *removed,    /* OUT */
+                                             GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_remove_channel)(connection,
+	                                        result,
+	                                        removed,
+	                                        error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_remove_subscription_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_remove_subscription" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_remove_subscription_cb (GObject      *source,    /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_remove_subscription_finish(PK_CONNECTION(source),
+	                                                                result,
+	                                                                sync->params[0],
+	                                                                sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_subscription:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_remove_subscription" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Removes a subscription from the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_subscription (PkConnection  *connection,   /* IN */
+                                           gint           subscription, /* IN */
+                                           gboolean      *removed,      /* OUT */
+                                           GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_remove_subscription);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = removed;
+	pk_connection_manager_remove_subscription_async(connection,
+	                                                subscription,
+	                                                NULL,
+	                                                pk_connection_manager_remove_subscription_cb,
+	                                                &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_remove_subscription_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_remove_subscription_async" RPC.
+ *
+ * Removes a subscription from the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_remove_subscription_async (PkConnection        *connection,   /* IN */
+                                                 gint                 subscription, /* IN */
+                                                 GCancellable        *cancellable,  /* IN */
+                                                 GAsyncReadyCallback  callback,     /* IN */
+                                                 gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_remove_subscription)(connection,
+	                                       subscription,
+	                                       cancellable,
+	                                       callback,
+	                                       user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_subscription_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_remove_subscription_finish" RPC.
+ *
+ * Removes a subscription from the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_subscription_finish (PkConnection  *connection, /* IN */
+                                                  GAsyncResult  *result,     /* IN */
+                                                  gboolean      *removed,    /* OUT */
+                                                  GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_remove_subscription)(connection,
+	                                             result,
+	                                             removed,
+	                                             error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_create_encoder_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_create_encoder" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_create_encoder_cb (GObject      *source,    /* IN */
+                                        GAsyncResult *result,    /* IN */
+                                        gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_create_encoder_finish(PK_CONNECTION(source),
+	                                                          result,
+	                                                          sync->params[0],
+	                                                          sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_create_encoder:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_create_encoder" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Creates a new instance of the encoder plugin.  If the plugin type is not
+ * an encoder plugin then this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_create_encoder (PkConnection  *connection, /* IN */
+                                     const gchar   *plugin,     /* IN */
+                                     gint          *encoder,    /* OUT */
+                                     GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_create_encoder);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = encoder;
+	pk_connection_plugin_create_encoder_async(connection,
+	                                          plugin,
+	                                          NULL,
+	                                          pk_connection_plugin_create_encoder_cb,
+	                                          &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_create_encoder_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_create_encoder_async" RPC.
+ *
+ * Creates a new instance of the encoder plugin.  If the plugin type is not
+ * an encoder plugin then this will fail.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_create_encoder_async (PkConnection        *connection,  /* IN */
+                                           const gchar         *plugin,      /* IN */
+                                           GCancellable        *cancellable, /* IN */
+                                           GAsyncReadyCallback  callback,    /* IN */
+                                           gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_create_encoder)(connection,
+	                                 plugin,
+	                                 cancellable,
+	                                 callback,
+	                                 user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_create_encoder_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_create_encoder_finish" RPC.
+ *
+ * Creates a new instance of the encoder plugin.  If the plugin type is not
+ * an encoder plugin then this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_create_encoder_finish (PkConnection  *connection, /* IN */
+                                            GAsyncResult  *result,     /* IN */
+                                            gint          *encoder,    /* OUT */
+                                            GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_create_encoder)(connection,
+	                                       result,
+	                                       encoder,
+	                                       error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_create_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_create_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_create_source_cb (GObject      *source,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_create_source_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         sync->params[0],
+	                                                         sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_create_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_create_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Creates a new instance of the source plugin.  If the plugin type is not
+ * a source plugin then this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_create_source (PkConnection  *connection, /* IN */
+                                    const gchar   *plugin,     /* IN */
+                                    gint          *source,     /* OUT */
+                                    GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_create_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = source;
+	pk_connection_plugin_create_source_async(connection,
+	                                         plugin,
+	                                         NULL,
+	                                         pk_connection_plugin_create_source_cb,
+	                                         &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_create_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_create_source_async" RPC.
+ *
+ * Creates a new instance of the source plugin.  If the plugin type is not
+ * a source plugin then this will fail.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_create_source_async (PkConnection        *connection,  /* IN */
+                                          const gchar         *plugin,      /* IN */
+                                          GCancellable        *cancellable, /* IN */
+                                          GAsyncReadyCallback  callback,    /* IN */
+                                          gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_create_source)(connection,
+	                                plugin,
+	                                cancellable,
+	                                callback,
+	                                user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_create_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_create_source_finish" RPC.
+ *
+ * Creates a new instance of the source plugin.  If the plugin type is not
+ * a source plugin then this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_create_source_finish (PkConnection  *connection, /* IN */
+                                           GAsyncResult  *result,     /* IN */
+                                           gint          *source,     /* OUT */
+                                           GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_create_source)(connection,
+	                                      result,
+	                                      source,
+	                                      error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_get_copyright_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_get_copyright" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_get_copyright_cb (GObject      *source,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_get_copyright_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         sync->params[0],
+	                                                         sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_copyright:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_get_copyright" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * The plugin copyright.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_copyright (PkConnection  *connection, /* IN */
+                                    const gchar   *plugin,     /* IN */
+                                    gchar        **copyright,  /* OUT */
+                                    GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_get_copyright);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = copyright;
+	pk_connection_plugin_get_copyright_async(connection,
+	                                         plugin,
+	                                         NULL,
+	                                         pk_connection_plugin_get_copyright_cb,
+	                                         &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_get_copyright_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_get_copyright_async" RPC.
+ *
+ * The plugin copyright.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_get_copyright_async (PkConnection        *connection,  /* IN */
+                                          const gchar         *plugin,      /* IN */
+                                          GCancellable        *cancellable, /* IN */
+                                          GAsyncReadyCallback  callback,    /* IN */
+                                          gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_get_copyright)(connection,
+	                                plugin,
+	                                cancellable,
+	                                callback,
+	                                user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_copyright_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_get_copyright_finish" RPC.
+ *
+ * The plugin copyright.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_copyright_finish (PkConnection  *connection, /* IN */
+                                           GAsyncResult  *result,     /* IN */
+                                           gchar        **copyright,  /* OUT */
+                                           GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_get_copyright)(connection,
+	                                      result,
+	                                      copyright,
+	                                      error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_get_description_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_get_description" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_get_description_cb (GObject      *source,    /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_get_description_finish(PK_CONNECTION(source),
+	                                                           result,
+	                                                           sync->params[0],
+	                                                           sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_description:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_get_description" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * The plugin description.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_description (PkConnection  *connection,  /* IN */
+                                      const gchar   *plugin,      /* IN */
+                                      gchar        **description, /* OUT */
+                                      GError       **error)       /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_get_description);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = description;
+	pk_connection_plugin_get_description_async(connection,
+	                                           plugin,
+	                                           NULL,
+	                                           pk_connection_plugin_get_description_cb,
+	                                           &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_get_description_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_get_description_async" RPC.
+ *
+ * The plugin description.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_get_description_async (PkConnection        *connection,  /* IN */
+                                            const gchar         *plugin,      /* IN */
+                                            GCancellable        *cancellable, /* IN */
+                                            GAsyncReadyCallback  callback,    /* IN */
+                                            gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_get_description)(connection,
+	                                  plugin,
+	                                  cancellable,
+	                                  callback,
+	                                  user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_description_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_get_description_finish" RPC.
+ *
+ * The plugin description.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_description_finish (PkConnection  *connection,  /* IN */
+                                             GAsyncResult  *result,      /* IN */
+                                             gchar        **description, /* OUT */
+                                             GError       **error)       /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_get_description)(connection,
+	                                        result,
+	                                        description,
+	                                        error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_get_name_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_get_name" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_get_name_cb (GObject      *source,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_get_name_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    sync->params[0],
+	                                                    sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_name:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_get_name" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * The plugin name.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_name (PkConnection  *connection, /* IN */
+                               const gchar   *plugin,     /* IN */
+                               gchar        **name,       /* OUT */
+                               GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_get_name);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = name;
+	pk_connection_plugin_get_name_async(connection,
+	                                    plugin,
+	                                    NULL,
+	                                    pk_connection_plugin_get_name_cb,
+	                                    &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_get_name_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_get_name_async" RPC.
+ *
+ * The plugin name.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_get_name_async (PkConnection        *connection,  /* IN */
+                                     const gchar         *plugin,      /* IN */
                                      GCancellable        *cancellable, /* IN */
                                      GAsyncReadyCallback  callback,    /* IN */
                                      gpointer             user_data)   /* IN */
@@ -4266,8 +2624,8 @@ pk_connection_channel_unpause_async (PkConnection        *connection,  /* IN */
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(channel_unpause)(connection,
-	                           channel,
+	RPC_ASYNC(plugin_get_name)(connection,
+	                           plugin,
 	                           cancellable,
 	                           callback,
 	                           user_data);
@@ -4275,22 +2633,20 @@ pk_connection_channel_unpause_async (PkConnection        *connection,  /* IN */
 }
 
 /**
- * pk_connection_channel_unpause_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_channel_unpause_async().
- * @error: A location for a #GError or %NULL.
+ * pk_connection_plugin_get_name_finish:
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "channel_unpause" RPC.
- * This should be called from a callback supplied to
- * pk_connection_channel_unpause_async().
+ * Completion of an asynchronous call to the "plugin_get_name_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * The plugin name.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_unpause_finish (PkConnection  *connection, /* IN */
+pk_connection_plugin_get_name_finish (PkConnection  *connection, /* IN */
                                       GAsyncResult  *result,     /* IN */
+                                      gchar        **name,       /* OUT */
                                       GError       **error)      /* OUT */
 {
 	gboolean ret;
@@ -4298,99 +2654,1269 @@ pk_connection_channel_unpause_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, channel_unpause)(connection,
+	RPC_FINISH(ret, plugin_get_name)(connection,
 	                                 result,
+	                                 name,
 	                                 error);
 	RETURN(ret);
 }
 
 /**
- * pk_connection_channel_unpause_cb:
+ * pk_connection_plugin_get_plugin_type_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_channel_unpause_async().
+ * @user_data: A #GAsyncResult.
  *
- * Callback executed when an asynchronous request for the
- * "channel_unpause" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
+ * Callback to notify a synchronous call to the "plugin_get_plugin_type" RPC that it
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_unpause_cb (GObject      *source,    /* IN */
-                                  GAsyncResult *result,    /* IN */
-                                  gpointer      user_data) /* IN */
-
+pk_connection_plugin_get_plugin_type_cb (GObject      *source,    /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
+	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	async->result = pk_connection_channel_unpause_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_plugin_get_plugin_type_finish(PK_CONNECTION(source),
+	                                                           result,
+	                                                           sync->params[0],
+	                                                           sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_unpause:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
+ * pk_connection_plugin_get_plugin_type:
+ * @connection: A #PkConnection.
  *
- * The "channel_unpause" RPC.
+ * Synchronous implemenation of the "plugin_get_plugin_type" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * The plugin type.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_unpause (PkConnection  *connection, /* IN */
-                               gint           channel,    /* IN */
-                               GError       **error)      /* OUT */
+pk_connection_plugin_get_plugin_type (PkConnection  *connection, /* IN */
+                                      const gchar   *plugin,     /* IN */
+                                      gint          *type,       /* OUT */
+                                      GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_unpause);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_channel_unpause_async(
-			connection,
-			channel,
-			NULL,
-			pk_connection_channel_unpause_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	CHECK_FOR_RPC(plugin_get_plugin_type);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = type;
+	pk_connection_plugin_get_plugin_type_async(connection,
+	                                           plugin,
+	                                           NULL,
+	                                           pk_connection_plugin_get_plugin_type_cb,
+	                                           &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
- * pk_connection_subscription_enable_async:
+ * pk_connection_plugin_get_plugin_type_async:
  * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
  *
- * Asynchronously requests the "subscription_enable" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_subscription_enable_finish().
+ * Asynchronous implementation of the "plugin_get_plugin_type_async" RPC.
  *
- * See pk_connection_subscription_enable().
+ * The plugin type.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_subscription_enable_async (PkConnection        *connection,   /* IN */
+pk_connection_plugin_get_plugin_type_async (PkConnection        *connection,  /* IN */
+                                            const gchar         *plugin,      /* IN */
+                                            GCancellable        *cancellable, /* IN */
+                                            GAsyncReadyCallback  callback,    /* IN */
+                                            gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_get_plugin_type)(connection,
+	                                  plugin,
+	                                  cancellable,
+	                                  callback,
+	                                  user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_plugin_type_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_get_plugin_type_finish" RPC.
+ *
+ * The plugin type.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_plugin_type_finish (PkConnection  *connection, /* IN */
+                                             GAsyncResult  *result,     /* IN */
+                                             gint          *type,       /* OUT */
+                                             GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_get_plugin_type)(connection,
+	                                        result,
+	                                        type,
+	                                        error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_plugin_get_version_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "plugin_get_version" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_plugin_get_version_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_plugin_get_version_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->params[0],
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_version:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "plugin_get_version" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * The plugin version.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_version (PkConnection  *connection, /* IN */
+                                  const gchar   *plugin,     /* IN */
+                                  gchar        **version,    /* OUT */
+                                  GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(plugin_get_version);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = version;
+	pk_connection_plugin_get_version_async(connection,
+	                                       plugin,
+	                                       NULL,
+	                                       pk_connection_plugin_get_version_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_plugin_get_version_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "plugin_get_version_async" RPC.
+ *
+ * The plugin version.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_plugin_get_version_async (PkConnection        *connection,  /* IN */
+                                        const gchar         *plugin,      /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(plugin_get_version)(connection,
+	                              plugin,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_plugin_get_version_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "plugin_get_version_finish" RPC.
+ *
+ * The plugin version.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_plugin_get_version_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         gchar        **version,    /* OUT */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, plugin_get_version)(connection,
+	                                    result,
+	                                    version,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_source_get_plugin_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "source_get_plugin" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_source_get_plugin_cb (GObject      *source,    /* IN */
+                                    GAsyncResult *result,    /* IN */
+                                    gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_source_get_plugin_finish(PK_CONNECTION(source),
+	                                                      result,
+	                                                      sync->params[0],
+	                                                      sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_source_get_plugin:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "source_get_plugin" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the plugin for which the source originates.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_source_get_plugin (PkConnection  *connection, /* IN */
+                                 gint           source,     /* IN */
+                                 gchar        **plugin,     /* OUT */
+                                 GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(source_get_plugin);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = plugin;
+	pk_connection_source_get_plugin_async(connection,
+	                                      source,
+	                                      NULL,
+	                                      pk_connection_source_get_plugin_cb,
+	                                      &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_source_get_plugin_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "source_get_plugin_async" RPC.
+ *
+ * Retrieves the plugin for which the source originates.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_source_get_plugin_async (PkConnection        *connection,  /* IN */
+                                       gint                 source,      /* IN */
+                                       GCancellable        *cancellable, /* IN */
+                                       GAsyncReadyCallback  callback,    /* IN */
+                                       gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(source_get_plugin)(connection,
+	                             source,
+	                             cancellable,
+	                             callback,
+	                             user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_source_get_plugin_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "source_get_plugin_finish" RPC.
+ *
+ * Retrieves the plugin for which the source originates.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_source_get_plugin_finish (PkConnection  *connection, /* IN */
+                                        GAsyncResult  *result,     /* IN */
+                                        gchar        **plugin,     /* OUT */
+                                        GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, source_get_plugin)(connection,
+	                                   result,
+	                                   plugin,
+	                                   error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_add_channel_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_add_channel" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_add_channel_cb (GObject      *source,    /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_add_channel_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_add_channel:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_add_channel" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Adds all sources of @channel to the list of sources for which manifest
+ * and samples are delivered to the subscriber.
+ * 
+ * If @monitor is TRUE, then sources added to @channel will automatically
+ * be added to the subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_add_channel (PkConnection  *connection,   /* IN */
+                                        gint           subscription, /* IN */
+                                        gint           channel,      /* IN */
+                                        gboolean       monitor,      /* IN */
+                                        GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_add_channel);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_add_channel_async(connection,
+	                                             subscription,
+	                                             channel,
+	                                             monitor,
+	                                             NULL,
+	                                             pk_connection_subscription_add_channel_cb,
+	                                             &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_add_channel_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_add_channel_async" RPC.
+ *
+ * Adds all sources of @channel to the list of sources for which manifest
+ * and samples are delivered to the subscriber.
+ * 
+ * If @monitor is TRUE, then sources added to @channel will automatically
+ * be added to the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_add_channel_async (PkConnection        *connection,   /* IN */
+                                              gint                 subscription, /* IN */
+                                              gint                 channel,      /* IN */
+                                              gboolean             monitor,      /* IN */
+                                              GCancellable        *cancellable,  /* IN */
+                                              GAsyncReadyCallback  callback,     /* IN */
+                                              gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_add_channel)(connection,
+	                                    subscription,
+	                                    channel,
+	                                    monitor,
+	                                    cancellable,
+	                                    callback,
+	                                    user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_add_channel_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_add_channel_finish" RPC.
+ *
+ * Adds all sources of @channel to the list of sources for which manifest
+ * and samples are delivered to the subscriber.
+ * 
+ * If @monitor is TRUE, then sources added to @channel will automatically
+ * be added to the subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_add_channel_finish (PkConnection  *connection, /* IN */
+                                               GAsyncResult  *result,     /* IN */
+                                               GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_add_channel)(connection,
+	                                          result,
+	                                          error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_add_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_add_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_add_source_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_add_source_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_add_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_add_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Adds @source to the list of sources for which manifest and samples are
+ * delivered to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_add_source (PkConnection  *connection,   /* IN */
+                                       gint           subscription, /* IN */
+                                       gint           source,       /* IN */
+                                       GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_add_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_add_source_async(connection,
+	                                            subscription,
+	                                            source,
+	                                            NULL,
+	                                            pk_connection_subscription_add_source_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_add_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_add_source_async" RPC.
+ *
+ * Adds @source to the list of sources for which manifest and samples are
+ * delivered to the subscriber.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_add_source_async (PkConnection        *connection,   /* IN */
+                                             gint                 subscription, /* IN */
+                                             gint                 source,       /* IN */
+                                             GCancellable        *cancellable,  /* IN */
+                                             GAsyncReadyCallback  callback,     /* IN */
+                                             gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_add_source)(connection,
+	                                   subscription,
+	                                   source,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_add_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_add_source_finish" RPC.
+ *
+ * Adds @source to the list of sources for which manifest and samples are
+ * delivered to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_add_source_finish (PkConnection  *connection, /* IN */
+                                              GAsyncResult  *result,     /* IN */
+                                              GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_add_source)(connection,
+	                                         result,
+	                                         error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_cork_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_cork" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_cork_cb (GObject      *source,    /* IN */
+                                    GAsyncResult *result,    /* IN */
+                                    gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_cork_finish(PK_CONNECTION(source),
+	                                                      result,
+	                                                      sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_cork:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_cork" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Prevents the subscription from further manifest or sample delivery.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_cork (PkConnection  *connection,   /* IN */
+                                 gint           subscription, /* IN */
+                                 gboolean       drain,        /* IN */
+                                 GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_cork);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_cork_async(connection,
+	                                      subscription,
+	                                      drain,
+	                                      NULL,
+	                                      pk_connection_subscription_cork_cb,
+	                                      &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_cork_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_cork_async" RPC.
+ *
+ * Prevents the subscription from further manifest or sample delivery.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_cork_async (PkConnection        *connection,   /* IN */
+                                       gint                 subscription, /* IN */
+                                       gboolean             drain,        /* IN */
+                                       GCancellable        *cancellable,  /* IN */
+                                       GAsyncReadyCallback  callback,     /* IN */
+                                       gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_cork)(connection,
+	                             subscription,
+	                             drain,
+	                             cancellable,
+	                             callback,
+	                             user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_cork_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_cork_finish" RPC.
+ *
+ * Prevents the subscription from further manifest or sample delivery.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_cork_finish (PkConnection  *connection, /* IN */
+                                        GAsyncResult  *result,     /* IN */
+                                        GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_cork)(connection,
+	                                   result,
+	                                   error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_remove_channel_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_remove_channel" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_remove_channel_cb (GObject      *source,    /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_remove_channel_finish(PK_CONNECTION(source),
+	                                                                result,
+	                                                                sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_remove_channel:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_remove_channel" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Removes @channel and all of its sources from the subscription.  This
+ * prevents further manifest and sample delivery to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_remove_channel (PkConnection  *connection,   /* IN */
+                                           gint           subscription, /* IN */
+                                           gint           channel,      /* IN */
+                                           GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_remove_channel);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_remove_channel_async(connection,
+	                                                subscription,
+	                                                channel,
+	                                                NULL,
+	                                                pk_connection_subscription_remove_channel_cb,
+	                                                &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_remove_channel_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_remove_channel_async" RPC.
+ *
+ * Removes @channel and all of its sources from the subscription.  This
+ * prevents further manifest and sample delivery to the subscriber.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_remove_channel_async (PkConnection        *connection,   /* IN */
+                                                 gint                 subscription, /* IN */
+                                                 gint                 channel,      /* IN */
+                                                 GCancellable        *cancellable,  /* IN */
+                                                 GAsyncReadyCallback  callback,     /* IN */
+                                                 gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_remove_channel)(connection,
+	                                       subscription,
+	                                       channel,
+	                                       cancellable,
+	                                       callback,
+	                                       user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_remove_channel_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_remove_channel_finish" RPC.
+ *
+ * Removes @channel and all of its sources from the subscription.  This
+ * prevents further manifest and sample delivery to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_remove_channel_finish (PkConnection  *connection, /* IN */
+                                                  GAsyncResult  *result,     /* IN */
+                                                  GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_remove_channel)(connection,
+	                                             result,
+	                                             error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_remove_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_remove_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_remove_source_cb (GObject      *source,    /* IN */
+                                             GAsyncResult *result,    /* IN */
+                                             gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_remove_source_finish(PK_CONNECTION(source),
+	                                                               result,
+	                                                               sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_remove_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_remove_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Removes @source from the subscription.  This prevents further manifest
+ * and sample delivery to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_remove_source (PkConnection  *connection,   /* IN */
+                                          gint           subscription, /* IN */
+                                          gint           source,       /* IN */
+                                          GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_remove_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_remove_source_async(connection,
+	                                               subscription,
+	                                               source,
+	                                               NULL,
+	                                               pk_connection_subscription_remove_source_cb,
+	                                               &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_remove_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_remove_source_async" RPC.
+ *
+ * Removes @source from the subscription.  This prevents further manifest
+ * and sample delivery to the subscriber.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_remove_source_async (PkConnection        *connection,   /* IN */
+                                                gint                 subscription, /* IN */
+                                                gint                 source,       /* IN */
+                                                GCancellable        *cancellable,  /* IN */
+                                                GAsyncReadyCallback  callback,     /* IN */
+                                                gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_remove_source)(connection,
+	                                      subscription,
+	                                      source,
+	                                      cancellable,
+	                                      callback,
+	                                      user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_remove_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_remove_source_finish" RPC.
+ *
+ * Removes @source from the subscription.  This prevents further manifest
+ * and sample delivery to the subscriber.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_remove_source_finish (PkConnection  *connection, /* IN */
+                                                 GAsyncResult  *result,     /* IN */
+                                                 GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_remove_source)(connection,
+	                                            result,
+	                                            error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_set_buffer_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_set_buffer" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_set_buffer_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_set_buffer_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_buffer:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_set_buffer" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the buffering timeout and maximum buffer size for the subscription.
+ * If @timeout milliseconds pass or @size bytes are consummed buffering,
+ * the data will be delivered to the subscriber.
+ * 
+ * Set @timeout and @size to 0 to disable buffering.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_buffer (PkConnection  *connection,   /* IN */
+                                       gint           subscription, /* IN */
+                                       gint           timeout,      /* IN */
+                                       gint           size,         /* IN */
+                                       GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_set_buffer);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_set_buffer_async(connection,
+	                                            subscription,
+	                                            timeout,
+	                                            size,
+	                                            NULL,
+	                                            pk_connection_subscription_set_buffer_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_set_buffer_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_set_buffer_async" RPC.
+ *
+ * Sets the buffering timeout and maximum buffer size for the subscription.
+ * If @timeout milliseconds pass or @size bytes are consummed buffering,
+ * the data will be delivered to the subscriber.
+ * 
+ * Set @timeout and @size to 0 to disable buffering.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_set_buffer_async (PkConnection        *connection,   /* IN */
+                                             gint                 subscription, /* IN */
+                                             gint                 timeout,      /* IN */
+                                             gint                 size,         /* IN */
+                                             GCancellable        *cancellable,  /* IN */
+                                             GAsyncReadyCallback  callback,     /* IN */
+                                             gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_set_buffer)(connection,
+	                                   subscription,
+	                                   timeout,
+	                                   size,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_buffer_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_set_buffer_finish" RPC.
+ *
+ * Sets the buffering timeout and maximum buffer size for the subscription.
+ * If @timeout milliseconds pass or @size bytes are consummed buffering,
+ * the data will be delivered to the subscriber.
+ * 
+ * Set @timeout and @size to 0 to disable buffering.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_buffer_finish (PkConnection  *connection, /* IN */
+                                              GAsyncResult  *result,     /* IN */
+                                              GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_set_buffer)(connection,
+	                                         result,
+	                                         error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_uncork_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_uncork" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_uncork_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_uncork_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_uncork:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_uncork" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Enables the subscription for manifest and sample delivery.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_uncork (PkConnection  *connection,   /* IN */
+                                   gint           subscription, /* IN */
+                                   GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_uncork);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_uncork_async(connection,
+	                                        subscription,
+	                                        NULL,
+	                                        pk_connection_subscription_uncork_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_uncork_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_uncork_async" RPC.
+ *
+ * Enables the subscription for manifest and sample delivery.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_uncork_async (PkConnection        *connection,   /* IN */
                                          gint                 subscription, /* IN */
                                          GCancellable        *cancellable,  /* IN */
                                          GAsyncReadyCallback  callback,     /* IN */
@@ -4400,7 +3926,7 @@ pk_connection_subscription_enable_async (PkConnection        *connection,   /* I
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(subscription_enable)(connection,
+	RPC_ASYNC(subscription_uncork)(connection,
 	                               subscription,
 	                               cancellable,
 	                               callback,
@@ -4409,21 +3935,18 @@ pk_connection_subscription_enable_async (PkConnection        *connection,   /* I
 }
 
 /**
- * pk_connection_subscription_enable_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_subscription_enable_async().
- * @error: A location for a #GError or %NULL.
+ * pk_connection_subscription_uncork_finish:
+ * @connection: A #PkConnection.
  *
- * Completes an asynchronous request of the "subscription_enable" RPC.
- * This should be called from a callback supplied to
- * pk_connection_subscription_enable_async().
+ * Completion of an asynchronous call to the "subscription_uncork_finish" RPC.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Enables the subscription for manifest and sample delivery.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_subscription_enable_finish (PkConnection  *connection, /* IN */
+pk_connection_subscription_uncork_finish (PkConnection  *connection, /* IN */
                                           GAsyncResult  *result,     /* IN */
                                           GError       **error)      /* OUT */
 {
@@ -4432,510 +3955,10 @@ pk_connection_subscription_enable_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, subscription_enable)(connection,
+	RPC_FINISH(ret, subscription_uncork)(connection,
 	                                     result,
 	                                     error);
 	RETURN(ret);
-}
-
-/**
- * pk_connection_subscription_enable_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_subscription_enable_async().
- *
- * Callback executed when an asynchronous request for the
- * "subscription_enable" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_subscription_enable_cb (GObject      *source,    /* IN */
-                                      GAsyncResult *result,    /* IN */
-                                      gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_subscription_enable_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_enable:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "subscription_enable" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_enable (PkConnection  *connection,   /* IN */
-                                   gint           subscription, /* IN */
-                                   GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(subscription_enable);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_subscription_enable_async(
-			connection,
-			subscription,
-			NULL,
-			pk_connection_subscription_enable_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_subscription_disable_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "subscription_disable" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_subscription_disable_finish().
- *
- * See pk_connection_subscription_disable().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_subscription_disable_async (PkConnection        *connection,   /* IN */
-                                          gint                 subscription, /* IN */
-                                          GCancellable        *cancellable,  /* IN */
-                                          GAsyncReadyCallback  callback,     /* IN */
-                                          gpointer             user_data)    /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(subscription_disable)(connection,
-	                                subscription,
-	                                cancellable,
-	                                callback,
-	                                user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_disable_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_subscription_disable_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "subscription_disable" RPC.
- * This should be called from a callback supplied to
- * pk_connection_subscription_disable_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_disable_finish (PkConnection  *connection, /* IN */
-                                           GAsyncResult  *result,     /* IN */
-                                           GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, subscription_disable)(connection,
-	                                      result,
-	                                      error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_subscription_disable_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_subscription_disable_async().
- *
- * Callback executed when an asynchronous request for the
- * "subscription_disable" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_subscription_disable_cb (GObject      *source,    /* IN */
-                                       GAsyncResult *result,    /* IN */
-                                       gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_subscription_disable_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_disable:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "subscription_disable" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_disable (PkConnection  *connection,   /* IN */
-                                    gint           subscription, /* IN */
-                                    GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(subscription_disable);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_subscription_disable_async(
-			connection,
-			subscription,
-			NULL,
-			pk_connection_subscription_disable_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_subscription_set_handlers_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "subscription_set_handlers" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_subscription_set_handlers_finish().
- *
- * See pk_connection_subscription_set_handlers().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_subscription_set_handlers_async (PkConnection        *connection,   /* IN */
-                                               gint                 subscription, /* IN */
-                                               GFunc                manifest,     /* IN */
-                                               GFunc                sample,       /* IN */
-                                               GCancellable        *cancellable,  /* IN */
-                                               GAsyncReadyCallback  callback,     /* IN */
-                                               gpointer             user_data)    /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(subscription_set_handlers)(connection,
-	                                     subscription,
-	                                     manifest,
-	                                     sample,
-	                                     cancellable,
-	                                     callback,
-	                                     user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_set_handlers_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_subscription_set_handlers_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "subscription_set_handlers" RPC.
- * This should be called from a callback supplied to
- * pk_connection_subscription_set_handlers_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_set_handlers_finish (PkConnection  *connection, /* IN */
-                                                GAsyncResult  *result,     /* IN */
-                                                GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, subscription_set_handlers)(connection,
-	                                           result,
-	                                           error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_subscription_set_handlers_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_subscription_set_handlers_async().
- *
- * Callback executed when an asynchronous request for the
- * "subscription_set_handlers" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_subscription_set_handlers_cb (GObject      *source,    /* IN */
-                                            GAsyncResult *result,    /* IN */
-                                            gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_subscription_set_handlers_finish(
-			PK_CONNECTION(source),
-			result,
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_set_handlers:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "subscription_set_handlers" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_set_handlers (PkConnection  *connection,   /* IN */
-                                         gint           subscription, /* IN */
-                                         GFunc          manifest,     /* IN */
-                                         GFunc          sample,       /* IN */
-                                         GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(subscription_set_handlers);
-	pk_connection_async_init(&async);
-	async.error = error;
-	pk_connection_subscription_set_handlers_async(
-			connection,
-			subscription,
-			manifest,
-			sample,
-			NULL,
-			pk_connection_subscription_set_handlers_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_subscription_get_encoder_async:
- * @connection: A #PkConnection.
- * @cancellable: A #GCancellable to cancel an async request or %NULL.
- * @callback: A #GAsyncReadyCallback.
- * @user_data: user data for @callback.
- *
- * Asynchronously requests the "subscription_get_encoder" RPC.
- * @callback is executed upon completion of the request.  @callback should
- * call pk_connection_subscription_get_encoder_finish().
- *
- * See pk_connection_subscription_get_encoder().
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_subscription_get_encoder_async (PkConnection        *connection,   /* IN */
-                                              gint                 subscription, /* IN */
-                                              GCancellable        *cancellable,  /* IN */
-                                              GAsyncReadyCallback  callback,     /* IN */
-                                              gpointer             user_data)    /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(subscription_get_encoder)(connection,
-	                                    subscription,
-	                                    cancellable,
-	                                    callback,
-	                                    user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_get_encoder_finish:
- * @connection: A #PkConnection
- * @result: A #GAsyncResult received in callback from
- *          pk_connection_subscription_get_encoder_async().
- * @error: A location for a #GError or %NULL.
- *
- * Completes an asynchronous request of the "subscription_get_encoder" RPC.
- * This should be called from a callback supplied to
- * pk_connection_subscription_get_encoder_async().
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_get_encoder_finish (PkConnection  *connection, /* IN */
-                                               GAsyncResult  *result,     /* IN */
-                                               gint          *encoder,    /* OUT */
-                                               GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, subscription_get_encoder)(connection,
-	                                          result,
-	                                          encoder,
-	                                          error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_subscription_get_encoder_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: User data supplied to pk_connection_subscription_get_encoder_async().
- *
- * Callback executed when an asynchronous request for the
- * "subscription_get_encoder" RPC has been completed.
- *
- * Results are proxied to the thread that is blocking until the request
- * has completed.  The blocking thread is woken up.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_subscription_get_encoder_cb (GObject      *source,    /* IN */
-                                           GAsyncResult *result,    /* IN */
-                                           gpointer      user_data) /* IN */
-
-{
-	PkConnectionSync *async = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(user_data != NULL);
-
-	ENTRY;
-	async->result = pk_connection_subscription_get_encoder_finish(
-			PK_CONNECTION(source),
-			result,
-			async->params[0],
-			async->error);
-	pk_connection_async_signal(async);
-	EXIT;
-}
-
-/**
- * pk_connection_subscription_get_encoder:
- * @connection: A #PkConnection
- * @error: A location for a #GError or %NULL.
- *
- * The "subscription_get_encoder" RPC.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
-gboolean
-pk_connection_subscription_get_encoder (PkConnection  *connection,   /* IN */
-                                        gint           subscription, /* IN */
-                                        gint          *encoder,      /* OUT */
-                                        GError       **error)        /* OUT */
-{
-	PkConnectionSync async;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(subscription_get_encoder);
-	pk_connection_async_init(&async);
-	async.error = error;
-	async.params[0] = (gpointer)encoder;
-	pk_connection_subscription_get_encoder_async(
-			connection,
-			subscription,
-			NULL,
-			pk_connection_subscription_get_encoder_cb,
-			&async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
-}
-
-/**
- * pk_connection_get_uri:
- * @connection: A #PkConnection.
- *
- * Retrieves the "uri" property.
- *
- * Returns: The uri as a string. This value should not be modified or freed.
- * Side effects: None.
- */
-const gchar *
-pk_connection_get_uri (PkConnection *connection)
-{
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
-	return connection->priv->uri;
 }
 
 /**
@@ -4961,7 +3984,7 @@ pk_connection_connect_async (PkConnection        *connection,  /* IN */
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(connect) (connection, cancellable, callback, user_data);
+	RPC_ASYNC(connect)(connection, cancellable, callback, user_data);
 	EXIT;
 }
 
@@ -5006,15 +4029,15 @@ pk_connection_connect_cb (GObject      *source,    /* IN */
                           GAsyncResult *result,    /* IN */
                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(user_data != NULL);
 
 	ENTRY;
-	async->result = pk_connection_connect_finish(PK_CONNECTION(source),
-	                                             result, async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_connect_finish(PK_CONNECTION(source),
+	                                            result, sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
@@ -5032,19 +4055,19 @@ gboolean
 pk_connection_connect (PkConnection  *connection, /* IN */
                        GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	pk_connection_async_init(&async);
-	async.error = error;
+	pk_connection_sync_init(&sync);
+	sync.error = error;
 	pk_connection_connect_async(connection, NULL,
 	                            pk_connection_connect_cb,
-	                            &async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
 }
 
 /**
@@ -5054,7 +4077,8 @@ pk_connection_connect (PkConnection  *connection, /* IN */
  * @callback: A #GAsyncReadyCallback.
  * @user_data: user data for @callback.
  *
- * 
+ * Asynchronously disconnect the connection. @callback must call
+ * pk_connection_disconnect_finish().
  *
  * Returns: None.
  * Side effects: None.
@@ -5069,7 +4093,7 @@ pk_connection_disconnect_async (PkConnection        *connection,  /* IN */
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(disconnect) (connection, cancellable, callback, user_data);
+	RPC_ASYNC(disconnect)(connection, cancellable, callback, user_data);
 	EXIT;
 }
 
@@ -5079,9 +4103,9 @@ pk_connection_disconnect_async (PkConnection        *connection,  /* IN */
  * @result: A #GAsyncResult.
  * @error: A location for a #GError or %NULL.
  *
- * 
+ * Completes an asynchronous request to disconnect @connection.
  *
- * Returns: 
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
@@ -5104,7 +4128,8 @@ pk_connection_disconnect_finish (PkConnection  *connection, /* IN */
  * @result: A #GAsyncResult.
  * @user_data: A #PkConnectionSync.
  *
- * 
+ * Callback to notify a synchronous call to disconnect that the operation
+ * has completed.
  *
  * Returns: None.
  * Side effects: None.
@@ -5114,15 +4139,15 @@ pk_connection_disconnect_cb (GObject      *source,    /* IN */
                              GAsyncResult *result,    /* IN */
                              gpointer      user_data) /* IN */
 {
-	PkConnectionSync *async = user_data;
+	PkConnectionSync *sync = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(user_data != NULL);
 
 	ENTRY;
-	async->result = pk_connection_disconnect_finish(PK_CONNECTION(source),
-	                                                result, async->error);
-	pk_connection_async_signal(async);
+	sync->result = pk_connection_disconnect_finish(PK_CONNECTION(source),
+	                                               result, sync->error);
+	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
@@ -5140,19 +4165,35 @@ gboolean
 pk_connection_disconnect (PkConnection  *connection, /* IN */
                           GError       **error)      /* OUT */
 {
-	PkConnectionSync async;
+	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	pk_connection_async_init(&async);
-	async.error = error;
+	pk_connection_sync_init(&sync);
+	sync.error = error;
 	pk_connection_disconnect_async(connection, NULL,
 	                               pk_connection_disconnect_cb,
-	                               &async);
-	pk_connection_async_wait(&async);
-	pk_connection_async_destroy(&async);
-	RETURN(async.result);
+	                               &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_get_uri:
+ * @connection: A #PkConnection.
+ *
+ * Retrieves the URI for the connection.
+ *
+ * Returns: A string which should not be modified or freed.
+ * Side effects: None.
+ */
+const gchar *
+pk_connection_get_uri (PkConnection *connection) /* IN */
+{
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
+	return connection->priv->uri;
 }
 
 /**
@@ -5183,8 +4224,8 @@ pk_connection_get_protocol_plugin_path (const gchar *protocol) /* IN */
 	gchar *plugin_dir;
 	gchar *path;
 
-	if (g_getenv("PK_CONNECTIONS_DIR") != NULL) {
-		plugin_dir = g_build_filename(g_getenv("PK_CONNECTIONS_DIR"), NULL);
+	if (g_getenv("PERFKIT_CONNECTIONS_DIR") != NULL) {
+		plugin_dir = g_build_filename(g_getenv("PERFKIT_CONNECTIONS_DIR"), NULL);
 	}
 	else {
 		plugin_dir = g_build_filename(PACKAGE_LIB_DIR, "perfkit",
@@ -5317,7 +4358,7 @@ invalid_protocol:
 
 /**
  * pk_connection_new_from_uri:
- * @uri: A uri to the destination perfkit-daemon.
+ * @uri: A uri to the destination.
  *
  * Creates a new instance of #PkConnection using the connection protocol
  * specified in @uri.

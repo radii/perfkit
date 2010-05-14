@@ -25,8 +25,7 @@
 #include <glib/gi18n.h>
 
 #include "pka-channel.h"
-#include "pka-pipeline.h"
-#include "pka-spawn-info.h"
+#include "pka-source.h"
 #include "pka-subscription.h"
 
 /**
@@ -219,80 +218,6 @@ pka_channel_get_pid (PkaChannel *channel)
 {
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), 0);
 	return channel->priv->spawn_info.pid;
-}
-
-/**
- * pka_channel_add_source:
- * @channel: A #PkaChannel
- * @source_info: A #PkaSourceInfo
- *
- * Creats a new #PkaSource and adds it to the channel.  The source is configured
- * to deliver samples and manifest updates to the channel.
- *
- * If this is called after the process has started, no source will be added
- * and %NULL will be returned.  This may change in the future.
- *
- * Returns: A #PkaSource.  If the caller wants to keep a reference to the source
- *   it should call g_object_ref() to increment the reference count.
- *
- * Side effects: None.
- */
-PkaSource*
-pka_channel_add_source (PkaChannel    *channel,
-                        PkaSourceInfo *source_info)
-{
-	PkaChannelPrivate *priv;
-	PkaSource *source = NULL;
-	guint idx;
-
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	g_return_val_if_fail(PKA_IS_SOURCE_INFO(source_info), NULL);
-
-	priv = channel->priv;
-
-	g_mutex_lock(priv->mutex);
-
-	/*
-	 * Sources can only be added before pka_channel_start() has been called.
-	 */
-	if (priv->state != PKA_CHANNEL_READY) {
-		goto unlock;
-	}
-
-	/*
-	 * Create the new #PkaSource using the factory callback.
-	 */
-	source = pka_source_info_create(source_info);
-	if (!source) {
-		g_warning("%s: Error creating instance of %s from source plugin.",
-		          G_STRLOC, pka_source_info_get_uid(source_info));
-		goto unlock;
-	}
-
-	/*
-	 * Notify the source to deliver samples to us.
-	 */
-	pka_source_set_channel(source, channel);
-
-	/*
-	 * Insert the newly created PkaSource into our GPtrArray for fast iteration
-	 * and our GTree for O(log n) worst-case index id lookups.
-	 */
-	g_ptr_array_add(priv->sources, source);
-	idx = priv->sources->len;
-	g_tree_insert(priv->indexed, source, GINT_TO_POINTER(idx));
-
-unlock:
-	g_mutex_unlock(priv->mutex);
-
-	/*
-	 * Notify the pipeline that the source was created.
-	 */
-	if (source) {
-		pka_pipeline_add_source(source);
-	}
-
-	return source;
 }
 
 static void

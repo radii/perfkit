@@ -104,7 +104,7 @@ void           egg_buffer_write_uint    (EggBuffer     *buffer,
 void           egg_buffer_write_uint64  (EggBuffer     *buffer,
                                          guint64        i);
 
-inline gint
+static inline gint
 egg_buffer_bytes_for_int (gint i)
 {
 	gint b = 0;

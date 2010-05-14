@@ -44,7 +44,8 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
 	-DPERFKIT_COMPILATION						\
 	-DHAVE_CONFIG_H							\
-	-DG_LOG_DOMAIN=\"PerfkitAgent\"					\
+	-DG_LOG_DOMAIN=\"Agent\"					\
+	-D_GNU_SOURCE							\
 	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\
@@ -53,14 +54,16 @@ AM_CPPFLAGS =								\
 INST_H_FILES =								\
 	pka-channel.h							\
 	pka-config.h							\
+	pka-context.h							\
 	pka-encoder.h							\
-	pka-encoder-info.h						\
 	pka-listener.h							\
+	pka-listener-lowlevel.h						\
+	pka-log.h							\
+	pka-manager.h							\
 	pka-manifest.h							\
-	pka-pipeline.h							\
+	pka-plugin.h							\
 	pka-sample.h							\
 	pka-source.h							\
-	pka-source-info.h						\
 	pka-source-simple.h						\
 	pka-spawn-info.h						\
 	pka-subscription.h						\
@@ -69,8 +72,6 @@ INST_H_FILES =								\
 	$(NULL)
 
 NOINST_H_FILES =							\
-	pka-log.h							\
-	pka-plugins.h							\
 	$(NULL)
 
 libperfkit_agent_la_SOURCES =						\
@@ -78,16 +79,15 @@ libperfkit_agent_la_SOURCES =						\
 	$(NOINST_H_FILES)						\
 	pka-channel.c							\
 	pka-config.c							\
+	pka-context.c							\
 	pka-encoder.c							\
-	pka-encoder-info.c						\
 	pka-listener.c							\
 	pka-log.c							\
+	pka-manager.c							\
 	pka-manifest.c							\
-	pka-pipeline.c							\
-	pka-plugins.c							\
+	pka-plugin.c							\
 	pka-sample.c							\
 	pka-source.c							\
-	pka-source-info.c						\
 	pka-source-simple.c						\
 	pka-subscription.c						\
 	$(top_srcdir)/cut-n-paste/egg-buffer.c				\
@@ -107,22 +107,15 @@ perfkit_agent_LDFLAGS =							\
 	$(NULL)
 
 test:
-	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
-	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
-	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
+	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
 	$(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf
 
 debug:
-	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
-	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
-	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
-	gdb --args $(builddir)/perfkit-agent --stdout			\
-	-c $(srcdir)/agent.conf
+	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
+	gdb --args $(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf
 
 valgrind:
-	@PERFKIT_SOURCES_DIR=$(builddir)/sources/.libs			\
-	PERFKIT_LISTENERS_DIR=$(builddir)/listeners/.libs		\
-	PERFKIT_ENCODERS_DIR=$(builddir)/encoders/.libs			\
+	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
 	PERFKIT_VALGRIND=1						\
 	G_SLICE=always-malloc G_DEBUG=gc-friendly			\
 	libtool --mode=execute valgrind --tool=memcheck			\

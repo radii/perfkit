@@ -1,5 +1,5 @@
 #
-# DBus Perfkit Agent Listener - Accepts DBus Communication
+# Perfkit Agent DBus Listener
 #
 
 dbus_LTLIBRARIES = dbus.la
@@ -35,30 +35,21 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
 	-DHAVE_CONFIG_H							\
-	-DG_LOG_DOMAIN=\"DBusListener\"					\
-	-I$(srcdir)/dbus						\
+	-DG_LOG_DOMAIN=\"Listener\"					\
+	-I$(top_srcdir)/perfkit-agent					\
+	-D_GNU_SOURCE							\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\
 	$(DBUS_CFLAGS)							\
 	$(NULL)
 
-if HAVE_DBUS_0_82
-AM_CPPFLAGS += -DHAVE_DBUS_0_82
-endif
-
 NOINST_H_FILES =							\
-	pka-dbus.h							\
-	dbus/pka-dbus-manager.h						\
-	dbus/pka-dbus-subscription.h					\
-	dbus/pka-channel-dbus.h						\
-	dbus/pka-source-glue.h						\
+	pka-listener-dbus.h						\
 	$(NULL)
 
 dbus_la_SOURCES =							\
 	$(NOINST_H_FILES)						\
-	pka-dbus.c							\
-	dbus/pka-dbus-manager.c						\
-	dbus/pka-dbus-subscription.c					\
+	pka-listener-dbus.c						\
 	$(NULL)
 
 dbus_la_LIBADD =							\

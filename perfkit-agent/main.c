@@ -26,38 +26,39 @@
 #include <stdlib.h>
 
 #include "pka-config.h"
-#include "pka-log.h"
-#include "pka-pipeline.h"
-#include "pka-plugins.h"
+#include "pka-manager.h"
 
-/*
- * Command line arguments and storage for them.
- */
+extern void pka_config_init      (const gchar *filename);
+extern void pka_config_shutdown  (void);
+extern void pka_log_init         (gboolean     stdout_,
+                                  const gchar *filename);
+extern void pka_log_shutdown     (void);
+extern void pka_manager_init     (void);
+extern void pka_manager_quit     (void);
+extern void pka_manager_run      (void);
+extern void pka_manager_shutdown (void);
 
-static gchar* opt_config = (gchar *)PACKAGE_SYSCONFDIR "/perfkit/agent.conf";
-static gchar* opt_logfile = NULL;
+static gchar *opt_config = (gchar *)PACKAGE_SYSCONFDIR "/perfkit/agent.conf";
+static gchar *opt_logfile = NULL;
 static gboolean opt_stdout = FALSE;
 static GOptionEntry options[] = {
-	{ "conf", 'c', 0, G_OPTION_ARG_FILENAME, &opt_config,
-	  N_("Configuration filename."), N_("FILE") },
-	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &opt_logfile,
-	  N_("Enable logging to FILE."), N_("FILE") },
-	{ "stdout", '\0', 0, G_OPTION_ARG_NONE, &opt_stdout,
-	  N_("Enable logging to stdout."), NULL },
+	{ "conf", 'c', 0, G_OPTION_ARG_FILENAME, &opt_config, N_("Configuration filename."), N_("FILE") },
+	{ "log", 'l', 0, G_OPTION_ARG_FILENAME, &opt_logfile, N_("Enable logging to FILE."), N_("FILE") },
+	{ "stdout", '\0', 0, G_OPTION_ARG_NONE, &opt_stdout, N_("Enable logging to stdout."), NULL },
 	{ NULL }
 };
 
 static void
-sigint_handler(int signum)
+sigint_handler(int signum) /* IN */
 {
 	g_print("\n");
 	g_warning("SIGINT caught; shutting down gracefully.");
-	pka_pipeline_quit();
+	pka_manager_quit();
 }
 
 gint
-main (gint   argc,
-      gchar *argv[])
+main (gint   argc,   /* IN */
+      gchar *argv[]) /* IN */
 {
 	GOptionContext *context;
 	GError *error = NULL;
@@ -92,14 +93,10 @@ main (gint   argc,
 	 * Initialize Perfkit Agent subsystems.  We initialize logging before
 	 * the configuration system so logging is available in the case that
 	 * the configuration fails to parse.
-	 *
-	 * The pipeline is initialized before plugins so that it is available
-	 * in the case that a plugin requests access to it.
 	 */
 	pka_log_init(opt_stdout, opt_logfile);
 	pka_config_init(opt_config);
-	pka_pipeline_init();
-	pka_plugins_init();
+	pka_manager_init();
 
 	/*
 	 * Setup signal handlers to properly shutdown in the case of an error.
@@ -110,13 +107,12 @@ main (gint   argc,
 	 * Block on the pipelines main loop.  This will block until a call to
 	 * pka_pipeline_quit() is made.
 	 */
-	pka_pipeline_run();
+	pka_manager_run();
 
 	/*
 	 * Shutdown subsystems.
 	 */
-	pka_pipeline_shutdown();
-	pka_plugins_shutdown();
+	pka_manager_shutdown();
 	pka_config_shutdown();
 	pka_log_shutdown();
 

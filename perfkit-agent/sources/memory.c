@@ -152,22 +152,23 @@ memory_free (gpointer data)
 /*
  * Create a new PkaSourceSimple for memory sampling.
  */
-PkaSource*
-memory_new (void)
+GObject*
+memory_new (GError **error)
 {
 	Memory *memory;
 
 	memory = g_slice_new0(Memory);
-	return pka_source_simple_new_full(memory_sample,
-	                                  memory_spawn,
-	                                  memory,
-	                                  memory_free);
+	return G_OBJECT(pka_source_simple_new_full(memory_sample,
+	                                           memory_spawn,
+	                                           memory,
+	                                           memory_free));
 }
 
-const PkaStaticSourceInfo pka_source_plugin = {
-	.uid         = "Memory",
+const PkaPluginInfo pka_plugin_info = {
+	.id          = "Memory",
 	.name        = "Memory usage sampling",
 	.description = "This source provides memory usage of a target process.",
 	.version     = "0.1.1",
 	.factory     = memory_new,
+	.plugin_type = PKA_PLUGIN_SOURCE,
 };

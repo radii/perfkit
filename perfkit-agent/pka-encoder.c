@@ -281,6 +281,31 @@ pka_encoder_encode_manifest (PkaEncoder   *encoder,
 }
 
 /**
+ * pka_encoder_get_id:
+ * @encoder: A #PkaEncoder.
+ *
+ * Retrieves the unique identifier of the encoder.
+ *
+ * Returns: The identifier.
+ * Side effects: None.
+ */
+gint
+pka_encoder_get_id (PkaEncoder *encoder) /* IN */
+{
+	G_LOCK_DEFINE(encoder_seq);
+	static gint encoder_seq = 0;
+	gpointer id;
+
+	G_LOCK(encoder_seq);
+	if (!(id = g_object_get_data(G_OBJECT(encoder), "pka-encoder-id"))) {
+		id = GINT_TO_POINTER(encoder_seq++);
+		g_object_set_data(G_OBJECT(encoder), "pka-encoder-id", id);
+	}
+	G_UNLOCK(encoder_seq);
+	return GPOINTER_TO_INT(id);
+}
+
+/**
  * pka_encoder_get_type:
  *
  * Returns: the #PkaEncoder #GType.

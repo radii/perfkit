@@ -277,22 +277,21 @@ sched_free (gpointer data)
 	g_slice_free(Sched, data);
 }
 
-PkaSource*
-sched_new (void)
+GObject*
+sched_new (GError **error)
 {
 	Sched *sched;
 
 	sched = g_slice_new0(Sched);
-	return pka_source_simple_new_full(sched_sample,
-	                                  sched_spawn,
-	                                  sched,
-	                                  sched_free);
+	return G_OBJECT(pka_source_simple_new_full(sched_sample, sched_spawn,
+	                                           sched, sched_free));
 }
 
-const PkaStaticSourceInfo pka_source_plugin = {
-	.uid         = "Scheduler",
+const PkaPluginInfo pka_plugin_info = {
+	.id          = "Scheduler",
 	.name        = "scheduler Data Source",
 	.description = "This source provides scheduler usage of a target process.",
 	.version     = "0.1.0",
+	.plugin_type = PKA_PLUGIN_SOURCE,
 	.factory     = sched_new,
 };

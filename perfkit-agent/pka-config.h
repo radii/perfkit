@@ -27,8 +27,6 @@
 
 G_BEGIN_DECLS
 
-void     pka_config_init         (const gchar *filename);
-void     pka_config_shutdown     (void);
 gchar*   pka_config_get_string   (const gchar *group,
                                   const gchar *key,
                                   const gchar *default_);

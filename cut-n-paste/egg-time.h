@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 
 typedef gint64 GTimeSpan;
 
-inline void
+static inline void
 g_time_val_to_ticks (GTimeVal  *tv,
                      GTimeSpan *u)
 {
@@ -46,7 +46,7 @@ g_time_val_to_ticks (GTimeVal  *tv,
 	   + (((guint64)tv->tv_usec) * 10);
 }
 
-inline void
+static inline void
 g_time_val_from_ticks (GTimeVal  *tv,
                        GTimeSpan *u)
 {
@@ -54,7 +54,7 @@ g_time_val_from_ticks (GTimeVal  *tv,
 	tv->tv_sec = ((*u) / G_TIME_SPAN_SECOND) - G_GINT64_CONSTANT(62135596800);
 }
 
-inline void
+static inline void
 g_time_val_add_span (GTimeVal  *tv,
                      GTimeSpan *ts)
 {
@@ -65,7 +65,7 @@ g_time_val_add_span (GTimeVal  *tv,
 	g_time_val_from_ticks(tv, &u1);
 }
 
-inline void
+static inline void
 g_time_val_diff (GTimeVal  *tv1,
                  GTimeVal  *tv2,
                  GTimeSpan *u)
@@ -77,7 +77,7 @@ g_time_val_diff (GTimeVal  *tv1,
 	*u = (u1 - u2);
 }
 
-inline gint
+static inline gint
 g_time_val_compare (const GTimeVal *tv1,
                     const GTimeVal *tv2)
 {

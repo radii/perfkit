@@ -55,6 +55,7 @@ struct _PkaEncoderIface
 };
 
 GType    pka_encoder_get_type        (void) G_GNUC_CONST;
+gint     pka_encoder_get_id          (PkaEncoder     *encoder) G_GNUC_PURE;
 gboolean pka_encoder_encode_samples  (PkaEncoder     *encoder,
                                       PkaManifest    *manifest,
                                       PkaSample     **samples,

@@ -1,12 +1,12 @@
 /* pk-connection-dbus.h
  *
- * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
+ * Copyright 2010 Christian Hergert <chris@dronelabs.com>
  *
  * This file is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
+ * version 3 of the License, or (at your option) any later version.
+ * 
  * This file is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -32,25 +32,22 @@ G_BEGIN_DECLS
 #define PK_CONNECTION_DBUS_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  PK_TYPE_CONNECTION_DBUS, PkConnectionDBusClass))
 #define PK_CONNECTION_DBUS_ERROR           (pk_connection_dbus_error_quark())
 
+typedef struct _PkConnectionDBus        PkConnectionDBus;
+typedef struct _PkConnectionDBusClass   PkConnectionDBusClass;
+typedef struct _PkConnectionDBusPrivate PkConnectionDBusPrivate;
+
 /**
  * PkConnectionDBusError:
- * @PK_CONNECTION_DBUS_ERROR_STATE: The connection is in an invalid state
- *    for the operation.
- * @PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE: The DBus destination could
- *    not be reached.
+ * @PK_CONNECTION_DBUS_ERROR_DBUS: 
  *
  * The #PkConnectionDBus error enumeration.
  */
 typedef enum
 {
-	PK_CONNECTION_DBUS_ERROR_STATE,
 	PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
 	PK_CONNECTION_DBUS_ERROR_DBUS,
+	PK_CONNECTION_DBUS_ERROR_STATE,
 } PkConnectionDBusError;
-
-typedef struct _PkConnectionDBus        PkConnectionDBus;
-typedef struct _PkConnectionDBusClass   PkConnectionDBusClass;
-typedef struct _PkConnectionDBusPrivate PkConnectionDBusPrivate;
 
 struct _PkConnectionDBus
 {
@@ -65,8 +62,9 @@ struct _PkConnectionDBusClass
 	PkConnectionClass parent_class;
 };
 
-GQuark pk_connection_dbus_error_quark (void) G_GNUC_CONST;
-GType  pk_connection_dbus_get_type    (void) G_GNUC_CONST;
+GType         pk_connection_dbus_get_type    (void) G_GNUC_CONST;
+PkConnection* pk_connection_dbus_new         (void);
+GQuark        pk_connection_dbus_error_quark (void);
 
 G_END_DECLS
 

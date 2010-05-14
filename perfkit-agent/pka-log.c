@@ -22,82 +22,102 @@
 
 #ifdef __linux__
 #include <sys/utsname.h>
-#endif
+#include <sys/types.h>
+#include <sys/syscall.h>
+#endif /* __linux__ */
 
+#include <glib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "pka-log.h"
 
-static gboolean    wants_stdout = FALSE;
-static GIOChannel *channel      = NULL;
+#define CASE_LEVEL_STR(_l) case G_LOG_LEVEL_##_l: return #_l
+
+static GPtrArray  *channels = NULL;
 static gchar       hostname[64] = "";
 static GLogFunc    last_handler = NULL;
 
+static inline gint
+pka_log_get_thread (void)
+{
+#if __linux__
+	return (gint)syscall(SYS_gettid);
+#else
+	return getpid();
+#endif /* __linux__ */
+}
+
+static inline const gchar *
+pka_log_level_str (GLogLevelFlags log_level)
+{
+	switch ((long)log_level) {
+	CASE_LEVEL_STR(ERROR);
+	CASE_LEVEL_STR(CRITICAL);
+	CASE_LEVEL_STR(WARNING);
+	CASE_LEVEL_STR(MESSAGE);
+	CASE_LEVEL_STR(INFO);
+	CASE_LEVEL_STR(DEBUG);
+	CASE_LEVEL_STR(TRACE);
+	default:
+		return "UNKNOWN";
+	}
+}
+
+/**
+ * pka_log_write_to_channel:
+ * @channel: A #GIOChannel.
+ * @message: A string log message.
+ *
+ * Writes @message to @channel and flushes the channel.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_log_handler (const gchar    *log_domain,
-                 GLogLevelFlags  log_level,
-                 const gchar    *message,
-                 gpointer        user_data)
+pka_log_write_to_channel (GIOChannel  *channel, /* IN */
+                          const gchar *message) /* IN */
+{
+	g_io_channel_write_chars(channel, message, -1, NULL, NULL);
+	g_io_channel_flush(channel, NULL);
+}
+
+/**
+ * pka_log_handler:
+ * @log_domain: A string containing the log section.
+ * @log_level: A #GLogLevelFlags.
+ * @message: The string message.
+ * @user_data: User data supplied to g_log_set_default_handler().
+ *
+ * Default log handler that will dispatch log messages to configured logging
+ * destinations.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_log_handler (const gchar    *log_domain, /* IN */
+                 GLogLevelFlags  log_level,  /* IN */
+                 const gchar    *message,    /* IN */
+                 gpointer        user_data)  /* IN */
 {
 	time_t t;
 	struct tm tt;
-	gchar ftime[32], *buffer;
-	GPid pid;
 	const gchar *level;
+	gchar ftime[32];
+	gchar *buffer;
 
-	if (!channel && !wants_stdout) {
+	if (!channels->len) {
 		return;
 	}
-
-	switch ((log_level & G_LOG_LEVEL_MASK)) {
-	case G_LOG_LEVEL_ERROR:
-		level = "ERROR";
-		break;
-	case G_LOG_LEVEL_CRITICAL:
-		level = "CRITICAL";
-		break;
-	case G_LOG_LEVEL_WARNING:
-		level = "WARNING";
-		break;
-	case G_LOG_LEVEL_MESSAGE:
-		level = "MESSAGE";
-		break;
-	case G_LOG_LEVEL_INFO:
-		level = "INFO";
-		break;
-	case G_LOG_LEVEL_DEBUG:
-		level = "DEBUG";
-		break;
-	default:
-		g_warn_if_reached();
-		level = "UNKNOWN";
-		break;
-	}
-
-	memset(&tt, 0, sizeof(tt));
-
+	level = pka_log_level_str(log_level);
 	t = time(NULL);
 	tt = *localtime(&t);
-	strftime(ftime, sizeof(ftime), "%b %d %X", &tt);
-	pid = (GPid)getpid();
-	buffer = g_strdup_printf("%s %s %s[%lu]: %s: %s\n",
-	                         ftime,
-	                         hostname,
-	                         log_domain,
-	                         (gulong)pid,
-	                         level,
-	                         message);
-
-	if (wants_stdout) {
-		g_print("%s", buffer);
-	}
-
-	if (channel) {
-		g_io_channel_write_chars(channel, buffer, -1, NULL, NULL);
-		g_io_channel_flush(channel, NULL);
-	}
-
+	strftime(ftime, sizeof(ftime), "%x %X", &tt);
+	buffer = g_strdup_printf("%s  %s: %10s[%d]: %8s: %s\n",
+	                         ftime, hostname, log_domain,
+	                         pka_log_get_thread(), level, message);
+	g_ptr_array_foreach(channels, (GFunc)pka_log_write_to_channel, buffer);
 	g_free(buffer);
 }
 
@@ -112,21 +132,22 @@ pka_log_handler (const gchar    *log_domain,
  *   messages.  A file-handle is opened for @filename if necessary.
  */
 void
-pka_log_init (gboolean     stdout_,
-              const gchar *filename)
+pka_log_init (gboolean     stdout_,  /* IN */
+              const gchar *filename) /* IN */
 {
 	static gsize initialized = FALSE;
-	struct utsname  u;
-
-	/*
-	 * Only allow initialization of the logging subsystem once.  Create a
-	 * new GIOChannel* for easy log writing if needed.
-	 */
+	struct utsname u;
+	GIOChannel *channel;
 
 	if (g_once_init_enter(&initialized)) {
-		wants_stdout = stdout_;
+		channels = g_ptr_array_new();
 		if (filename) {
 			channel = g_io_channel_new_file(filename, "a", NULL);
+			g_ptr_array_add(channels, channel);
+		}
+		if (stdout_) {
+			channel = g_io_channel_unix_new(0);
+			g_ptr_array_add(channels, channel);
 		}
 
 #ifdef __linux__

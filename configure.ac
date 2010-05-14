@@ -25,8 +25,8 @@ AC_CONFIG_MACRO_DIR([build/m4])
 AM_MAINTAINER_MODE
 AC_ISC_POSIX
 AC_PROG_CC
-AC_PROG_CC_STDC
-AC_HEADER_STDC
+# AC_PROG_CC_STDC
+# AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
@@ -73,7 +73,8 @@ dnl Check for Required Modules
 dnl ************************************************************************
 PKG_CHECK_MODULES(PERFKIT_AGENT,  [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
-                                   gmodule-2.0      >= 2.20])
+                                   gmodule-2.0      >= 2.20
+                                   gio-2.0          >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gio-2.0          >= 2.20])

@@ -18,4 +18,4 @@ fi
 
 autoreconf -v --install || exit $?
 
-./configure --enable-maintainer-mode "$@" && echo "Now type 'make' to compile perfkit"
+./configure --enable-maintainer-mode --enable-silent-rules "$@" && echo "Now type 'make' to compile perfkit"

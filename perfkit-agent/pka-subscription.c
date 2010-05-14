@@ -22,7 +22,6 @@
 
 #include <string.h>
 
-#include "pka-pipeline.h"
 #include "pka-subscription.h"
 
 #define G_MSEC_PER_SEC (1000)
@@ -83,7 +82,9 @@ struct _PkaSubscription
 	gboolean         finished;       /* Subscription has completed */
 };
 
+#if 0
 static guint subscription_seq = 0;
+#endif
 
 static void
 pka_subscription_destroy (PkaSubscription *sub)
@@ -100,6 +101,7 @@ pka_subscription_destroy (PkaSubscription *sub)
 	memset(sub, 0, sizeof(*sub));
 }
 
+#if 0
 static gboolean
 pka_subscription_timeout_cb (PkaSubscription *sub)
 {
@@ -120,6 +122,7 @@ pka_subscription_timeout_cb (PkaSubscription *sub)
 
 	return TRUE;
 }
+#endif
 
 /**
  * pka_subscription_new:
@@ -140,6 +143,7 @@ pka_subscription_timeout_cb (PkaSubscription *sub)
  *
  * Side effects: None.
  */
+#if 0
 PkaSubscription*
 pka_subscription_new (PkaChannel      *channel,
                       PkaEncoderInfo  *encoder_info,
@@ -163,7 +167,7 @@ pka_subscription_new (PkaChannel      *channel,
 	 */
 	if (encoder_info) {
 		encoder = pka_encoder_info_create(encoder_info);
-		pka_pipeline_add_encoder(encoder);
+		//pka_pipeline_add_encoder(encoder);
 	}
 
 	/*
@@ -208,6 +212,7 @@ pka_subscription_new (PkaChannel      *channel,
 
 	return sub;
 }
+#endif
 
 /**
  * pka_subscription_ref:
