@@ -37,6 +37,8 @@
  * Section overview.
  */
 
+#define DEFAULT_CONTEXT (pka_context_default())
+
 #define RESULT_IS_VALID(_t)                                         \
     g_simple_async_result_is_valid(                                 \
             G_ASYNC_RESULT((result)),                               \
@@ -877,25 +879,6 @@ pka_listener_manager_add_subscription_finish (PkaListener    *listener,     /* I
 #endif
 }
 
-#if 0
-static void
-pka_listener_manager_get_channels_cb (GObject      *listener,    /* IN */
-                                      GAsyncResult *result,      /* IN */
-                                      gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(manager_get_channels));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_manager_get_channels_async:
  * @connection: A #PkConnection.
@@ -926,14 +909,7 @@ pka_listener_manager_get_channels_async (PkaListener           *listener,    /* 
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_manager_get_channels_async);
-// TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
-#if 0
-	pka_manager_get_channels_async(instance,
-	                               NULL,
-	                               pka_listener_manager_get_channels_cb,
-	                               result);
-#endif
 	EXIT;
 }
 
@@ -959,44 +935,27 @@ pka_listener_manager_get_channels_finish (PkaListener    *listener,     /* IN */
                                           gsize          *channels_len, /* OUT */
                                           GError        **error)        /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
+	GList *list = NULL;
+	GList *iter;
 	gboolean ret;
+	gint *ids = NULL;
+	gint i = 0;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_manager_get_channels_finish(instance,
-	                                      real_result,
-	                                      channels,
-	                                      channels_len,
-	                                      error);
+	if (!(ret = pka_manager_get_channels(DEFAULT_CONTEXT, &list, error))) {
+		*channels_len = g_list_length(list);
+		ids = g_new0(gint, *channels_len);
+		for (iter = list; iter; iter = iter->next) {
+			ids[i++] = pka_channel_get_id(iter->data);
+		}
+		*channels = ids;
+		g_list_foreach(list, (GFunc)g_object_unref, NULL);
+		g_list_free(list);
+	}
 	RETURN(ret);
-#endif
 }
-
-#if 0
-static void
-pka_listener_manager_get_plugins_cb (GObject      *listener,    /* IN */
-                                     GAsyncResult *result,      /* IN */
-                                     gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(manager_get_plugins));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
 
 /**
  * pk_connection_manager_get_plugins_async:
@@ -1028,14 +987,7 @@ pka_listener_manager_get_plugins_async (PkaListener           *listener,    /* I
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_manager_get_plugins_async);
-// TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
-#if 0
-	pka_manager_get_plugins_async(instance,
-	                              NULL,
-	                              pka_listener_manager_get_plugins_cb,
-	                              result);
-#endif
 	EXIT;
 }
 
@@ -1059,23 +1011,25 @@ pka_listener_manager_get_plugins_finish (PkaListener    *listener, /* IN */
                                          gchar        ***plugins,  /* OUT */
                                          GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
+	GList *list = NULL;
+	GList *iter;
+	gchar **names;
 	gboolean ret;
+	gint i = 0;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_manager_get_plugins_finish(instance,
-	                                     real_result,
-	                                     plugins,
-	                                     error);
+	if ((ret = pka_manager_get_plugins(DEFAULT_CONTEXT, &list, error))) {
+		names = g_new0(gchar*, g_list_length(list) + 1);
+		for (iter = list; iter; iter = iter->next) {
+			names[i++] = g_strdup(pka_plugin_get_id(iter->data));
+		}
+		*plugins = names;
+		g_list_foreach(list, (GFunc)g_object_unref, NULL);
+		g_list_free(list);
+	}
 	RETURN(ret);
-#endif
 }
 
 /**
