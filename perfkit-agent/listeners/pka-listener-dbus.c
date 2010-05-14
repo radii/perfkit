@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include "pka-listener-dbus.h"
+#include "pka-log.h"
 
 /**
  * SECTION:pka-listener-dbus
@@ -37,40 +38,7 @@
 
 G_DEFINE_TYPE(PkaListenerDBus, pka_listener_dbus, PKA_TYPE_LISTENER)
 
-#ifndef DISABLE_TRACE
-#define TRACE(_m,...)                                               \
-    G_STMT_START {                                                  \
-        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
-              _m, __VA_ARGS__);                                     \
-    } G_STMT_END
-#else
-#define TRACE(_m,...)
-#endif
-
-#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
-
-#define EXIT                                                        \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return;                                                     \
-    } G_STMT_END
-
-#define RETURN(_r)                                                  \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return _r;                                                  \
-    } G_STMT_END
-
-#define GOTO(_l)                                                    \
-    G_STMT_START {                                                  \
-        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
-        goto _l;                                                    \
-    } G_STMT_END
-
-#define CASE_RETURN_STR(_l) case _l: return #_l
-
 #define IS_INTERFACE(_m, _i) (g_strcmp0(dbus_message_get_interface(_m), _i) == 0)
-
 #define IS_MEMBER(_m, _i) (g_strcmp0(dbus_message_get_member(_m), _i) == 0)
 
 struct _PkaListenerDBusPrivate

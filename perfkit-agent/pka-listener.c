@@ -23,6 +23,7 @@
 
 #include "pka-channel.h"
 #include "pka-listener.h"
+#include "pka-log.h"
 #include "pka-manager.h"
 #include "pka-source.h"
 #include "pka-subscription.h"
@@ -35,38 +36,6 @@
  *
  * Section overview.
  */
-
-#ifndef DISABLE_TRACE
-#define TRACE(_m,...)                                               \
-    G_STMT_START {                                                  \
-        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
-              _m, __VA_ARGS__);                                     \
-    } G_STMT_END
-#else
-#define TRACE(_m,...)
-#endif
-
-#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
-
-#define EXIT                                                        \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return;                                                     \
-    } G_STMT_END
-
-#define RETURN(_r)                                                  \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return _r;                                                  \
-    } G_STMT_END
-
-#define GOTO(_l)                                                    \
-    G_STMT_START {                                                  \
-        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
-        goto _l;                                                    \
-    } G_STMT_END
-
-#define CASE_RETURN_STR(_l) case _l: return #_l
 
 #define RESULT_IS_VALID(_t)                                         \
     g_simple_async_result_is_valid(                                 \

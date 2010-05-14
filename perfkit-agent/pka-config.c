@@ -20,11 +20,17 @@
 #include "config.h"
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Config"
+
 #include <glib.h>
 #include <glib/gi18n.h>
 #include <glib/gthread.h>
 
 #include "pka-config.h"
+#include "pka-log.h"
 
 /**
  * SECTION:pka-config
@@ -65,6 +71,7 @@ pka_config_init (const gchar *filename)
 	GKeyFile *keyfile;
 	GError *error;
 
+	ENTRY;
 	if (g_once_init_enter(&init)) {
 		error = NULL;
 		keyfile = g_key_file_new();
@@ -75,14 +82,15 @@ pka_config_init (const gchar *filename)
 		 */
 
 		if (!g_key_file_load_from_file(keyfile, filename, 0, &error)) {
-			g_warning(_("%s: Could not load configuration: %s"),
-			          G_STRLOC, error->message);
+			WARNING(Config, _("%s: Could not load configuration: %s"),
+			                G_STRLOC, error->message);
 			g_error_free(error);
 		}
 
 		config = keyfile;
 		g_once_init_leave(&init, TRUE);
 	}
+	EXIT;
 }
 
 /**
@@ -96,8 +104,10 @@ pka_config_init (const gchar *filename)
 void
 pka_config_shutdown (void)
 {
+	ENTRY;
 	g_key_file_free(config);
 	config = NULL;
+	EXIT;
 }
 
 /**
@@ -124,11 +134,11 @@ pka_config_get_string (const gchar *group,
 	g_return_val_if_fail(key != NULL, NULL);
 	g_return_val_if_fail(config != NULL, NULL);
 
+	ENTRY;
 	if (!g_key_file_has_key(config, group, key, NULL)) {
-		return g_strdup(default_);
+		RETURN(g_strdup(default_));
 	}
-
-	return g_key_file_get_string(config, group, key, NULL);
+	RETURN(g_key_file_get_string(config, group, key, NULL));
 }
 
 /**
@@ -153,11 +163,11 @@ pka_config_get_integer (const gchar *group,
 	g_return_val_if_fail(key != NULL, 0);
 	g_return_val_if_fail(config != NULL, 0);
 
+	ENTRY;
 	if (!g_key_file_has_key(config, group, key, NULL)) {
-		return default_;
+		RETURN(default_);
 	}
-
-	return g_key_file_get_integer(config, group, key, NULL);
+	RETURN(g_key_file_get_integer(config, group, key, NULL));
 }
 
 /**
@@ -182,9 +192,9 @@ pka_config_get_boolean (const gchar *group,
 	g_return_val_if_fail(key != NULL, FALSE);
 	g_return_val_if_fail(config != NULL, FALSE);
 
+	ENTRY;
 	if (!g_key_file_has_key(config, group, key, NULL)) {
-		return default_;
+		RETURN(default_);
 	}
-
-	return g_key_file_get_boolean(config, group, key, NULL);
+	RETURN(g_key_file_get_boolean(config, group, key, NULL));
 }

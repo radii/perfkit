@@ -57,5 +57,6 @@
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "BREAK: %s:%d", G_STRFUNC, __LINE__);                     \
     break
+#define CASE_RETURN_STR(_l) case _l: return #_l
 
 #endif /* __PKA_LOG_H__ */

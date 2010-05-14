@@ -25,6 +25,7 @@
 #include <string.h>
 
 #include "pka-encoder.h"
+#include "pka-log.h"
 
 /**
  * SECTION:pka-encoder
@@ -79,6 +80,7 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 	g_return_val_if_fail(data != NULL, FALSE);
 	g_return_val_if_fail(data_len != NULL, FALSE);
 
+	ENTRY;
 	buf = egg_buffer_new();
 	pka_manifest_get_timeval(manifest, &mtv);
 
@@ -112,10 +114,9 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 	*data = g_malloc(tlen);
 	*data_len = tlen;
 	memcpy(*data, tbuf, tlen);
-
 	egg_buffer_unref(buf);
 
-	return TRUE;
+	RETURN(TRUE);
 }
 
 /**
@@ -140,18 +141,14 @@ pka_encoder_encode_samples  (PkaEncoder   *encoder,
                              gchar       **data,
                              gsize        *data_len)
 {
-	if (encoder)
-		return PKA_ENCODER_GET_INTERFACE(encoder)->encode_samples(encoder,
-		                                                          manifest,
-		                                                          samples,
-		                                                          n_samples,
-		                                                          data,
-		                                                          data_len);
-	return pka_encoder_real_encode_samples(manifest,
-	                                       samples,
-	                                       n_samples,
-	                                       data,
-	                                       data_len);
+	ENTRY;
+	if (encoder) {
+		RETURN(PKA_ENCODER_GET_INTERFACE(encoder)->
+				encode_samples(encoder, manifest, samples, n_samples,
+				               data, data_len));
+	}
+	RETURN(pka_encoder_real_encode_samples(manifest, samples, n_samples,
+	                                       data, data_len));
 }
 
 static gboolean
@@ -170,6 +167,7 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest,
 	g_return_val_if_fail(data != NULL, FALSE);
 	g_return_val_if_fail(data_len != NULL, FALSE);
 
+	ENTRY;
 	buf = egg_buffer_new();
 
 	/*
@@ -250,8 +248,7 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest,
 	memcpy(*data, tbuf, tlen);
 
 	egg_buffer_unref(buf);
-
-	return TRUE;
+	RETURN(TRUE);
 }
 
 /**
@@ -272,12 +269,12 @@ pka_encoder_encode_manifest (PkaEncoder   *encoder,
                              gchar       **data,
                              gsize        *data_len)
 {
+	ENTRY;
 	if (encoder) {
-		return PKA_ENCODER_GET_INTERFACE(encoder)->
-			encode_manifest(encoder, manifest, data, data_len);
+		RETURN(PKA_ENCODER_GET_INTERFACE(encoder)->
+				encode_manifest(encoder, manifest, data, data_len));
 	}
-
-	return pka_encoder_real_encode_manifest(manifest, data, data_len);
+	RETURN(pka_encoder_real_encode_manifest(manifest, data, data_len));
 }
 
 /**
@@ -296,13 +293,14 @@ pka_encoder_get_id (PkaEncoder *encoder) /* IN */
 	static gint encoder_seq = 0;
 	gpointer id;
 
+	ENTRY;
 	G_LOCK(encoder_seq);
 	if (!(id = g_object_get_data(G_OBJECT(encoder), "pka-encoder-id"))) {
 		id = GINT_TO_POINTER(encoder_seq++);
 		g_object_set_data(G_OBJECT(encoder), "pka-encoder-id", id);
 	}
 	G_UNLOCK(encoder_seq);
-	return GPOINTER_TO_INT(id);
+	RETURN(GPOINTER_TO_INT(id));
 }
 
 /**
@@ -334,6 +332,5 @@ pka_encoder_get_type (void)
 		g_type_interface_add_prerequisite (_type_id, G_TYPE_OBJECT);
 		g_once_init_leave((gsize *)&type_id, _type_id);
 	}   
-
 	return type_id;
 }
