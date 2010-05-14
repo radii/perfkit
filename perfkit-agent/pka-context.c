@@ -31,9 +31,12 @@
  * Add docs.
  */
 
+static guint context_seq = 1;
+
 struct _PkaContext
 {
 	volatile gint ref_count;
+	guint id;
 };
 
 static void
@@ -56,6 +59,7 @@ pka_context_default (void)
 	static PkaContext *default_context = NULL;
 	if (G_UNLIKELY(!default_context)) {
 		default_context = pka_context_new();
+		default_context->id = 0;
 	}
 	return default_context;
 }
@@ -74,6 +78,7 @@ pka_context_new (void)
 
 	context = g_slice_new0(PkaContext);
 	context->ref_count = 1;
+	context->id = g_atomic_int_exchange_and_add((gint *)&context_seq, 1);
 
 	return context;
 }
@@ -119,6 +124,22 @@ pka_context_unref (PkaContext *context)
 		pka_context_destroy(context);
 		g_slice_free(PkaContext, context);
 	}
+}
+
+/**
+ * pka_context_get_id:
+ * @context: A #PkaContext.
+ *
+ * Retrieves the identifier for the context.
+ *
+ * Returns: The context identifier.
+ * Side effects: None.
+ */
+guint
+pka_context_get_id (PkaContext *context) /* IN */
+{
+	g_return_val_if_fail(context != NULL, G_MAXUINT);
+	return context->id;
 }
 
 /**

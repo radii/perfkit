@@ -56,6 +56,7 @@ PkaContext* pka_context_new              (void);
 PkaContext* pka_context_ref              (PkaContext   *context);
 void        pka_context_unref            (PkaContext   *context);
 PkaContext* pka_context_default          (void);
+guint       pka_context_get_id           (PkaContext   *context);
 
 G_END_DECLS
 
