@@ -51,6 +51,37 @@
 
 static GKeyFile *config = NULL;
 
+static void
+pka_config_dump (void)
+{
+	gchar **groups;
+	gchar **keys;
+	gchar *value;
+	gint i;
+	gint j;
+
+	g_return_if_fail(config != NULL);
+
+	ENTRY;
+	DEBUG(Config, "------------------------------------------------------------------------");
+	DEBUG(Config, "                      Perfkit Agent Configuration                       ");
+	DEBUG(Config, "------------------------------------------------------------------------");
+	groups = g_key_file_get_groups(config, NULL);
+	for (i = 0; groups[i]; i++) {
+		DEBUG(Config, "%26s : %s", "Section", groups[i]);
+		keys = g_key_file_get_keys(config, groups[i], NULL, NULL);
+		for (j = 0; keys[j]; j++) {
+			value = g_key_file_get_value(config, groups[i], keys[j], NULL);
+			DEBUG(Config, "  %24s : \"%s\"", keys[j], value);
+			g_free(value);
+		}
+		DEBUG(Config, "------------------------------------------------------------------------");
+		g_strfreev(keys);
+	}
+	g_strfreev(groups);
+	EXIT;
+}
+
 /**
  * pka_config_init:
  * @filename: A string containing the configuration path.
@@ -89,6 +120,7 @@ pka_config_init (const gchar *filename)
 
 		config = keyfile;
 		g_once_init_leave(&init, TRUE);
+		pka_config_dump();
 	}
 	EXIT;
 }
