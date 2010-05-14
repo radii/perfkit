@@ -20,15 +20,17 @@
 #include "config.h"
 #endif
 
-#include <gmodule.h>
-
-#include "pka-plugin.h"
-#include "pka-log.h"
-
 #ifdef G_LOG_DOMAIN
 #undef G_LOG_DOMAIN
 #endif
 #define G_LOG_DOMAIN "Plugin"
+
+#include <gmodule.h>
+#include <glib/gprintf.h>
+
+#include "pka-config.h"
+#include "pka-log.h"
+#include "pka-plugin.h"
 
 /**
  * SECTION:pka-plugin
@@ -237,6 +239,47 @@ pka_plugin_create (PkaPlugin  *plugin, /* IN */
 		ret = priv->info->factory(error);
 	}
 	RETURN(ret);
+}
+
+/**
+ * pka_plugin_is_disabled:
+ * @plugin: A #PkaPlugin.
+ *
+ * Determines of a plugin is disabled by the configuration system.
+ *
+ * Returns: %TRUE if the plugin is disabled; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_plugin_is_disabled (PkaPlugin *plugin) /* IN */
+{
+	gchar group[32] = { 0 };
+	gint i;
+
+	g_return_val_if_fail(PKA_IS_PLUGIN(plugin), FALSE);
+
+	ENTRY;
+	switch (pka_plugin_get_plugin_type(plugin)) {
+	case PKA_PLUGIN_SOURCE:
+		g_snprintf(group, sizeof(group), "source.%s",
+		           pka_plugin_get_id(plugin));
+		break;
+	case PKA_PLUGIN_ENCODER:
+		g_snprintf(group, sizeof(group), "encoder.%s",
+		           pka_plugin_get_id(plugin));
+		break;
+	case PKA_PLUGIN_LISTENER:
+		g_snprintf(group, sizeof(group), "listener.%s",
+		           pka_plugin_get_id(plugin));
+		break;
+	case PKA_PLUGIN_INVALID:
+	default:
+		RETURN(TRUE);
+	}
+	for (i = 0; group[i]; i++) {
+		group[i] = g_ascii_tolower(group[i]);
+	}
+	RETURN(pka_config_get_boolean(group, "disabled", TRUE));
 }
 
 GQuark

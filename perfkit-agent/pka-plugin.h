@@ -89,6 +89,7 @@ gboolean      pka_plugin_load_from_file   (PkaPlugin    *plugin,
                                            GError      **error);
 GObject*      pka_plugin_create           (PkaPlugin    *plugin,
                                            GError      **error);
+gboolean      pka_plugin_is_disabled      (PkaPlugin    *plugin);
 
 G_END_DECLS
 
