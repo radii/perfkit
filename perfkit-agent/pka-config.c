@@ -50,12 +50,14 @@
  */
 
 static GKeyFile *config = NULL;
+static gchar    *config_filename = NULL;
 
 static void
 pka_config_dump (void)
 {
 	gchar **groups;
 	gchar **keys;
+	gchar *key;
 	gchar *value;
 	gint i;
 	gint j;
@@ -63,19 +65,17 @@ pka_config_dump (void)
 	g_return_if_fail(config != NULL);
 
 	ENTRY;
-	DEBUG(Config, "------------------------------------------------------------------------");
-	DEBUG(Config, "                      Perfkit Agent Configuration                       ");
-	DEBUG(Config, "------------------------------------------------------------------------");
+	DEBUG(Config, "--- HOST DEFAULTS %s", config_filename);
 	groups = g_key_file_get_groups(config, NULL);
 	for (i = 0; groups[i]; i++) {
-		DEBUG(Config, "%26s : %s", "Section", groups[i]);
 		keys = g_key_file_get_keys(config, groups[i], NULL, NULL);
 		for (j = 0; keys[j]; j++) {
+			key = g_strdup_printf("%s.%s", groups[i], keys[j]);
 			value = g_key_file_get_value(config, groups[i], keys[j], NULL);
-			DEBUG(Config, "  %24s : \"%s\"", keys[j], value);
+			DEBUG(Config, "  %32s = \"%s\"", key, value);
+			g_free(key);
 			g_free(value);
 		}
-		DEBUG(Config, "------------------------------------------------------------------------");
 		g_strfreev(keys);
 	}
 	g_strfreev(groups);
@@ -119,6 +119,7 @@ pka_config_init (const gchar *filename)
 		}
 
 		config = keyfile;
+		config_filename = g_strdup(filename);
 		g_once_init_leave(&init, TRUE);
 		pka_config_dump();
 	}
