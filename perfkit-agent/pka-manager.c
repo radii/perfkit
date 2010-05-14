@@ -174,6 +174,11 @@ pka_manager_init_listeners (void)
 	for (i = 0; i < manager.plugins->len; i++) {
 		plugin = g_ptr_array_index(manager.plugins, i);
 		if (pka_plugin_get_plugin_type(plugin) == PKA_PLUGIN_LISTENER) {
+			if (pka_plugin_is_disabled(plugin)) {
+				INFO(Listener, "Listener plugin is disabled: %s",
+				     pka_plugin_get_id(plugin));
+				continue;
+			}
 			if (!(listener = PKA_LISTENER(pka_plugin_create(plugin, &error)))) {
 				WARNING(Listener, "Error creating listener: %s: %s",
 				        pka_plugin_get_id(plugin),
