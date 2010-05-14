@@ -42,6 +42,25 @@ pka_context_destroy (PkaContext *context)
 }
 
 /**
+ * pka_context_default:
+ *
+ * Retrieves the default context for the process used for internal purposes
+ * only.
+ *
+ * Returns: A #PkaContext which has not had its reference count incremented.
+ * Side effects: None.
+ */
+PkaContext*
+pka_context_default (void)
+{
+	static PkaContext *default_context = NULL;
+	if (G_UNLIKELY(!default_context)) {
+		default_context = pka_context_new();
+	}
+	return default_context;
+}
+
+/**
  * pka_context_new:
  *
  * Creates a new instance of #PkaContext.

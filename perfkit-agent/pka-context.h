@@ -55,6 +55,7 @@ gboolean    pka_context_is_authorized    (PkaContext   *context,
 PkaContext* pka_context_new              (void);
 PkaContext* pka_context_ref              (PkaContext   *context);
 void        pka_context_unref            (PkaContext   *context);
+PkaContext* pka_context_default          (void);
 
 G_END_DECLS
 
