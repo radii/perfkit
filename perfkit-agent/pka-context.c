@@ -102,6 +102,15 @@ pka_context_unref (PkaContext *context)
 	}
 }
 
+/**
+ * pka_context_is_authorized:
+ * @context: A #PkaContext.
+ *
+ * Checks to see if the context is authorized to make the #PkaIOControl call.
+ *
+ * Returns: %TRUE if the context is authorized; otherwise %FALSE.
+ * Side effects: None.
+ */
 gboolean
 pka_context_is_authorized (PkaContext   *context, /* IN */
                            PkaIOControl  ioctl)   /* IN */
@@ -109,12 +118,29 @@ pka_context_is_authorized (PkaContext   *context, /* IN */
 	RETURN(TRUE);
 }
 
+/**
+ * pka_context_is_authenticated:
+ * @context: A #PkaContext.
+ *
+ * Checks to see if the context has been authenticated.
+ *
+ * Returns: %TRUE if the context is authenticated; otherwise %FALSE.
+ * Side effects: None.
+ */
 gboolean
 pka_context_is_authenticated (PkaContext *context) /* IN */
 {
 	RETURN(TRUE);
 }
 
+/**
+ * pka_context_error_quark:
+ *
+ * Retrieves the #PkaContext error domain #GQuark.
+ *
+ * Returns: A #GQuark.
+ * Side effects: None.
+ */
 GQuark
 pka_context_error_quark (void)
 {
