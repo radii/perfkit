@@ -750,7 +750,7 @@ pka_listener_manager_add_channel_finish (PkaListener    *listener, /* IN */
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
 
 	ENTRY;
-	if (pka_manager_add_channel(NULL, &real_channel, error)) {
+	if (pka_manager_add_channel(DEFAULT_CONTEXT, &real_channel, error)) {
 		*channel = pka_channel_get_id(real_channel);
 		g_object_unref(real_channel);
 		RETURN(TRUE);
