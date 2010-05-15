@@ -1106,7 +1106,7 @@ pka_listener_dbus_manager_get_plugins_cb (GObject      *listener,  /* IN */
 		plugins_len = plugins ? g_strv_length(plugins) : 0;
 		plugins_paths = g_new0(gchar*, plugins_len + 1);
 		for (i = 0; i < plugins_len; i++) {
-			plugins_paths[i] = g_strdup_printf("/org/perfkit/Agent/Plugins/%s", plugins[i]);
+			plugins_paths[i] = g_strdup_printf("/org/perfkit/Agent/Plugin/%s", plugins[i]);
 		}
 		reply = dbus_message_new_method_return(message);
 		dbus_message_append_args(reply,
