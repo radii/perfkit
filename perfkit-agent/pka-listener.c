@@ -2924,25 +2924,6 @@ pka_listener_plugin_get_copyright_finish (PkaListener    *listener,  /* IN */
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_plugin_get_description_cb (GObject      *listener,    /* IN */
-                                        GAsyncResult *result,      /* IN */
-                                        gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(plugin_get_description));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_plugin_get_description_async:
  * @connection: A #PkConnection.
@@ -2966,6 +2947,7 @@ pka_listener_plugin_get_description_async (PkaListener           *listener,    /
                                            GAsyncReadyCallback    callback,    /* IN */
                                            gpointer               user_data)   /* IN */
 {
+	PluginGetDescriptionCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -2975,15 +2957,12 @@ pka_listener_plugin_get_description_async (PkaListener           *listener,    /
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_plugin_get_description_async);
-// TEMP TO TEST RPC RESULTS
+	call = PluginGetDescriptionCall_Create();
+	call->plugin = g_strdup(plugin);
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)PluginGetDescriptionCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_plugin_get_description_async(instance,
-	                                 NULL,
-	                                 pka_listener_plugin_get_description_cb,
-	                                 result);
-#endif
 	EXIT;
 }
 
@@ -3007,43 +2986,25 @@ pka_listener_plugin_get_description_finish (PkaListener    *listener,    /* IN *
                                             gchar         **description, /* OUT */
                                             GError        **error)       /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaPlugin *plugin;
+	PluginGetDescriptionCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_description), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_plugin_get_description_finish(instance,
-	                                        real_result,
-	                                        description,
-	                                        error);
+	call = GET_RESULT_POINTER(PluginGetDescriptionCall, result);
+	if (!pka_manager_find_plugin(DEFAULT_CONTEXT, call->plugin,
+	                             &plugin, error)) {
+		GOTO(failed);
+	}
+	*description = g_strdup(pka_plugin_get_description(plugin));
+	g_object_unref(plugin);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
-
-#if 0
-static void
-pka_listener_plugin_get_name_cb (GObject      *listener,    /* IN */
-                                 GAsyncResult *result,      /* IN */
-                                 gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(plugin_get_name));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
 
 /**
  * pk_connection_plugin_get_name_async:
@@ -3068,6 +3029,7 @@ pka_listener_plugin_get_name_async (PkaListener           *listener,    /* IN */
                                     GAsyncReadyCallback    callback,    /* IN */
                                     gpointer               user_data)   /* IN */
 {
+	PluginGetNameCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -3077,15 +3039,12 @@ pka_listener_plugin_get_name_async (PkaListener           *listener,    /* IN */
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_plugin_get_name_async);
-// TEMP TO TEST RPC RESULTS
+	call = PluginGetNameCall_Create();
+	call->plugin = g_strdup(plugin);
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)PluginGetNameCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_plugin_get_name_async(instance,
-	                          NULL,
-	                          pka_listener_plugin_get_name_cb,
-	                          result);
-#endif
 	EXIT;
 }
 
@@ -3109,23 +3068,24 @@ pka_listener_plugin_get_name_finish (PkaListener    *listener, /* IN */
                                      gchar         **name,     /* OUT */
                                      GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaPlugin *plugin;
+	PluginGetNameCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_name), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_plugin_get_name_finish(instance,
-	                                 real_result,
-	                                 name,
-	                                 error);
+	call = GET_RESULT_POINTER(PluginGetNameCall, result);
+	if (!pka_manager_find_plugin(DEFAULT_CONTEXT, call->plugin,
+	                             &plugin, error)) {
+		GOTO(failed);
+	}
+	*name = g_strdup(pka_plugin_get_name(plugin));
+	g_object_unref(plugin);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
 
 /**
@@ -3210,25 +3170,6 @@ pka_listener_plugin_get_plugin_type_finish (PkaListener    *listener, /* IN */
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_plugin_get_version_cb (GObject      *listener,    /* IN */
-                                    GAsyncResult *result,      /* IN */
-                                    gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(plugin_get_version));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_plugin_get_version_async:
  * @connection: A #PkConnection.
@@ -3252,6 +3193,7 @@ pka_listener_plugin_get_version_async (PkaListener           *listener,    /* IN
                                        GAsyncReadyCallback    callback,    /* IN */
                                        gpointer               user_data)   /* IN */
 {
+	PluginGetVersionCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -3261,15 +3203,12 @@ pka_listener_plugin_get_version_async (PkaListener           *listener,    /* IN
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_plugin_get_version_async);
-// TEMP TO TEST RPC RESULTS
+	call = PluginGetVersionCall_Create();
+	call->plugin = g_strdup(plugin);
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)PluginGetVersionCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_plugin_get_version_async(instance,
-	                             NULL,
-	                             pka_listener_plugin_get_version_cb,
-	                             result);
-#endif
 	EXIT;
 }
 
@@ -3293,23 +3232,24 @@ pka_listener_plugin_get_version_finish (PkaListener    *listener, /* IN */
                                         gchar         **version,  /* OUT */
                                         GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaPlugin *plugin;
+	PluginGetVersionCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_version), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_plugin_get_version_finish(instance,
-	                                    real_result,
-	                                    version,
-	                                    error);
+	call = GET_RESULT_POINTER(PluginGetVersionCall, result);
+	if (!pka_manager_find_plugin(DEFAULT_CONTEXT, call->plugin,
+	                             &plugin, error)) {
+		GOTO(failed);
+	}
+	*version = g_strdup(pka_plugin_get_version(plugin));
+	g_object_unref(plugin);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
 
 #if 0
