@@ -64,8 +64,8 @@ struct _PkaSourceClass
 	void     (*notify_started)    (PkaSource     *source,
 	                               PkaSpawnInfo  *spawn_info);
 	void     (*notify_stopped)    (PkaSource     *source);
-	void     (*notify_paused)     (PkaSource     *source);
-	void     (*notify_unpaused)   (PkaSource     *source);
+	void     (*notify_muted)      (PkaSource     *source);
+	void     (*notify_unmuted)    (PkaSource     *source);
 
 	gpointer reserved[16];
 };

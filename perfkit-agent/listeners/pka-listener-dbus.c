@@ -1462,7 +1462,7 @@ static const gchar * ChannelIntrospection =
 	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE
 	"<node>"
 	" <interface name=\"org.perfkit.Agent.Channel\">"
-	"  <method name=\"Cork\">"
+	"  <method name=\"Mute\">"
 	"  </method>"
 	"  <method name=\"GetArgs\">"
     "   <arg name=\"args\" direction=\"out\" type=\"as\"/>"
@@ -1517,7 +1517,7 @@ static const gchar * ChannelIntrospection =
 	"  <method name=\"Stop\">"
     "   <arg name=\"killpid\" direction=\"in\" type=\"b\"/>"
 	"  </method>"
-	"  <method name=\"Uncork\">"
+	"  <method name=\"Unmute\">"
 	"  </method>"
 	" </interface>"
 	" <interface name=\"org.freedesktop.DBus.Introspectable\">"
@@ -1528,19 +1528,19 @@ static const gchar * ChannelIntrospection =
 	"</node>";
 
 /**
- * pka_listener_dbus_channel_cork_cb:
+ * pka_listener_dbus_channel_mute_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
  * @user_data: A #DBusMessage containing the incoming method call.
  *
- * Handles the completion of the "channel_cork" RPC.  A response
+ * Handles the completion of the "channel_mute" RPC.  A response
  * to the message is created and sent as a reply to the caller.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pka_listener_dbus_channel_cork_cb (GObject      *listener,  /* IN */
+pka_listener_dbus_channel_mute_cb (GObject      *listener,  /* IN */
                                    GAsyncResult *result,    /* IN */
                                    gpointer      user_data) /* IN */
 {
@@ -1551,7 +1551,7 @@ pka_listener_dbus_channel_cork_cb (GObject      *listener,  /* IN */
 
 	ENTRY;
 	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_channel_cork_finish(
+	if (!pka_listener_channel_mute_finish(
 			PKA_LISTENER(listener),
 			result, 
 			&error)) {
@@ -2375,19 +2375,19 @@ pka_listener_dbus_channel_stop_cb (GObject      *listener,  /* IN */
 }
 
 /**
- * pka_listener_dbus_channel_uncork_cb:
+ * pka_listener_dbus_channel_unmute_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
  * @user_data: A #DBusMessage containing the incoming method call.
  *
- * Handles the completion of the "channel_uncork" RPC.  A response
+ * Handles the completion of the "channel_unmute" RPC.  A response
  * to the message is created and sent as a reply to the caller.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pka_listener_dbus_channel_uncork_cb (GObject      *listener,  /* IN */
+pka_listener_dbus_channel_unmute_cb (GObject      *listener,  /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
@@ -2398,7 +2398,7 @@ pka_listener_dbus_channel_uncork_cb (GObject      *listener,  /* IN */
 
 	ENTRY;
 	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_channel_uncork_finish(
+	if (!pka_listener_channel_unmute_finish(
 			PKA_LISTENER(listener),
 			result, 
 			&error)) {
@@ -2456,7 +2456,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 		}
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	} else if (IS_INTERFACE(message, "org.perfkit.Agent.Channel")) {
-		if (IS_MEMBER(message, "Cork")) {
+		if (IS_MEMBER(message, "Mute")) {
 			gint channel = 0;
 			const gchar *dbus_path;
 
@@ -2468,10 +2468,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
-			pka_listener_channel_cork_async(PKA_LISTENER(listener),
+			pka_listener_channel_mute_async(PKA_LISTENER(listener),
 			                                channel,
 			                                NULL,
-			                                pka_listener_dbus_channel_cork_cb,
+			                                pka_listener_dbus_channel_mute_cb,
 			                                dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
@@ -2842,7 +2842,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
-		else if (IS_MEMBER(message, "Uncork")) {
+		else if (IS_MEMBER(message, "Unmute")) {
 			gint channel = 0;
 			const gchar *dbus_path;
 
@@ -2854,10 +2854,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
-			pka_listener_channel_uncork_async(PKA_LISTENER(listener),
+			pka_listener_channel_unmute_async(PKA_LISTENER(listener),
 			                                  channel,
 			                                  NULL,
-			                                  pka_listener_dbus_channel_uncork_cb,
+			                                  pka_listener_dbus_channel_unmute_cb,
 			                                  dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
@@ -2884,7 +2884,7 @@ static const gchar * SubscriptionIntrospection =
 	"  <method name=\"AddSource\">"
     "   <arg name=\"source\" direction=\"in\" type=\"i\"/>"
 	"  </method>"
-	"  <method name=\"Cork\">"
+	"  <method name=\"Mute\">"
     "   <arg name=\"drain\" direction=\"in\" type=\"b\"/>"
 	"  </method>"
 	"  <method name=\"RemoveChannel\">"
@@ -2897,7 +2897,7 @@ static const gchar * SubscriptionIntrospection =
     "   <arg name=\"timeout\" direction=\"in\" type=\"i\"/>"
     "   <arg name=\"size\" direction=\"in\" type=\"i\"/>"
 	"  </method>"
-	"  <method name=\"Uncork\">"
+	"  <method name=\"Unmute\">"
 	"  </method>"
 	" </interface>"
 	" <interface name=\"org.freedesktop.DBus.Introspectable\">"
@@ -2992,19 +2992,19 @@ pka_listener_dbus_subscription_add_source_cb (GObject      *listener,  /* IN */
 }
 
 /**
- * pka_listener_dbus_subscription_cork_cb:
+ * pka_listener_dbus_subscription_mute_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
  * @user_data: A #DBusMessage containing the incoming method call.
  *
- * Handles the completion of the "subscription_cork" RPC.  A response
+ * Handles the completion of the "subscription_mute" RPC.  A response
  * to the message is created and sent as a reply to the caller.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pka_listener_dbus_subscription_cork_cb (GObject      *listener,  /* IN */
+pka_listener_dbus_subscription_mute_cb (GObject      *listener,  /* IN */
                                         GAsyncResult *result,    /* IN */
                                         gpointer      user_data) /* IN */
 {
@@ -3015,7 +3015,7 @@ pka_listener_dbus_subscription_cork_cb (GObject      *listener,  /* IN */
 
 	ENTRY;
 	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_subscription_cork_finish(
+	if (!pka_listener_subscription_mute_finish(
 			PKA_LISTENER(listener),
 			result, 
 			&error)) {
@@ -3160,19 +3160,19 @@ pka_listener_dbus_subscription_set_buffer_cb (GObject      *listener,  /* IN */
 }
 
 /**
- * pka_listener_dbus_subscription_uncork_cb:
+ * pka_listener_dbus_subscription_unmute_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
  * @user_data: A #DBusMessage containing the incoming method call.
  *
- * Handles the completion of the "subscription_uncork" RPC.  A response
+ * Handles the completion of the "subscription_unmute" RPC.  A response
  * to the message is created and sent as a reply to the caller.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pka_listener_dbus_subscription_uncork_cb (GObject      *listener,  /* IN */
+pka_listener_dbus_subscription_unmute_cb (GObject      *listener,  /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
@@ -3183,7 +3183,7 @@ pka_listener_dbus_subscription_uncork_cb (GObject      *listener,  /* IN */
 
 	ENTRY;
 	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_subscription_uncork_finish(
+	if (!pka_listener_subscription_unmute_finish(
 			PKA_LISTENER(listener),
 			result, 
 			&error)) {
@@ -3288,7 +3288,7 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                           dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
-		else if (IS_MEMBER(message, "Cork")) {
+		else if (IS_MEMBER(message, "Mute")) {
 			gint subscription = 0;
 			gboolean drain = 0;
 			const gchar *dbus_path;
@@ -3302,11 +3302,11 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
-			pka_listener_subscription_cork_async(PKA_LISTENER(listener),
+			pka_listener_subscription_mute_async(PKA_LISTENER(listener),
 			                                     subscription,
 			                                     drain,
 			                                     NULL,
-			                                     pka_listener_dbus_subscription_cork_cb,
+			                                     pka_listener_dbus_subscription_mute_cb,
 			                                     dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
@@ -3379,7 +3379,7 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                           dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
-		else if (IS_MEMBER(message, "Uncork")) {
+		else if (IS_MEMBER(message, "Unmute")) {
 			gint subscription = 0;
 			const gchar *dbus_path;
 
@@ -3391,10 +3391,10 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
-			pka_listener_subscription_uncork_async(PKA_LISTENER(listener),
+			pka_listener_subscription_unmute_async(PKA_LISTENER(listener),
 			                                       subscription,
 			                                       NULL,
-			                                       pka_listener_dbus_subscription_uncork_cb,
+			                                       pka_listener_dbus_subscription_unmute_cb,
 			                                       dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}

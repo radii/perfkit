@@ -97,14 +97,14 @@ pka_listener_close (PkaListener *listener) /* IN */
 
 #if 0
 static void
-pka_listener_channel_cork_cb (GObject      *listener,    /* IN */
+pka_listener_channel_mute_cb (GObject      *listener,    /* IN */
                               GAsyncResult *result,      /* IN */
                               gpointer      user_data)   /* IN */
 {
 	GSimpleAsyncResult *real_result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(channel_cork));
+	g_return_if_fail(RESULT_IS_VALID(channel_mute));
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
@@ -115,24 +115,24 @@ pka_listener_channel_cork_cb (GObject      *listener,    /* IN */
 #endif
 
 /**
- * pk_connection_channel_cork_async:
+ * pk_connection_channel_mute_async:
  * @connection: A #PkConnection.
  * @channel: A #gint.
  * @cancellable: A #GCancellable.
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
  *
- * Asynchronously requests the "channel_cork_async" RPC.  @callback
- * MUST call pka_listener_channel_cork_finish().
+ * Asynchronously requests the "channel_mute_async" RPC.  @callback
+ * MUST call pka_listener_channel_mute_finish().
  *
  * Notifies @channel to silently drop manifest and sample updates until
- * uncork() is called.
+ * unmute() is called.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pka_listener_channel_cork_async (PkaListener           *listener,    /* IN */
+pka_listener_channel_mute_async (PkaListener           *listener,    /* IN */
                                  gint                   channel,     /* IN */
                                  GCancellable          *cancellable, /* IN */
                                  GAsyncReadyCallback    callback,    /* IN */
@@ -146,35 +146,35 @@ pka_listener_channel_cork_async (PkaListener           *listener,    /* IN */
 	result = g_simple_async_result_new(G_OBJECT(listener),
 	                                   callback,
 	                                   user_data,
-	                                   pka_listener_channel_cork_async);
+	                                   pka_listener_channel_mute_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
 #if 0
-	pka_channel_cork_async(instance,
+	pka_channel_mute_async(instance,
 	                       NULL,
-	                       pka_listener_channel_cork_cb,
+	                       pka_listener_channel_mute_cb,
 	                       result);
 #endif
 	EXIT;
 }
 
 /**
- * pk_connection_channel_cork_finish:
+ * pk_connection_channel_mute_finish:
  * @connection: A #PkConnection.
  * @result: A #GAsyncResult.
  * @error: A #GError.
  *
- * Completes an asynchronous request for the "channel_cork_finish" RPC.
+ * Completes an asynchronous request for the "channel_mute_finish" RPC.
  *
  * Notifies @channel to silently drop manifest and sample updates until
- * uncork() is called.
+ * unmute() is called.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pka_listener_channel_cork_finish (PkaListener    *listener, /* IN */
+pka_listener_channel_mute_finish (PkaListener    *listener, /* IN */
                                   GAsyncResult   *result,   /* IN */
                                   GError        **error)    /* OUT */
 {
@@ -189,7 +189,7 @@ pka_listener_channel_cork_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_cork_finish(instance,
+	ret = pka_channel_mute_finish(instance,
 	                              real_result,
 	                              error);
 	RETURN(ret);
@@ -1850,33 +1850,34 @@ pka_listener_channel_stop_finish (PkaListener    *listener, /* IN */
 
 #if 0
 static void
-pka_listener_channel_uncork_cb (GObject      *listener,    /* IN */
+pka_listener_channel_unmute_cb (GObject      *listener,    /* IN */
                                 GAsyncResult *result,      /* IN */
                                 gpointer      user_data)   /* IN */
 {
 	GSimpleAsyncResult *real_result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(channel_uncork));
+	g_return_if_fail(RESULT_IS_VALID(channel_unmute));
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
 	g_simple_async_result_set_op_res_gpointer(real_result, result);
 	g_simple_async_result_complete(real_result);
+	g_object_unref(real_result);
 	EXIT;
 }
 #endif
 
 /**
- * pk_connection_channel_uncork_async:
+ * pk_connection_channel_unmute_async:
  * @connection: A #PkConnection.
  * @channel: A #gint.
  * @cancellable: A #GCancellable.
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
  *
- * Asynchronously requests the "channel_uncork_async" RPC.  @callback
- * MUST call pka_listener_channel_uncork_finish().
+ * Asynchronously requests the "channel_unmute_async" RPC.  @callback
+ * MUST call pka_listener_channel_unmute_finish().
  *
  * Resumes delivery of manifest and samples for sources within the channel.
  *
@@ -1884,7 +1885,7 @@ pka_listener_channel_uncork_cb (GObject      *listener,    /* IN */
  * Side effects: None.
  */
 void
-pka_listener_channel_uncork_async (PkaListener           *listener,    /* IN */
+pka_listener_channel_unmute_async (PkaListener           *listener,    /* IN */
                                    gint                   channel,     /* IN */
                                    GCancellable          *cancellable, /* IN */
                                    GAsyncReadyCallback    callback,    /* IN */
@@ -1898,26 +1899,26 @@ pka_listener_channel_uncork_async (PkaListener           *listener,    /* IN */
 	result = g_simple_async_result_new(G_OBJECT(listener),
 	                                   callback,
 	                                   user_data,
-	                                   pka_listener_channel_uncork_async);
+	                                   pka_listener_channel_unmute_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
 #if 0
-	pka_channel_uncork_async(instance,
+	pka_channel_unmute_async(instance,
 	                         NULL,
-	                         pka_listener_channel_uncork_cb,
+	                         pka_listener_channel_unmute_cb,
 	                         result);
 #endif
 	EXIT;
 }
 
 /**
- * pk_connection_channel_uncork_finish:
+ * pk_connection_channel_unmute_finish:
  * @connection: A #PkConnection.
  * @result: A #GAsyncResult.
  * @error: A #GError.
  *
- * Completes an asynchronous request for the "channel_uncork_finish" RPC.
+ * Completes an asynchronous request for the "channel_unmute_finish" RPC.
  *
  * Resumes delivery of manifest and samples for sources within the channel.
  *
@@ -1925,7 +1926,7 @@ pka_listener_channel_uncork_async (PkaListener           *listener,    /* IN */
  * Side effects: None.
  */
 gboolean
-pka_listener_channel_uncork_finish (PkaListener    *listener, /* IN */
+pka_listener_channel_unmute_finish (PkaListener    *listener, /* IN */
                                     GAsyncResult   *result,   /* IN */
                                     GError        **error)    /* OUT */
 {
@@ -1940,7 +1941,7 @@ pka_listener_channel_uncork_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_uncork_finish(instance,
+	ret = pka_channel_unmute_finish(instance,
 	                                real_result,
 	                                error);
 	RETURN(ret);
@@ -3754,25 +3755,26 @@ pka_listener_subscription_add_source_finish (PkaListener    *listener, /* IN */
 
 #if 0
 static void
-pka_listener_subscription_cork_cb (GObject      *listener,    /* IN */
+pka_listener_subscription_mute_cb (GObject      *listener,    /* IN */
                                    GAsyncResult *result,      /* IN */
                                    gpointer      user_data)   /* IN */
 {
 	GSimpleAsyncResult *real_result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(subscription_cork));
+	g_return_if_fail(RESULT_IS_VALID(subscription_mute));
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
 	g_simple_async_result_set_op_res_gpointer(real_result, result);
 	g_simple_async_result_complete(real_result);
+	g_object_unref(real_result);
 	EXIT;
 }
 #endif
 
 /**
- * pk_connection_subscription_cork_async:
+ * pk_connection_subscription_mute_async:
  * @connection: A #PkConnection.
  * @subscription: A #gint.
  * @drain: A #gboolean.
@@ -3780,16 +3782,17 @@ pka_listener_subscription_cork_cb (GObject      *listener,    /* IN */
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
  *
- * Asynchronously requests the "subscription_cork_async" RPC.  @callback
- * MUST call pka_listener_subscription_cork_finish().
+ * Asynchronously requests the "subscription_mute_async" RPC.  @callback
+ * MUST call pka_listener_subscription_mute_finish().
  *
- * Prevents the subscription from further manifest or sample delivery.
+ * Prevents the subscription from further manifest or sample delivery.  If
+ * @drain is set, the current buffer will be flushed.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pka_listener_subscription_cork_async (PkaListener           *listener,     /* IN */
+pka_listener_subscription_mute_async (PkaListener           *listener,     /* IN */
                                       gint                   subscription, /* IN */
                                       gboolean               drain,        /* IN */
                                       GCancellable          *cancellable,  /* IN */
@@ -3804,34 +3807,35 @@ pka_listener_subscription_cork_async (PkaListener           *listener,     /* IN
 	result = g_simple_async_result_new(G_OBJECT(listener),
 	                                   callback,
 	                                   user_data,
-	                                   pka_listener_subscription_cork_async);
+	                                   pka_listener_subscription_mute_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
 #if 0
-	pka_subscription_cork_async(instance,
+	pka_subscription_mute_async(instance,
 	                            NULL,
-	                            pka_listener_subscription_cork_cb,
+	                            pka_listener_subscription_mute_cb,
 	                            result);
 #endif
 	EXIT;
 }
 
 /**
- * pk_connection_subscription_cork_finish:
+ * pk_connection_subscription_mute_finish:
  * @connection: A #PkConnection.
  * @result: A #GAsyncResult.
  * @error: A #GError.
  *
- * Completes an asynchronous request for the "subscription_cork_finish" RPC.
+ * Completes an asynchronous request for the "subscription_mute_finish" RPC.
  *
- * Prevents the subscription from further manifest or sample delivery.
+ * Prevents the subscription from further manifest or sample delivery.  If
+ * @drain is set, the current buffer will be flushed.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pka_listener_subscription_cork_finish (PkaListener    *listener, /* IN */
+pka_listener_subscription_mute_finish (PkaListener    *listener, /* IN */
                                        GAsyncResult   *result,   /* IN */
                                        GError        **error)    /* OUT */
 {
@@ -3846,7 +3850,7 @@ pka_listener_subscription_cork_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
-	ret = pka_subscription_cork_finish(instance,
+	ret = pka_subscription_mute_finish(instance,
 	                                   real_result,
 	                                   error);
 	RETURN(ret);
@@ -4172,33 +4176,34 @@ pka_listener_subscription_set_buffer_finish (PkaListener    *listener, /* IN */
 
 #if 0
 static void
-pka_listener_subscription_uncork_cb (GObject      *listener,    /* IN */
+pka_listener_subscription_unmute_cb (GObject      *listener,    /* IN */
                                      GAsyncResult *result,      /* IN */
                                      gpointer      user_data)   /* IN */
 {
 	GSimpleAsyncResult *real_result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(subscription_uncork));
+	g_return_if_fail(RESULT_IS_VALID(subscription_unmute));
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
 	g_simple_async_result_set_op_res_gpointer(real_result, result);
 	g_simple_async_result_complete(real_result);
+	g_object_unref(real_result);
 	EXIT;
 }
 #endif
 
 /**
- * pk_connection_subscription_uncork_async:
+ * pk_connection_subscription_unmute_async:
  * @connection: A #PkConnection.
  * @subscription: A #gint.
  * @cancellable: A #GCancellable.
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
  *
- * Asynchronously requests the "subscription_uncork_async" RPC.  @callback
- * MUST call pka_listener_subscription_uncork_finish().
+ * Asynchronously requests the "subscription_unmute_async" RPC.  @callback
+ * MUST call pka_listener_subscription_unmute_finish().
  *
  * Enables the subscription for manifest and sample delivery.
  *
@@ -4206,7 +4211,7 @@ pka_listener_subscription_uncork_cb (GObject      *listener,    /* IN */
  * Side effects: None.
  */
 void
-pka_listener_subscription_uncork_async (PkaListener           *listener,     /* IN */
+pka_listener_subscription_unmute_async (PkaListener           *listener,     /* IN */
                                         gint                   subscription, /* IN */
                                         GCancellable          *cancellable,  /* IN */
                                         GAsyncReadyCallback    callback,     /* IN */
@@ -4220,26 +4225,26 @@ pka_listener_subscription_uncork_async (PkaListener           *listener,     /* 
 	result = g_simple_async_result_new(G_OBJECT(listener),
 	                                   callback,
 	                                   user_data,
-	                                   pka_listener_subscription_uncork_async);
+	                                   pka_listener_subscription_unmute_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
 #if 0
-	pka_subscription_uncork_async(instance,
+	pka_subscription_unmute_async(instance,
 	                              NULL,
-	                              pka_listener_subscription_uncork_cb,
+	                              pka_listener_subscription_unmute_cb,
 	                              result);
 #endif
 	EXIT;
 }
 
 /**
- * pk_connection_subscription_uncork_finish:
+ * pk_connection_subscription_unmute_finish:
  * @connection: A #PkConnection.
  * @result: A #GAsyncResult.
  * @error: A #GError.
  *
- * Completes an asynchronous request for the "subscription_uncork_finish" RPC.
+ * Completes an asynchronous request for the "subscription_unmute_finish" RPC.
  *
  * Enables the subscription for manifest and sample delivery.
  *
@@ -4247,7 +4252,7 @@ pka_listener_subscription_uncork_async (PkaListener           *listener,     /* 
  * Side effects: None.
  */
 gboolean
-pka_listener_subscription_uncork_finish (PkaListener    *listener, /* IN */
+pka_listener_subscription_unmute_finish (PkaListener    *listener, /* IN */
                                          GAsyncResult   *result,   /* IN */
                                          GError        **error)    /* OUT */
 {
@@ -4262,7 +4267,7 @@ pka_listener_subscription_uncork_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	real_result = GET_RESULT_POINTER(result);
-	ret = pka_subscription_uncork_finish(instance,
+	ret = pka_subscription_unmute_finish(instance,
 	                                     real_result,
 	                                     error);
 	RETURN(ret);

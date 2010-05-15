@@ -26,11 +26,6 @@
 typedef struct
 {
 	gint channel;
-} ChannelCorkCall;
-
-typedef struct
-{
-	gint channel;
 } ChannelGetArgsCall;
 
 typedef struct
@@ -77,6 +72,11 @@ typedef struct
 {
 	gint channel;
 } ChannelGetWorkingDirCall;
+
+typedef struct
+{
+	gint channel;
+} ChannelMuteCall;
 
 typedef struct
 {
@@ -128,7 +128,7 @@ typedef struct
 typedef struct
 {
 	gint channel;
-} ChannelUncorkCall;
+} ChannelUnmuteCall;
 
 typedef struct
 {
@@ -233,7 +233,7 @@ typedef struct
 {
 	gint subscription;
 	gboolean drain;
-} SubscriptionCorkCall;
+} SubscriptionMuteCall;
 
 typedef struct
 {
@@ -257,15 +257,7 @@ typedef struct
 typedef struct
 {
 	gint subscription;
-} SubscriptionUncorkCall;
-
-void
-ChannelCorkCall_Free (ChannelCorkCall *call) /* IN */
-{
-	ENTRY;
-	g_slice_free(ChannelCorkCall, call);
-	EXIT;
-}
+} SubscriptionUnmuteCall;
 
 void
 ChannelGetArgsCall_Free (ChannelGetArgsCall *call) /* IN */
@@ -348,6 +340,14 @@ ChannelGetWorkingDirCall_Free (ChannelGetWorkingDirCall *call) /* IN */
 }
 
 void
+ChannelMuteCall_Free (ChannelMuteCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ChannelMuteCall, call);
+	EXIT;
+}
+
+void
 ChannelSetArgsCall_Free (ChannelSetArgsCall *call) /* IN */
 {
 	ENTRY;
@@ -416,10 +416,10 @@ ChannelStopCall_Free (ChannelStopCall *call) /* IN */
 }
 
 void
-ChannelUncorkCall_Free (ChannelUncorkCall *call) /* IN */
+ChannelUnmuteCall_Free (ChannelUnmuteCall *call) /* IN */
 {
 	ENTRY;
-	g_slice_free(ChannelUncorkCall, call);
+	g_slice_free(ChannelUnmuteCall, call);
 	EXIT;
 }
 
@@ -591,10 +591,10 @@ SubscriptionAddSourceCall_Free (SubscriptionAddSourceCall *call) /* IN */
 }
 
 void
-SubscriptionCorkCall_Free (SubscriptionCorkCall *call) /* IN */
+SubscriptionMuteCall_Free (SubscriptionMuteCall *call) /* IN */
 {
 	ENTRY;
-	g_slice_free(SubscriptionCorkCall, call);
+	g_slice_free(SubscriptionMuteCall, call);
 	EXIT;
 }
 
@@ -623,18 +623,11 @@ SubscriptionSetBufferCall_Free (SubscriptionSetBufferCall *call) /* IN */
 }
 
 void
-SubscriptionUncorkCall_Free (SubscriptionUncorkCall *call) /* IN */
+SubscriptionUnmuteCall_Free (SubscriptionUnmuteCall *call) /* IN */
 {
 	ENTRY;
-	g_slice_free(SubscriptionUncorkCall, call);
+	g_slice_free(SubscriptionUnmuteCall, call);
 	EXIT;
-}
-
-ChannelCorkCall*
-ChannelCorkCall_Create (void)
-{
-	ENTRY;
-	RETURN(g_slice_new0(ChannelCorkCall));
 }
 
 ChannelGetArgsCall*
@@ -707,6 +700,13 @@ ChannelGetWorkingDirCall_Create (void)
 	RETURN(g_slice_new0(ChannelGetWorkingDirCall));
 }
 
+ChannelMuteCall*
+ChannelMuteCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ChannelMuteCall));
+}
+
 ChannelSetArgsCall*
 ChannelSetArgsCall_Create (void)
 {
@@ -763,11 +763,11 @@ ChannelStopCall_Create (void)
 	RETURN(g_slice_new0(ChannelStopCall));
 }
 
-ChannelUncorkCall*
-ChannelUncorkCall_Create (void)
+ChannelUnmuteCall*
+ChannelUnmuteCall_Create (void)
 {
 	ENTRY;
-	RETURN(g_slice_new0(ChannelUncorkCall));
+	RETURN(g_slice_new0(ChannelUnmuteCall));
 }
 
 DisconnectCall*
@@ -910,11 +910,11 @@ SubscriptionAddSourceCall_Create (void)
 	RETURN(g_slice_new0(SubscriptionAddSourceCall));
 }
 
-SubscriptionCorkCall*
-SubscriptionCorkCall_Create (void)
+SubscriptionMuteCall*
+SubscriptionMuteCall_Create (void)
 {
 	ENTRY;
-	RETURN(g_slice_new0(SubscriptionCorkCall));
+	RETURN(g_slice_new0(SubscriptionMuteCall));
 }
 
 SubscriptionRemoveChannelCall*
@@ -938,11 +938,11 @@ SubscriptionSetBufferCall_Create (void)
 	RETURN(g_slice_new0(SubscriptionSetBufferCall));
 }
 
-SubscriptionUncorkCall*
-SubscriptionUncorkCall_Create (void)
+SubscriptionUnmuteCall*
+SubscriptionUnmuteCall_Create (void)
 {
 	ENTRY;
-	RETURN(g_slice_new0(SubscriptionUncorkCall));
+	RETURN(g_slice_new0(SubscriptionUnmuteCall));
 }
 
 #endif /* __PKA_LISTENER_CLOSURES_H__ */

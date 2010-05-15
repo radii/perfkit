@@ -58,7 +58,7 @@ typedef enum
  * PkaChannelState:
  * @PKA_CHANNEL_READY: 
  * @PKA_CHANNEL_RUNNING:
- * @PKA_CHANNEL_PAUSED:
+ * @PKA_CHANNEL_MUTED:
  * @PKA_CHANNEL_STOPPED:
  * @PKA_CHANNEL_FAILED: 
  *
@@ -68,7 +68,7 @@ typedef enum
 {
 	PKA_CHANNEL_READY    = 1,
 	PKA_CHANNEL_RUNNING  = 2,
-	PKA_CHANNEL_PAUSED   = 3,
+	PKA_CHANNEL_MUTED    = 3,
 	PKA_CHANNEL_STOPPED  = 4,
 	PKA_CHANNEL_FAILED   = 5,
 } PkaChannelState;
@@ -135,10 +135,10 @@ gboolean        pka_channel_start           (PkaChannel   *channel,
 gboolean        pka_channel_stop            (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);
-gboolean        pka_channel_pause           (PkaChannel   *channel,
+gboolean        pka_channel_mute            (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);
-gboolean        pka_channel_unpause         (PkaChannel   *channel,
+gboolean        pka_channel_unmute          (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);
 

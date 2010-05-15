@@ -163,17 +163,17 @@ pka_source_notify_stopped (PkaSource *source)
 }
 
 void
-pka_source_notify_paused (PkaSource *source)
+pka_source_notify_muted (PkaSource *source)
 {
-	if (PKA_SOURCE_GET_CLASS(source)->notify_paused)
-		PKA_SOURCE_GET_CLASS(source)->notify_paused(source);
+	if (PKA_SOURCE_GET_CLASS(source)->notify_muted)
+		PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
 }
 
 void
-pka_source_notify_unpaused (PkaSource *source)
+pka_source_notify_unmuted (PkaSource *source)
 {
-	if (PKA_SOURCE_GET_CLASS(source)->notify_unpaused)
-		PKA_SOURCE_GET_CLASS(source)->notify_unpaused(source);
+	if (PKA_SOURCE_GET_CLASS(source)->notify_unmuted)
+		PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
 }
 
 static void

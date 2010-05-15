@@ -23,14 +23,6 @@
 
 G_BEGIN_DECLS
 
-void          pka_listener_channel_cork_async                 (PkaListener           *listener,
-                                                               gint                   channel,
-                                                               GCancellable          *cancellable,
-                                                               GAsyncReadyCallback    callback,
-                                                               gpointer               user_data);
-gboolean      pka_listener_channel_cork_finish                (PkaListener           *listener,
-                                                               GAsyncResult          *result,
-                                                               GError               **error);
 void          pka_listener_channel_get_args_async             (PkaListener           *listener,
                                                                gint                   channel,
                                                                GCancellable          *cancellable,
@@ -122,6 +114,14 @@ gboolean      pka_listener_channel_get_working_dir_finish     (PkaListener      
                                                                GAsyncResult          *result,
                                                                gchar                **working_dir,
                                                                GError               **error);
+void          pka_listener_channel_mute_async                 (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_mute_finish                (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
 void          pka_listener_channel_set_args_async             (PkaListener           *listener,
                                                                gint                   channel,
                                                                gchar                **args,
@@ -193,12 +193,12 @@ void          pka_listener_channel_stop_async                 (PkaListener      
 gboolean      pka_listener_channel_stop_finish                (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
-void          pka_listener_channel_uncork_async               (PkaListener           *listener,
+void          pka_listener_channel_unmute_async               (PkaListener           *listener,
                                                                gint                   channel,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
-gboolean      pka_listener_channel_uncork_finish              (PkaListener           *listener,
+gboolean      pka_listener_channel_unmute_finish              (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
 void          pka_listener_encoder_get_plugin_async           (PkaListener           *listener,
@@ -371,13 +371,13 @@ void          pka_listener_subscription_add_source_async      (PkaListener      
 gboolean      pka_listener_subscription_add_source_finish     (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
-void          pka_listener_subscription_cork_async            (PkaListener           *listener,
+void          pka_listener_subscription_mute_async            (PkaListener           *listener,
                                                                gint                   subscription,
                                                                gboolean               drain,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
-gboolean      pka_listener_subscription_cork_finish           (PkaListener           *listener,
+gboolean      pka_listener_subscription_mute_finish           (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
 void          pka_listener_subscription_remove_channel_async  (PkaListener           *listener,
@@ -408,12 +408,12 @@ void          pka_listener_subscription_set_buffer_async      (PkaListener      
 gboolean      pka_listener_subscription_set_buffer_finish     (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
-void          pka_listener_subscription_uncork_async          (PkaListener           *listener,
+void          pka_listener_subscription_unmute_async          (PkaListener           *listener,
                                                                gint                   subscription,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
-gboolean      pka_listener_subscription_uncork_finish         (PkaListener           *listener,
+gboolean      pka_listener_subscription_unmute_finish         (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
 

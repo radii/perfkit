@@ -130,8 +130,8 @@ extern void pka_manifest_set_source_id        (PkaManifest     *manifest,
 extern void pka_source_notify_started         (PkaSource       *source,
                                                PkaSpawnInfo    *spawn_info);
 extern void pka_source_notify_stopped         (PkaSource       *source);
-extern void pka_source_notify_paused          (PkaSource       *source);
-extern void pka_source_notify_unpaused        (PkaSource       *source);
+extern void pka_source_notify_muted           (PkaSource       *source);
+extern void pka_source_notify_unmuted         (PkaSource       *source);
 extern void pka_source_set_channel            (PkaSource       *source,
                                                PkaChannel      *channel);
 
@@ -795,7 +795,7 @@ pka_channel_stop (PkaChannel  *channel, /* IN */
 	g_mutex_lock(priv->mutex);
 	switch (priv->state) {
 	case PKA_CHANNEL_RUNNING:
-	case PKA_CHANNEL_PAUSED:
+	case PKA_CHANNEL_MUTED:
 		INFO(Channel, "Stopping channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_STOPPED;
@@ -833,25 +833,25 @@ pka_channel_stop (PkaChannel  *channel, /* IN */
 }
 
 /**
- * pka_channel_pause:
+ * pka_channel_mute:
  * @channel: A #PkaChannel.
  * @error: A location for a #GError, or %NULL.
  *
- * Attempts to pause the channel.  If successful, the attached
- * #PkaSource<!-- -->'s are notified to pause as well.  Any samples delivered
- * while paused are silently dropped.  Updated manifests, however, are stored
+ * Attempts to mute the channel.  If successful, the attached
+ * #PkaSource<!-- -->'s are notified to mute as well.  Any samples delivered
+ * while muted are silently dropped.  Updated manifests, however, are stored
  * for future delivery when unpausing occurs.
  *
  * Returns: %TRUE if successful; otherwise %FALSE.
  *
  * Side effects:
  *   The state machine is altered.
- *   Data sources are notified to pause.
+ *   Data sources are notified to mute.
  */
 gboolean
-pka_channel_pause (PkaChannel  *channel, /* IN */
-                   PkaContext  *context, /* IN */
-                   GError     **error)   /* IN */
+pka_channel_mute (PkaChannel  *channel, /* IN */
+                  PkaContext  *context, /* IN */
+                  GError     **error)   /* IN */
 {
 	PkaChannelPrivate *priv;
 	gboolean ret = FALSE;
@@ -864,29 +864,29 @@ pka_channel_pause (PkaChannel  *channel, /* IN */
 	switch (priv->state) {
 	case PKA_CHANNEL_READY:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Cannot pause channel; not yet started."));
+		            _("Cannot mute channel; not yet started."));
 		BREAK;
 	case PKA_CHANNEL_STOPPED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Cannot pause channel; channel stopped."));
+		            _("Cannot mute channel; channel stopped."));
 		BREAK;
 	case PKA_CHANNEL_FAILED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Cannot pause channel; channel failed to start."));
+		            _("Cannot mute channel; channel failed to start."));
 		BREAK;
-	case PKA_CHANNEL_PAUSED:
+	case PKA_CHANNEL_MUTED:
 		ret = TRUE;
 		BREAK;
 	case PKA_CHANNEL_RUNNING:
-		priv->state = PKA_CHANNEL_PAUSED;
-		INFO(Channel, "Pausing channel %d on behalf of context %d.",
+		priv->state = PKA_CHANNEL_MUTED;
+		INFO(Channel, "Muting channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
 
 		/*
-		 * Notify sources that we have paused.
+		 * Notify sources that we have muted.
 		 */
 		g_ptr_array_foreach(priv->sources,
-		                    (GFunc)pka_source_notify_paused,
+		                    (GFunc)pka_source_notify_muted,
 		                    NULL);
 		ret = TRUE;
 		BREAK;
@@ -921,12 +921,12 @@ pka_channel_traverse_manifests_cb (PkaSource   *source,   /* IN */
 }
 
 /**
- * pka_channel_unpause:
+ * pka_channel_unmute:
  * @channel: A #PkaChannel.
  * @error: A location for a #GError or %NULL.
  *
- * Attempts to unpause a #PkaChannel.  If successful; the
- * #PkaSource<!-- -->'s will be notified to unpause and continue sending
+ * Attempts to unmute a #PkaChannel.  If successful; the
+ * #PkaSource<!-- -->'s will be notified to unmute and continue sending
  * samples.
  *
  * Returns: %TRUE if successful; otherwise %FALSE.
@@ -936,9 +936,9 @@ pka_channel_traverse_manifests_cb (PkaSource   *source,   /* IN */
  *   Data sources are notified to resume.
  */
 gboolean
-pka_channel_unpause (PkaChannel  *channel, /* IN */
-                     PkaContext  *context, /* IN */
-                     GError     **error)   /* OUT */
+pka_channel_unmute (PkaChannel  *channel, /* IN */
+                    PkaContext  *context, /* IN */
+                    GError     **error)   /* OUT */
 {
 	PkaChannelPrivate *priv;
 	gboolean ret = FALSE;
@@ -949,7 +949,7 @@ pka_channel_unpause (PkaChannel  *channel, /* IN */
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	switch (priv->state) {
-	case PKA_CHANNEL_PAUSED:
+	case PKA_CHANNEL_MUTED:
 		INFO(Channel, "Unpausing channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_RUNNING;
@@ -965,7 +965,7 @@ pka_channel_unpause (PkaChannel  *channel, /* IN */
 		 * Enable sources.
 		 */
 		g_ptr_array_foreach(priv->sources,
-		                    (GFunc)pka_source_notify_unpaused,
+		                    (GFunc)pka_source_notify_unmuted,
 		                    NULL);
 
 		ret = TRUE;
@@ -975,7 +975,7 @@ pka_channel_unpause (PkaChannel  *channel, /* IN */
 	case PKA_CHANNEL_STOPPED:
 	case PKA_CHANNEL_FAILED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            "Channel %d is not paused.", priv->id);
+		            "Channel %d is not muted.", priv->id);
 		BREAK;
 	default:
 		g_warn_if_reached();
@@ -1150,7 +1150,7 @@ pka_channel_add_subscription (PkaChannel      *channel,      /* IN */
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	g_ptr_array_add(priv->subs, pka_subscription_ref(subscription));
-	if ((priv->state & (PKA_CHANNEL_RUNNING | PKA_CHANNEL_PAUSED)) != 0) {
+	if ((priv->state & (PKA_CHANNEL_RUNNING | PKA_CHANNEL_MUTED)) != 0) {
 		g_tree_foreach(priv->manifests,
 		               pka_channel_deliver_manifest_to_subscription,
 		               subscription);
