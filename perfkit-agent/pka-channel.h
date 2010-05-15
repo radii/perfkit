@@ -126,6 +126,7 @@ gboolean        pka_channel_set_kill_pid    (PkaChannel   *channel,
                                              PkaContext   *context,
                                              gboolean      kill_pid,
                                              GError      **error);
+gint            pka_channel_get_exit_status (PkaChannel   *channel);
 gboolean        pka_channel_start           (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);

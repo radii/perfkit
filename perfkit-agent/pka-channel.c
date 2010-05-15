@@ -64,6 +64,35 @@
         RETURN(ret);                                                        \
     } G_STMT_END
 
+#define AUTHORIZE_IOCTL(_c, _i, _t, _l)                                     \
+    G_STMT_START {                                                          \
+    	/* TODO: handle target (_t) */                                      \
+        if (!pka_context_is_authorized(_c, PKA_IOCTL_##_i)) {               \
+        	g_set_error(error, PKA_CONTEXT_ERROR,                           \
+                        PKA_CONTEXT_ERROR_NOT_AUTHORIZED,                   \
+                        "Insufficient permissions for operation.");         \
+            GOTO(_l);                                                       \
+        }                                                                   \
+    } G_STMT_END
+
+#define SET_FIELD_COPY(_ch, _fr, _cp, _t)                                   \
+    G_STMT_START {                                                          \
+        PkaChannelPrivate *priv;                                            \
+        gboolean ret = FALSE;                                               \
+        ENTRY;                                                              \
+        priv = _ch->priv;                                                   \
+        AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, _ch, failed);              \
+        g_mutex_lock(priv->mutex);                                          \
+        ENSURE_STATE(_ch, READY, unlock);                                   \
+        _fr(priv->_t);                                                      \
+        priv->_t = _cp(_t);                                                 \
+        ret = TRUE;                                                         \
+      unlock:                                                               \
+      	g_mutex_unlock(priv->mutex);                                        \
+      failed:                                                               \
+      	RETURN(ret);                                                        \
+	} G_STMT_END
+
 /**
  * SECTION:pka-channel
  * @title: PkaChannel
@@ -117,6 +146,7 @@ struct _PkaChannelPrivate
 	gchar       **env;         /* Key=Value environment */
 	gchar       **args;        /* Target arguments */
 	gboolean      kill_pid;    /* Should inferior be killed upon stop */
+	gint          exit_status; /* The inferiors exit status */
 };
 
 static guint channel_seq = 0;
@@ -170,6 +200,29 @@ pka_channel_get_target (PkaChannel *channel) /* IN */
 }
 
 /**
+ * pka_channel_set_target:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @target: the target executable.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the target of the #PkaChannel.  If the context does not have
+ * permissions, this operation will fail.  The channel also must not
+ * have been started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_target (PkaChannel   *channel, /* IN */
+                        PkaContext   *context, /* IN */
+                        const gchar  *target,  /* IN */
+                        GError      **error)   /* OUT */
+{
+	SET_FIELD_COPY(channel, g_free, g_strdup, target);
+}
+
+/**
  * pka_channel_get_working_dir:
  * @channel: A #PkaChannel
  *
@@ -184,6 +237,29 @@ gchar*
 pka_channel_get_working_dir (PkaChannel *channel) /* IN */
 {
 	RETURN_FIELD_COPY(channel, g_strdup, working_dir);
+}
+
+/**
+ * pka_channel_set_working_dir:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @working_dir: the working directory for the target.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the working directory of the inferior process.  If the context
+ * does not have permissions, this operation will fail.  Also, this may
+ * only be called before the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_working_dir (PkaChannel   *channel,     /* IN */
+                             PkaContext   *context,     /* IN */
+                             const gchar  *working_dir, /* IN */
+                             GError      **error)       /* OUT */
+{
+	SET_FIELD_COPY(channel, g_free, g_strdup, working_dir);
 }
 
 /**
@@ -203,6 +279,29 @@ pka_channel_get_args (PkaChannel *channel) /* IN */
 }
 
 /**
+ * pka_channel_set_args:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @args: The target arguments.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the arguments for the target.  If the context does not have
+ * permissions, this operation will fail.  Also, this may only be called
+ * before the session has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_args (PkaChannel  *channel, /* IN */
+                      PkaContext  *context, /* IN */
+                      gchar      **args,    /* IN */
+                      GError     **error)   /* OUT */
+{
+	SET_FIELD_COPY(channel, g_strfreev, g_strdupv, args);
+}
+
+/**
  * pka_channel_get_env:
  * @channel: A #PkaChannel
  *
@@ -216,6 +315,30 @@ gchar**
 pka_channel_get_env (PkaChannel *channel) /* IN */
 {
 	RETURN_FIELD_COPY(channel, g_strdupv, env);
+}
+
+/**
+ * pka_channel_set_env:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @env: A #GStrv containing the environment.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the environment of the target process.  @args should be a #GStrv
+ * containing "KEY=VALUE" strings for the environment.  If the context
+ * does not have permissions, this operation will fail.  Also, this may
+ * only be called before the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_env (PkaChannel  *channel, /* IN */
+                     PkaContext  *context, /* IN */
+                     gchar      **env,     /* IN */
+                     GError     **error)   /* OUT */
+{
+	SET_FIELD_COPY(channel, g_strfreev, g_strdupv, env);
 }
 
 /**
@@ -234,6 +357,47 @@ GPid
 pka_channel_get_pid (PkaChannel *channel)
 {
 	RETURN_FIELD(channel, GPid, pid);
+}
+
+/**
+ * pka_channel_set_pid:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @pid: A #GPid.
+ * @error: A location for #GError, or %NULL.
+ *
+ * Sets the pid of the process of which to attach.  If set, the channel will
+ * not spawn a process, but instead instruct the sources to attach to the
+ * existing process.  If the context does not have permissions, this
+ * operation will fail.  Also, this may only be called before the channel has
+ * been started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_pid (PkaChannel  *channel, /* IN */
+                     PkaContext  *context, /* IN */
+                     GPid         pid,     /* IN */
+                     GError     **error)   /* OUT */
+{
+	PkaChannelPrivate *priv;
+	gboolean ret = FALSE;
+
+	ENTRY;
+	priv = channel->priv;
+	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, failed);
+	g_mutex_lock(priv->mutex);
+	ENSURE_STATE(channel, READY, unlock);
+	priv->pid = pid;
+	priv->pid_set = TRUE;
+	g_free(priv->target);
+	priv->target = NULL;
+	ret = TRUE;
+  unlock:
+	g_mutex_unlock(priv->mutex);
+  failed:
+	RETURN(ret);
 }
 
 /**
@@ -272,6 +436,67 @@ pka_channel_get_kill_pid (PkaChannel *channel) /* IN */
 }
 
 /**
+ * pka_channel_set_kill_pid:
+ * @channel: A #PkaChannel.
+ * @context: A #PkaContext.
+ * @kill_pid: If the inferior should be killed when stopping.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the "kill_pid" property.  If set, any process spawned by Perfkit will
+ * be killed when the channel is stopped.  This is the default.  If the context
+ * does not have permissions, this operation will fail.
+ *
+ * This may be called at any time.  If the process has already been stopped,
+ * this will do nothing.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_set_kill_pid (PkaChannel  *channel,  /* IN */
+                          PkaContext  *context,  /* IN */
+                          gboolean     kill_pid, /* IN */
+                          GError     **error)    /* OUT */
+{
+	PkaChannelPrivate *priv;
+	gboolean ret = FALSE;
+
+	ENTRY;
+	priv = channel->priv;
+	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, failed);
+	g_mutex_lock(priv->mutex);
+	priv->kill_pid = kill_pid;
+	ret = TRUE;
+	g_mutex_unlock(priv->mutex);
+  failed:
+	RETURN(ret);
+}
+
+/**
+ * pka_channel_get_exit_status:
+ * @channel: A #PkaChannel.
+ *
+ * Retrieves the exit status of the inferior process.  The exit status is
+ * only accurate if the process was spawned by @channel and has exited.
+ *
+ * Returns: The exit status of @channels<!-- -->'s inferior.
+ * Side effects: None.
+ */
+gint
+pka_channel_get_exit_status (PkaChannel *channel) /* IN */
+{
+	PkaChannelPrivate *priv;
+	gint ret;
+
+	ENTRY;
+	priv = channel->priv;
+	g_mutex_lock(priv->mutex);
+	ret = priv->exit_status;
+	g_mutex_unlock(priv->mutex);
+	RETURN(ret);
+}
+
+/**
  * pka_channel_inferior_exited:
  * @pid: A #GPid.
  * @status: The inferior exit status.
@@ -287,17 +512,18 @@ pka_channel_inferior_exited (GPid        pid,     /* IN */
                              gint        status,  /* IN */
                              PkaChannel *channel) /* IN */
 {
+	PkaChannelPrivate *priv;
+
 	g_return_if_fail(PKA_IS_CHANNEL(channel));
 
-	/*
-	 * TODO:
-	 *
-	 *    We should look at status and store it so that we can provide that
-	 *    information to profiler user interfaces.
-	 */
-
+	ENTRY;
+	priv = channel->priv;
+	g_mutex_lock(priv->mutex);
+	priv->exit_status = status;
+	g_mutex_unlock(priv->mutex);
 	pka_channel_stop(channel, FALSE, NULL);
 	g_object_unref(channel);
+	EXIT;
 }
 
 /**
