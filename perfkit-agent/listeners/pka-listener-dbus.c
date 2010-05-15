@@ -460,6 +460,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_plugin_create_encoder_async(PKA_LISTENER(listener),
 			                                         plugin,
 			                                         NULL,
@@ -475,6 +479,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_plugin_create_source_async(PKA_LISTENER(listener),
 			                                        plugin,
@@ -492,6 +500,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_plugin_get_copyright_async(PKA_LISTENER(listener),
 			                                        plugin,
 			                                        NULL,
@@ -507,6 +519,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_plugin_get_description_async(PKA_LISTENER(listener),
 			                                          plugin,
@@ -524,6 +540,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_plugin_get_name_async(PKA_LISTENER(listener),
 			                                   plugin,
 			                                   NULL,
@@ -540,6 +560,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_plugin_get_plugin_type_async(PKA_LISTENER(listener),
 			                                          plugin,
 			                                          NULL,
@@ -555,6 +579,10 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_plugin_get_version_async(PKA_LISTENER(listener),
 			                                      plugin,
@@ -687,6 +715,10 @@ pka_listener_dbus_handle_encoder_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Encoder/%d", &encoder) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_encoder_get_plugin_async(PKA_LISTENER(listener),
 			                                      encoder,
 			                                      NULL,
@@ -816,6 +848,10 @@ pka_listener_dbus_handle_source_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Source/%d", &source) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_source_get_plugin_async(PKA_LISTENER(listener),
 			                                     source,
@@ -1311,6 +1347,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	} else if (IS_INTERFACE(message, "org.perfkit.Agent.Manager")) {
 		if (IS_MEMBER(message, "AddChannel")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_add_channel_async(PKA_LISTENER(listener),
 			                                       NULL,
 			                                       pka_listener_dbus_manager_add_channel_cb,
@@ -1321,6 +1361,11 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			gsize buffer_size = 0;
 			gsize timeout = 0;
 			gint encoder = 0;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &encoder,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_add_subscription_async(PKA_LISTENER(listener),
 			                                            buffer_size,
 			                                            timeout,
@@ -1331,6 +1376,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "GetChannels")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_get_channels_async(PKA_LISTENER(listener),
 			                                        NULL,
 			                                        pka_listener_dbus_manager_get_channels_cb,
@@ -1338,6 +1387,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "GetPlugins")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_get_plugins_async(PKA_LISTENER(listener),
 			                                       NULL,
 			                                       pka_listener_dbus_manager_get_plugins_cb,
@@ -1345,6 +1398,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "GetVersion")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_get_version_async(PKA_LISTENER(listener),
 			                                       NULL,
 			                                       pka_listener_dbus_manager_get_version_cb,
@@ -1352,6 +1409,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "Ping")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_ping_async(PKA_LISTENER(listener),
 			                                NULL,
 			                                pka_listener_dbus_manager_ping_cb,
@@ -1360,6 +1421,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		}
 		else if (IS_MEMBER(message, "RemoveChannel")) {
 			gint channel = 0;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_remove_channel_async(PKA_LISTENER(listener),
 			                                          channel,
 			                                          NULL,
@@ -1369,6 +1434,10 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		}
 		else if (IS_MEMBER(message, "RemoveSubscription")) {
 			gint subscription = 0;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_manager_remove_subscription_async(PKA_LISTENER(listener),
 			                                               subscription,
 			                                               NULL,
@@ -2394,6 +2463,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_cork_async(PKA_LISTENER(listener),
 			                                channel,
 			                                NULL,
@@ -2408,6 +2481,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_get_args_async(PKA_LISTENER(listener),
 			                                    channel,
@@ -2424,6 +2501,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_get_env_async(PKA_LISTENER(listener),
 			                                   channel,
 			                                   NULL,
@@ -2438,6 +2519,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_get_exit_status_async(PKA_LISTENER(listener),
 			                                           channel,
@@ -2454,6 +2539,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_get_kill_pid_async(PKA_LISTENER(listener),
 			                                        channel,
 			                                        NULL,
@@ -2468,6 +2557,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_get_pid_async(PKA_LISTENER(listener),
 			                                   channel,
@@ -2484,6 +2577,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_get_pid_set_async(PKA_LISTENER(listener),
 			                                       channel,
 			                                       NULL,
@@ -2498,6 +2595,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_get_sources_async(PKA_LISTENER(listener),
 			                                       channel,
@@ -2514,6 +2615,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_get_state_async(PKA_LISTENER(listener),
 			                                     channel,
 			                                     NULL,
@@ -2528,6 +2633,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_get_target_async(PKA_LISTENER(listener),
 			                                      channel,
@@ -2544,6 +2653,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_get_working_dir_async(PKA_LISTENER(listener),
 			                                           channel,
 			                                           NULL,
@@ -2559,6 +2672,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_set_args_async(PKA_LISTENER(listener),
 			                                    channel,
@@ -2577,6 +2695,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_set_env_async(PKA_LISTENER(listener),
 			                                   channel,
 			                                   env,
@@ -2593,6 +2716,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_BOOLEAN, &kill_pid,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_set_kill_pid_async(PKA_LISTENER(listener),
 			                                        channel,
@@ -2611,6 +2739,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &pid,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_set_pid_async(PKA_LISTENER(listener),
 			                                   channel,
 			                                   pid,
@@ -2627,6 +2760,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_STRING, &target,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_set_target_async(PKA_LISTENER(listener),
 			                                      channel,
@@ -2646,6 +2784,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_STRING, &working_dir,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_set_working_dir_async(PKA_LISTENER(listener),
 			                                           channel,
 			                                           working_dir,
@@ -2663,6 +2806,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_start_async(PKA_LISTENER(listener),
 			                                 channel,
 			                                 NULL,
@@ -2679,6 +2826,11 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_BOOLEAN, &killpid,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_channel_stop_async(PKA_LISTENER(listener),
 			                                channel,
 			                                killpid,
@@ -2694,6 +2846,10 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_channel_uncork_async(PKA_LISTENER(listener),
 			                                  channel,
@@ -3092,6 +3248,12 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &channel,
+			                           DBUS_TYPE_BOOLEAN, &monitor,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_subscription_add_channel_async(PKA_LISTENER(listener),
 			                                            subscription,
 			                                            channel,
@@ -3110,6 +3272,11 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &source,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_subscription_add_source_async(PKA_LISTENER(listener),
 			                                           subscription,
 			                                           source,
@@ -3126,6 +3293,11 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_BOOLEAN, &drain,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_subscription_cork_async(PKA_LISTENER(listener),
 			                                     subscription,
@@ -3144,6 +3316,11 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &channel,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_subscription_remove_channel_async(PKA_LISTENER(listener),
 			                                               subscription,
 			                                               channel,
@@ -3160,6 +3337,11 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &source,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_subscription_remove_source_async(PKA_LISTENER(listener),
 			                                              subscription,
@@ -3179,6 +3361,12 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
 			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &timeout,
+			                           DBUS_TYPE_INT32, &size,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
 			pka_listener_subscription_set_buffer_async(PKA_LISTENER(listener),
 			                                           subscription,
 			                                           timeout,
@@ -3195,6 +3383,10 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
 			}
 			pka_listener_subscription_uncork_async(PKA_LISTENER(listener),
 			                                       subscription,
