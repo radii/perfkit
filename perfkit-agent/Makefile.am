@@ -72,6 +72,7 @@ INST_H_FILES =								\
 	$(NULL)
 
 NOINST_H_FILES =							\
+	pka-listener-closures.h						\
 	$(NULL)
 
 libperfkit_agent_la_SOURCES =						\
