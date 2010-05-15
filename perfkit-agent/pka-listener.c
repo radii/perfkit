@@ -1770,6 +1770,7 @@ pka_listener_channel_stop_async (PkaListener           *listener,    /* IN */
                                  GAsyncReadyCallback    callback,    /* IN */
                                  gpointer               user_data)   /* IN */
 {
+	ChannelStopCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -1779,15 +1780,12 @@ pka_listener_channel_stop_async (PkaListener           *listener,    /* IN */
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_stop_async);
-// TEMP TO TEST RPC RESULTS
+	call = ChannelStopCall_Create();
+	call->channel = channel;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ChannelStopCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_channel_stop_async(instance,
-	                       NULL,
-	                       pka_listener_channel_stop_cb,
-	                       result);
-#endif
 	EXIT;
 }
 
@@ -1809,22 +1807,23 @@ pka_listener_channel_stop_finish (PkaListener    *listener, /* IN */
                                   GAsyncResult   *result,   /* IN */
                                   GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaChannel *channel;
+	ChannelStopCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_stop), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_stop_finish(instance,
-	                              real_result,
-	                              error);
+	call = GET_RESULT_POINTER(ChannelStopCall, result);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel,
+	                              &channel, error)) {
+		GOTO(failed);
+	}
+	ret = pka_channel_stop(channel, DEFAULT_CONTEXT, error);
+	g_object_unref(channel);
+  failed:
 	RETURN(ret);
-#endif
 }
 
 /**
