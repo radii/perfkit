@@ -25,6 +25,7 @@
 #include <glib/gi18n.h>
 
 #include "pka-channel.h"
+#include "pka-log.h"
 #include "pka-source.h"
 
 /**
@@ -215,4 +216,13 @@ pka_source_init (PkaSource *source)
 
 	source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
 	source->priv->source_id = source_id;
+}
+
+gboolean
+pka_source_modify_spawn_info (PkaSource     *source,     /* IN */
+                              PkaSpawnInfo  *spawn_info, /* IN */
+                              GError       **error)      /* OUT */
+{
+	ENTRY;
+	RETURN(TRUE);
 }

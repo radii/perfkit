@@ -55,27 +55,33 @@ struct _PkaSourceClass
 {
 	GObjectClass parent_class;
 
-	gboolean (*conflicts)       (PkaSource   *source,
-	                             PkaSource   *other,
-	                             GError     **error);
-	void     (*notify_started)  (PkaSource    *source,
-	                             PkaSpawnInfo *spawn_info);
-	void     (*notify_stopped)  (PkaSource    *source);
-	void     (*notify_paused)   (PkaSource    *source);
-	void     (*notify_unpaused) (PkaSource    *source);
+	gboolean (*conflicts)         (PkaSource     *source,
+	                               PkaSource     *other,
+	                               GError       **error);
+	gboolean (*modify_spawn_info) (PkaSource     *source,
+	                               PkaSpawnInfo  *spawn_info,
+	                               GError       **error);
+	void     (*notify_started)    (PkaSource     *source,
+	                               PkaSpawnInfo  *spawn_info);
+	void     (*notify_stopped)    (PkaSource     *source);
+	void     (*notify_paused)     (PkaSource     *source);
+	void     (*notify_unpaused)   (PkaSource     *source);
 
 	gpointer reserved[16];
 };
 
-GType     pka_source_get_type         (void) G_GNUC_CONST;
-guint     pka_source_get_id           (PkaSource    *source);
-gboolean  pka_source_conflicts        (PkaSource    *source,
-                                       PkaSource    *other,
-                                       GError      **error);
-void      pka_source_deliver_sample   (PkaSource    *source,
-                                       PkaSample    *sample);
-void      pka_source_deliver_manifest (PkaSource    *source,
-                                       PkaManifest  *manifest);
+GType     pka_source_get_type          (void) G_GNUC_CONST;
+guint     pka_source_get_id            (PkaSource      *source);
+gboolean  pka_source_conflicts         (PkaSource      *source,
+                                        PkaSource      *other,
+                                        GError        **error);
+void      pka_source_deliver_sample    (PkaSource      *source,
+                                        PkaSample      *sample);
+void      pka_source_deliver_manifest  (PkaSource      *source,
+                                        PkaManifest    *manifest);
+gboolean  pka_source_modify_spawn_info (PkaSource     *source,
+                                        PkaSpawnInfo  *spawn_info,
+                                        GError       **error);
 
 G_END_DECLS
 

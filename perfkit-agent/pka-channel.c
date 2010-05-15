@@ -25,8 +25,44 @@
 #include <glib/gi18n.h>
 
 #include "pka-channel.h"
+#include "pka-log.h"
 #include "pka-source.h"
 #include "pka-subscription.h"
+
+#define ENSURE_STATE(_c, _s, _l)                                            \
+    G_STMT_START {                                                          \
+    	if ((_c)->priv->state != (PKA_CHANNEL_##_s)) {                      \
+    		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,  \
+                        "Channel is not in the " #_s " state.");            \
+            GOTO(_l);                                                       \
+        }                                                                   \
+    } G_STMT_END
+
+#define RETURN_FIELD(_ch, _ft, _fi)                                         \
+    G_STMT_START {                                                          \
+        PkaChannelPrivate *priv;                                            \
+        _ft ret;                                                            \
+        g_return_val_if_fail(PKA_IS_CHANNEL((_ch)), 0);                     \
+        ENTRY;                                                              \
+        priv = (_ch)->priv;                                                 \
+        g_mutex_lock(priv->mutex);                                          \
+        ret = priv->_fi;                                                    \
+        g_mutex_unlock(priv->mutex);                                        \
+        RETURN(ret);                                                        \
+    } G_STMT_END
+
+#define RETURN_FIELD_COPY(_ch, _cf, _fi)                                    \
+    G_STMT_START {                                                          \
+        PkaChannelPrivate *priv;                                            \
+        gpointer ret;                                                       \
+        g_return_val_if_fail(PKA_IS_CHANNEL((_ch)), NULL);                  \
+        ENTRY;                                                              \
+        priv = (_ch)->priv;                                                 \
+        g_mutex_lock(priv->mutex);                                          \
+        ret = _cf(priv->_fi);                                               \
+        g_mutex_unlock(priv->mutex);                                        \
+        RETURN(ret);                                                        \
+    } G_STMT_END
 
 /**
  * SECTION:pka-channel
@@ -65,11 +101,7 @@ extern void pka_source_set_channel            (PkaSource       *source,
 
 struct _PkaChannelPrivate
 {
-	guint         channel_id; /* Monotonic id for the channel. */
-	PkaSpawnInfo  spawn_info; /* Needed information for spawning process. */
-	gboolean      spawned;    /* Set when spawning so we only kill processes
-	                           * that we have spawned.
-	                           */
+	guint         id;         /* Monotonic id for the channel. */
 
 	GMutex       *mutex;
 	guint         state;      /* Current channel state. */
@@ -77,9 +109,32 @@ struct _PkaChannelPrivate
 	GPtrArray    *sources;    /* Array of data sources. */
 	GTree        *indexed;    /* Pointer-to-index data source map. */
 	GTree        *manifests;  /* Pointer-to-manifest map. */
+
+	GPid          pid;         /* Inferior pid */
+	gboolean      pid_set;     /* Pid was attached, not spawned */
+	gchar        *working_dir; /* Inferior working directory */
+	gchar        *target;      /* Inferior executable */
+	gchar       **env;         /* Key=Value environment */
+	gchar       **args;        /* Target arguments */
+	gboolean      kill_pid;    /* Should inferior be killed upon stop */
 };
 
 static guint channel_seq = 0;
+
+/**
+ * pka_channel_new:
+ *
+ * Creates a new instance of #PkaChannel.
+ *
+ * Return value: the newly created #PkaChannel.
+ * Side effects: None.
+ */
+PkaChannel*
+pka_channel_new (void)
+{
+	ENTRY;
+	RETURN(g_object_new(PKA_TYPE_CHANNEL, NULL));
+}
 
 /**
  * pka_channel_get_id:
@@ -87,44 +142,14 @@ static guint channel_seq = 0;
  *
  * Retrieves the channel id.
  *
- * Returns: The channel id.
- *
+ * Returns: A guint.
  * Side effects: None.
  */
 guint
-pka_channel_get_id (PkaChannel *channel)
+pka_channel_get_id (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), 0);
-	return channel->priv->channel_id;
-}
-
-/**
- * pka_channel_new:
- * @spawn_info: A #PkaSpawnInfo describing the new channel.
- *
- * Creates a new instance of #PkaChannel.  The settings for the channel are
- * taken from @spawn_info and are immutable after channel creation.
- *
- * Return value: the newly created #PkaChannel instance.
- *
- * Side effects: None.
- */
-PkaChannel*
-pka_channel_new (const PkaSpawnInfo *spawn_info)
-{
-	PkaChannelPrivate *priv;
-	PkaChannel *channel;
-
-	channel = g_object_new(PKA_TYPE_CHANNEL, NULL);
-	priv = channel->priv;
-
-	priv->spawn_info.pid = spawn_info->pid;
-	priv->spawn_info.target = g_strdup(spawn_info->target);
-	priv->spawn_info.args = g_strdupv(spawn_info->args);
-	priv->spawn_info.env = g_strdupv(spawn_info->env);
-	priv->spawn_info.working_dir = g_strdup(spawn_info->working_dir);
-
-	return channel;
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), G_MAXUINT);
+	return channel->priv->id;
 }
 
 /**
@@ -134,16 +159,14 @@ pka_channel_new (const PkaSpawnInfo *spawn_info)
  * Retrieves the "target" executable for the channel.  If the channel is to
  * connect to an existing process this is %NULL.
  *
- * Returns: A string containing the target.  The value should not be modified
- *   or freed.
- *
+ * Returns: A string containing the target.
+ *   The value should be freed with g_free().
  * Side effects: None.
  */
-const gchar*
-pka_channel_get_target (PkaChannel *channel)
+gchar*
+pka_channel_get_target (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	return channel->priv->spawn_info.target;
+	RETURN_FIELD_COPY(channel, g_strdup, target);
 }
 
 /**
@@ -153,16 +176,14 @@ pka_channel_get_target (PkaChannel *channel)
  * Retrieves the "working-dir" property for the channel.  This is the directory
  * the process should be spawned within.
  *
- * Returns: A string containing the working directory.  The value should not be
- *   modified or freed.
- *
+ * Returns: A string containing the working directory.
+ *   The value should be freed with g_free().
  * Side effects: None.
  */
-const gchar*
-pka_channel_get_working_dir (PkaChannel *channel)
+gchar*
+pka_channel_get_working_dir (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	return channel->priv->spawn_info.working_dir;
+	RETURN_FIELD_COPY(channel, g_strdup, working_dir);
 }
 
 /**
@@ -171,16 +192,14 @@ pka_channel_get_working_dir (PkaChannel *channel)
  *
  * Retrieves the "args" property.
  *
- * Returns: A string array containing the arguments for the process.  This
- *   value should not be modified or freed.
- *
+ * Returns: A string array containing the arguments to the process.  This
+ *   value should be freed with g_strfreev().
  * Side effects: None.
  */
 gchar**
-pka_channel_get_args (PkaChannel *channel)
+pka_channel_get_args (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	return channel->priv->spawn_info.args;
+	RETURN_FIELD_COPY(channel, g_strdupv, args);
 }
 
 /**
@@ -190,15 +209,13 @@ pka_channel_get_args (PkaChannel *channel)
  * Retrieves the "env" property.
  *
  * Returns: A string array containing the environment variables to set before
- *   the process has started.  The value should not be modified or freed.
- *
+ *   the process has started.  The value should be freed with g_free().
  * Side effects: None.
  */
 gchar**
-pka_channel_get_env (PkaChannel *channel)
+pka_channel_get_env (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	return channel->priv->spawn_info.env;
+	RETURN_FIELD_COPY(channel, g_strdupv, env);
 }
 
 /**
@@ -216,14 +233,59 @@ pka_channel_get_env (PkaChannel *channel)
 GPid
 pka_channel_get_pid (PkaChannel *channel)
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), 0);
-	return channel->priv->spawn_info.pid;
+	RETURN_FIELD(channel, GPid, pid);
 }
 
+/**
+ * pka_channel_get_pid_set:
+ * @channel: A #PkaChannel.
+ *
+ * Determines if the pid was set manually, as opposed to set when the inferior
+ * process was spawned.  %TRUE indicates that the channel is attaching to an
+ * existing process.
+ *
+ * Returns: %TRUE if the pid was set; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_get_pid_set (PkaChannel *channel) /* IN */
+{
+    RETURN_FIELD(channel, gboolean, pid_set);
+}
+
+/**
+ * pka_channel_get_kill_pid:
+ * @channel: A #PkaChannel.
+ *
+ * Retrieves if the inferior process should be killed if the channel is stopped
+ * before it has exited.  This value is ignored if the process was not spawned
+ * by Perfkit.
+ *
+ * Returns: %TRUE if the process will be killed upon stopping the channel;
+ *   otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_get_kill_pid (PkaChannel *channel) /* IN */
+{
+	RETURN_FIELD(channel, gboolean, kill_pid);
+}
+
+/**
+ * pka_channel_inferior_exited:
+ * @pid: A #GPid.
+ * @status: The inferior exit status.
+ * @channel: A #PkaChannel.
+ *
+ * Callback up on the child process exiting.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_channel_inferior_exited (GPid        pid,
-                             gint        status,
-                             PkaChannel *channel)
+pka_channel_inferior_exited (GPid        pid,     /* IN */
+                             gint        status,  /* IN */
+                             PkaChannel *channel) /* IN */
 {
 	g_return_if_fail(PKA_IS_CHANNEL(channel));
 
@@ -236,6 +298,72 @@ pka_channel_inferior_exited (GPid        pid,
 
 	pka_channel_stop(channel, FALSE, NULL);
 	g_object_unref(channel);
+}
+
+/**
+ * pka_channel_init_spawn_info_locked:
+ * @channel: A #PkaChannel.
+ * @spawn_info: A #PkaSpawnInfo.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Initializes @spawn_info with the current data within @channel.  The sources
+ * are notified and allowed to modify the spawn info if needed.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+static gboolean
+pka_channel_init_spawn_info_locked (PkaChannel    *channel,    /* IN */
+                                    PkaSpawnInfo  *spawn_info, /* IN */
+                                    GError       **error)      /* OUT */
+{
+	PkaChannelPrivate *priv;
+	PkaSource *source;
+	gboolean ret = TRUE;
+	gint i;
+
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
+	g_return_val_if_fail(spawn_info != NULL, FALSE);
+
+	ENTRY;
+	priv = channel->priv;
+	memset(spawn_info, 0, sizeof(*spawn_info));
+	spawn_info->target = g_strdup(priv->target);
+	spawn_info->working_dir = g_strdup(priv->working_dir);
+	spawn_info->env = g_strdupv(priv->env);
+	spawn_info->args = g_strdupv(priv->args);
+	spawn_info->pid = priv->pid;
+	for (i = 0; i < priv->sources->len; i++) {
+		source = g_ptr_array_index(priv->sources, i);
+		if (!pka_source_modify_spawn_info(source, spawn_info, error)) {
+			ret = FALSE;
+			GOTO(error);
+		}
+	}
+  error:
+	RETURN(ret);
+}
+
+/**
+ * pka_channel_destroy_spawn_info:
+ * @channel: A #PkaChannel.
+ * @spawn_info: A #PkaSpawnInfo.
+ *
+ * Destroys the previously initialized #PkaSpawnInfo.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_channel_destroy_spawn_info (PkaChannel   *channel,    /* IN */
+                                PkaSpawnInfo *spawn_info) /* IN */
+{
+	ENTRY;
+	g_free(spawn_info->target);
+	g_free(spawn_info->working_dir);
+	g_strfreev(spawn_info->args);
+	g_strfreev(spawn_info->env);
+	EXIT;
 }
 
 /**
@@ -254,130 +382,133 @@ pka_channel_inferior_exited (GPid        pid,
  *   Data sources are notified to start sending manifests and samples.
  */
 gboolean
-pka_channel_start (PkaChannel  *channel,
-                   GError     **error)
+pka_channel_start (PkaChannel  *channel, /* IN */
+                   PkaContext  *context, /* IN */
+                   GError     **error)   /* OUT */
 {
 	PkaChannelPrivate *priv;
-	gboolean success = FALSE;
+	PkaSpawnInfo spawn_info = { 0 };
+	gboolean ret = FALSE;
 	GError *local_error = NULL;
-	const gchar *working_dir;
 	gchar **argv = NULL;
+	gchar *argv_str;
+	gchar *env_str;
 	gint len, i;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
 	g_return_val_if_fail(channel->priv->state == PKA_CHANNEL_READY, FALSE);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
+	ENSURE_STATE(channel, READY, unlock);
+	INFO(Channel, "Starting channel %d on behalf of context %d.",
+	     priv->id, pka_context_get_id(context));
 
 	/*
-	 * Ensure we haven't yet been started.
+	 * Allow sources to modify the spawn information.
 	 */
-	if (priv->state != PKA_CHANNEL_READY) {
-		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Cannot start channel.  Channel already started."));
-		goto unlock;
+	if (!pka_channel_init_spawn_info_locked(channel, &spawn_info, error)) {
+		GOTO(unlock);
 	}
 
-	g_message("Starting channel %d.", pka_channel_get_id(channel));
-
 	/*
-	 * Spawn the inferior process if necessary.
+	 * Spawn the inferior process only if necessary.
 	 */
-	if (!priv->spawn_info.pid) {
+	if (!spawn_info.pid) {
 		/*
-		 * Build the spawned argv.  Copy in arguments if needed.
+		 * Build the spawned argv. Copy in arguments if needed.
 		 */
-		if (priv->spawn_info.args) {
-			len = g_strv_length(priv->spawn_info.args);
-			argv = g_malloc0(sizeof(gchar*) * (len + 2));
+		if (spawn_info.args) {
+			len = g_strv_length(spawn_info.args);
+			argv = g_new0(gchar*,  len + 2);
 			for (i = 0; i < len; i++) {
-				argv[i + 1] = g_strdup(priv->spawn_info.args[i]);
+				argv[i + 1] = g_strdup(spawn_info.args[i]);
 			}
 		} else {
-			argv = g_malloc0(sizeof(gchar*) * 2);
+			argv = g_new0(gchar*, 2);
 		}
 
 		/*
 		 * Set the executable target.
 		 */
-		argv[0] = g_strdup(priv->spawn_info.target);
+		argv[0] = g_strdup(spawn_info.target);
 
 		/*
 		 * Determine the working directory.
 		 */
-		working_dir = priv->spawn_info.working_dir;
-		if (!working_dir || strlen(working_dir) == 0) {
-			working_dir = g_get_tmp_dir();
+		if (!spawn_info.working_dir || strlen(spawn_info.working_dir) == 0) {
+			spawn_info.working_dir = g_strdup(g_get_tmp_dir());
 		}
+
+		/*
+		 * Log the channel arguments.
+		 */
+		argv_str = g_strjoinv(", ", spawn_info.args);
+		env_str = g_strjoinv(", ", spawn_info.env);
+		INFO(Channel, "Attempting to spawn channel %d on behalf of context %d.",
+		     priv->id, pka_context_get_id(context));
+		INFO(Channel, "             Target = %s", spawn_info.target);
+		INFO(Channel, "          Arguments = %s", argv_str);
+		INFO(Channel, "  Working Directory = %s", spawn_info.working_dir);
+		INFO(Channel, "        Environment = %s", env_str);
+		g_free(argv_str);
+		g_free(env_str);
 
 		/*
 		 * Attempt to spawn the process.
 		 */
-		if (!g_spawn_async(working_dir,
+		if (!g_spawn_async(spawn_info.working_dir,
 		                   argv,
-		                   priv->spawn_info.env,
+		                   spawn_info.env,
 		                   G_SPAWN_SEARCH_PATH |
 		                   G_SPAWN_STDERR_TO_DEV_NULL |
 		                   G_SPAWN_STDOUT_TO_DEV_NULL |
 		                   G_SPAWN_DO_NOT_REAP_CHILD,
 		                   NULL,
 		                   NULL,
-		                   &priv->spawn_info.pid,
+		                   &priv->pid,
 		                   &local_error))
 		{
 			priv->state = PKA_CHANNEL_FAILED;
-			g_warning(_("Error starting channel %d: %s"),
-			          priv->channel_id, local_error->message);
-			if (error) {
-				*error = local_error;
-			} else {
-				g_error_free(local_error);
-			}
-			goto unlock;
+			WARNING(Channel, "Error starting channel %d: %s",
+			        priv->id, local_error->message);
+			g_propagate_error(error, local_error);
+			GOTO(unlock);
 		}
 
 		/*
-		 * Setup callback to reap child and stop the channel.
+		 * Register callback upon child exit.
 		 */
-		g_child_watch_add(priv->spawn_info.pid,
+		g_child_watch_add(priv->pid,
 		                  (GChildWatchFunc)pka_channel_inferior_exited,
 		                  g_object_ref(channel));
 
-		g_message("Channel %d started with process %u.",
-		          pka_channel_get_id(channel),
-		          priv->spawn_info.pid);
+		INFO(Channel, "Channel %d spawned process %d.", priv->id, priv->pid);
 	}
 
-	/*
-	 * Tick the state machine to RUNNING.
-	 */
-	priv->spawned = TRUE;
 	priv->state = PKA_CHANNEL_RUNNING;
-	success = TRUE;
+	ret = TRUE;
 
-	/*
-	 * Notify the included data channels of the inferior starting up.
-	 */
-	g_ptr_array_foreach(priv->sources,
-	                    (GFunc)pka_source_notify_started,
-	                    &priv->spawn_info);
-
-unlock:
-	g_mutex_unlock(priv->mutex);
-
-	if (argv) {
-		g_strfreev(argv);
+  unlock:
+  	g_mutex_unlock(priv->mutex);
+  	if (ret) {
+		/*
+		 * Notify the included data channels of the inferior starting up.
+		 */
+		g_ptr_array_foreach(priv->sources,
+		                    (GFunc)pka_source_notify_started,
+		                    &spawn_info);
 	}
-
-	return success;
+	pka_channel_destroy_spawn_info(channel, &spawn_info);
+	g_strfreev(argv);
+	RETURN(ret);
 }
 
 /**
  * pka_channel_stop:
  * @channel: A #PkaChannel.
- * @killpid: If the inferior process should be terminated.
+ * @context: A #PkaContext.
  * @error: A location for a #GError or %NULL.
  *
  * Attempts to stop the channel.  If successful, the attached
@@ -393,25 +524,24 @@ unlock:
  *   The process is terminated if @killpid is set.
  */
 gboolean
-pka_channel_stop (PkaChannel  *channel,
-                  gboolean     killpid,
-                  GError     **error)
+pka_channel_stop (PkaChannel  *channel, /* IN */
+                  PkaContext  *context, /* IN */
+                  GError     **error)   /* OUT */
 {
 	PkaChannelPrivate *priv;
-	gboolean result = TRUE;
+	gboolean ret = TRUE;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
-
 	switch (priv->state) {
 	case PKA_CHANNEL_RUNNING:
 	case PKA_CHANNEL_PAUSED:
+		INFO(Channel, "Stopping channel %d on behalf of context %d.",
+		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_STOPPED;
-
-		g_message("Stopping channel %d.", pka_channel_get_id(channel));
 
 		/*
 		 * Notify sources of channel stopping.
@@ -421,30 +551,28 @@ pka_channel_stop (PkaChannel  *channel,
 		                    NULL);
 
 		/*
-		 * Kill the process if needed.
+		 * Kill the process only if settings permit and we spawned the
+		 * process outself.
 		 */
-		if (killpid && priv->spawned && priv->spawn_info.pid) {
-			g_message("Killing process %d.", priv->spawn_info.pid);
-			kill(priv->spawn_info.pid, SIGKILL);
+		if ((priv->kill_pid) && (!priv->pid_set) && (priv->pid)) {
+			INFO(Channel, "Channel %d killing process %d.",
+			     priv->id, (gint)priv->pid);
+			kill(priv->pid, SIGKILL);
 		}
-
-		break;
+		BREAK;
 	case PKA_CHANNEL_READY:
-		result = FALSE;
+		ret = FALSE;
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Channel has not yet been started."));
-		/* Fall through */
+		            "Cannot stop a channel that has not yet been started.");
+		BREAK;
 	case PKA_CHANNEL_STOPPED:
 	case PKA_CHANNEL_FAILED:
-		goto unlock;
+		BREAK;
 	default:
-		g_assert_not_reached();
+		g_warn_if_reached();
 	}
-
-unlock:
 	g_mutex_unlock(priv->mutex);
-
-	return result;
+	RETURN(ret);
 }
 
 /**
@@ -464,41 +592,38 @@ unlock:
  *   Data sources are notified to pause.
  */
 gboolean
-pka_channel_pause (PkaChannel  *channel,
-                   GError     **error)
+pka_channel_pause (PkaChannel  *channel, /* IN */
+                   PkaContext  *context, /* IN */
+                   GError     **error)   /* IN */
 {
 	PkaChannelPrivate *priv;
-	gboolean result = TRUE;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
-
 	switch (priv->state) {
 	case PKA_CHANNEL_READY:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; not yet started."));
-		result = FALSE;
-		break;
+		BREAK;
 	case PKA_CHANNEL_STOPPED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; channel stopped."));
-		result = FALSE;
-		break;
+		BREAK;
 	case PKA_CHANNEL_FAILED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot pause channel; channel failed to start."));
-		result = FALSE;
-		break;
+		BREAK;
 	case PKA_CHANNEL_PAUSED:
-		/* Already paused. */
-		break;
+		ret = TRUE;
+		BREAK;
 	case PKA_CHANNEL_RUNNING:
 		priv->state = PKA_CHANNEL_PAUSED;
-
-		g_message("Pausing channel %d.", pka_channel_get_id(channel));
+		INFO(Channel, "Pausing channel %d on behalf of context %d.",
+		     priv->id, pka_context_get_id(context));
 
 		/*
 		 * Notify sources that we have paused.
@@ -506,14 +631,13 @@ pka_channel_pause (PkaChannel  *channel,
 		g_ptr_array_foreach(priv->sources,
 		                    (GFunc)pka_source_notify_paused,
 		                    NULL);
-		break;
+		ret = TRUE;
+		BREAK;
 	default:
-		g_assert_not_reached();
+		g_warn_if_reached();
 	}
-
 	g_mutex_unlock(priv->mutex);
-
-	return TRUE;
+	RETURN(ret);
 }
 
 /**
@@ -522,22 +646,20 @@ pka_channel_pause (PkaChannel  *channel,
  * @manifest: A #PkaManifest
  * @channel: A #PkaChannel
  *
- * Internal method for use within a GTree foreach to notif all subscriptions
+ * Internal method for use within a GTree foreach to notify all subscriptions
  * of the current manifest.
  *
- * Side effects: The manifest is broadcasted to the subscriptions.
+ * Returns: %FALSE indicating we want to continue tree traversal.
+ * Side effects: The manifest is broadcasted to subscriptions.
  */
 static gboolean
-pka_channel_traverse_manifests_cb (PkaSource   *source,
-                                   PkaManifest *manifest,
-                                   PkaChannel  *channel)
+pka_channel_traverse_manifests_cb (PkaSource   *source,   /* IN */
+                                   PkaManifest *manifest, /* IN */
+                                   PkaChannel  *channel)  /* IN */
 {
-	PkaChannelPrivate *priv = channel->priv;
-
-	g_ptr_array_foreach(priv->subs,
+	g_ptr_array_foreach(channel->priv->subs,
 	                    (GFunc)pka_subscription_deliver_manifest,
 	                    manifest);
-
 	return FALSE;
 }
 
@@ -557,54 +679,52 @@ pka_channel_traverse_manifests_cb (PkaSource   *source,
  *   Data sources are notified to resume.
  */
 gboolean
-pka_channel_unpause (PkaChannel  *channel,
-                     GError     **error)
+pka_channel_unpause (PkaChannel  *channel, /* IN */
+                     PkaContext  *context, /* IN */
+                     GError     **error)   /* OUT */
 {
 	PkaChannelPrivate *priv;
-	gboolean result = TRUE;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
-
 	switch (priv->state) {
 	case PKA_CHANNEL_PAUSED:
+		INFO(Channel, "Unpausing channel %d on behalf of context %d.",
+		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_RUNNING;
 
-		g_message("Unpausing channel %d.", pka_channel_get_id(channel));
-
 		/*
-		 * Notify subscriptions of the current manifests.
+		 * Send subscriptions current manifest.
 		 */
 		g_tree_foreach(priv->manifests,
 		               (GTraverseFunc)pka_channel_traverse_manifests_cb,
 		               channel);
 
 		/*
-		 * Notify sources to continue.
+		 * Enable sources.
 		 */
 		g_ptr_array_foreach(priv->sources,
 		                    (GFunc)pka_source_notify_unpaused,
 		                    NULL);
 
-		break;
+		ret = TRUE;
+		BREAK;
 	case PKA_CHANNEL_READY:
 	case PKA_CHANNEL_RUNNING:
 	case PKA_CHANNEL_STOPPED:
 	case PKA_CHANNEL_FAILED:
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
-		            _("Cannot unpause channel; channel not paused."));
-		result = FALSE;
-		break;
+		            "Channel %d is not paused.", priv->id);
+		BREAK;
 	default:
-		g_assert_not_reached();
+		g_warn_if_reached();
 	}
-
 	g_mutex_unlock(priv->mutex);
-
-	return result;
+	RETURN(ret);
 }
 
 /**
@@ -682,14 +802,15 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
                               PkaManifest *manifest)
 {
 	PkaChannelPrivate *priv;
-	gint i, idx;
+	gint idx;
+	gint i;
 
 	g_return_if_fail(channel != NULL);
 	g_return_if_fail(source != NULL);
 	g_return_if_fail(manifest != NULL);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
 
 	/*
@@ -701,7 +822,7 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 */
 
 	/*
-	 * Look up the source index and store it in the manifest.
+	 * Look up source index and store in manifest.
 	 */
 	idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
 	pka_manifest_set_source_id(manifest, idx);
@@ -715,28 +836,39 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 * We are finished for now unless we are active.
 	 */
 	if (priv->state != PKA_CHANNEL_RUNNING) {
-		goto unlock;
+		GOTO(unlock);
 	}
 
 	/*
 	 * Notify subscriptions of the manifest update.
 	 */
 	for (i = 0; i < priv->subs->len; i++) {
-		pka_subscription_deliver_manifest(priv->subs->pdata[i],
-		                                  manifest);
+		pka_subscription_deliver_manifest(priv->subs->pdata[i], manifest);
 	}
-
-unlock:
+  unlock:
 	g_mutex_unlock(priv->mutex);
+	EXIT;
 }
 
+/**
+ * pka_channel_deliver_manifest_to_subscription:
+ * @key: The #GTree key.
+ * @value: A #PkaManifest.
+ * @data: A #PkaSubscription.
+ *
+ * Delivers a #PkaManifest to a subscription.
+ *
+ * Returns: %FALSE to indicate further #GTree traversal.
+ * Side effects: None.
+ */
 static gboolean
-deliver_manifest_to_sub (gpointer key,
-                         gpointer value,
-                         gpointer data)
+pka_channel_deliver_manifest_to_subscription (gpointer key,   /* IN */
+                                              gpointer value, /* IN */
+                                              gpointer data)  /* IN */
 {
+	ENTRY;
 	pka_subscription_deliver_manifest(data, value);
-	return FALSE;
+	RETURN(FALSE);
 }
 
 /**
@@ -749,31 +881,25 @@ deliver_manifest_to_sub (gpointer key,
  * Side effects: None.
  */
 void
-pka_channel_add_subscription (PkaChannel      *channel,
-                              PkaSubscription *subscription)
+pka_channel_add_subscription (PkaChannel      *channel,      /* IN */
+                              PkaSubscription *subscription) /* IN */
 {
 	PkaChannelPrivate *priv;
 
 	g_return_if_fail(PKA_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
-
-	/*
-	 * Store subscription reference.
-	 */
 	g_ptr_array_add(priv->subs, pka_subscription_ref(subscription));
-
-	/*
-	 * Notify subscription of current manifests.
-	 */
 	if ((priv->state & (PKA_CHANNEL_RUNNING | PKA_CHANNEL_PAUSED)) != 0) {
-		g_tree_foreach(priv->manifests, deliver_manifest_to_sub, subscription);
+		g_tree_foreach(priv->manifests,
+		               pka_channel_deliver_manifest_to_subscription,
+		               subscription);
 	}
-
 	g_mutex_unlock(priv->mutex);
+	EXIT;
 }
 
 /**
@@ -783,72 +909,90 @@ pka_channel_add_subscription (PkaChannel      *channel,
  *
  * Internal method for unregistering a subscription from a channel.
  *
+ * Returns: None.
  * Side effects: None.
  */
 void
-pka_channel_remove_subscription (PkaChannel      *channel,
-                                 PkaSubscription *subscription)
+pka_channel_remove_subscription (PkaChannel      *channel,      /* IN */
+                                 PkaSubscription *subscription) /* IN */
 {
 	PkaChannelPrivate *priv;
 
 	g_return_if_fail(PKA_IS_CHANNEL(channel));
 	g_return_if_fail(subscription != NULL);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
 	if (g_ptr_array_remove(priv->subs, subscription)) {
 		pka_subscription_unref(subscription);
 	}
 	g_mutex_unlock(priv->mutex);
+	EXIT;
 }
 
+/**
+ * pka_channel_get_state:
+ * @channel: A #PkaChannel.
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: The channel state.
+ * Side effects: None.
+ */
 PkaChannelState
-pka_channel_get_state (PkaChannel *channel)
+pka_channel_get_state (PkaChannel *channel) /* IN */
 {
 	PkaChannelPrivate *priv;
 	PkaChannelState state;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), 0);
 
+	ENTRY;
 	priv = channel->priv;
-
 	g_mutex_lock(priv->mutex);
 	state = priv->state;
 	g_mutex_unlock(priv->mutex);
-
-	return state;
+	RETURN(state);
 }
 
-gboolean
-pka_channel_remove_source (PkaChannel  *channel,
-                           gint         source_id,
-                           GError     **error)
-{
-	return TRUE;
-}
-
+/**
+ * pka_channel_finalize:
+ * @object: A #PkaChannel.
+ *
+ * Finalizes a #PkaChannel and frees resources.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pka_channel_finalize (GObject *object)
 {
 	PkaChannelPrivate *priv = PKA_CHANNEL(object)->priv;
 
-	priv->spawn_info.pid = 0;
-	g_free(priv->spawn_info.target);
-	g_free(priv->spawn_info.working_dir);
-	g_strfreev(priv->spawn_info.args);
-	g_strfreev(priv->spawn_info.env);
-
+	ENTRY;
+	g_free(priv->target);
+	g_free(priv->working_dir);
+	g_strfreev(priv->args);
+	g_strfreev(priv->env);
 	g_ptr_array_foreach(priv->sources, (GFunc)g_object_unref, NULL);
 	g_ptr_array_foreach(priv->subs, (GFunc)pka_subscription_unref, NULL);
-
 	g_ptr_array_free(priv->sources, TRUE);
 	g_ptr_array_free(priv->subs, TRUE);
 	g_mutex_free(priv->mutex);
-
 	G_OBJECT_CLASS(pka_channel_parent_class)->finalize(object);
+	EXIT;
 }
 
+/**
+ * pka_channel_class_init:
+ * @klass: A #PkaChannelClass.
+ *
+ * Initializes the #PkaChannelClass.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pka_channel_class_init (PkaChannelClass *klass)
 {
@@ -859,40 +1003,60 @@ pka_channel_class_init (PkaChannelClass *klass)
 	g_type_class_add_private(object_class, sizeof(PkaChannelPrivate));
 }
 
+/**
+ * pka_channel_compare_manifest:
+ * @a: A #PkaManifest.
+ * @b: A #PkaManifest.
+ *
+ * Sort compare function to sort manifests.
+ *
+ * Returns: the sort order.
+ * Side effects: None.
+ */
 static gint
-pointer_compare (gconstpointer a,
-                 gconstpointer b)
+pka_channel_compare_manifest (gconstpointer a, /* IN */
+                              gconstpointer b) /* IN */
 {
 	return (a == b) ? 0 : (a - b);
 }
 
+/**
+ * pka_channel_init:
+ * @channel: A #PkaChannel.
+ *
+ * Initializes a newly created #PkaChannel instance.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_channel_init (PkaChannel *channel)
+pka_channel_init (PkaChannel *channel) /* IN */
 {
-	guint channel_id;
-
-	/*
-	 * Get the next monotonic id in the sequence.
-	 */
-	channel_id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
-
-	/*
-	 * Setup private members.
-	 */
+	ENTRY;
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE(channel,
 	                                            PKA_TYPE_CHANNEL,
 	                                            PkaChannelPrivate);
 	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
-	channel->priv->indexed = g_tree_new(pointer_compare);
+	channel->priv->indexed = g_tree_new(pka_channel_compare_manifest);
 	channel->priv->manifests = g_tree_new_full(
-		(GCompareDataFunc)pointer_compare, NULL, NULL,
+		(GCompareDataFunc)pka_channel_compare_manifest,
+		NULL, NULL,
 		(GDestroyNotify)pka_manifest_unref);
-	channel->priv->channel_id = channel_id;
+	channel->priv->id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
 	channel->priv->state = PKA_CHANNEL_READY;
+	EXIT;
 }
 
+/**
+ * pka_channel_error_quark:
+ *
+ * Retrieves the #PkaChannel error domain #GQuark.
+ *
+ * Returns: A #GQuark.
+ * Side effects: None.
+ */
 GQuark
 pka_channel_error_quark (void)
 {

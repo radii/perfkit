@@ -25,6 +25,7 @@
 
 #include <glib-object.h>
 
+#include "pka-context.h"
 #include "pka-manifest.h"
 #include "pka-sample.h"
 #include "pka-spawn-info.h"
@@ -91,23 +92,52 @@ struct _PkaChannelClass
 
 GType           pka_channel_get_type        (void) G_GNUC_CONST;
 GQuark          pka_channel_error_quark     (void) G_GNUC_CONST;
-PkaChannel*     pka_channel_new             (const PkaSpawnInfo  *spawn_info);
-guint           pka_channel_get_id          (PkaChannel          *channel);
-PkaChannelState pka_channel_get_state       (PkaChannel          *channel);
-const gchar*    pka_channel_get_target      (PkaChannel          *channel);
-const gchar*    pka_channel_get_working_dir (PkaChannel          *channel);
-gchar**         pka_channel_get_args        (PkaChannel          *channel);
-gchar**         pka_channel_get_env         (PkaChannel          *channel);
-GPid            pka_channel_get_pid         (PkaChannel          *channel);
-gboolean        pka_channel_start           (PkaChannel          *channel,
-                                             GError             **error);
-gboolean        pka_channel_stop            (PkaChannel          *channel,
-                                             gboolean             killpid,
-                                             GError             **error);
-gboolean        pka_channel_pause           (PkaChannel          *channel,
-                                             GError             **error);
-gboolean        pka_channel_unpause         (PkaChannel          *channel,
-                                             GError             **error);
+PkaChannel*     pka_channel_new             (void);
+guint           pka_channel_get_id          (PkaChannel   *channel);
+PkaChannelState pka_channel_get_state       (PkaChannel   *channel);
+gchar*          pka_channel_get_target      (PkaChannel   *channel);
+gboolean        pka_channel_set_target      (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             const gchar  *target,
+                                             GError      **error);
+gchar*          pka_channel_get_working_dir (PkaChannel   *channel);
+gboolean        pka_channel_set_working_dir (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             const gchar  *working_dir,
+                                             GError      **error);
+gchar**         pka_channel_get_args        (PkaChannel   *channel);
+gboolean        pka_channel_set_args        (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             gchar       **args,
+                                             GError      **error);
+gchar**         pka_channel_get_env         (PkaChannel   *channel);
+gboolean        pka_channel_set_env         (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             gchar       **env,
+                                             GError      **error);
+GPid            pka_channel_get_pid         (PkaChannel   *channel);
+gboolean        pka_channel_set_pid         (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             GPid          pid,
+                                             GError      **error);
+gboolean        pka_channel_get_pid_set     (PkaChannel   *channel);
+gboolean        pka_channel_get_kill_pid    (PkaChannel   *channel);
+gboolean        pka_channel_set_kill_pid    (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             gboolean      kill_pid,
+                                             GError      **error);
+gboolean        pka_channel_start           (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             GError      **error);
+gboolean        pka_channel_stop            (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             GError      **error);
+gboolean        pka_channel_pause           (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             GError      **error);
+gboolean        pka_channel_unpause         (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             GError      **error);
 
 G_END_DECLS
 
