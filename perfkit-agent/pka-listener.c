@@ -1749,7 +1749,6 @@ pka_listener_channel_stop_cb (GObject      *listener,    /* IN */
  * pk_connection_channel_stop_async:
  * @connection: A #PkConnection.
  * @channel: A #gint.
- * @killpid: A #gboolean.
  * @cancellable: A #GCancellable.
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
@@ -1765,7 +1764,6 @@ pka_listener_channel_stop_cb (GObject      *listener,    /* IN */
 void
 pka_listener_channel_stop_async (PkaListener           *listener,    /* IN */
                                  gint                   channel,     /* IN */
-                                 gboolean               killpid,     /* IN */
                                  GCancellable          *cancellable, /* IN */
                                  GAsyncReadyCallback    callback,    /* IN */
                                  gpointer               user_data)   /* IN */
@@ -1796,8 +1794,6 @@ pka_listener_channel_stop_async (PkaListener           *listener,    /* IN */
  * @error: A #GError.
  *
  * Completes an asynchronous request for the "channel_stop_finish" RPC.
- *
- * Stop the channel. If @killpid, the inferior process is terminated.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.

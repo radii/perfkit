@@ -186,7 +186,6 @@ gboolean      pka_listener_channel_start_finish               (PkaListener      
                                                                GError               **error);
 void          pka_listener_channel_stop_async                 (PkaListener           *listener,
                                                                gint                   channel,
-                                                               gboolean               killpid,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);

@@ -122,7 +122,6 @@ typedef struct
 typedef struct
 {
 	gint channel;
-	gboolean killpid;
 } ChannelStopCall;
 
 typedef struct
