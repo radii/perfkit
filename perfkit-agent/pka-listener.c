@@ -2300,7 +2300,9 @@ pka_listener_manager_get_plugins_finish (PkaListener    *listener, /* IN */
 	if ((ret = pka_manager_get_plugins(DEFAULT_CONTEXT, &list, error))) {
 		names = g_new0(gchar*, g_list_length(list) + 1);
 		for (iter = list; iter; iter = iter->next) {
-			names[i++] = g_strdup(pka_plugin_get_id(iter->data));
+			if (pka_plugin_get_plugin_type(iter->data) != PKA_PLUGIN_LISTENER) {
+				names[i++] = g_strdup(pka_plugin_get_id(iter->data));
+			}
 		}
 		*plugins = names;
 		g_list_foreach(list, (GFunc)g_object_unref, NULL);
