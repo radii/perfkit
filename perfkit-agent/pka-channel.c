@@ -701,11 +701,14 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 		/*
 		 * Log the channel arguments.
 		 */
-		argv_str = g_strjoinv(", ", spawn_info.args);
-		env_str = g_strjoinv(", ", spawn_info.env);
+		argv_str = spawn_info.args ? g_strjoinv(", ", spawn_info.args)
+		                           : g_strdup("");
+		env_str = spawn_info.env ? g_strjoinv(", ", spawn_info.env)
+		                         : g_strdup("");
 		INFO(Channel, "Attempting to spawn channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
-		INFO(Channel, "             Target = %s", spawn_info.target);
+		INFO(Channel, "             Target = %s",
+		     spawn_info.target ? spawn_info.target : "");
 		INFO(Channel, "          Arguments = %s", argv_str);
 		INFO(Channel, "  Working Directory = %s", spawn_info.working_dir);
 		INFO(Channel, "        Environment = %s", env_str);
