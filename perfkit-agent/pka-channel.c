@@ -672,7 +672,7 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 	/*
 	 * Spawn the inferior process only if necessary.
 	 */
-	if (!spawn_info.pid) {
+	if ((!spawn_info.pid) && (spawn_info.target)) {
 		/*
 		 * Build the spawned argv. Copy in arguments if needed.
 		 */
