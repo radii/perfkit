@@ -1217,6 +1217,38 @@ pka_channel_get_state (PkaChannel *channel) /* IN */
 }
 
 /**
+ * pka_channel_get_sources:
+ * @channel: A #PkaChannel.
+ *
+ * Retrieves the list of sources for the channel.
+ *
+ * Returns: A #GList containing the sources. The list and elemnts are owned
+ *   by the caller.  The elements should be freed with g_object_unref() and
+ *   the list freed with g_list_free().
+ * Side effects: None.
+ */
+GList*
+pka_channel_get_sources (PkaChannel *channel) /* IN */
+{
+	PkaChannelPrivate *priv;
+	PkaSource *source;
+	GList *sources = NULL;
+	gint i;
+
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
+
+	ENTRY;
+	priv = channel->priv;
+	g_mutex_lock(priv->mutex);
+	for (i = 0; i < priv->sources->len; i++) {
+		source = g_ptr_array_index(priv->sources, i);
+		sources = g_list_prepend(sources, g_object_ref(source));
+	}
+	g_mutex_unlock(priv->mutex);
+	return(sources);
+}
+
+/**
  * pka_channel_finalize:
  * @object: A #PkaChannel.
  *

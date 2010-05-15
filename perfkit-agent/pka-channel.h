@@ -141,6 +141,7 @@ gboolean        pka_channel_mute            (PkaChannel   *channel,
 gboolean        pka_channel_unmute          (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);
+GList*          pka_channel_get_sources     (PkaChannel   *channel);
 
 G_END_DECLS
 

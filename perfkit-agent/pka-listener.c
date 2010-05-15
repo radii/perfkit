@@ -656,25 +656,6 @@ pka_listener_channel_get_pid_set_finish (PkaListener    *listener, /* IN */
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_channel_get_sources_cb (GObject      *listener,    /* IN */
-                                     GAsyncResult *result,      /* IN */
-                                     gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(channel_get_sources));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_channel_get_sources_async:
  * @connection: A #PkConnection.
@@ -698,6 +679,7 @@ pka_listener_channel_get_sources_async (PkaListener           *listener,    /* I
                                         GAsyncReadyCallback    callback,    /* IN */
                                         gpointer               user_data)   /* IN */
 {
+	ChannelGetSourcesCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -707,15 +689,12 @@ pka_listener_channel_get_sources_async (PkaListener           *listener,    /* I
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_get_sources_async);
-// TEMP TO TEST RPC RESULTS
+	call = ChannelGetSourcesCall_Create();
+	call->channel = channel;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ChannelGetSourcesCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_channel_get_sources_async(instance,
-	                              NULL,
-	                              pka_listener_channel_get_sources_cb,
-	                              result);
-#endif
 	EXIT;
 }
 
@@ -741,24 +720,34 @@ pka_listener_channel_get_sources_finish (PkaListener    *listener,    /* IN */
                                          gsize          *sources_len, /* OUT */
                                          GError        **error)       /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaChannel *channel;
+	ChannelGetSourcesCall *call;
+	gboolean ret = FALSE;
+	GList *list;
+	GList *iter;
+	gint i;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_get_sources), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_get_sources_finish(instance,
-	                                     real_result,
-	                                     sources,
-	                                     sources_len,
-	                                     error);
+	call = GET_RESULT_POINTER(ChannelGetSourcesCall, result);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel,
+	                              &channel, error)) {
+		GOTO(failed);
+	}
+	list = pka_channel_get_sources(channel);
+	*sources_len = g_list_length(list);
+	*sources = g_new0(gint, *sources_len);
+	for (i = 0, iter = list; iter; i++, iter = iter->next) {
+		*sources[i] = pka_source_get_id(iter->data);
+		g_object_unref(iter->data);
+	}
+	g_list_free(list);
+	g_object_unref(channel);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
 
 #if 0
