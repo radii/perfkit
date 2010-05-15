@@ -89,6 +89,8 @@
         AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, _ch, failed);              \
         g_mutex_lock(priv->mutex);                                          \
         ENSURE_STATE(_ch, READY, unlock);                                   \
+        DEBUG(Channel, "Setting " #_t " of channel %d on behalf of "        \
+              "context %d.", priv->id, pka_context_get_id(context));        \
         _fr(priv->_t);                                                      \
         priv->_t = _cp(_t);                                                 \
         ret = TRUE;                                                         \
@@ -470,6 +472,9 @@ pka_channel_set_kill_pid (PkaChannel  *channel,  /* IN */
 	priv = channel->priv;
 	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, failed);
 	g_mutex_lock(priv->mutex);
+	DEBUG(Channel, "Setting kill_pid of channel %d to %s on behalf of "
+	               "context %d.", priv->id, kill_pid ? "TRUE" : "FALSE",
+	               pka_context_get_id(context));
 	priv->kill_pid = kill_pid;
 	ret = TRUE;
 	g_mutex_unlock(priv->mutex);

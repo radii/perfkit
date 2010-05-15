@@ -261,8 +261,7 @@ pka_listener_channel_get_args_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	channel_id = GET_RESULT_INT(result);
-	if (!(ret = pka_manager_find_channel(DEFAULT_CONTEXT, channel_id,
-	                                     &channel, error))) {
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, channel_id, &channel, error)) {
 		GOTO(failed);
 	}
 	*args = pka_channel_get_args(channel);
@@ -339,8 +338,7 @@ pka_listener_channel_get_env_finish (PkaListener    *listener, /* IN */
 
 	ENTRY;
 	channel_id = GET_RESULT_INT(result);
-	if (!(ret = pka_manager_find_channel(DEFAULT_CONTEXT, channel_id,
-	                                     &channel, error))) {
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, channel_id, &channel, error)) {
 		GOTO(failed);
 	}
 	*env = pka_channel_get_env(channel);
@@ -432,25 +430,6 @@ pka_listener_channel_get_exit_status_finish (PkaListener    *listener,    /* IN 
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_channel_get_kill_pid_cb (GObject      *listener,    /* IN */
-                                      GAsyncResult *result,      /* IN */
-                                      gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(channel_get_kill_pid));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_channel_get_kill_pid_async:
  * @connection: A #PkConnection.
@@ -483,14 +462,8 @@ pka_listener_channel_get_kill_pid_async (PkaListener           *listener,    /* 
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_get_kill_pid_async);
-// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
-#if 0
-	pka_channel_get_kill_pid_async(instance,
-	                               NULL,
-	                               pka_listener_channel_get_kill_pid_cb,
-	                               result);
-#endif
 	EXIT;
 }
 
@@ -514,23 +487,24 @@ pka_listener_channel_get_kill_pid_finish (PkaListener    *listener, /* IN */
                                           gboolean       *kill_pid, /* OUT */
                                           GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaChannel *channel;
+	gboolean ret = FALSE;
+	gint channel_id;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_get_kill_pid), FALSE);
+	g_return_val_if_fail(kill_pid != NULL, FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_get_kill_pid_finish(instance,
-	                                      real_result,
-	                                      kill_pid,
-	                                      error);
+	channel_id = GET_RESULT_INT(result);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, channel_id, &channel, error)) {
+		GOTO(failed);
+	}
+	*kill_pid = pka_channel_get_kill_pid(channel);
+	g_object_unref(channel);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
 
 #if 0
@@ -1346,24 +1320,11 @@ pka_listener_channel_set_env_finish (PkaListener    *listener, /* IN */
 #endif
 }
 
-#if 0
-static void
-pka_listener_channel_set_kill_pid_cb (GObject      *listener,    /* IN */
-                                      GAsyncResult *result,      /* IN */
-                                      gpointer      user_data)   /* IN */
+typedef struct
 {
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(channel_set_kill_pid));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
+	gint channel;
+	gboolean kill_pid;
+} SetKillPidCall;
 
 /**
  * pk_connection_channel_set_kill_pid_async:
@@ -1391,6 +1352,7 @@ pka_listener_channel_set_kill_pid_async (PkaListener           *listener,    /* 
                                          gpointer               user_data)   /* IN */
 {
 	GSimpleAsyncResult *result;
+	SetKillPidCall *call;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
 
@@ -1399,14 +1361,11 @@ pka_listener_channel_set_kill_pid_async (PkaListener           *listener,    /* 
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_set_kill_pid_async);
-// TEMP TO TEST RPC RESULTS
+	call = g_new0(SetKillPidCall, 1);
+	call->channel = channel;
+	call->kill_pid = kill_pid;
+	g_simple_async_result_set_op_res_gpointer(result, call, g_free);
 	g_simple_async_result_complete(result);
-#if 0
-	pka_channel_set_kill_pid_async(instance,
-	                               NULL,
-	                               pka_listener_channel_set_kill_pid_cb,
-	                               result);
-#endif
 	EXIT;
 }
 
@@ -1428,22 +1387,24 @@ pka_listener_channel_set_kill_pid_finish (PkaListener    *listener, /* IN */
                                           GAsyncResult   *result,   /* IN */
                                           GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaChannel *channel;
+	SetKillPidCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_set_kill_pid), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_channel_set_kill_pid_finish(instance,
-	                                      real_result,
-	                                      error);
+	call = GET_RESULT_POINTER(SetKillPidCall, result);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel,
+	                              &channel, error)) {
+	    GOTO(failed);
+	}
+	ret = pka_channel_set_kill_pid(channel, DEFAULT_CONTEXT,
+	                               call->kill_pid, error);
+	g_object_ref(channel);
+  failed:
 	RETURN(ret);
-#endif
 }
 
 #if 0
