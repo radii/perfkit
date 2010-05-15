@@ -101,24 +101,26 @@ pka_log_handler (const gchar    *log_domain, /* IN */
                  const gchar    *message,    /* IN */
                  gpointer        user_data)  /* IN */
 {
-	time_t t;
+	struct timespec ts;
 	struct tm tt;
+	time_t t;
 	const gchar *level;
 	gchar ftime[32];
 	gchar *buffer;
 
-	if (!channels->len) {
-		return;
+	if (G_LIKELY(channels->len)) {
+		level = pka_log_level_str(log_level);
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+		t = (time_t)ts.tv_sec;
+		tt = *localtime(&t);
+		strftime(ftime, sizeof(ftime), "%x %X", &tt);
+		buffer = g_strdup_printf("%s.%04ld  %s: %10s[%d]: %8s: %s\n",
+								 ftime, ts.tv_nsec / 100000,
+								 hostname, log_domain,
+								 pka_log_get_thread(), level, message);
+		g_ptr_array_foreach(channels, (GFunc)pka_log_write_to_channel, buffer);
+		g_free(buffer);
 	}
-	level = pka_log_level_str(log_level);
-	t = time(NULL);
-	tt = *localtime(&t);
-	strftime(ftime, sizeof(ftime), "%x %X", &tt);
-	buffer = g_strdup_printf("%s  %s: %10s[%d]: %8s: %s\n",
-	                         ftime, hostname, log_domain,
-	                         pka_log_get_thread(), level, message);
-	g_ptr_array_foreach(channels, (GFunc)pka_log_write_to_channel, buffer);
-	g_free(buffer);
 }
 
 /**
