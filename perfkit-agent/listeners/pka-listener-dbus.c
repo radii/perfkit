@@ -24,6 +24,7 @@
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "pka-listener-dbus.h"
 #include "pka-log.h"
@@ -470,7 +471,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                         pka_listener_dbus_plugin_create_encoder_cb,
 			                                         dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "CreateSource")) {
 			gchar* plugin = NULL;
@@ -490,7 +491,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                        pka_listener_dbus_plugin_create_source_cb,
 			                                        dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "GetCopyright")) {
 			gchar* plugin = NULL;
@@ -510,7 +511,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                        pka_listener_dbus_plugin_get_copyright_cb,
 			                                        dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "GetDescription")) {
 			gchar* plugin = NULL;
@@ -530,7 +531,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                          pka_listener_dbus_plugin_get_description_cb,
 			                                          dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "GetName")) {
 			gchar* plugin = NULL;
@@ -550,7 +551,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                   pka_listener_dbus_plugin_get_name_cb,
 			                                   dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "GetType")) {
 			gchar* plugin = NULL;
@@ -570,7 +571,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                          pka_listener_dbus_plugin_get_plugin_type_cb,
 			                                          dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 		else if (IS_MEMBER(message, "GetVersion")) {
 			gchar* plugin = NULL;
@@ -590,7 +591,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 			                                      pka_listener_dbus_plugin_get_version_cb,
 			                                      dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(plugin);
+			free(plugin);
 		}
 	}
 oom:
@@ -2667,6 +2668,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 		else if (IS_MEMBER(message, "SetArgs")) {
 			gint channel = 0;
 			gchar** args = NULL;
+			gint args_len = 0;
 			const gchar *dbus_path;
 
 			dbus_path = dbus_message_get_path(message);
@@ -2674,7 +2676,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 				goto oom;
 			}
 			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, NULL,
+			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, &args_len,
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
@@ -2685,10 +2687,12 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                    pka_listener_dbus_channel_set_args_cb,
 			                                    dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
+			dbus_free_string_array(args);
 		}
 		else if (IS_MEMBER(message, "SetEnv")) {
 			gint channel = 0;
 			gchar** env = NULL;
+			gint env_len = 0;
 			const gchar *dbus_path;
 
 			dbus_path = dbus_message_get_path(message);
@@ -2696,7 +2700,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 				goto oom;
 			}
 			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, NULL,
+			                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, &env_len,
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
@@ -2707,6 +2711,7 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                   pka_listener_dbus_channel_set_env_cb,
 			                                   dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
+			dbus_free_string_array(env);
 		}
 		else if (IS_MEMBER(message, "SetKillPid")) {
 			gint channel = 0;
@@ -2773,7 +2778,6 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                      pka_listener_dbus_channel_set_target_cb,
 			                                      dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(target);
 		}
 		else if (IS_MEMBER(message, "SetWorkingDir")) {
 			gint channel = 0;
@@ -2796,7 +2800,6 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                           pka_listener_dbus_channel_set_working_dir_cb,
 			                                           dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
-			g_free(working_dir);
 		}
 		else if (IS_MEMBER(message, "Start")) {
 			gint channel = 0;
