@@ -28,7 +28,7 @@
  * @title: PkaContext
  * @short_description: Security context.
  *
- * Add docs.
+ * 
  */
 
 static guint context_seq = 1;
@@ -79,11 +79,11 @@ pka_context_new (void)
 {
 	PkaContext *context;
 
+	ENTRY;
 	context = g_slice_new0(PkaContext);
 	context->ref_count = 1;
 	context->id = g_atomic_int_exchange_and_add((gint *)&context_seq, 1);
-
-	return context;
+	RETURN(context);
 }
 
 /**
@@ -158,6 +158,7 @@ gboolean
 pka_context_is_authorized (PkaContext   *context, /* IN */
                            PkaIOControl  ioctl)   /* IN */
 {
+	ENTRY;
 	RETURN(TRUE);
 }
 
@@ -173,6 +174,7 @@ pka_context_is_authorized (PkaContext   *context, /* IN */
 gboolean
 pka_context_is_authenticated (PkaContext *context) /* IN */
 {
+	ENTRY;
 	RETURN(TRUE);
 }
 
