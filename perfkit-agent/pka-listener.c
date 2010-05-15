@@ -192,6 +192,614 @@ pka_listener_channel_cork_finish (PkaListener    *listener, /* IN */
 
 #if 0
 static void
+pka_listener_channel_get_args_cb (GObject      *listener,    /* IN */
+                                  GAsyncResult *result,      /* IN */
+                                  gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_args));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_args_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_args_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_args_finish().
+ *
+ * Retrieves the arguments for target.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_args_async (PkaListener           *listener,    /* IN */
+                                     gint                   channel,     /* IN */
+                                     GCancellable          *cancellable, /* IN */
+                                     GAsyncReadyCallback    callback,    /* IN */
+                                     gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_args_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_args_async(instance,
+	                           NULL,
+	                           pka_listener_channel_get_args_cb,
+	                           result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_args_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @args: A #gchar.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_args_finish" RPC.
+ *
+ * Retrieves the arguments for target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_args_finish (PkaListener    *listener, /* IN */
+                                      GAsyncResult   *result,   /* IN */
+                                      gchar        ***args,     /* OUT */
+                                      GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_args_finish(instance,
+	                                  real_result,
+	                                  args,
+	                                  error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_env_cb (GObject      *listener,    /* IN */
+                                 GAsyncResult *result,      /* IN */
+                                 gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_env));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_env_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_env_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_env_finish().
+ *
+ * Retrieves the environment for spawning the target process.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_env_async (PkaListener           *listener,    /* IN */
+                                    gint                   channel,     /* IN */
+                                    GCancellable          *cancellable, /* IN */
+                                    GAsyncReadyCallback    callback,    /* IN */
+                                    gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_env_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_env_async(instance,
+	                          NULL,
+	                          pka_listener_channel_get_env_cb,
+	                          result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_env_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @env: A #gchar.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_env_finish" RPC.
+ *
+ * Retrieves the environment for spawning the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_env_finish (PkaListener    *listener, /* IN */
+                                     GAsyncResult   *result,   /* IN */
+                                     gchar        ***env,      /* OUT */
+                                     GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_env_finish(instance,
+	                                 real_result,
+	                                 env,
+	                                 error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_exit_status_cb (GObject      *listener,    /* IN */
+                                         GAsyncResult *result,      /* IN */
+                                         gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_exit_status));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_exit_status_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_exit_status_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_exit_status_finish().
+ *
+ * Retrieves the exit status of the process.  This is only set after the
+ * process has exited.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_exit_status_async (PkaListener           *listener,    /* IN */
+                                            gint                   channel,     /* IN */
+                                            GCancellable          *cancellable, /* IN */
+                                            GAsyncReadyCallback    callback,    /* IN */
+                                            gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_exit_status_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_exit_status_async(instance,
+	                                  NULL,
+	                                  pka_listener_channel_get_exit_status_cb,
+	                                  result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_exit_status_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @exit_status: A #gint.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_exit_status_finish" RPC.
+ *
+ * Retrieves the exit status of the process.  This is only set after the
+ * process has exited.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_exit_status_finish (PkaListener    *listener,    /* IN */
+                                             GAsyncResult   *result,      /* IN */
+                                             gint           *exit_status, /* OUT */
+                                             GError        **error)       /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_exit_status_finish(instance,
+	                                         real_result,
+	                                         exit_status,
+	                                         error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_kill_pid_cb (GObject      *listener,    /* IN */
+                                      GAsyncResult *result,      /* IN */
+                                      gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_kill_pid));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_kill_pid_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_kill_pid_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_kill_pid_finish().
+ *
+ * Retrieves if the process should be killed when the channel is stopped.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_kill_pid_async (PkaListener           *listener,    /* IN */
+                                         gint                   channel,     /* IN */
+                                         GCancellable          *cancellable, /* IN */
+                                         GAsyncReadyCallback    callback,    /* IN */
+                                         gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_kill_pid_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_kill_pid_async(instance,
+	                               NULL,
+	                               pka_listener_channel_get_kill_pid_cb,
+	                               result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_kill_pid_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @kill_pid: A #gboolean.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_kill_pid_finish" RPC.
+ *
+ * Retrieves if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_kill_pid_finish (PkaListener    *listener, /* IN */
+                                          GAsyncResult   *result,   /* IN */
+                                          gboolean       *kill_pid, /* OUT */
+                                          GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_kill_pid_finish(instance,
+	                                      real_result,
+	                                      kill_pid,
+	                                      error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_pid_cb (GObject      *listener,    /* IN */
+                                 GAsyncResult *result,      /* IN */
+                                 gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_pid));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_pid_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_pid_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_pid_finish().
+ *
+ * Retrieves the process pid of the target process.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_pid_async (PkaListener           *listener,    /* IN */
+                                    gint                   channel,     /* IN */
+                                    GCancellable          *cancellable, /* IN */
+                                    GAsyncReadyCallback    callback,    /* IN */
+                                    gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_pid_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_pid_async(instance,
+	                          NULL,
+	                          pka_listener_channel_get_pid_cb,
+	                          result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @pid: A #gint.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_pid_finish" RPC.
+ *
+ * Retrieves the process pid of the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_pid_finish (PkaListener    *listener, /* IN */
+                                     GAsyncResult   *result,   /* IN */
+                                     gint           *pid,      /* OUT */
+                                     GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_pid_finish(instance,
+	                                 real_result,
+	                                 pid,
+	                                 error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_pid_set_cb (GObject      *listener,    /* IN */
+                                     GAsyncResult *result,      /* IN */
+                                     gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_pid_set));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_pid_set_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_pid_set_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_pid_set_finish().
+ *
+ * Retrieves if the "pid" property was set manually.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_pid_set_async (PkaListener           *listener,    /* IN */
+                                        gint                   channel,     /* IN */
+                                        GCancellable          *cancellable, /* IN */
+                                        GAsyncReadyCallback    callback,    /* IN */
+                                        gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_pid_set_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_pid_set_async(instance,
+	                              NULL,
+	                              pka_listener_channel_get_pid_set_cb,
+	                              result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid_set_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @pid_set: A #gboolean.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_pid_set_finish" RPC.
+ *
+ * Retrieves if the "pid" property was set manually.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_pid_set_finish (PkaListener    *listener, /* IN */
+                                         GAsyncResult   *result,   /* IN */
+                                         gboolean       *pid_set,  /* OUT */
+                                         GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_pid_set_finish(instance,
+	                                     real_result,
+	                                     pid_set,
+	                                     error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
 pka_listener_channel_get_sources_cb (GObject      *listener,    /* IN */
                                      GAsyncResult *result,      /* IN */
                                      gpointer      user_data)   /* IN */
@@ -290,6 +898,919 @@ pka_listener_channel_get_sources_finish (PkaListener    *listener,    /* IN */
 	                                     sources,
 	                                     sources_len,
 	                                     error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_state_cb (GObject      *listener,    /* IN */
+                                   GAsyncResult *result,      /* IN */
+                                   gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_state));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_state_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_state_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_state_finish().
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_state_async (PkaListener           *listener,    /* IN */
+                                      gint                   channel,     /* IN */
+                                      GCancellable          *cancellable, /* IN */
+                                      GAsyncReadyCallback    callback,    /* IN */
+                                      gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_state_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_state_async(instance,
+	                            NULL,
+	                            pka_listener_channel_get_state_cb,
+	                            result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_state_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @state: A #gint.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_state_finish" RPC.
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_state_finish (PkaListener    *listener, /* IN */
+                                       GAsyncResult   *result,   /* IN */
+                                       gint           *state,    /* OUT */
+                                       GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_state_finish(instance,
+	                                   real_result,
+	                                   state,
+	                                   error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_target_cb (GObject      *listener,    /* IN */
+                                    GAsyncResult *result,      /* IN */
+                                    gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_target));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_target_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_target_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_target_finish().
+ *
+ * Retrieves the channels target.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_target_async (PkaListener           *listener,    /* IN */
+                                       gint                   channel,     /* IN */
+                                       GCancellable          *cancellable, /* IN */
+                                       GAsyncReadyCallback    callback,    /* IN */
+                                       gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_target_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_target_async(instance,
+	                             NULL,
+	                             pka_listener_channel_get_target_cb,
+	                             result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_target_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @target: A #gchar.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_target_finish" RPC.
+ *
+ * Retrieves the channels target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_target_finish (PkaListener    *listener, /* IN */
+                                        GAsyncResult   *result,   /* IN */
+                                        gchar         **target,   /* OUT */
+                                        GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_target_finish(instance,
+	                                    real_result,
+	                                    target,
+	                                    error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_get_working_dir_cb (GObject      *listener,    /* IN */
+                                         GAsyncResult *result,      /* IN */
+                                         gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_get_working_dir));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_get_working_dir_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_working_dir_async" RPC.  @callback
+ * MUST call pka_listener_channel_get_working_dir_finish().
+ *
+ * Retrieves the working directory of the target.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_working_dir_async (PkaListener           *listener,    /* IN */
+                                            gint                   channel,     /* IN */
+                                            GCancellable          *cancellable, /* IN */
+                                            GAsyncReadyCallback    callback,    /* IN */
+                                            gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_working_dir_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_get_working_dir_async(instance,
+	                                  NULL,
+	                                  pka_listener_channel_get_working_dir_cb,
+	                                  result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_working_dir_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @working_dir: A #gchar.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_get_working_dir_finish" RPC.
+ *
+ * Retrieves the working directory of the target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_get_working_dir_finish (PkaListener    *listener,    /* IN */
+                                             GAsyncResult   *result,      /* IN */
+                                             gchar         **working_dir, /* OUT */
+                                             GError        **error)       /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_get_working_dir_finish(instance,
+	                                         real_result,
+	                                         working_dir,
+	                                         error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_args_cb (GObject      *listener,    /* IN */
+                                  GAsyncResult *result,      /* IN */
+                                  gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_args));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_args_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @args: A #gchar.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_args_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_args_finish().
+ *
+ * Sets the targets arguments.  This may only be set before the channel
+ * has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_args_async (PkaListener           *listener,    /* IN */
+                                     gint                   channel,     /* IN */
+                                     gchar                **args,        /* IN */
+                                     GCancellable          *cancellable, /* IN */
+                                     GAsyncReadyCallback    callback,    /* IN */
+                                     gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_args_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_args_async(instance,
+	                           NULL,
+	                           pka_listener_channel_set_args_cb,
+	                           result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_args_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_args_finish" RPC.
+ *
+ * Sets the targets arguments.  This may only be set before the channel
+ * has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_args_finish (PkaListener    *listener, /* IN */
+                                      GAsyncResult   *result,   /* IN */
+                                      GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_args_finish(instance,
+	                                  real_result,
+	                                  error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_env_cb (GObject      *listener,    /* IN */
+                                 GAsyncResult *result,      /* IN */
+                                 gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_env));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_env_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @env: A #gchar.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_env_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_env_finish().
+ *
+ * Sets the environment of the target process.  This may only be set before
+ * the channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_env_async (PkaListener           *listener,    /* IN */
+                                    gint                   channel,     /* IN */
+                                    gchar                **env,         /* IN */
+                                    GCancellable          *cancellable, /* IN */
+                                    GAsyncReadyCallback    callback,    /* IN */
+                                    gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_env_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_env_async(instance,
+	                          NULL,
+	                          pka_listener_channel_set_env_cb,
+	                          result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_env_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_env_finish" RPC.
+ *
+ * Sets the environment of the target process.  This may only be set before
+ * the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_env_finish (PkaListener    *listener, /* IN */
+                                     GAsyncResult   *result,   /* IN */
+                                     GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_env_finish(instance,
+	                                 real_result,
+	                                 error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_kill_pid_cb (GObject      *listener,    /* IN */
+                                      GAsyncResult *result,      /* IN */
+                                      gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_kill_pid));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_kill_pid_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @kill_pid: A #gboolean.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_kill_pid_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_kill_pid_finish().
+ *
+ * Sets if the process should be killed when the channel is stopped.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_kill_pid_async (PkaListener           *listener,    /* IN */
+                                         gint                   channel,     /* IN */
+                                         gboolean               kill_pid,    /* IN */
+                                         GCancellable          *cancellable, /* IN */
+                                         GAsyncReadyCallback    callback,    /* IN */
+                                         gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_kill_pid_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_kill_pid_async(instance,
+	                               NULL,
+	                               pka_listener_channel_set_kill_pid_cb,
+	                               result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_kill_pid_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_kill_pid_finish" RPC.
+ *
+ * Sets if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_kill_pid_finish (PkaListener    *listener, /* IN */
+                                          GAsyncResult   *result,   /* IN */
+                                          GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_kill_pid_finish(instance,
+	                                      real_result,
+	                                      error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_pid_cb (GObject      *listener,    /* IN */
+                                 GAsyncResult *result,      /* IN */
+                                 gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_pid));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_pid_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @pid: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_pid_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_pid_finish().
+ *
+ * Sets the target pid to attach to rather than spawning a process.  This can
+ * only be set before the channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_pid_async (PkaListener           *listener,    /* IN */
+                                    gint                   channel,     /* IN */
+                                    gint                   pid,         /* IN */
+                                    GCancellable          *cancellable, /* IN */
+                                    GAsyncReadyCallback    callback,    /* IN */
+                                    gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_pid_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_pid_async(instance,
+	                          NULL,
+	                          pka_listener_channel_set_pid_cb,
+	                          result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_pid_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_pid_finish" RPC.
+ *
+ * Sets the target pid to attach to rather than spawning a process.  This can
+ * only be set before the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_pid_finish (PkaListener    *listener, /* IN */
+                                     GAsyncResult   *result,   /* IN */
+                                     GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_pid_finish(instance,
+	                                 real_result,
+	                                 error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_target_cb (GObject      *listener,    /* IN */
+                                    GAsyncResult *result,      /* IN */
+                                    gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_target));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_target_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @target: A #const gchar.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_target_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_target_finish().
+ *
+ * Sets the channels target.  This may only be set before the channel has
+ * started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_target_async (PkaListener           *listener,    /* IN */
+                                       gint                   channel,     /* IN */
+                                       const gchar           *target,      /* IN */
+                                       GCancellable          *cancellable, /* IN */
+                                       GAsyncReadyCallback    callback,    /* IN */
+                                       gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_target_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_target_async(instance,
+	                             NULL,
+	                             pka_listener_channel_set_target_cb,
+	                             result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_target_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_target_finish" RPC.
+ *
+ * Sets the channels target.  This may only be set before the channel has
+ * started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_target_finish (PkaListener    *listener, /* IN */
+                                        GAsyncResult   *result,   /* IN */
+                                        GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_target_finish(instance,
+	                                    real_result,
+	                                    error);
+	RETURN(ret);
+#endif
+}
+
+#if 0
+static void
+pka_listener_channel_set_working_dir_cb (GObject      *listener,    /* IN */
+                                         GAsyncResult *result,      /* IN */
+                                         gpointer      user_data)   /* IN */
+{
+	GSimpleAsyncResult *real_result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(RESULT_IS_VALID(channel_set_working_dir));
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	g_simple_async_result_set_op_res_gpointer(real_result, result);
+	g_simple_async_result_complete(real_result);
+	EXIT;
+}
+#endif
+
+/**
+ * pk_connection_channel_set_working_dir_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @working_dir: A #const gchar.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_set_working_dir_async" RPC.  @callback
+ * MUST call pka_listener_channel_set_working_dir_finish().
+ *
+ * Sets the targets working directory.  This may only be set before the
+ * channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_set_working_dir_async (PkaListener           *listener,    /* IN */
+                                            gint                   channel,     /* IN */
+                                            const gchar           *working_dir, /* IN */
+                                            GCancellable          *cancellable, /* IN */
+                                            GAsyncReadyCallback    callback,    /* IN */
+                                            gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_set_working_dir_async);
+// TEMP TO TEST RPC RESULTS
+	g_simple_async_result_complete(result);
+#if 0
+	pka_channel_set_working_dir_async(instance,
+	                                  NULL,
+	                                  pka_listener_channel_set_working_dir_cb,
+	                                  result);
+#endif
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_working_dir_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_set_working_dir_finish" RPC.
+ *
+ * Sets the targets working directory.  This may only be set before the
+ * channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_set_working_dir_finish (PkaListener    *listener, /* IN */
+                                             GAsyncResult   *result,   /* IN */
+                                             GError        **error)    /* OUT */
+{
+	ENTRY;
+// TEMP TO TEST RPC RESULTS
+	RETURN(TRUE);
+#if 0
+	GSimpleAsyncResult *real_result;
+	gboolean ret;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+
+	ENTRY;
+	real_result = GET_RESULT_POINTER(result);
+	ret = pka_channel_set_working_dir_finish(instance,
+	                                         real_result,
+	                                         error);
 	RETURN(ret);
 #endif
 }

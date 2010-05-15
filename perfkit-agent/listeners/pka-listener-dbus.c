@@ -1394,8 +1394,53 @@ static const gchar * ChannelIntrospection =
 	" <interface name=\"org.perfkit.Agent.Channel\">"
 	"  <method name=\"Cork\">"
 	"  </method>"
+	"  <method name=\"GetArgs\">"
+    "   <arg name=\"args\" direction=\"out\" type=\"as\"/>"
+	"  </method>"
+	"  <method name=\"GetEnv\">"
+    "   <arg name=\"env\" direction=\"out\" type=\"as\"/>"
+	"  </method>"
+	"  <method name=\"GetExitStatus\">"
+    "   <arg name=\"exit_status\" direction=\"out\" type=\"i\"/>"
+	"  </method>"
+	"  <method name=\"GetKillPid\">"
+    "   <arg name=\"kill_pid\" direction=\"out\" type=\"b\"/>"
+	"  </method>"
+	"  <method name=\"GetPid\">"
+    "   <arg name=\"pid\" direction=\"out\" type=\"i\"/>"
+	"  </method>"
+	"  <method name=\"GetPidSet\">"
+    "   <arg name=\"pid_set\" direction=\"out\" type=\"b\"/>"
+	"  </method>"
 	"  <method name=\"GetSources\">"
     "   <arg name=\"sources\" direction=\"out\" type=\"ao\"/>"
+	"  </method>"
+	"  <method name=\"GetState\">"
+    "   <arg name=\"state\" direction=\"out\" type=\"i\"/>"
+	"  </method>"
+	"  <method name=\"GetTarget\">"
+    "   <arg name=\"target\" direction=\"out\" type=\"s\"/>"
+	"  </method>"
+	"  <method name=\"GetWorkingDir\">"
+    "   <arg name=\"working_dir\" direction=\"out\" type=\"s\"/>"
+	"  </method>"
+	"  <method name=\"SetArgs\">"
+    "   <arg name=\"args\" direction=\"in\" type=\"as\"/>"
+	"  </method>"
+	"  <method name=\"SetEnv\">"
+    "   <arg name=\"env\" direction=\"in\" type=\"as\"/>"
+	"  </method>"
+	"  <method name=\"SetKillPid\">"
+    "   <arg name=\"kill_pid\" direction=\"in\" type=\"b\"/>"
+	"  </method>"
+	"  <method name=\"SetPid\">"
+    "   <arg name=\"pid\" direction=\"in\" type=\"i\"/>"
+	"  </method>"
+	"  <method name=\"SetTarget\">"
+    "   <arg name=\"target\" direction=\"in\" type=\"s\"/>"
+	"  </method>"
+	"  <method name=\"SetWorkingDir\">"
+    "   <arg name=\"working_dir\" direction=\"in\" type=\"s\"/>"
 	"  </method>"
 	"  <method name=\"Start\">"
 	"  </method>"
@@ -1455,6 +1500,278 @@ pka_listener_dbus_channel_cork_cb (GObject      *listener,  /* IN */
 }
 
 /**
+ * pka_listener_dbus_channel_get_args_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_args" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_args_cb (GObject      *listener,  /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gchar** args = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_args_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&args,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, args ? g_strv_length(args) : 0,
+		                         DBUS_TYPE_INVALID);
+		g_free(args);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_env_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_env" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_env_cb (GObject      *listener,  /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gchar** env = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_env_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&env,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, env ? g_strv_length(env) : 0,
+		                         DBUS_TYPE_INVALID);
+		g_free(env);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_exit_status_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_exit_status" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_exit_status_cb (GObject      *listener,  /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint exit_status = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_exit_status_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&exit_status,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INT32, &exit_status,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_kill_pid_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_kill_pid" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_kill_pid_cb (GObject      *listener,  /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gboolean kill_pid = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_kill_pid_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&kill_pid,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_BOOLEAN, &kill_pid,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_pid_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_pid" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_pid_cb (GObject      *listener,  /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint pid = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_pid_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&pid,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INT32, &pid,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_pid_set_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_pid_set" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_pid_set_cb (GObject      *listener,  /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gboolean pid_set = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_pid_set_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&pid_set,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_BOOLEAN, &pid_set,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
  * pka_listener_dbus_channel_get_sources_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
@@ -1503,6 +1820,399 @@ pka_listener_dbus_channel_get_sources_cb (GObject      *listener,  /* IN */
 		                         DBUS_TYPE_INVALID);
 		g_free(sources);
 		g_strfreev(sources_paths);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_state_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_state" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_state_cb (GObject      *listener,  /* IN */
+                                        GAsyncResult *result,    /* IN */
+                                        gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint state = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_state_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&state,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INT32, &state,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_target_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_target" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_target_cb (GObject      *listener,  /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gchar* target = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_target_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&target,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		if (!target) {
+			target = g_strdup("");
+		}
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_STRING, &target,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_get_working_dir_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_get_working_dir" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_get_working_dir_cb (GObject      *listener,  /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gchar* working_dir = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_get_working_dir_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&working_dir,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		if (!working_dir) {
+			working_dir = g_strdup("");
+		}
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_STRING, &working_dir,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_args_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_args" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_args_cb (GObject      *listener,  /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_args_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_env_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_env" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_env_cb (GObject      *listener,  /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_env_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_kill_pid_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_kill_pid" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_kill_pid_cb (GObject      *listener,  /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_kill_pid_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_pid_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_pid" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_pid_cb (GObject      *listener,  /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_pid_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_target_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_target" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_target_cb (GObject      *listener,  /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_target_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_channel_set_working_dir_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_set_working_dir" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_set_working_dir_cb (GObject      *listener,  /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_set_working_dir_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
 	dbus_message_unref(reply);
@@ -1691,6 +2401,96 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
+		else if (IS_MEMBER(message, "GetArgs")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_args_async(PKA_LISTENER(listener),
+			                                    channel,
+			                                    NULL,
+			                                    pka_listener_dbus_channel_get_args_cb,
+			                                    dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetEnv")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_env_async(PKA_LISTENER(listener),
+			                                   channel,
+			                                   NULL,
+			                                   pka_listener_dbus_channel_get_env_cb,
+			                                   dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetExitStatus")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_exit_status_async(PKA_LISTENER(listener),
+			                                           channel,
+			                                           NULL,
+			                                           pka_listener_dbus_channel_get_exit_status_cb,
+			                                           dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetKillPid")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_kill_pid_async(PKA_LISTENER(listener),
+			                                        channel,
+			                                        NULL,
+			                                        pka_listener_dbus_channel_get_kill_pid_cb,
+			                                        dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetPid")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_pid_async(PKA_LISTENER(listener),
+			                                   channel,
+			                                   NULL,
+			                                   pka_listener_dbus_channel_get_pid_cb,
+			                                   dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetPidSet")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_pid_set_async(PKA_LISTENER(listener),
+			                                       channel,
+			                                       NULL,
+			                                       pka_listener_dbus_channel_get_pid_set_cb,
+			                                       dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
 		else if (IS_MEMBER(message, "GetSources")) {
 			gint channel = 0;
 			const gchar *dbus_path;
@@ -1705,6 +2505,155 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 			                                       pka_listener_dbus_channel_get_sources_cb,
 			                                       dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetState")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_state_async(PKA_LISTENER(listener),
+			                                     channel,
+			                                     NULL,
+			                                     pka_listener_dbus_channel_get_state_cb,
+			                                     dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetTarget")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_target_async(PKA_LISTENER(listener),
+			                                      channel,
+			                                      NULL,
+			                                      pka_listener_dbus_channel_get_target_cb,
+			                                      dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetWorkingDir")) {
+			gint channel = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_get_working_dir_async(PKA_LISTENER(listener),
+			                                           channel,
+			                                           NULL,
+			                                           pka_listener_dbus_channel_get_working_dir_cb,
+			                                           dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetArgs")) {
+			gint channel = 0;
+			gchar** args = NULL;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_args_async(PKA_LISTENER(listener),
+			                                    channel,
+			                                    args,
+			                                    NULL,
+			                                    pka_listener_dbus_channel_set_args_cb,
+			                                    dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetEnv")) {
+			gint channel = 0;
+			gchar** env = NULL;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_env_async(PKA_LISTENER(listener),
+			                                   channel,
+			                                   env,
+			                                   NULL,
+			                                   pka_listener_dbus_channel_set_env_cb,
+			                                   dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetKillPid")) {
+			gint channel = 0;
+			gboolean kill_pid = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_kill_pid_async(PKA_LISTENER(listener),
+			                                        channel,
+			                                        kill_pid,
+			                                        NULL,
+			                                        pka_listener_dbus_channel_set_kill_pid_cb,
+			                                        dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetPid")) {
+			gint channel = 0;
+			gint pid = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_pid_async(PKA_LISTENER(listener),
+			                                   channel,
+			                                   pid,
+			                                   NULL,
+			                                   pka_listener_dbus_channel_set_pid_cb,
+			                                   dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetTarget")) {
+			gint channel = 0;
+			gchar* target = NULL;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_target_async(PKA_LISTENER(listener),
+			                                      channel,
+			                                      target,
+			                                      NULL,
+			                                      pka_listener_dbus_channel_set_target_cb,
+			                                      dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+			g_free(target);
+		}
+		else if (IS_MEMBER(message, "SetWorkingDir")) {
+			gint channel = 0;
+			gchar* working_dir = NULL;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			pka_listener_channel_set_working_dir_async(PKA_LISTENER(listener),
+			                                           channel,
+			                                           working_dir,
+			                                           NULL,
+			                                           pka_listener_dbus_channel_set_working_dir_cb,
+			                                           dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+			g_free(working_dir);
 		}
 		else if (IS_MEMBER(message, "Start")) {
 			gint channel = 0;

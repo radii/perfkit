@@ -31,6 +31,60 @@ void          pka_listener_channel_cork_async                 (PkaListener      
 gboolean      pka_listener_channel_cork_finish                (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
+void          pka_listener_channel_get_args_async             (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_args_finish            (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gchar               ***args,
+                                                               GError               **error);
+void          pka_listener_channel_get_env_async              (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_env_finish             (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gchar               ***env,
+                                                               GError               **error);
+void          pka_listener_channel_get_exit_status_async      (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_exit_status_finish     (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                  *exit_status,
+                                                               GError               **error);
+void          pka_listener_channel_get_kill_pid_async         (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_kill_pid_finish        (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gboolean              *kill_pid,
+                                                               GError               **error);
+void          pka_listener_channel_get_pid_async              (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_pid_finish             (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                  *pid,
+                                                               GError               **error);
+void          pka_listener_channel_get_pid_set_async          (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_pid_set_finish         (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gboolean              *pid_set,
+                                                               GError               **error);
 void          pka_listener_channel_get_sources_async          (PkaListener           *listener,
                                                                gint                   channel,
                                                                GCancellable          *cancellable,
@@ -40,6 +94,87 @@ gboolean      pka_listener_channel_get_sources_finish         (PkaListener      
                                                                GAsyncResult          *result,
                                                                gint                 **sources,
                                                                gsize                 *sources_len,
+                                                               GError               **error);
+void          pka_listener_channel_get_state_async            (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_state_finish           (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                  *state,
+                                                               GError               **error);
+void          pka_listener_channel_get_target_async           (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_target_finish          (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gchar                **target,
+                                                               GError               **error);
+void          pka_listener_channel_get_working_dir_async      (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_working_dir_finish     (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gchar                **working_dir,
+                                                               GError               **error);
+void          pka_listener_channel_set_args_async             (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               gchar                **args,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_args_finish            (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_channel_set_env_async              (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               gchar                **env,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_env_finish             (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_channel_set_kill_pid_async         (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               gboolean               kill_pid,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_kill_pid_finish        (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_channel_set_pid_async              (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               gint                   pid,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_pid_finish             (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_channel_set_target_async           (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               const gchar           *target,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_target_finish          (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_channel_set_working_dir_async      (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               const gchar           *working_dir,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_set_working_dir_finish     (PkaListener           *listener,
+                                                               GAsyncResult          *result,
                                                                GError               **error);
 void          pka_listener_channel_start_async                (PkaListener           *listener,
                                                                gint                   channel,
