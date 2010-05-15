@@ -35,9 +35,27 @@
 /**
  * SECTION:pka-plugin
  * @title: PkaPlugin
- * @short_description: 
+ * @short_description: Support for pluggable features in Perfkit.
  *
- * Section overview.
+ * The #PkaPlugin class represents a module that can be loaded from disk
+ * to provide additional features to Perfkit.  Most of Perfkit is
+ * implemented this way such as DBus support and various data sources.
+ *
+ * A plugin can be one of three types (and a module can only contain
+ * a single plugin type).
+ *
+ *  1) A source plugin @PKA_PLUGIN_SOURCE.
+ *  2) An encoder plugin @PKA_PLUGIN_ENCODER.
+ *  3) A listener plugin @PKA_PLUGIN_LISTENER.
+ *
+ * A source plugin provides a way to extract data from the host system.
+ *
+ * An encoder plugin provides a way to encode data before it goes on
+ * the wire in a format suitable to the transport.  A ZLib encoder would
+ * be a prime example.
+ *
+ * A listener plugin provides a communication layer for local or remote
+ * systems to communicate with the agent.
  */
 
 G_DEFINE_TYPE(PkaPlugin, pka_plugin, G_TYPE_OBJECT)
@@ -282,12 +300,29 @@ pka_plugin_is_disabled (PkaPlugin *plugin) /* IN */
 	RETURN(pka_config_get_boolean(group, "disabled", TRUE));
 }
 
+/**
+ * pka_plugin_error_quark:
+ *
+ * Retrieves the error domain for #PkaPlugin.
+ *
+ * Returns: A #GQuark.
+ * Side effects: None.
+ */
 GQuark
 pka_plugin_error_quark (void)
 {
 	return g_quark_from_static_string("pka-plugin-error-quark");
 }
 
+/**
+ * pka_plugin_finalize:
+ * @object: A #PkaPlugin.
+ *
+ * Finalization of a #PkaPlugin.  Resources are released.
+ *
+ * Returns: None.
+ * Side effects: The plugins module may be unloaded.
+ */
 static void
 pka_plugin_finalize (GObject *object) /* IN */
 {
@@ -300,6 +335,15 @@ pka_plugin_finalize (GObject *object) /* IN */
 	G_OBJECT_CLASS(pka_plugin_parent_class)->finalize(object);
 }
 
+/**
+ * pka_plugin_class_init:
+ * @klass: A #PkaPluginClass.
+ *
+ * Initialization of the #PkaPluginClass.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pka_plugin_class_init (PkaPluginClass *klass) /* IN */
 {
@@ -310,6 +354,15 @@ pka_plugin_class_init (PkaPluginClass *klass) /* IN */
 	g_type_class_add_private(object_class, sizeof(PkaPluginPrivate));
 }
 
+/**
+ * pka_plugin_init:
+ * @plugin: A #PkaPlugin.
+ *
+ * Initialization of a newly instantiated #PkaPlugin.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 pka_plugin_init (PkaPlugin *plugin) /* IN */
 {
