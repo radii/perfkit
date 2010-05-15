@@ -57,9 +57,12 @@ PkaContext*
 pka_context_default (void)
 {
 	static PkaContext *default_context = NULL;
-	if (G_UNLIKELY(!default_context)) {
-		default_context = pka_context_new();
-		default_context->id = 0;
+	PkaContext *context;
+
+	if (G_UNLIKELY(g_once_init_enter((gsize *)&default_context))) {
+		context = pka_context_new();
+		context->id = 0;
+		g_once_init_leave((gsize *)&default_context, (gsize)context);
 	}
 	return default_context;
 }
