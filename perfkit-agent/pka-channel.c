@@ -396,6 +396,8 @@ pka_channel_set_pid (PkaChannel  *channel, /* IN */
 	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, failed);
 	g_mutex_lock(priv->mutex);
 	ENSURE_STATE(channel, READY, unlock);
+	INFO(Channel, "Setting pid of channel %d to %d on behalf of context %d.",
+	     priv->id, pid, pka_context_get_id(context));
 	priv->pid = pid;
 	priv->pid_set = TRUE;
 	g_free(priv->target);
