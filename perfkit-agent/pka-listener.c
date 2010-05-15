@@ -304,6 +304,7 @@ pka_listener_channel_get_env_async (PkaListener           *listener,    /* IN */
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_get_env_async);
+	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
 	EXIT;
 }
@@ -382,6 +383,7 @@ pka_listener_channel_get_exit_status_async (PkaListener           *listener,    
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_channel_get_exit_status_async);
+	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
 	EXIT;
 }
@@ -417,13 +419,15 @@ pka_listener_channel_get_exit_status_finish (PkaListener    *listener,    /* IN 
 
 	ENTRY;
 	channel_id = GET_RESULT_INT(result);
-	if (!(ret = pka_manager_find_channel(DEFAULT_CONTEXT, channel_id,
-	                                     &channel, error))) {
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, channel_id, &channel, error)) {
 		GOTO(failed);
 	}
-	*exit_status = pka_channel_get_exit_status(channel);
-	g_object_unref(channel);
+	if (!pka_channel_get_exit_status(channel, exit_status, error)) {
+		g_object_unref(channel);
+		GOTO(failed);
+	}
 	ret = TRUE;
+	g_object_unref(channel);
   failed:
 	RETURN(ret);
 }
