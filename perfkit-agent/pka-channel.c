@@ -552,7 +552,7 @@ pka_channel_inferior_exited (GPid        pid,     /* IN */
 	g_mutex_lock(priv->mutex);
 	priv->exit_status = status;
 	g_mutex_unlock(priv->mutex);
-	pka_channel_stop(channel, FALSE, NULL);
+	pka_channel_stop(channel, pka_context_default(), NULL);
 	g_object_unref(channel);
 	EXIT;
 }
