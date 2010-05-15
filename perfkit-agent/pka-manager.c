@@ -172,6 +172,7 @@ pka_manager_init_listeners (void)
 	PkaPlugin *plugin;
 	GError *error = NULL;
 	gint i;
+	gint j;
 
 	ENTRY;
 	G_LOCK(plugins);
@@ -195,7 +196,6 @@ pka_manager_init_listeners (void)
 			G_UNLOCK(listeners);
 		}
 	}
-	G_UNLOCK(plugins);
 	G_LOCK(listeners);
 	for (i = 0; i < manager.listeners->len; i++) {
 		listener = g_ptr_array_index(manager.listeners, i);
@@ -203,9 +203,17 @@ pka_manager_init_listeners (void)
 			WARNING(Listener, "Error starting listener: %s",
 			        error ? error->message : "unknown error");
 			g_clear_error(&error);
+			continue;
+		}
+		for (j = 0; j < manager.plugins->len; j++) {
+			plugin = g_ptr_array_index(manager.plugins, j);
+			if (pka_plugin_get_plugin_type(plugin) != PKA_PLUGIN_LISTENER) {
+				pka_listener_plugin_added(listener, pka_plugin_get_id(plugin));
+			}
 		}
 	}
 	G_UNLOCK(listeners);
+	G_UNLOCK(plugins);
 	EXIT;
 }
 
