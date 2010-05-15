@@ -106,7 +106,7 @@ perfkit_agent_LDFLAGS =							\
 	-export-symbols-regex "^pka_.*"					\
 	$(NULL)
 
-run: all
+run: perfkit-agent
 	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
 	$(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf
 
