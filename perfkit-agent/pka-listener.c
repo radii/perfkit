@@ -149,6 +149,7 @@ pka_listener_channel_cork_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_channel_cork_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_cork_async(instance,
 	                       NULL,
@@ -229,6 +230,7 @@ pka_listener_channel_get_args_async (PkaListener           *listener,    /* IN *
 	                                   pka_listener_channel_get_args_async);
 	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -306,6 +308,7 @@ pka_listener_channel_get_env_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_channel_get_env_async);
 	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -384,6 +387,7 @@ pka_listener_channel_get_exit_status_async (PkaListener           *listener,    
 	                                   pka_listener_channel_get_exit_status_async);
 	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -465,6 +469,7 @@ pka_listener_channel_get_kill_pid_async (PkaListener           *listener,    /* 
 	                                   pka_listener_channel_get_kill_pid_async);
 	g_simple_async_result_set_op_res_gssize(result, channel);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -662,6 +667,7 @@ pka_listener_channel_get_pid_set_async (PkaListener           *listener,    /* I
 	                                   pka_listener_channel_get_pid_set_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_get_pid_set_async(instance,
 	                              NULL,
@@ -763,6 +769,7 @@ pka_listener_channel_get_sources_async (PkaListener           *listener,    /* I
 	                                   pka_listener_channel_get_sources_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_get_sources_async(instance,
 	                              NULL,
@@ -867,6 +874,7 @@ pka_listener_channel_get_state_async (PkaListener           *listener,    /* IN 
 	                                   pka_listener_channel_get_state_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_get_state_async(instance,
 	                            NULL,
@@ -968,6 +976,7 @@ pka_listener_channel_get_target_async (PkaListener           *listener,    /* IN
 	                                   pka_listener_channel_get_target_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_get_target_async(instance,
 	                             NULL,
@@ -1069,6 +1078,7 @@ pka_listener_channel_get_working_dir_async (PkaListener           *listener,    
 	                                   pka_listener_channel_get_working_dir_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_get_working_dir_async(instance,
 	                                  NULL,
@@ -1159,6 +1169,7 @@ pka_listener_channel_set_args_async (PkaListener           *listener,    /* IN *
 	g_simple_async_result_set_op_res_gpointer(
 			result, call, (GDestroyNotify)ChannelSetArgsCall_Free);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -1241,6 +1252,7 @@ pka_listener_channel_set_env_async (PkaListener           *listener,    /* IN */
 	g_simple_async_result_set_op_res_gpointer(
 			result, call, (GDestroyNotify)ChannelSetEnvCall_Free);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -1322,6 +1334,7 @@ pka_listener_channel_set_kill_pid_async (PkaListener           *listener,    /* 
 	g_simple_async_result_set_op_res_gpointer(
 			result, call, (GDestroyNotify)ChannelSetKillPidCall_Free);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -1405,6 +1418,7 @@ pka_listener_channel_set_pid_async (PkaListener           *listener,    /* IN */
 	g_simple_async_result_set_op_res_gpointer(
 			result, call, (GDestroyNotify)ChannelSetPidCall_Free);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -1502,6 +1516,7 @@ pka_listener_channel_set_target_async (PkaListener           *listener,    /* IN
 	                                   pka_listener_channel_set_target_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_set_target_async(instance,
 	                             NULL,
@@ -1604,6 +1619,7 @@ pka_listener_channel_set_working_dir_async (PkaListener           *listener,    
 	                                   pka_listener_channel_set_working_dir_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_set_working_dir_async(instance,
 	                                  NULL,
@@ -1703,6 +1719,7 @@ pka_listener_channel_start_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_channel_start_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_start_async(instance,
 	                        NULL,
@@ -1803,6 +1820,7 @@ pka_listener_channel_stop_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_channel_stop_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_stop_async(instance,
 	                       NULL,
@@ -1901,6 +1919,7 @@ pka_listener_channel_uncork_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_channel_uncork_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_channel_uncork_async(instance,
 	                         NULL,
@@ -1999,6 +2018,7 @@ pka_listener_encoder_get_plugin_async (PkaListener           *listener,    /* IN
 	                                   pka_listener_encoder_get_plugin_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_encoder_get_plugin_async(instance,
 	                             NULL,
@@ -2077,7 +2097,8 @@ pka_listener_manager_add_channel_async (PkaListener           *listener,    /* I
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_manager_add_channel_async);
-	g_simple_async_result_complete_in_idle(result);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -2179,6 +2200,7 @@ pka_listener_manager_add_subscription_async (PkaListener           *listener,   
 	                                   pka_listener_manager_add_subscription_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_manager_add_subscription_async(instance,
 	                                   NULL,
@@ -2266,6 +2288,7 @@ pka_listener_manager_get_channels_async (PkaListener           *listener,    /* 
 	                                   user_data,
 	                                   pka_listener_manager_get_channels_async);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -2344,6 +2367,7 @@ pka_listener_manager_get_plugins_async (PkaListener           *listener,    /* I
 	                                   user_data,
 	                                   pka_listener_manager_get_plugins_async);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -2419,6 +2443,7 @@ pka_listener_manager_get_version_async (PkaListener           *listener,    /* I
 	                                   user_data,
 	                                   pka_listener_manager_get_version_async);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -2478,6 +2503,7 @@ pka_listener_manager_ping_async (PkaListener           *listener,    /* IN */
 	                                   user_data,
 	                                   pka_listener_manager_ping_async);
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -2559,6 +2585,7 @@ pka_listener_manager_remove_channel_async (PkaListener           *listener,    /
 	                                   pka_listener_manager_remove_channel_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_manager_remove_channel_async(instance,
 	                                 NULL,
@@ -2660,6 +2687,7 @@ pka_listener_manager_remove_subscription_async (PkaListener           *listener,
 	                                   pka_listener_manager_remove_subscription_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_manager_remove_subscription_async(instance,
 	                                      NULL,
@@ -2762,6 +2790,7 @@ pka_listener_plugin_create_encoder_async (PkaListener           *listener,    /*
 	                                   pka_listener_plugin_create_encoder_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_create_encoder_async(instance,
 	                                NULL,
@@ -2865,6 +2894,7 @@ pka_listener_plugin_create_source_async (PkaListener           *listener,    /* 
 	                                   pka_listener_plugin_create_source_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_create_source_async(instance,
 	                               NULL,
@@ -2967,6 +2997,7 @@ pka_listener_plugin_get_copyright_async (PkaListener           *listener,    /* 
 	                                   pka_listener_plugin_get_copyright_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_get_copyright_async(instance,
 	                               NULL,
@@ -3068,6 +3099,7 @@ pka_listener_plugin_get_description_async (PkaListener           *listener,    /
 	                                   pka_listener_plugin_get_description_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_get_description_async(instance,
 	                                 NULL,
@@ -3169,6 +3201,7 @@ pka_listener_plugin_get_name_async (PkaListener           *listener,    /* IN */
 	                                   pka_listener_plugin_get_name_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_get_name_async(instance,
 	                          NULL,
@@ -3270,6 +3303,7 @@ pka_listener_plugin_get_plugin_type_async (PkaListener           *listener,    /
 	                                   pka_listener_plugin_get_plugin_type_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_get_plugin_type_async(instance,
 	                                 NULL,
@@ -3371,6 +3405,7 @@ pka_listener_plugin_get_version_async (PkaListener           *listener,    /* IN
 	                                   pka_listener_plugin_get_version_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_plugin_get_version_async(instance,
 	                             NULL,
@@ -3472,6 +3507,7 @@ pka_listener_source_get_plugin_async (PkaListener           *listener,    /* IN 
 	                                   pka_listener_source_get_plugin_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_source_get_plugin_async(instance,
 	                            NULL,
@@ -3581,6 +3617,7 @@ pka_listener_subscription_add_channel_async (PkaListener           *listener,   
 	                                   pka_listener_subscription_add_channel_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_add_channel_async(instance,
 	                                   NULL,
@@ -3686,6 +3723,7 @@ pka_listener_subscription_add_source_async (PkaListener           *listener,    
 	                                   pka_listener_subscription_add_source_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_add_source_async(instance,
 	                                  NULL,
@@ -3787,6 +3825,7 @@ pka_listener_subscription_cork_async (PkaListener           *listener,     /* IN
 	                                   pka_listener_subscription_cork_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_cork_async(instance,
 	                            NULL,
@@ -3888,6 +3927,7 @@ pka_listener_subscription_remove_channel_async (PkaListener           *listener,
 	                                   pka_listener_subscription_remove_channel_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_remove_channel_async(instance,
 	                                      NULL,
@@ -3990,6 +4030,7 @@ pka_listener_subscription_remove_source_async (PkaListener           *listener, 
 	                                   pka_listener_subscription_remove_source_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_remove_source_async(instance,
 	                                     NULL,
@@ -4097,6 +4138,7 @@ pka_listener_subscription_set_buffer_async (PkaListener           *listener,    
 	                                   pka_listener_subscription_set_buffer_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_set_buffer_async(instance,
 	                                  NULL,
@@ -4199,6 +4241,7 @@ pka_listener_subscription_uncork_async (PkaListener           *listener,     /* 
 	                                   pka_listener_subscription_uncork_async);
 // TEMP TO TEST RPC RESULTS
 	g_simple_async_result_complete(result);
+	g_object_unref(result);
 #if 0
 	pka_subscription_uncork_async(instance,
 	                              NULL,
