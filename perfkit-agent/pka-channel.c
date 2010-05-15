@@ -20,6 +20,11 @@
 #include "config.h"
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Channel"
+
 #include <glib.h>
 #include <glib-object.h>
 #include <glib/gi18n.h>
@@ -475,6 +480,7 @@ pka_channel_set_kill_pid (PkaChannel  *channel,  /* IN */
 /**
  * pka_channel_get_exit_status:
  * @channel: A #PkaChannel.
+ * @error: A location for a #GError, or %NULL.
  *
  * Retrieves the exit status of the inferior process.  The exit status is
  * only accurate if the process was spawned by @channel and has exited.
@@ -482,16 +488,34 @@ pka_channel_set_kill_pid (PkaChannel  *channel,  /* IN */
  * Returns: The exit status of @channels<!-- -->'s inferior.
  * Side effects: None.
  */
-gint
-pka_channel_get_exit_status (PkaChannel *channel) /* IN */
+gboolean
+pka_channel_get_exit_status (PkaChannel  *channel,     /* IN */
+                             gint        *exit_status, /* OUT */
+                             GError     **error)       /* OUT */
 {
 	PkaChannelPrivate *priv;
-	gint ret;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
+	g_return_val_if_fail(exit_status != NULL, FALSE);
 
 	ENTRY;
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
-	ret = priv->exit_status;
+	if (priv->state != PKA_CHANNEL_STOPPED) {
+		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
+		            "The process has not exited yet.");
+		GOTO(failed);
+	}
+	if (priv->pid_set) {
+		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
+		            "The exit status may only be retrieved from processes "
+		            "spawned by Perfkit.");
+		GOTO(failed);
+	}
+	*exit_status = priv->exit_status;
+	ret = TRUE;
+  failed:
 	g_mutex_unlock(priv->mutex);
 	RETURN(ret);
 }
