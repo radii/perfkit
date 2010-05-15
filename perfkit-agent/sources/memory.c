@@ -169,6 +169,7 @@ const PkaPluginInfo pka_plugin_info = {
 	.name        = "Memory usage sampling",
 	.description = "This source provides memory usage of a target process.",
 	.version     = "0.1.1",
+	.copyright   = "Copyright 2010 Christian Hergert",
 	.factory     = memory_new,
 	.plugin_type = PKA_PLUGIN_SOURCE,
 };

@@ -2843,25 +2843,6 @@ pka_listener_plugin_create_source_finish (PkaListener    *listener, /* IN */
 #endif
 }
 
-#if 0
-static void
-pka_listener_plugin_get_copyright_cb (GObject      *listener,    /* IN */
-                                      GAsyncResult *result,      /* IN */
-                                      gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(plugin_get_copyright));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_plugin_get_copyright_async:
  * @connection: A #PkConnection.
@@ -2885,6 +2866,7 @@ pka_listener_plugin_get_copyright_async (PkaListener           *listener,    /* 
                                          GAsyncReadyCallback    callback,    /* IN */
                                          gpointer               user_data)   /* IN */
 {
+	PluginGetCopyrightCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -2894,16 +2876,12 @@ pka_listener_plugin_get_copyright_async (PkaListener           *listener,    /* 
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_plugin_get_copyright_async);
-// TEMP TO TEST RPC RESULTS
+	call = PluginGetCopyrightCall_Create();
+	call->plugin = g_strdup(plugin);
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)PluginGetCopyrightCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_plugin_get_copyright_async(instance,
-	                               NULL,
-	                               pka_listener_plugin_get_copyright_cb,
-	                               result);
-#endif
-	EXIT;
 }
 
 /**
@@ -2926,23 +2904,24 @@ pka_listener_plugin_get_copyright_finish (PkaListener    *listener,  /* IN */
                                           gchar         **copyright, /* OUT */
                                           GError        **error)     /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	PkaPlugin *plugin;
+	PluginGetCopyrightCall *call;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_copyright), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_plugin_get_copyright_finish(instance,
-	                                      real_result,
-	                                      copyright,
-	                                      error);
+	call = GET_RESULT_POINTER(PluginGetCopyrightCall, result);
+	if (!pka_manager_find_plugin(DEFAULT_CONTEXT, call->plugin,
+	                             &plugin, error)) {
+		GOTO(failed);
+	}
+	*copyright = g_strdup(pka_plugin_get_copyright(plugin));
+	g_object_unref(plugin);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
-#endif
 }
 
 #if 0

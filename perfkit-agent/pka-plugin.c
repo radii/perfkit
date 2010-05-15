@@ -102,6 +102,25 @@ pka_plugin_get_description (PkaPlugin *plugin) /* IN */
 }
 
 /**
+ * pka_plugin_get_copyright:
+ * @plugin: A #PkaPlugin.
+ *
+ * Retrieves the copyright for @plugin.
+ *
+ * Returns: A string which should not be modified or freed.
+ * Side effects: None.
+ */
+const gchar*
+pka_plugin_get_copyright (PkaPlugin *plugin) /* IN */
+{
+	g_return_val_if_fail(PKA_IS_PLUGIN(plugin), NULL);
+	if (plugin->priv->info) {
+		return plugin->priv->info->copyright;
+	}
+	return "";
+}
+
+/**
  * pka_plugin_get_name:
  * @plugin: A #PkaPlugin.
  *

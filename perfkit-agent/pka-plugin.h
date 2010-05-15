@@ -61,6 +61,7 @@ struct _PkaPluginInfo
 	const gchar      *name;
 	const gchar      *version;
 	const gchar      *description;
+	const gchar      *copyright;
 };
 
 struct _PkaPlugin
@@ -78,6 +79,7 @@ struct _PkaPluginClass
 
 GQuark        pka_plugin_error_quark      (void) G_GNUC_CONST;
 GType         pka_plugin_get_type         (void) G_GNUC_CONST;
+const gchar*  pka_plugin_get_copyright    (PkaPlugin    *plugin) G_GNUC_PURE;
 const gchar*  pka_plugin_get_description  (PkaPlugin    *plugin) G_GNUC_PURE;
 const gchar*  pka_plugin_get_id           (PkaPlugin    *plugin) G_GNUC_PURE;
 const gchar*  pka_plugin_get_name         (PkaPlugin    *plugin) G_GNUC_PURE;
