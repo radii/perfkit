@@ -844,7 +844,7 @@ pk_shell_cmd_channel_stop (EggLine  *line,
 /*
  *----------------------------------------------------------------------------
  *
- * pk_shell_cmd_channel_pause --
+ * pk_shell_cmd_channel_mute --
  *
  *    Pause the given channels.
  *
@@ -858,7 +858,7 @@ pk_shell_cmd_channel_stop (EggLine  *line,
  */
 
 static EggLineStatus
-pk_shell_cmd_channel_pause (EggLine  *line,
+pk_shell_cmd_channel_mute (EggLine  *line,
                             gint      argc,
                             gchar   **argv,
                             GError  **error)
@@ -872,7 +872,7 @@ pk_shell_cmd_channel_pause (EggLine  *line,
 
 	for (i = 0; i < argc; i++) {
 		if (pk_util_parse_int (argv [i], &v_int)) {
-			if (!pk_connection_channel_pause(connection, v_int, &lerror)) {
+			if (!pk_connection_channel_mute(connection, v_int, &lerror)) {
 				g_printerr("Error pausing channel %d: %s.\n",
 				           v_int, lerror->message);
 				g_error_free(lerror);
@@ -890,7 +890,7 @@ pk_shell_cmd_channel_pause (EggLine  *line,
 /*
  *----------------------------------------------------------------------------
  *
- * pk_shell_cmd_channel_unpause --
+ * pk_shell_cmd_channel_unmute --
  *
  *    Unpause the given channels.
  *
@@ -904,7 +904,7 @@ pk_shell_cmd_channel_pause (EggLine  *line,
  */
 
 static EggLineStatus
-pk_shell_cmd_channel_unpause (EggLine  *line,
+pk_shell_cmd_channel_unmute (EggLine  *line,
                               gint      argc,
                               gchar   **argv,
                               GError  **error)
@@ -918,7 +918,7 @@ pk_shell_cmd_channel_unpause (EggLine  *line,
 
 	for (i = 0; i < argc; i++) {
 		if (pk_util_parse_int (argv [i], &v_int)) {
-			if (!pk_connection_channel_unpause(connection, v_int, &lerror)) {
+			if (!pk_connection_channel_unmute(connection, v_int, &lerror)) {
 				g_printerr("Error pausing channel %d: %s.\n",
 				           v_int, lerror->message);
 				g_error_free(lerror);
@@ -1394,12 +1394,12 @@ static EggLineCommand channel_commands[] = {
 	{ "stop", NULL, pk_shell_cmd_channel_stop,
 	  N_("Stop the perfkit channel"),
 	  "channel stop" },
-	{ "pause", NULL, pk_shell_cmd_channel_pause,
+	{ "mute", NULL, pk_shell_cmd_channel_mute,
 	  N_("Pause the perfkit channel"),
-	  "channel pause" },
-	{ "unpause", NULL, pk_shell_cmd_channel_unpause,
+	  "channel mute" },
+	{ "unmute", NULL, pk_shell_cmd_channel_unmute,
 	  N_("Unpause the perfkit channel"),
-	  "channel unpause" },
+	  "channel unmute" },
 	{ "get", NULL, pk_shell_cmd_channel_get,
 	  N_("Retrieve channel properties"),
 	  "channel get [CHANNEL] [pid|target|args|env|state]" },
