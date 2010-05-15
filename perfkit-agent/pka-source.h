@@ -26,6 +26,7 @@
 #include <glib-object.h>
 
 #include "pka-manifest.h"
+#include "pka-plugin.h"
 #include "pka-sample.h"
 #include "pka-spawn-info.h"
 
@@ -70,18 +71,19 @@ struct _PkaSourceClass
 	gpointer reserved[16];
 };
 
-GType     pka_source_get_type          (void) G_GNUC_CONST;
-guint     pka_source_get_id            (PkaSource      *source);
-gboolean  pka_source_conflicts         (PkaSource      *source,
-                                        PkaSource      *other,
-                                        GError        **error);
-void      pka_source_deliver_sample    (PkaSource      *source,
-                                        PkaSample      *sample);
-void      pka_source_deliver_manifest  (PkaSource      *source,
-                                        PkaManifest    *manifest);
-gboolean  pka_source_modify_spawn_info (PkaSource     *source,
-                                        PkaSpawnInfo  *spawn_info,
-                                        GError       **error);
+GType      pka_source_get_type          (void) G_GNUC_CONST;
+guint      pka_source_get_id            (PkaSource      *source);
+gboolean   pka_source_conflicts         (PkaSource      *source,
+                                         PkaSource      *other,
+                                         GError        **error);
+void       pka_source_deliver_sample    (PkaSource      *source,
+                                         PkaSample      *sample);
+void       pka_source_deliver_manifest  (PkaSource      *source,
+                                         PkaManifest    *manifest);
+gboolean   pka_source_modify_spawn_info (PkaSource     *source,
+                                         PkaSpawnInfo  *spawn_info,
+                                         GError       **error);
+PkaPlugin* pka_source_get_plugin        (PkaSource     *source);
 
 G_END_DECLS
 

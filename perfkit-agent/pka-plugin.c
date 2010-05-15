@@ -31,6 +31,9 @@
 #include "pka-config.h"
 #include "pka-log.h"
 #include "pka-plugin.h"
+#include "pka-source.h"
+
+extern void pka_source_set_plugin (PkaSource *source, PkaPlugin *plugin);
 
 /**
  * SECTION:pka-plugin
@@ -274,6 +277,11 @@ pka_plugin_create (PkaPlugin  *plugin, /* IN */
 	priv = plugin->priv;
 	if (priv->info->factory) {
 		ret = priv->info->factory(error);
+		if (ret) {
+			if (priv->info->plugin_type == PKA_PLUGIN_SOURCE) {
+				pka_source_set_plugin(PKA_SOURCE(ret), plugin);
+			}
+		}
 	}
 	RETURN(ret);
 }

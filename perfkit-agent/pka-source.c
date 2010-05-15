@@ -52,6 +52,7 @@ struct _PkaSourcePrivate
 {
 	guint       source_id;
 	PkaChannel *channel;
+	PkaPlugin  *plugin;
 };
 
 static guint source_seq = 0;
@@ -176,9 +177,35 @@ pka_source_notify_unmuted (PkaSource *source)
 		PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
 }
 
+PkaPlugin*
+pka_source_get_plugin (PkaSource *source) /* IN */
+{
+	g_return_val_if_fail(PKA_IS_SOURCE(source), NULL);
+	return source->priv->plugin;
+}
+
+void
+pka_source_set_plugin (PkaSource *source,
+                       PkaPlugin *plugin) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(source->priv->plugin == NULL);
+	source->priv->plugin = g_object_ref(plugin);
+}
+
 static void
 pka_source_finalize (GObject *object)
 {
+	PkaSourcePrivate *priv = PKA_SOURCE(object)->priv;
+
+	if (priv->plugin) {
+		g_object_unref(priv->plugin);
+	}
+
+	if (priv->channel) {
+		g_object_unref(priv->channel);
+	}
+
 	G_OBJECT_CLASS(pka_source_parent_class)->finalize(object);
 }
 
