@@ -234,21 +234,21 @@ pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
 }
 
 /**
- * pk_connection_channel_cork_cb:
+ * pk_connection_channel_get_args_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
  * @user_data: A #GAsyncResult.
  *
- * Callback to notify a synchronous call to the "channel_cork" RPC that it
+ * Callback to notify a synchronous call to the "channel_get_args" RPC that it
  * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_cork_cb (GObject      *source,    /* IN */
-                               GAsyncResult *result,    /* IN */
-                               gpointer      user_data) /* IN */
+pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
+                                   GAsyncResult *result,    /* IN */
+                                   gpointer      user_data) /* IN */
 {
 	PkConnectionSync *sync = user_data;
 
@@ -256,105 +256,745 @@ pk_connection_channel_cork_cb (GObject      *source,    /* IN */
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_cork_finish(PK_CONNECTION(source),
-	                                                 result,
-	                                                 sync->error);
+	sync->result = pk_connection_channel_get_args_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     sync->params[0],
+	                                                     sync->error);
 	pk_connection_sync_signal(sync);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_cork:
+ * pk_connection_channel_get_args:
  * @connection: A #PkConnection.
  *
- * Synchronous implemenation of the "channel_cork" RPC.  Using
+ * Synchronous implemenation of the "channel_get_args" RPC.  Using
  * synchronous RPCs is generally frowned upon.
  *
- * Notifies @channel to silently drop manifest and sample updates until
- * uncork() is called.
+ * Retrieves the arguments for target.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_cork (PkConnection  *connection, /* IN */
-                            gint           channel,    /* IN */
-                            GError       **error)      /* OUT */
+pk_connection_channel_get_args (PkConnection   *connection, /* IN */
+                                gint            channel,    /* IN */
+                                gchar        ***args,       /* OUT */
+                                GError        **error)      /* OUT */
 {
 	PkConnectionSync sync;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_cork);
+	CHECK_FOR_RPC(channel_get_args);
 	pk_connection_sync_init(&sync);
 	sync.error = error;
-	pk_connection_channel_cork_async(connection,
-	                                 channel,
-	                                 NULL,
-	                                 pk_connection_channel_cork_cb,
-	                                 &sync);
+	sync.params[0] = args;
+	pk_connection_channel_get_args_async(connection,
+	                                     channel,
+	                                     NULL,
+	                                     pk_connection_channel_get_args_cb,
+	                                     &sync);
 	pk_connection_sync_wait(&sync);
 	pk_connection_sync_destroy(&sync);
 	RETURN(sync.result);
 }
 
 /**
- * pk_connection_channel_cork_async:
+ * pk_connection_channel_get_args_async:
  * @connection: A #PkConnection.
  *
- * Asynchronous implementation of the "channel_cork_async" RPC.
+ * Asynchronous implementation of the "channel_get_args_async" RPC.
  *
- * Notifies @channel to silently drop manifest and sample updates until
- * uncork() is called.
+ * Retrieves the arguments for target.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_channel_cork_async (PkConnection        *connection,  /* IN */
-                                  gint                 channel,     /* IN */
-                                  GCancellable        *cancellable, /* IN */
-                                  GAsyncReadyCallback  callback,    /* IN */
-                                  gpointer             user_data)   /* IN */
+pk_connection_channel_get_args_async (PkConnection        *connection,  /* IN */
+                                      gint                 channel,     /* IN */
+                                      GCancellable        *cancellable, /* IN */
+                                      GAsyncReadyCallback  callback,    /* IN */
+                                      gpointer             user_data)   /* IN */
 {
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(channel_cork)(connection,
-	                        channel,
-	                        cancellable,
-	                        callback,
-	                        user_data);
+	RPC_ASYNC(channel_get_args)(connection,
+	                            channel,
+	                            cancellable,
+	                            callback,
+	                            user_data);
 	EXIT;
 }
 
 /**
- * pk_connection_channel_cork_finish:
+ * pk_connection_channel_get_args_finish:
  * @connection: A #PkConnection.
  *
- * Completion of an asynchronous call to the "channel_cork_finish" RPC.
+ * Completion of an asynchronous call to the "channel_get_args_finish" RPC.
  *
- * Notifies @channel to silently drop manifest and sample updates until
- * uncork() is called.
+ * Retrieves the arguments for target.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_cork_finish (PkConnection  *connection, /* IN */
-                                   GAsyncResult  *result,     /* IN */
-                                   GError       **error)      /* OUT */
+pk_connection_channel_get_args_finish (PkConnection   *connection, /* IN */
+                                       GAsyncResult   *result,     /* IN */
+                                       gchar        ***args,       /* OUT */
+                                       GError        **error)      /* OUT */
 {
 	gboolean ret;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, channel_cork)(connection,
-	                              result,
-	                              error);
+	RPC_FINISH(ret, channel_get_args)(connection,
+	                                  result,
+	                                  args,
+	                                  error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_env_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_env" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_env_cb (GObject      *source,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_env_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    sync->params[0],
+	                                                    sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_env:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_env" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the environment for spawning the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_env (PkConnection   *connection, /* IN */
+                               gint            channel,    /* IN */
+                               gchar        ***env,        /* OUT */
+                               GError        **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_env);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = env;
+	pk_connection_channel_get_env_async(connection,
+	                                    channel,
+	                                    NULL,
+	                                    pk_connection_channel_get_env_cb,
+	                                    &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_env_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_env_async" RPC.
+ *
+ * Retrieves the environment for spawning the target process.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_env_async (PkConnection        *connection,  /* IN */
+                                     gint                 channel,     /* IN */
+                                     GCancellable        *cancellable, /* IN */
+                                     GAsyncReadyCallback  callback,    /* IN */
+                                     gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_env)(connection,
+	                           channel,
+	                           cancellable,
+	                           callback,
+	                           user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_env_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_env_finish" RPC.
+ *
+ * Retrieves the environment for spawning the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_env_finish (PkConnection   *connection, /* IN */
+                                      GAsyncResult   *result,     /* IN */
+                                      gchar        ***env,        /* OUT */
+                                      GError        **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_env)(connection,
+	                                 result,
+	                                 env,
+	                                 error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_exit_status_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_exit_status" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_exit_status_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_exit_status_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->params[0],
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_exit_status:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_exit_status" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the exit status of the process.  This is only set after the
+ * process has exited.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_exit_status (PkConnection  *connection,  /* IN */
+                                       gint           channel,     /* IN */
+                                       gint          *exit_status, /* OUT */
+                                       GError       **error)       /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_exit_status);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = exit_status;
+	pk_connection_channel_get_exit_status_async(connection,
+	                                            channel,
+	                                            NULL,
+	                                            pk_connection_channel_get_exit_status_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_exit_status_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_exit_status_async" RPC.
+ *
+ * Retrieves the exit status of the process.  This is only set after the
+ * process has exited.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_exit_status_async (PkConnection        *connection,  /* IN */
+                                             gint                 channel,     /* IN */
+                                             GCancellable        *cancellable, /* IN */
+                                             GAsyncReadyCallback  callback,    /* IN */
+                                             gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_exit_status)(connection,
+	                                   channel,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_exit_status_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_exit_status_finish" RPC.
+ *
+ * Retrieves the exit status of the process.  This is only set after the
+ * process has exited.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_exit_status_finish (PkConnection  *connection,  /* IN */
+                                              GAsyncResult  *result,      /* IN */
+                                              gint          *exit_status, /* OUT */
+                                              GError       **error)       /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_exit_status)(connection,
+	                                         result,
+	                                         exit_status,
+	                                         error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_kill_pid_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_kill_pid" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_kill_pid_cb (GObject      *source,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_kill_pid_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         sync->params[0],
+	                                                         sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_kill_pid:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_kill_pid" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_kill_pid (PkConnection  *connection, /* IN */
+                                    gint           channel,    /* IN */
+                                    gboolean      *kill_pid,   /* OUT */
+                                    GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_kill_pid);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = kill_pid;
+	pk_connection_channel_get_kill_pid_async(connection,
+	                                         channel,
+	                                         NULL,
+	                                         pk_connection_channel_get_kill_pid_cb,
+	                                         &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_kill_pid_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_kill_pid_async" RPC.
+ *
+ * Retrieves if the process should be killed when the channel is stopped.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_kill_pid_async (PkConnection        *connection,  /* IN */
+                                          gint                 channel,     /* IN */
+                                          GCancellable        *cancellable, /* IN */
+                                          GAsyncReadyCallback  callback,    /* IN */
+                                          gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_kill_pid)(connection,
+	                                channel,
+	                                cancellable,
+	                                callback,
+	                                user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_kill_pid_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_kill_pid_finish" RPC.
+ *
+ * Retrieves if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_kill_pid_finish (PkConnection  *connection, /* IN */
+                                           GAsyncResult  *result,     /* IN */
+                                           gboolean      *kill_pid,   /* OUT */
+                                           GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_kill_pid)(connection,
+	                                      result,
+	                                      kill_pid,
+	                                      error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_pid_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_pid" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_pid_cb (GObject      *source,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_pid_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    sync->params[0],
+	                                                    sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_pid" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the process pid of the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_pid (PkConnection  *connection, /* IN */
+                               gint           channel,    /* IN */
+                               gint          *pid,        /* OUT */
+                               GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_pid);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = pid;
+	pk_connection_channel_get_pid_async(connection,
+	                                    channel,
+	                                    NULL,
+	                                    pk_connection_channel_get_pid_cb,
+	                                    &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_pid_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_pid_async" RPC.
+ *
+ * Retrieves the process pid of the target process.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_pid_async (PkConnection        *connection,  /* IN */
+                                     gint                 channel,     /* IN */
+                                     GCancellable        *cancellable, /* IN */
+                                     GAsyncReadyCallback  callback,    /* IN */
+                                     gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_pid)(connection,
+	                           channel,
+	                           cancellable,
+	                           callback,
+	                           user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_pid_finish" RPC.
+ *
+ * Retrieves the process pid of the target process.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_pid_finish (PkConnection  *connection, /* IN */
+                                      GAsyncResult  *result,     /* IN */
+                                      gint          *pid,        /* OUT */
+                                      GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_pid)(connection,
+	                                 result,
+	                                 pid,
+	                                 error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_pid_set_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_pid_set" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_pid_set_cb (GObject      *source,    /* IN */
+                                      GAsyncResult *result,    /* IN */
+                                      gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_pid_set_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        sync->params[0],
+	                                                        sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid_set:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_pid_set" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves if the "pid" property was set manually.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_pid_set (PkConnection  *connection, /* IN */
+                                   gint           channel,    /* IN */
+                                   gboolean      *pid_set,    /* OUT */
+                                   GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_pid_set);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = pid_set;
+	pk_connection_channel_get_pid_set_async(connection,
+	                                        channel,
+	                                        NULL,
+	                                        pk_connection_channel_get_pid_set_cb,
+	                                        &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_pid_set_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_pid_set_async" RPC.
+ *
+ * Retrieves if the "pid" property was set manually.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_pid_set_async (PkConnection        *connection,  /* IN */
+                                         gint                 channel,     /* IN */
+                                         GCancellable        *cancellable, /* IN */
+                                         GAsyncReadyCallback  callback,    /* IN */
+                                         gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_pid_set)(connection,
+	                               channel,
+	                               cancellable,
+	                               callback,
+	                               user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_pid_set_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_pid_set_finish" RPC.
+ *
+ * Retrieves if the "pid" property was set manually.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_pid_set_finish (PkConnection  *connection, /* IN */
+                                          GAsyncResult  *result,     /* IN */
+                                          gboolean      *pid_set,    /* OUT */
+                                          GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_pid_set)(connection,
+	                                     result,
+	                                     pid_set,
+	                                     error);
 	RETURN(ret);
 }
 
@@ -487,6 +1127,1283 @@ pk_connection_channel_get_sources_finish (PkConnection  *connection,  /* IN */
 	                                     sources,
 	                                     sources_len,
 	                                     error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_state_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_state" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_state_cb (GObject      *source,    /* IN */
+                                    GAsyncResult *result,    /* IN */
+                                    gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_state_finish(PK_CONNECTION(source),
+	                                                      result,
+	                                                      sync->params[0],
+	                                                      sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_state:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_state" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_state (PkConnection  *connection, /* IN */
+                                 gint           channel,    /* IN */
+                                 gint          *state,      /* OUT */
+                                 GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_state);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = state;
+	pk_connection_channel_get_state_async(connection,
+	                                      channel,
+	                                      NULL,
+	                                      pk_connection_channel_get_state_cb,
+	                                      &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_state_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_state_async" RPC.
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_state_async (PkConnection        *connection,  /* IN */
+                                       gint                 channel,     /* IN */
+                                       GCancellable        *cancellable, /* IN */
+                                       GAsyncReadyCallback  callback,    /* IN */
+                                       gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_state)(connection,
+	                             channel,
+	                             cancellable,
+	                             callback,
+	                             user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_state_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_state_finish" RPC.
+ *
+ * Retrieves the current state of the channel.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_state_finish (PkConnection  *connection, /* IN */
+                                        GAsyncResult  *result,     /* IN */
+                                        gint          *state,      /* OUT */
+                                        GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_state)(connection,
+	                                   result,
+	                                   state,
+	                                   error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_target_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_target" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_target_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_target_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->params[0],
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_target:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_target" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the channels target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_target (PkConnection  *connection, /* IN */
+                                  gint           channel,    /* IN */
+                                  gchar        **target,     /* OUT */
+                                  GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_target);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = target;
+	pk_connection_channel_get_target_async(connection,
+	                                       channel,
+	                                       NULL,
+	                                       pk_connection_channel_get_target_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_target_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_target_async" RPC.
+ *
+ * Retrieves the channels target.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_target_async (PkConnection        *connection,  /* IN */
+                                        gint                 channel,     /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_target)(connection,
+	                              channel,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_target_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_target_finish" RPC.
+ *
+ * Retrieves the channels target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_target_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         gchar        **target,     /* OUT */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_target)(connection,
+	                                    result,
+	                                    target,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_get_working_dir_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_working_dir" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_working_dir_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_working_dir_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->params[0],
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_working_dir:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_working_dir" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the working directory of the target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_working_dir (PkConnection  *connection,  /* IN */
+                                       gint           channel,     /* IN */
+                                       gchar        **working_dir, /* OUT */
+                                       GError       **error)       /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_working_dir);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = working_dir;
+	pk_connection_channel_get_working_dir_async(connection,
+	                                            channel,
+	                                            NULL,
+	                                            pk_connection_channel_get_working_dir_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_working_dir_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_working_dir_async" RPC.
+ *
+ * Retrieves the working directory of the target.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_working_dir_async (PkConnection        *connection,  /* IN */
+                                             gint                 channel,     /* IN */
+                                             GCancellable        *cancellable, /* IN */
+                                             GAsyncReadyCallback  callback,    /* IN */
+                                             gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_working_dir)(connection,
+	                                   channel,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_working_dir_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_working_dir_finish" RPC.
+ *
+ * Retrieves the working directory of the target.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_working_dir_finish (PkConnection  *connection,  /* IN */
+                                              GAsyncResult  *result,      /* IN */
+                                              gchar        **working_dir, /* OUT */
+                                              GError       **error)       /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_working_dir)(connection,
+	                                         result,
+	                                         working_dir,
+	                                         error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_mute_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_mute" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_mute_cb (GObject      *source,    /* IN */
+                               GAsyncResult *result,    /* IN */
+                               gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_mute_finish(PK_CONNECTION(source),
+	                                                 result,
+	                                                 sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_mute:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_mute" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Notifies @channel to silently drop manifest and sample updates until
+ * unmute() is called.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_mute (PkConnection  *connection, /* IN */
+                            gint           channel,    /* IN */
+                            GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_mute);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_mute_async(connection,
+	                                 channel,
+	                                 NULL,
+	                                 pk_connection_channel_mute_cb,
+	                                 &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_mute_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_mute_async" RPC.
+ *
+ * Notifies @channel to silently drop manifest and sample updates until
+ * unmute() is called.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_mute_async (PkConnection        *connection,  /* IN */
+                                  gint                 channel,     /* IN */
+                                  GCancellable        *cancellable, /* IN */
+                                  GAsyncReadyCallback  callback,    /* IN */
+                                  gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_mute)(connection,
+	                        channel,
+	                        cancellable,
+	                        callback,
+	                        user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_mute_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_mute_finish" RPC.
+ *
+ * Notifies @channel to silently drop manifest and sample updates until
+ * unmute() is called.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_mute_finish (PkConnection  *connection, /* IN */
+                                   GAsyncResult  *result,     /* IN */
+                                   GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_mute)(connection,
+	                              result,
+	                              error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_args_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_args" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_args_cb (GObject      *source,    /* IN */
+                                   GAsyncResult *result,    /* IN */
+                                   gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_args_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_args:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_args" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the targets arguments.  This may only be set before the channel
+ * has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_args (PkConnection  *connection, /* IN */
+                                gint           channel,    /* IN */
+                                gchar        **args,       /* IN */
+                                GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_args);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_args_async(connection,
+	                                     channel,
+	                                     args,
+	                                     NULL,
+	                                     pk_connection_channel_set_args_cb,
+	                                     &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_args_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_args_async" RPC.
+ *
+ * Sets the targets arguments.  This may only be set before the channel
+ * has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_args_async (PkConnection         *connection,  /* IN */
+                                      gint                  channel,     /* IN */
+                                      gchar               **args,        /* IN */
+                                      GCancellable         *cancellable, /* IN */
+                                      GAsyncReadyCallback   callback,    /* IN */
+                                      gpointer              user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_args)(connection,
+	                            channel,
+	                            args,
+	                            cancellable,
+	                            callback,
+	                            user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_args_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_args_finish" RPC.
+ *
+ * Sets the targets arguments.  This may only be set before the channel
+ * has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_args_finish (PkConnection  *connection, /* IN */
+                                       GAsyncResult  *result,     /* IN */
+                                       GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_args)(connection,
+	                                  result,
+	                                  error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_env_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_env" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_env_cb (GObject      *source,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_env_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_env:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_env" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the environment of the target process.  This may only be set before
+ * the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_env (PkConnection  *connection, /* IN */
+                               gint           channel,    /* IN */
+                               gchar        **env,        /* IN */
+                               GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_env);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_env_async(connection,
+	                                    channel,
+	                                    env,
+	                                    NULL,
+	                                    pk_connection_channel_set_env_cb,
+	                                    &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_env_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_env_async" RPC.
+ *
+ * Sets the environment of the target process.  This may only be set before
+ * the channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_env_async (PkConnection         *connection,  /* IN */
+                                     gint                  channel,     /* IN */
+                                     gchar               **env,         /* IN */
+                                     GCancellable         *cancellable, /* IN */
+                                     GAsyncReadyCallback   callback,    /* IN */
+                                     gpointer              user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_env)(connection,
+	                           channel,
+	                           env,
+	                           cancellable,
+	                           callback,
+	                           user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_env_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_env_finish" RPC.
+ *
+ * Sets the environment of the target process.  This may only be set before
+ * the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_env_finish (PkConnection  *connection, /* IN */
+                                      GAsyncResult  *result,     /* IN */
+                                      GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_env)(connection,
+	                                 result,
+	                                 error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_kill_pid_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_kill_pid" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_kill_pid_cb (GObject      *source,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_kill_pid_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_kill_pid:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_kill_pid" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_kill_pid (PkConnection  *connection, /* IN */
+                                    gint           channel,    /* IN */
+                                    gboolean       kill_pid,   /* IN */
+                                    GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_kill_pid);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_kill_pid_async(connection,
+	                                         channel,
+	                                         kill_pid,
+	                                         NULL,
+	                                         pk_connection_channel_set_kill_pid_cb,
+	                                         &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_kill_pid_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_kill_pid_async" RPC.
+ *
+ * Sets if the process should be killed when the channel is stopped.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_kill_pid_async (PkConnection        *connection,  /* IN */
+                                          gint                 channel,     /* IN */
+                                          gboolean             kill_pid,    /* IN */
+                                          GCancellable        *cancellable, /* IN */
+                                          GAsyncReadyCallback  callback,    /* IN */
+                                          gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_kill_pid)(connection,
+	                                channel,
+	                                kill_pid,
+	                                cancellable,
+	                                callback,
+	                                user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_kill_pid_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_kill_pid_finish" RPC.
+ *
+ * Sets if the process should be killed when the channel is stopped.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_kill_pid_finish (PkConnection  *connection, /* IN */
+                                           GAsyncResult  *result,     /* IN */
+                                           GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_kill_pid)(connection,
+	                                      result,
+	                                      error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_pid_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_pid" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_pid_cb (GObject      *source,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_pid_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_pid:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_pid" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the target pid to attach to rather than spawning a process.  This can
+ * only be set before the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_pid (PkConnection  *connection, /* IN */
+                               gint           channel,    /* IN */
+                               gint           pid,        /* IN */
+                               GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_pid);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_pid_async(connection,
+	                                    channel,
+	                                    pid,
+	                                    NULL,
+	                                    pk_connection_channel_set_pid_cb,
+	                                    &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_pid_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_pid_async" RPC.
+ *
+ * Sets the target pid to attach to rather than spawning a process.  This can
+ * only be set before the channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_pid_async (PkConnection        *connection,  /* IN */
+                                     gint                 channel,     /* IN */
+                                     gint                 pid,         /* IN */
+                                     GCancellable        *cancellable, /* IN */
+                                     GAsyncReadyCallback  callback,    /* IN */
+                                     gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_pid)(connection,
+	                           channel,
+	                           pid,
+	                           cancellable,
+	                           callback,
+	                           user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_pid_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_pid_finish" RPC.
+ *
+ * Sets the target pid to attach to rather than spawning a process.  This can
+ * only be set before the channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_pid_finish (PkConnection  *connection, /* IN */
+                                      GAsyncResult  *result,     /* IN */
+                                      GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_pid)(connection,
+	                                 result,
+	                                 error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_target_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_target" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_target_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_target_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_target:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_target" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the channels target.  This may only be set before the channel has
+ * started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_target (PkConnection  *connection, /* IN */
+                                  gint           channel,    /* IN */
+                                  const gchar   *target,     /* IN */
+                                  GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_target);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_target_async(connection,
+	                                       channel,
+	                                       target,
+	                                       NULL,
+	                                       pk_connection_channel_set_target_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_target_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_target_async" RPC.
+ *
+ * Sets the channels target.  This may only be set before the channel has
+ * started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_target_async (PkConnection        *connection,  /* IN */
+                                        gint                 channel,     /* IN */
+                                        const gchar         *target,      /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_target)(connection,
+	                              channel,
+	                              target,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_target_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_target_finish" RPC.
+ *
+ * Sets the channels target.  This may only be set before the channel has
+ * started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_target_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_target)(connection,
+	                                    result,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_channel_set_working_dir_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_set_working_dir" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_set_working_dir_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_set_working_dir_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_working_dir:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_set_working_dir" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the targets working directory.  This may only be set before the
+ * channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_working_dir (PkConnection  *connection,  /* IN */
+                                       gint           channel,     /* IN */
+                                       const gchar   *working_dir, /* IN */
+                                       GError       **error)       /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_set_working_dir);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_set_working_dir_async(connection,
+	                                            channel,
+	                                            working_dir,
+	                                            NULL,
+	                                            pk_connection_channel_set_working_dir_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_set_working_dir_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_set_working_dir_async" RPC.
+ *
+ * Sets the targets working directory.  This may only be set before the
+ * channel has started.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_set_working_dir_async (PkConnection        *connection,  /* IN */
+                                             gint                 channel,     /* IN */
+                                             const gchar         *working_dir, /* IN */
+                                             GCancellable        *cancellable, /* IN */
+                                             GAsyncReadyCallback  callback,    /* IN */
+                                             gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_set_working_dir)(connection,
+	                                   channel,
+	                                   working_dir,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_set_working_dir_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_set_working_dir_finish" RPC.
+ *
+ * Sets the targets working directory.  This may only be set before the
+ * channel has started.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_set_working_dir_finish (PkConnection  *connection, /* IN */
+                                              GAsyncResult  *result,     /* IN */
+                                              GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_set_working_dir)(connection,
+	                                         result,
+	                                         error);
 	RETURN(ret);
 }
 
@@ -657,7 +2574,6 @@ pk_connection_channel_stop_cb (GObject      *source,    /* IN */
 gboolean
 pk_connection_channel_stop (PkConnection  *connection, /* IN */
                             gint           channel,    /* IN */
-                            gboolean       killpid,    /* IN */
                             GError       **error)      /* OUT */
 {
 	PkConnectionSync sync;
@@ -670,7 +2586,6 @@ pk_connection_channel_stop (PkConnection  *connection, /* IN */
 	sync.error = error;
 	pk_connection_channel_stop_async(connection,
 	                                 channel,
-	                                 killpid,
 	                                 NULL,
 	                                 pk_connection_channel_stop_cb,
 	                                 &sync);
@@ -693,7 +2608,6 @@ pk_connection_channel_stop (PkConnection  *connection, /* IN */
 void
 pk_connection_channel_stop_async (PkConnection        *connection,  /* IN */
                                   gint                 channel,     /* IN */
-                                  gboolean             killpid,     /* IN */
                                   GCancellable        *cancellable, /* IN */
                                   GAsyncReadyCallback  callback,    /* IN */
                                   gpointer             user_data)   /* IN */
@@ -704,7 +2618,6 @@ pk_connection_channel_stop_async (PkConnection        *connection,  /* IN */
 	ENTRY;
 	RPC_ASYNC(channel_stop)(connection,
 	                        channel,
-	                        killpid,
 	                        cancellable,
 	                        callback,
 	                        user_data);
@@ -739,19 +2652,19 @@ pk_connection_channel_stop_finish (PkConnection  *connection, /* IN */
 }
 
 /**
- * pk_connection_channel_uncork_cb:
+ * pk_connection_channel_unmute_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
  * @user_data: A #GAsyncResult.
  *
- * Callback to notify a synchronous call to the "channel_uncork" RPC that it
+ * Callback to notify a synchronous call to the "channel_unmute" RPC that it
  * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_channel_uncork_cb (GObject      *source,    /* IN */
+pk_connection_channel_unmute_cb (GObject      *source,    /* IN */
                                  GAsyncResult *result,    /* IN */
                                  gpointer      user_data) /* IN */
 {
@@ -761,7 +2674,7 @@ pk_connection_channel_uncork_cb (GObject      *source,    /* IN */
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_uncork_finish(PK_CONNECTION(source),
+	sync->result = pk_connection_channel_unmute_finish(PK_CONNECTION(source),
 	                                                   result,
 	                                                   sync->error);
 	pk_connection_sync_signal(sync);
@@ -769,10 +2682,10 @@ pk_connection_channel_uncork_cb (GObject      *source,    /* IN */
 }
 
 /**
- * pk_connection_channel_uncork:
+ * pk_connection_channel_unmute:
  * @connection: A #PkConnection.
  *
- * Synchronous implemenation of the "channel_uncork" RPC.  Using
+ * Synchronous implemenation of the "channel_unmute" RPC.  Using
  * synchronous RPCs is generally frowned upon.
  *
  * Resumes delivery of manifest and samples for sources within the channel.
@@ -781,7 +2694,7 @@ pk_connection_channel_uncork_cb (GObject      *source,    /* IN */
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_uncork (PkConnection  *connection, /* IN */
+pk_connection_channel_unmute (PkConnection  *connection, /* IN */
                               gint           channel,    /* IN */
                               GError       **error)      /* OUT */
 {
@@ -790,13 +2703,13 @@ pk_connection_channel_uncork (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(channel_uncork);
+	CHECK_FOR_RPC(channel_unmute);
 	pk_connection_sync_init(&sync);
 	sync.error = error;
-	pk_connection_channel_uncork_async(connection,
+	pk_connection_channel_unmute_async(connection,
 	                                   channel,
 	                                   NULL,
-	                                   pk_connection_channel_uncork_cb,
+	                                   pk_connection_channel_unmute_cb,
 	                                   &sync);
 	pk_connection_sync_wait(&sync);
 	pk_connection_sync_destroy(&sync);
@@ -804,10 +2717,10 @@ pk_connection_channel_uncork (PkConnection  *connection, /* IN */
 }
 
 /**
- * pk_connection_channel_uncork_async:
+ * pk_connection_channel_unmute_async:
  * @connection: A #PkConnection.
  *
- * Asynchronous implementation of the "channel_uncork_async" RPC.
+ * Asynchronous implementation of the "channel_unmute_async" RPC.
  *
  * Resumes delivery of manifest and samples for sources within the channel.
  *
@@ -815,7 +2728,7 @@ pk_connection_channel_uncork (PkConnection  *connection, /* IN */
  * Side effects: None.
  */
 void
-pk_connection_channel_uncork_async (PkConnection        *connection,  /* IN */
+pk_connection_channel_unmute_async (PkConnection        *connection,  /* IN */
                                     gint                 channel,     /* IN */
                                     GCancellable        *cancellable, /* IN */
                                     GAsyncReadyCallback  callback,    /* IN */
@@ -825,7 +2738,7 @@ pk_connection_channel_uncork_async (PkConnection        *connection,  /* IN */
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(channel_uncork)(connection,
+	RPC_ASYNC(channel_unmute)(connection,
 	                          channel,
 	                          cancellable,
 	                          callback,
@@ -834,10 +2747,10 @@ pk_connection_channel_uncork_async (PkConnection        *connection,  /* IN */
 }
 
 /**
- * pk_connection_channel_uncork_finish:
+ * pk_connection_channel_unmute_finish:
  * @connection: A #PkConnection.
  *
- * Completion of an asynchronous call to the "channel_uncork_finish" RPC.
+ * Completion of an asynchronous call to the "channel_unmute_finish" RPC.
  *
  * Resumes delivery of manifest and samples for sources within the channel.
  *
@@ -845,7 +2758,7 @@ pk_connection_channel_uncork_async (PkConnection        *connection,  /* IN */
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_uncork_finish (PkConnection  *connection, /* IN */
+pk_connection_channel_unmute_finish (PkConnection  *connection, /* IN */
                                      GAsyncResult  *result,     /* IN */
                                      GError       **error)      /* OUT */
 {
@@ -854,7 +2767,7 @@ pk_connection_channel_uncork_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, channel_uncork)(connection,
+	RPC_FINISH(ret, channel_unmute)(connection,
 	                                result,
 	                                error);
 	RETURN(ret);
@@ -3314,19 +5227,19 @@ pk_connection_subscription_add_source_finish (PkConnection  *connection, /* IN *
 }
 
 /**
- * pk_connection_subscription_cork_cb:
+ * pk_connection_subscription_mute_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
  * @user_data: A #GAsyncResult.
  *
- * Callback to notify a synchronous call to the "subscription_cork" RPC that it
+ * Callback to notify a synchronous call to the "subscription_mute" RPC that it
  * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_subscription_cork_cb (GObject      *source,    /* IN */
+pk_connection_subscription_mute_cb (GObject      *source,    /* IN */
                                     GAsyncResult *result,    /* IN */
                                     gpointer      user_data) /* IN */
 {
@@ -3336,7 +5249,7 @@ pk_connection_subscription_cork_cb (GObject      *source,    /* IN */
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_cork_finish(PK_CONNECTION(source),
+	sync->result = pk_connection_subscription_mute_finish(PK_CONNECTION(source),
 	                                                      result,
 	                                                      sync->error);
 	pk_connection_sync_signal(sync);
@@ -3344,19 +5257,20 @@ pk_connection_subscription_cork_cb (GObject      *source,    /* IN */
 }
 
 /**
- * pk_connection_subscription_cork:
+ * pk_connection_subscription_mute:
  * @connection: A #PkConnection.
  *
- * Synchronous implemenation of the "subscription_cork" RPC.  Using
+ * Synchronous implemenation of the "subscription_mute" RPC.  Using
  * synchronous RPCs is generally frowned upon.
  *
- * Prevents the subscription from further manifest or sample delivery.
+ * Prevents the subscription from further manifest or sample delivery.  If
+ * @drain is set, the current buffer will be flushed.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_subscription_cork (PkConnection  *connection,   /* IN */
+pk_connection_subscription_mute (PkConnection  *connection,   /* IN */
                                  gint           subscription, /* IN */
                                  gboolean       drain,        /* IN */
                                  GError       **error)        /* OUT */
@@ -3366,14 +5280,14 @@ pk_connection_subscription_cork (PkConnection  *connection,   /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(subscription_cork);
+	CHECK_FOR_RPC(subscription_mute);
 	pk_connection_sync_init(&sync);
 	sync.error = error;
-	pk_connection_subscription_cork_async(connection,
+	pk_connection_subscription_mute_async(connection,
 	                                      subscription,
 	                                      drain,
 	                                      NULL,
-	                                      pk_connection_subscription_cork_cb,
+	                                      pk_connection_subscription_mute_cb,
 	                                      &sync);
 	pk_connection_sync_wait(&sync);
 	pk_connection_sync_destroy(&sync);
@@ -3381,18 +5295,19 @@ pk_connection_subscription_cork (PkConnection  *connection,   /* IN */
 }
 
 /**
- * pk_connection_subscription_cork_async:
+ * pk_connection_subscription_mute_async:
  * @connection: A #PkConnection.
  *
- * Asynchronous implementation of the "subscription_cork_async" RPC.
+ * Asynchronous implementation of the "subscription_mute_async" RPC.
  *
- * Prevents the subscription from further manifest or sample delivery.
+ * Prevents the subscription from further manifest or sample delivery.  If
+ * @drain is set, the current buffer will be flushed.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pk_connection_subscription_cork_async (PkConnection        *connection,   /* IN */
+pk_connection_subscription_mute_async (PkConnection        *connection,   /* IN */
                                        gint                 subscription, /* IN */
                                        gboolean             drain,        /* IN */
                                        GCancellable        *cancellable,  /* IN */
@@ -3403,7 +5318,7 @@ pk_connection_subscription_cork_async (PkConnection        *connection,   /* IN 
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(subscription_cork)(connection,
+	RPC_ASYNC(subscription_mute)(connection,
 	                             subscription,
 	                             drain,
 	                             cancellable,
@@ -3413,18 +5328,19 @@ pk_connection_subscription_cork_async (PkConnection        *connection,   /* IN 
 }
 
 /**
- * pk_connection_subscription_cork_finish:
+ * pk_connection_subscription_mute_finish:
  * @connection: A #PkConnection.
  *
- * Completion of an asynchronous call to the "subscription_cork_finish" RPC.
+ * Completion of an asynchronous call to the "subscription_mute_finish" RPC.
  *
- * Prevents the subscription from further manifest or sample delivery.
+ * Prevents the subscription from further manifest or sample delivery.  If
+ * @drain is set, the current buffer will be flushed.
  *
  * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
  * Side effects: None.
  */
 gboolean
-pk_connection_subscription_cork_finish (PkConnection  *connection, /* IN */
+pk_connection_subscription_mute_finish (PkConnection  *connection, /* IN */
                                         GAsyncResult  *result,     /* IN */
                                         GError       **error)      /* OUT */
 {
@@ -3433,7 +5349,7 @@ pk_connection_subscription_cork_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, subscription_cork)(connection,
+	RPC_FINISH(ret, subscription_mute)(connection,
 	                                   result,
 	                                   error);
 	RETURN(ret);
@@ -3840,19 +5756,19 @@ pk_connection_subscription_set_buffer_finish (PkConnection  *connection, /* IN *
 }
 
 /**
- * pk_connection_subscription_uncork_cb:
+ * pk_connection_subscription_unmute_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
  * @user_data: A #GAsyncResult.
  *
- * Callback to notify a synchronous call to the "subscription_uncork" RPC that it
+ * Callback to notify a synchronous call to the "subscription_unmute" RPC that it
  * has completed.
  *
  * Returns: None.
  * Side effects: None.
  */
 static void
-pk_connection_subscription_uncork_cb (GObject      *source,    /* IN */
+pk_connection_subscription_unmute_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
@@ -3862,7 +5778,7 @@ pk_connection_subscription_uncork_cb (GObject      *source,    /* IN */
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_uncork_finish(PK_CONNECTION(source),
+	sync->result = pk_connection_subscription_unmute_finish(PK_CONNECTION(source),
 	                                                        result,
 	                                                        sync->error);
 	pk_connection_sync_signal(sync);
@@ -3870,10 +5786,10 @@ pk_connection_subscription_uncork_cb (GObject      *source,    /* IN */
 }
 
 /**
- * pk_connection_subscription_uncork:
+ * pk_connection_subscription_unmute:
  * @connection: A #PkConnection.
  *
- * Synchronous implemenation of the "subscription_uncork" RPC.  Using
+ * Synchronous implemenation of the "subscription_unmute" RPC.  Using
  * synchronous RPCs is generally frowned upon.
  *
  * Enables the subscription for manifest and sample delivery.
@@ -3882,7 +5798,7 @@ pk_connection_subscription_uncork_cb (GObject      *source,    /* IN */
  * Side effects: None.
  */
 gboolean
-pk_connection_subscription_uncork (PkConnection  *connection,   /* IN */
+pk_connection_subscription_unmute (PkConnection  *connection,   /* IN */
                                    gint           subscription, /* IN */
                                    GError       **error)        /* OUT */
 {
@@ -3891,13 +5807,13 @@ pk_connection_subscription_uncork (PkConnection  *connection,   /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	CHECK_FOR_RPC(subscription_uncork);
+	CHECK_FOR_RPC(subscription_unmute);
 	pk_connection_sync_init(&sync);
 	sync.error = error;
-	pk_connection_subscription_uncork_async(connection,
+	pk_connection_subscription_unmute_async(connection,
 	                                        subscription,
 	                                        NULL,
-	                                        pk_connection_subscription_uncork_cb,
+	                                        pk_connection_subscription_unmute_cb,
 	                                        &sync);
 	pk_connection_sync_wait(&sync);
 	pk_connection_sync_destroy(&sync);
@@ -3905,10 +5821,10 @@ pk_connection_subscription_uncork (PkConnection  *connection,   /* IN */
 }
 
 /**
- * pk_connection_subscription_uncork_async:
+ * pk_connection_subscription_unmute_async:
  * @connection: A #PkConnection.
  *
- * Asynchronous implementation of the "subscription_uncork_async" RPC.
+ * Asynchronous implementation of the "subscription_unmute_async" RPC.
  *
  * Enables the subscription for manifest and sample delivery.
  *
@@ -3916,7 +5832,7 @@ pk_connection_subscription_uncork (PkConnection  *connection,   /* IN */
  * Side effects: None.
  */
 void
-pk_connection_subscription_uncork_async (PkConnection        *connection,   /* IN */
+pk_connection_subscription_unmute_async (PkConnection        *connection,   /* IN */
                                          gint                 subscription, /* IN */
                                          GCancellable        *cancellable,  /* IN */
                                          GAsyncReadyCallback  callback,     /* IN */
@@ -3926,7 +5842,7 @@ pk_connection_subscription_uncork_async (PkConnection        *connection,   /* I
 	g_return_if_fail(callback != NULL);
 
 	ENTRY;
-	RPC_ASYNC(subscription_uncork)(connection,
+	RPC_ASYNC(subscription_unmute)(connection,
 	                               subscription,
 	                               cancellable,
 	                               callback,
@@ -3935,10 +5851,10 @@ pk_connection_subscription_uncork_async (PkConnection        *connection,   /* I
 }
 
 /**
- * pk_connection_subscription_uncork_finish:
+ * pk_connection_subscription_unmute_finish:
  * @connection: A #PkConnection.
  *
- * Completion of an asynchronous call to the "subscription_uncork_finish" RPC.
+ * Completion of an asynchronous call to the "subscription_unmute_finish" RPC.
  *
  * Enables the subscription for manifest and sample delivery.
  *
@@ -3946,7 +5862,7 @@ pk_connection_subscription_uncork_async (PkConnection        *connection,   /* I
  * Side effects: None.
  */
 gboolean
-pk_connection_subscription_uncork_finish (PkConnection  *connection, /* IN */
+pk_connection_subscription_unmute_finish (PkConnection  *connection, /* IN */
                                           GAsyncResult  *result,     /* IN */
                                           GError       **error)      /* OUT */
 {
@@ -3955,7 +5871,7 @@ pk_connection_subscription_uncork_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	RPC_FINISH(ret, subscription_uncork)(connection,
+	RPC_FINISH(ret, subscription_unmute)(connection,
 	                                     result,
 	                                     error);
 	RETURN(ret);

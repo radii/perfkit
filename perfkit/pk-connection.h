@@ -73,13 +73,59 @@ struct _PkConnectionClass
 {
 	GObjectClass parent_class;
 
-	void          (*channel_cork_async)                 (PkConnection          *connection,
+	void          (*channel_get_args_async)             (PkConnection          *connection,
 	                                                     gint                   channel,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
-	gboolean      (*channel_cork_finish)                (PkConnection          *connection,
+	gboolean      (*channel_get_args_finish)            (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
+	                                                     gchar               ***args,
+	                                                     GError               **error);
+	void          (*channel_get_env_async)              (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_env_finish)             (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gchar               ***env,
+	                                                     GError               **error);
+	void          (*channel_get_exit_status_async)      (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_exit_status_finish)     (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                  *exit_status,
+	                                                     GError               **error);
+	void          (*channel_get_kill_pid_async)         (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_kill_pid_finish)        (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gboolean              *kill_pid,
+	                                                     GError               **error);
+	void          (*channel_get_pid_async)              (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_pid_finish)             (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                  *pid,
+	                                                     GError               **error);
+	void          (*channel_get_pid_set_async)          (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_pid_set_finish)         (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gboolean              *pid_set,
 	                                                     GError               **error);
 	void          (*channel_get_sources_async)          (PkConnection          *connection,
 	                                                     gint                   channel,
@@ -91,6 +137,95 @@ struct _PkConnectionClass
 	                                                     gint                 **sources,
 	                                                     gsize                 *sources_len,
 	                                                     GError               **error);
+	void          (*channel_get_state_async)            (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_state_finish)           (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                  *state,
+	                                                     GError               **error);
+	void          (*channel_get_target_async)           (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_target_finish)          (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gchar                **target,
+	                                                     GError               **error);
+	void          (*channel_get_working_dir_async)      (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_working_dir_finish)     (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gchar                **working_dir,
+	                                                     GError               **error);
+	void          (*channel_mute_async)                 (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_mute_finish)                (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_args_async)             (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     gchar                **args,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_args_finish)            (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_env_async)              (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     gchar                **env,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_env_finish)             (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_kill_pid_async)         (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     gboolean               kill_pid,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_kill_pid_finish)        (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_pid_async)              (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     gint                   pid,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_pid_finish)             (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_target_async)           (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     const gchar           *target,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_target_finish)          (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*channel_set_working_dir_async)      (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     const gchar           *working_dir,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_set_working_dir_finish)     (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
 	void          (*channel_start_async)                (PkConnection          *connection,
 	                                                     gint                   channel,
 	                                                     GCancellable          *cancellable,
@@ -101,19 +236,18 @@ struct _PkConnectionClass
 	                                                     GError               **error);
 	void          (*channel_stop_async)                 (PkConnection          *connection,
 	                                                     gint                   channel,
-	                                                     gboolean               killpid,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
 	gboolean      (*channel_stop_finish)                (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
-	void          (*channel_uncork_async)               (PkConnection          *connection,
+	void          (*channel_unmute_async)               (PkConnection          *connection,
 	                                                     gint                   channel,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
-	gboolean      (*channel_uncork_finish)              (PkConnection          *connection,
+	gboolean      (*channel_unmute_finish)              (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
 	void          (*connect_async)                      (PkConnection          *connection,
@@ -300,13 +434,13 @@ struct _PkConnectionClass
 	gboolean      (*subscription_add_source_finish)     (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
-	void          (*subscription_cork_async)            (PkConnection          *connection,
+	void          (*subscription_mute_async)            (PkConnection          *connection,
 	                                                     gint                   subscription,
 	                                                     gboolean               drain,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
-	gboolean      (*subscription_cork_finish)           (PkConnection          *connection,
+	gboolean      (*subscription_mute_finish)           (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
 	void          (*subscription_remove_channel_async)  (PkConnection          *connection,
@@ -337,12 +471,12 @@ struct _PkConnectionClass
 	gboolean      (*subscription_set_buffer_finish)     (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
-	void          (*subscription_uncork_async)          (PkConnection          *connection,
+	void          (*subscription_unmute_async)          (PkConnection          *connection,
 	                                                     gint                   subscription,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
-	gboolean      (*subscription_uncork_finish)         (PkConnection          *connection,
+	gboolean      (*subscription_unmute_finish)         (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
 };
