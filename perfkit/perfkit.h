@@ -23,8 +23,28 @@
 
 #include "pk-connection.h"
 #include "pk-connection-lowlevel.h"
+#include "pk-manifest.h"
+#include "pk-sample.h"
 #include "pk-util.h"
 #include "pk-version.h"
+
+typedef enum
+{
+	PK_CHANNEL_READY = 1,
+	PK_CHANNEL_RUNNING,
+	PK_CHANNEL_MUTED,
+	PK_CHANNEL_STOPPED,
+	PK_CHANNEL_FAILED,
+} PkChannelState;
+
+typedef struct
+{
+	gchar  *target;
+	GPid    pid;
+	gchar  *working_dir;
+	gchar **env;
+	gchar **args;
+} PkSpawnInfo;
 
 #undef __PERFKIT_INSIDE__
 

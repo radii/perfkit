@@ -29,7 +29,6 @@
 #include <glib/gstdio.h>
 
 #include <perfkit/perfkit.h>
-#include <perfkit/perfkit-lowlevel.h>
 
 #include "egg-fmt.h"
 #include "egg-line.h"
@@ -131,7 +130,9 @@ pk_shell_connect (const gchar  *uri,   // IN
 	 * Close previous connection if needed.
 	 */
 	if (connection) {
-		pk_connection_disconnect(connection);
+		if (!pk_connection_disconnect(connection, error)) {
+			g_print("Error disconnecting from agent.\n");
+		}
 		g_object_unref(connection);
 		connection = NULL;
 	}
@@ -206,7 +207,7 @@ pk_util_channels_iter (EggFmtIter *iter,
 {
 	gint i, channel_id, v_int;
 	gchar *v_str, **v_strv;
-	PkChannelState state;
+	gint state;
 	struct {
 		gint n_channels;
 		gint *channels;
@@ -254,8 +255,8 @@ pk_util_channels_iter (EggFmtIter *iter,
 			case PK_CHANNEL_RUNNING:
 				g_value_set_string (&iter->column_values [i], "STARTED");
 				break;
-			case PK_CHANNEL_PAUSED:
-				g_value_set_string (&iter->column_values [i], "PAUSED");
+			case PK_CHANNEL_MUTED:
+				g_value_set_string (&iter->column_values [i], "MUTED");
 				break;
 			case PK_CHANNEL_STOPPED:
 				g_value_set_string (&iter->column_values [i], "STOPPED");
@@ -622,7 +623,7 @@ pk_shell_cmd_channel_list (EggLine  *line,
 {
 	EggFmtIter  iter;
 	struct {
-		gint n_channels;
+		gsize n_channels;
 		gint *channels;
 		gint offset;
 	} s = {0,0};
@@ -687,6 +688,7 @@ pk_shell_cmd_channel_add (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
+	EggLineStatus ret = EGG_LINE_STATUS_FAILURE;
 	PkSpawnInfo info;
 	GPtrArray *env;
 	gint channel = 0;
@@ -733,21 +735,26 @@ pk_shell_cmd_channel_add (EggLine  *line,
 	}
 
 	/*
-	 * Create channel
+	 * Create channel.
 	 */
-	if (!pk_connection_manager_create_channel(connection,
-	                                          &info,
-	                                          &channel,
-	                                          error)) {
-	    return EGG_LINE_STATUS_FAILURE;
+	if (!pk_connection_manager_add_channel(connection, &channel, error)) {
+		g_printerr("Could not create channel.\n");
+		goto finish;
+	}
+
+	if (info.target) {
+		if (!pk_connection_channel_set_target(connection, channel, info.target, error)) {
+			g_printerr("Could not set target.\n");
+			goto finish;
+		}
 	}
 
 	g_print("Added channel %d.\n", channel);
+	ret = EGG_LINE_STATUS_OK;
 
-finish:
+  finish:
 	g_ptr_array_unref(env);
-
-	return EGG_LINE_STATUS_OK;
+	return ret;
 }
 
 
@@ -827,7 +834,7 @@ pk_shell_cmd_channel_stop (EggLine  *line,
 
 	for (i = 0; i < argc; i++) {
 		if (pk_util_parse_int(argv [i], &v_int)) {
-			if (!pk_connection_channel_stop(connection, v_int, TRUE, &lerror)) {
+			if (!pk_connection_channel_stop(connection, v_int, &lerror)) {
 				g_printerr("%s.\n", lerror->message);
 				g_error_free(lerror);
 				lerror = NULL;
@@ -955,7 +962,7 @@ pk_shell_cmd_channel_get (EggLine  *line,
                           gchar   **argv,
                           GError  **error)
 {
-	PkChannelState state = 0;
+	gint state = 0;
 	GError *lerror = NULL;
 	gint i, channel_id;
 	gchar *v_str, **v_strv;
@@ -1043,8 +1050,8 @@ pk_shell_cmd_channel_get (EggLine  *line,
 			case PK_CHANNEL_STOPPED:
 				g_print("STOPPED\n");
 				break;
-			case PK_CHANNEL_PAUSED:
-				g_print("PAUSED\n");
+			case PK_CHANNEL_MUTED:
+				g_print("MUTED\n");
 				break;
 			case PK_CHANNEL_RUNNING:
 				g_print("STARTED\n");
@@ -1128,15 +1135,10 @@ pk_shell_cmd_channel_add_source(EggLine  *line,
 		return EGG_LINE_STATUS_BAD_ARGS;
 	}
 
-	if (!pk_connection_channel_add_source(connection,
-	                                      channel_id,
-	                                      argv[1],
-	                                      &source_id,
-	                                      &lerror)) {
+	if (!pk_connection_plugin_create_source(connection, argv[1], &source_id, &lerror)) {
 	    if (lerror) {
 			g_printerr("ERROR: %s.\n", lerror->message);
-			g_error_free(lerror);
-			lerror = NULL;
+			g_clear_error(&lerror);
 		} else {
 			g_printerr("Unknown error adding source.\n");
 		}
@@ -1156,6 +1158,7 @@ pk_shell_cmd_channel_remove (EggLine  *line,
                              GError  **error)
 {
 	gint channel_id = 0;
+	gboolean removed = FALSE;
 	GError *lerror = NULL;
 
 	if (argc != 1) {
@@ -1172,6 +1175,7 @@ pk_shell_cmd_channel_remove (EggLine  *line,
 
 	if (!pk_connection_manager_remove_channel(connection,
 	                                          channel_id,
+	                                          &removed,
 	                                          &lerror)) {
 	    g_printerr("ERROR: %s\n", lerror->message);
 	    g_error_free(lerror);
@@ -1190,7 +1194,7 @@ pk_shell_cmd_channel_remove_source (EggLine  *line,
                                     GError  **error)
 {
 	gint channel_id, source_id;
-	GError *lerror = NULL;
+	//GError *lerror = NULL;
 
 	if (argc != 2) {
 		return EGG_LINE_STATUS_BAD_ARGS;
@@ -1205,6 +1209,9 @@ pk_shell_cmd_channel_remove_source (EggLine  *line,
 		return EGG_LINE_STATUS_BAD_ARGS;
 	}
 
+	g_warning("Missing rpcs for removing sources.");
+
+	/*
 	if (!pk_connection_channel_remove_source(connection,
 	                                         channel_id,
 	                                         source_id,
@@ -1214,6 +1221,7 @@ pk_shell_cmd_channel_remove_source (EggLine  *line,
 	} else {
 		g_print("Removed source %d from channel %d.\n", source_id, channel_id);
 	}
+	*/
 
 	return EGG_LINE_STATUS_OK;
 }
@@ -1243,6 +1251,7 @@ print_manifest (PkManifest *manifest)
 	g_print("\n");
 }
 
+#if 0
 static void
 monitor_on_manifest (PkManifest *manifest,
                      gpointer    user_data)
@@ -1297,6 +1306,7 @@ monitor_on_sample (PkSample *sample,
 
 	g_print("\n");
 }
+#endif
 
 static gboolean
 show_manifest (gpointer data)
@@ -1345,24 +1355,27 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	mainloop = g_main_loop_new(NULL, FALSE);
 
 	/* Create subscription to channel */
-	if (!pk_connection_manager_create_subscription(connection,
-	                                               channel_id,
-	                                               0,
-	                                               0,
-	                                               NULL,
-	                                               &sub_id,
-	                                               error)) {
+	if (!pk_connection_manager_add_subscription(connection,
+	                                            //channel_id,
+	                                            0,
+	                                            0,
+	                                            0, //NULL,
+	                                            &sub_id,
+	                                            error)) {
 		return EGG_LINE_STATUS_FAILURE;
 	}
 
 	/* Set subscription callbacks */
+	g_warn_if_reached();
+	/*
 	pk_connection_subscription_set_handlers(connection,
 	                                        sub_id,
 	                                        monitor_on_manifest,
 	                                        monitor_on_sample,
 	                                        NULL);
+	*/
 
-	if (!pk_connection_subscription_enable(connection, sub_id, error)) {
+	if (!pk_connection_subscription_unmute(connection, sub_id, error)) {
 		return EGG_LINE_STATUS_FAILURE;
 	}
 
@@ -1372,7 +1385,7 @@ pk_shell_cmd_channel_monitor (EggLine  *line,
 	/* Start main loop */
 	g_main_loop_run(mainloop);
 
-	if (!pk_connection_subscription_disable(connection, sub_id, FALSE, error)) {
+	if (!pk_connection_subscription_mute(connection, sub_id, FALSE, error)) {
 		g_printerr("Failed to disable subscription: %d\n", sub_id);
 		return EGG_LINE_STATUS_FAILURE;
 	}

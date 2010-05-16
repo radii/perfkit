@@ -46,11 +46,11 @@ perfkit_shell_LDFLAGS =							\
 perfkit_shell_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
 
 debug:
-	echo "quit" | PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs ./perfkit-shell
-	PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs gdb ./.libs/lt-perfkit-shell
+	echo "quit" | PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs ./perfkit-shell
+	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs gdb ./.libs/lt-perfkit-shell
 
 test-shell:
-	PK_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs $(builddir)/perfkit-shell
+	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs $(builddir)/perfkit-shell
 
 
 #

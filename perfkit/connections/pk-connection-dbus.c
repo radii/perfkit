@@ -211,6 +211,16 @@
         APPEND_BASIC_PARAM(DBUS_TYPE_STRING, _s);                   \
     } G_STMT_END
 
+#define APPEND_STRV_PARAM(_n)                                       \
+    G_STMT_START {                                                  \
+        DBusMessageIter sub_iter;                                   \
+        dbus_message_iter_open_container(                           \
+             &iter, DBUS_TYPE_ARRAY, "s", &sub_iter);               \
+        dbus_message_iter_append_fixed_array(                       \
+            &sub_iter, DBUS_TYPE_STRING, &_n, g_strv_length(_n));   \
+        dbus_message_iter_close_container(&iter, &sub_iter);        \
+    } G_STMT_END
+
 #define APPEND_VARIANT_PARAM(_n)                                    \
     G_STMT_START {                                                  \
         switch (G_VALUE_TYPE((_n))) {                               \
@@ -2328,7 +2338,7 @@ pk_connection_dbus_channel_set_args_async (PkConnection         *connection,  /*
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	g_warn_if_reached(); /* args */
+	APPEND_STRV_PARAM(args);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
@@ -2459,7 +2469,7 @@ pk_connection_dbus_channel_set_env_async (PkConnection         *connection,  /* 
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	g_warn_if_reached(); /* env */
+	APPEND_STRV_PARAM(env);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
@@ -2852,7 +2862,7 @@ pk_connection_dbus_channel_set_target_async (PkConnection        *connection,  /
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	g_warn_if_reached(); /* target */
+	APPEND_STRING_PARAM(target);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
@@ -2983,7 +2993,7 @@ pk_connection_dbus_channel_set_working_dir_async (PkConnection        *connectio
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	g_warn_if_reached(); /* working_dir */
+	APPEND_STRING_PARAM(working_dir);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
