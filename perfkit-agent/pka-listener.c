@@ -2091,7 +2091,7 @@ pka_listener_manager_get_channels_finish (PkaListener    *listener,     /* IN */
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
 
 	ENTRY;
-	if (!(ret = pka_manager_get_channels(DEFAULT_CONTEXT, &list, error))) {
+	if ((ret = pka_manager_get_channels(DEFAULT_CONTEXT, &list, error))) {
 		*channels_len = g_list_length(list);
 		ids = g_new0(gint, *channels_len);
 		for (iter = list; iter; iter = iter->next) {
