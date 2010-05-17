@@ -79,115 +79,6 @@
                 "Argument " #_n " expected type %d, got %d",        \
                 (_i), (_a))
 
-#define CASE_BASIC_PARAM(_i, _n, _t)                                \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            if (param_type != _t) {                                 \
-                SET_ERROR_INVALID_TYPE(error, #_n, _t,              \
-                                       param_type);                 \
-                goto finish;                                        \
-            }                                                       \
-            dbus_message_iter_get_basic(&iter, (_n));               \
-        } G_STMT_END;                                               \
-    break
-
-#define CASE_STRING_PARAM(_i, _n)  CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_STRING)
-#define CASE_INT_PARAM(_i, _n)     CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_INT32)
-#define CASE_UINT_PARAM(_i, _n)    CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_UINT32)
-#define CASE_INT64_PARAM(_i, _n)   CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_INT64)
-#define CASE_UINT64_PARAM(_i, _n)  CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_UINT64)
-#define CASE_DOUBLE_PARAM(_i, _n)  CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_DOUBLE)
-#define CASE_BOOLEAN_PARAM(_i, _n) CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_BOOLEAN)
-#define CASE_LONG_PARAM(_i, _n)    CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_INT32)
-#define CASE_ULONG_PARAM(_i, _n)   CASE_BASIC_PARAM(_i, _n, DBUS_TYPE_UINT32)
-
-#define CASE_STRV_PARAM(_i, _n)                                     \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            if (param_type != DBUS_TYPE_ARRAY) {                    \
-                SET_ERROR_INVALID_TYPE(error, #_n,                  \
-                                       DBUS_TYPE_ARRAY,             \
-                                       param_type);                 \
-                goto finish;                                        \
-            }                                                       \
-            pk_connection_dbus_demarshal_strv(&iter, (_n));         \
-        } G_STMT_END;                                               \
-    break
-
-#define CASE_OBJECT_PARAM(_i, _f, _n)                               \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            if (param_type != DBUS_TYPE_OBJECT_PATH) {              \
-                SET_ERROR_INVALID_TYPE(error, #_n,                  \
-                                       DBUS_TYPE_OBJECT_PATH,       \
-                                       param_type);                 \
-                goto finish;                                        \
-            }                                                       \
-            dbus_message_iter_get_basic(&iter, &_n##_path);         \
-            sscanf(_n##_path, _f, _n);                              \
-        } G_STMT_END;                                               \
-    break
-
-#define CASE_OBJECTV_PARAM(_i, _f, _v)                              \
-    case _i:                                                        \
-    break
-
-#define CASE_TIMEVAL_PARAM(_i, _n)                                  \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            gchar *_str;                                            \
-            if (param_type != DBUS_TYPE_STRING) {                   \
-                SET_ERROR_INVALID_TYPE(error, #_n,                  \
-                                       DBUS_TYPE_STRING,            \
-                                       param_type);                 \
-                goto finish;                                        \
-            }                                                       \
-            dbus_message_iter_get_basic(&iter, &_str);              \
-            if (!g_time_val_from_iso8601(_str, (_n))) {             \
-                g_set_error(error, PK_CONNECTION_DBUS_ERROR,        \
-                            PK_CONNECTION_DBUS_ERROR_DBUS,          \
-                            "Invalid iso8601 date received");       \
-                goto finish;                                        \
-            }                                                       \
-        } G_STMT_END;                                               \
-    break
-
-#define CASE_INTV_PARAM(_i, _n)                                     \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            if (param_type != DBUS_TYPE_ARRAY) {                    \
-                SET_ERROR_INVALID_TYPE(error, #_n,                  \
-                                       DBUS_TYPE_ARRAY,             \
-                                       param_type);                 \
-                goto finish;                                        \
-            }                                                       \
-            pk_connection_dbus_demarshal_intv(&iter, (_n),          \
-                                              _n##_len);            \
-        } G_STMT_END;                                               \
-    break
-
-#define CASE_MISSING_PARAM                                              \
-    default:                                                            \
-        G_STMT_START {                                                  \
-            g_set_error(error, PK_CONNECTION_DBUS_ERROR,                \
-                        PK_CONNECTION_DBUS_ERROR_DBUS,                  \
-                        "DBus message contained additional arguments"); \
-            goto finish;                                                \
-        } G_STMT_END;                                                   \
-    break
-
-#define CASE_VARIANT_PARAM(_i, _n)                                  \
-    case _i:                                                        \
-        G_STMT_START {                                              \
-            if (!pk_connection_dbus_demarshal_variant(&iter, _n)) { \
-                g_set_error(error, PK_CONNECTION_DBUS_ERROR,        \
-                            PK_CONNECTION_DBUS_ERROR_DBUS,          \
-                            "Invalid variant type in message");     \
-                goto finish;                                        \
-            }                                                       \
-        } G_STMT_END;                                               \
-    break
-
 #define APPEND_BASIC_PARAM(_t, _n)                                  \
     G_STMT_START {                                                  \
         dbus_message_iter_append_basic(&iter, _t, &(_n));           \
@@ -712,9 +603,8 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gint args_len = 0;
 
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -750,20 +640,18 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, &args_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRV_PARAM(0, args);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -865,9 +753,8 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gint env_len = 0;
 
 	g_return_val_if_fail(env != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -903,20 +790,18 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, &env_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRV_PARAM(0, env);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1018,9 +903,7 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(exit_status != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1056,20 +939,18 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_INT32, &exit_status,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_INT_PARAM(0, exit_status);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1171,9 +1052,7 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(kill_pid != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1209,19 +1088,18 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_BOOLEAN, &kill_pid,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1323,9 +1201,7 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pid != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1361,20 +1237,18 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_INT32, &pid,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_INT_PARAM(0, pid);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1476,9 +1350,7 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pid_set != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1514,19 +1386,18 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_BOOLEAN, &pid_set,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1629,9 +1500,9 @@ pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gchar **sources_paths = NULL;
+	gint sources_paths_len = 0;
 
 	g_return_val_if_fail(sources != NULL, FALSE);
 	g_return_val_if_fail(sources_len != NULL, FALSE);
@@ -1669,20 +1540,29 @@ pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &sources_paths, &sources_paths_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECTV_PARAM(0, "/org/perfkit/Agent/Sources/%d", sources);
-		CASE_MISSING_PARAM;
+	if (sources_paths) {
+		gint i;
+
+		*sources = g_new0(gint, sources_paths_len);
+		for (i = 0; i < sources_paths_len; i++) {
+			sscanf(sources_paths[i],
+			       "/org/perfkit/Agent/Source/%d",
+			           &((*sources)[i]));
 		}
-	} while (dbus_message_iter_next(&iter));
+		*sources_len = sources_paths_len;
+	}
 
 	ret = TRUE;
 
@@ -1784,9 +1664,7 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(state != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1822,20 +1700,18 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_INT32, &state,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_INT_PARAM(0, state);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -1937,9 +1813,7 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(target != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -1975,20 +1849,18 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &target,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, target);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -2090,9 +1962,7 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(working_dir != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -2128,20 +1998,18 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &working_dir,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, working_dir);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -2271,6 +2139,7 @@ pk_connection_dbus_channel_mute_finish (PkConnection  *connection, /* IN */
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -2403,6 +2272,7 @@ pk_connection_dbus_channel_set_args_finish (PkConnection  *connection, /* IN */
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -2533,6 +2403,7 @@ pk_connection_dbus_channel_set_env_finish (PkConnection  *connection, /* IN */
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -2665,6 +2536,7 @@ pk_connection_dbus_channel_set_kill_pid_finish (PkConnection  *connection, /* IN
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -2795,6 +2667,7 @@ pk_connection_dbus_channel_set_pid_finish (PkConnection  *connection, /* IN */
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -2927,6 +2800,7 @@ pk_connection_dbus_channel_set_target_finish (PkConnection  *connection, /* IN *
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -3058,6 +2932,7 @@ pk_connection_dbus_channel_set_working_dir_finish (PkConnection  *connection, /*
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -3186,6 +3061,7 @@ pk_connection_dbus_channel_start_finish (PkConnection  *connection, /* IN */
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -3316,6 +3192,7 @@ pk_connection_dbus_channel_stop_finish (PkConnection  *connection, /* IN */
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -3445,6 +3322,7 @@ pk_connection_dbus_channel_unmute_finish (PkConnection  *connection, /* IN */
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -3545,9 +3423,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pluign != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -3583,20 +3459,18 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &pluign,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, pluign);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -3687,9 +3561,7 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 	gchar *channel_path = NULL;
 
 	g_return_val_if_fail(channel != NULL, FALSE);
@@ -3726,20 +3598,23 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &channel_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECT_PARAM(0, "/org/perfkit/Agent/Channel/%d", channel);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	if (channel_path) {
+		sscanf(channel_path,
+		       "/org/perfkit/Agent/Manager/%d",
+		       channel);
+	}
 
 	ret = TRUE;
 
@@ -3842,9 +3717,7 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 	gchar *subscription_path = NULL;
 
 	g_return_val_if_fail(subscription != NULL, FALSE);
@@ -3881,20 +3754,23 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &subscription_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECT_PARAM(0, "/org/perfkit/Agent/Subscription/%d", subscription);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	if (subscription_path) {
+		sscanf(subscription_path,
+		       "/org/perfkit/Agent/Manager/%d",
+		       subscription);
+	}
 
 	ret = TRUE;
 
@@ -3986,9 +3862,9 @@ pk_connection_dbus_manager_get_channels_finish (PkConnection  *connection,   /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gchar **channels_paths = NULL;
+	gint channels_paths_len = 0;
 
 	g_return_val_if_fail(channels != NULL, FALSE);
 	g_return_val_if_fail(channels_len != NULL, FALSE);
@@ -4026,20 +3902,29 @@ pk_connection_dbus_manager_get_channels_finish (PkConnection  *connection,   /* 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &channels_paths, &channels_paths_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECTV_PARAM(0, "/org/perfkit/Agent/Channels/%d", channels);
-		CASE_MISSING_PARAM;
+	if (channels_paths) {
+		gint i;
+
+		*channels = g_new0(gint, channels_paths_len);
+		for (i = 0; i < channels_paths_len; i++) {
+			sscanf(channels_paths[i],
+			       "/org/perfkit/Agent/Channel/%d",
+			           &((*channels)[i]));
 		}
-	} while (dbus_message_iter_next(&iter));
+		*channels_len = channels_paths_len;
+	}
 
 	ret = TRUE;
 
@@ -4130,9 +4015,9 @@ pk_connection_dbus_manager_get_plugins_finish (PkConnection   *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gchar **plugins_paths = NULL;
+	gint plugins_paths_len = 0;
 
 	g_return_val_if_fail(plugins != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -4168,20 +4053,28 @@ pk_connection_dbus_manager_get_plugins_finish (PkConnection   *connection, /* IN
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &plugins_paths, &plugins_paths_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECTV_PARAM(0, "/org/perfkit/Agent/Plugins/%as", plugins);
-		CASE_MISSING_PARAM;
+	if (plugins_paths) {
+		gint i;
+
+		*plugins = g_new0(gchar*, plugins_paths_len + 1);
+		for (i = 0; i < plugins_paths_len; i++) {
+			sscanf(plugins_paths[i],
+			       "/org/perfkit/Agent/Plugin/%as",
+			           &((*plugins)[i]));
 		}
-	} while (dbus_message_iter_next(&iter));
+	}
 
 	ret = TRUE;
 
@@ -4272,9 +4165,7 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(version != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -4310,20 +4201,18 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &version,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, version);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -4414,9 +4303,8 @@ pk_connection_dbus_manager_ping_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
+	gchar *tv_str = NULL;
 
 	g_return_val_if_fail(tv != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -4452,20 +4340,19 @@ pk_connection_dbus_manager_ping_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &tv_str,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_TIMEVAL_PARAM(0, tv);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	g_time_val_from_iso8601(tv_str, tv);
 
 	ret = TRUE;
 
@@ -4564,9 +4451,7 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(removed != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -4602,19 +4487,18 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_BOOLEAN, &removed,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -4713,9 +4597,7 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(removed != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -4751,19 +4633,18 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_BOOLEAN, &removed,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -4865,9 +4746,7 @@ pk_connection_dbus_plugin_create_encoder_finish (PkConnection  *connection, /* I
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 	gchar *encoder_path = NULL;
 
 	g_return_val_if_fail(encoder != NULL, FALSE);
@@ -4904,20 +4783,23 @@ pk_connection_dbus_plugin_create_encoder_finish (PkConnection  *connection, /* I
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &encoder_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECT_PARAM(0, "/org/perfkit/Agent/Encoder/%d", encoder);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	if (encoder_path) {
+		sscanf(encoder_path,
+		       "/org/perfkit/Agent/Plugin/%d",
+		       encoder);
+	}
 
 	ret = TRUE;
 
@@ -5019,9 +4901,7 @@ pk_connection_dbus_plugin_create_source_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 	gchar *source_path = NULL;
 
 	g_return_val_if_fail(source != NULL, FALSE);
@@ -5058,20 +4938,23 @@ pk_connection_dbus_plugin_create_source_finish (PkConnection  *connection, /* IN
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &source_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECT_PARAM(0, "/org/perfkit/Agent/Source/%d", source);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	if (source_path) {
+		sscanf(source_path,
+		       "/org/perfkit/Agent/Plugin/%d",
+		       source);
+	}
 
 	ret = TRUE;
 
@@ -5173,9 +5056,7 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(copyright != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -5211,20 +5092,18 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &copyright,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, copyright);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -5326,9 +5205,7 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(description != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -5364,20 +5241,18 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &description,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, description);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -5479,9 +5354,7 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(name != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -5517,20 +5390,18 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &name,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, name);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -5632,9 +5503,7 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(type != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -5670,20 +5539,18 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_INT32, &type,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_INT_PARAM(0, type);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -5785,9 +5652,7 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(version != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
@@ -5823,20 +5688,18 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_STRING, &version,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_STRING_PARAM(0, version);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
 
 	ret = TRUE;
 
@@ -5938,9 +5801,7 @@ pk_connection_dbus_source_get_plugin_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
-	DBusMessageIter iter;
-	gint param_type;
-	gint i = 0;
+	DBusError dbus_error = { 0 };
 	gchar *plugin_path = NULL;
 
 	g_return_val_if_fail(plugin != NULL, FALSE);
@@ -5977,20 +5838,23 @@ pk_connection_dbus_source_get_plugin_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Process message arguments.
 	 */
-	if (!dbus_message_iter_init(msg, &iter)) {
-		g_set_error_literal(error, PK_CONNECTION_DBUS_ERROR,
-		                    PK_CONNECTION_DBUS_ERROR_DBUS,
-		                    "Unknown error iterating arguments");
-		goto finish;
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &plugin_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
 	}
 
-	do {
-		param_type = dbus_message_iter_get_arg_type(&iter);
-		switch (i++) {
-		CASE_OBJECT_PARAM(0, "/org/perfkit/Agent/Plugin/%as", plugin);
-		CASE_MISSING_PARAM;
-		}
-	} while (dbus_message_iter_next(&iter));
+	if (plugin_path) {
+		sscanf(plugin_path,
+		       "/org/perfkit/Agent/Plugin/%as",
+		       plugin);
+	}
 
 	ret = TRUE;
 
@@ -6125,6 +5989,7 @@ pk_connection_dbus_subscription_add_channel_finish (PkConnection  *connection, /
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -6255,6 +6120,7 @@ pk_connection_dbus_subscription_add_source_finish (PkConnection  *connection, /*
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -6387,6 +6253,7 @@ pk_connection_dbus_subscription_mute_finish (PkConnection  *connection, /* IN */
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -6518,6 +6385,7 @@ pk_connection_dbus_subscription_remove_channel_finish (PkConnection  *connection
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -6648,6 +6516,7 @@ pk_connection_dbus_subscription_remove_source_finish (PkConnection  *connection,
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
@@ -6782,6 +6651,7 @@ pk_connection_dbus_subscription_set_buffer_finish (PkConnection  *connection, /*
 		goto finish;
 	}
 
+
 	ret = TRUE;
 
 finish:
@@ -6910,6 +6780,7 @@ pk_connection_dbus_subscription_unmute_finish (PkConnection  *connection, /* IN 
 		            "%s", dbus_message_get_error_name(msg));
 		goto finish;
 	}
+
 
 	ret = TRUE;
 
