@@ -1050,7 +1050,7 @@ pka_listener_dbus_manager_get_channels_cb (GObject      *listener,  /* IN */
 	} else {
 		channels_paths = g_new0(gchar*, channels_len + 1);
 		for (i = 0; i < channels_len; i++) {
-			channels_paths[i] = g_strdup_printf("/org/perfkit/Agent/Channels/%d", channels[i]);
+			channels_paths[i] = g_strdup_printf("/org/perfkit/Agent/Channel/%d", channels[i]);
 		}
 		reply = dbus_message_new_method_return(message);
 		dbus_message_append_args(reply,
