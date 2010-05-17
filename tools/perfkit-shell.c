@@ -749,6 +749,13 @@ pk_shell_cmd_channel_add (EggLine  *line,
 		}
 	}
 
+	if (info.args) {
+		if (!pk_connection_channel_set_args(connection, channel, info.args, error)) {
+			g_printerr("Could not set args.\n");
+			goto finish;
+		}
+	}
+
 	g_print("Added channel %d.\n", channel);
 	ret = EGG_LINE_STATUS_OK;
 
