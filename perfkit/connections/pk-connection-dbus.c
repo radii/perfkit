@@ -643,7 +643,7 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &args, &args_len,
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, args, &args_len,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -793,7 +793,7 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &env, &env_len,
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, env, &env_len,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -942,7 +942,7 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_INT32, &exit_status,
+	                           DBUS_TYPE_INT32, exit_status,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1091,7 +1091,7 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_BOOLEAN, &kill_pid,
+	                           DBUS_TYPE_BOOLEAN, kill_pid,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1240,7 +1240,7 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_INT32, &pid,
+	                           DBUS_TYPE_INT32, pid,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1389,7 +1389,7 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_BOOLEAN, &pid_set,
+	                           DBUS_TYPE_BOOLEAN, pid_set,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1703,7 +1703,7 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_INT32, &state,
+	                           DBUS_TYPE_INT32, state,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1852,7 +1852,7 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &target,
+	                           DBUS_TYPE_STRING, target,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -1861,6 +1861,7 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 		GOTO(finish);
 	}
 
+	*target = g_strdup(*target);
 
 	ret = TRUE;
 
@@ -2001,7 +2002,7 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &working_dir,
+	                           DBUS_TYPE_STRING, working_dir,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -2010,6 +2011,7 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 		GOTO(finish);
 	}
 
+	*working_dir = g_strdup(*working_dir);
 
 	ret = TRUE;
 
@@ -3462,7 +3464,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &pluign,
+	                           DBUS_TYPE_STRING, pluign,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -3471,6 +3473,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 		GOTO(finish);
 	}
 
+	*pluign = g_strdup(*pluign);
 
 	ret = TRUE;
 
@@ -4204,7 +4207,7 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &version,
+	                           DBUS_TYPE_STRING, version,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -4213,6 +4216,7 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 		GOTO(finish);
 	}
 
+	*version = g_strdup(*version);
 
 	ret = TRUE;
 
@@ -4490,7 +4494,7 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_BOOLEAN, &removed,
+	                           DBUS_TYPE_BOOLEAN, removed,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -4636,7 +4640,7 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_BOOLEAN, &removed,
+	                           DBUS_TYPE_BOOLEAN, removed,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5095,7 +5099,7 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &copyright,
+	                           DBUS_TYPE_STRING, copyright,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5104,6 +5108,7 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 		GOTO(finish);
 	}
 
+	*copyright = g_strdup(*copyright);
 
 	ret = TRUE;
 
@@ -5244,7 +5249,7 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &description,
+	                           DBUS_TYPE_STRING, description,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5253,6 +5258,7 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 		GOTO(finish);
 	}
 
+	*description = g_strdup(*description);
 
 	ret = TRUE;
 
@@ -5393,7 +5399,7 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &name,
+	                           DBUS_TYPE_STRING, name,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5402,6 +5408,7 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 		GOTO(finish);
 	}
 
+	*name = g_strdup(*name);
 
 	ret = TRUE;
 
@@ -5542,7 +5549,7 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_INT32, &type,
+	                           DBUS_TYPE_INT32, type,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5691,7 +5698,7 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, &version,
+	                           DBUS_TYPE_STRING, version,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -5700,6 +5707,7 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 		GOTO(finish);
 	}
 
+	*version = g_strdup(*version);
 
 	ret = TRUE;
 
