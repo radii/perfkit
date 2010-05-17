@@ -104,11 +104,15 @@
 
 #define APPEND_STRV_PARAM(_n)                                       \
     G_STMT_START {                                                  \
+        gint _i;                                                    \
         DBusMessageIter sub_iter;                                   \
         dbus_message_iter_open_container(                           \
              &iter, DBUS_TYPE_ARRAY, "s", &sub_iter);               \
-        dbus_message_iter_append_fixed_array(                       \
-            &sub_iter, DBUS_TYPE_STRING, &_n, g_strv_length(_n));   \
+        for (_i = 0; (_n)[_i]; _i++) {                              \
+            dbus_message_iter_append_basic(&sub_iter,               \
+                                           DBUS_TYPE_STRING,        \
+                                           &((_n)[_i]));            \
+        }                                                           \
         dbus_message_iter_close_container(&iter, &sub_iter);        \
     } G_STMT_END
 
