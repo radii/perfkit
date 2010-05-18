@@ -110,7 +110,7 @@ pka_log_handler (const gchar    *log_domain, /* IN */
 
 	if (G_LIKELY(channels->len)) {
 		level = pka_log_level_str(log_level);
-		clock_gettime(CLOCK_MONOTONIC, &ts);
+		clock_gettime(CLOCK_REALTIME, &ts);
 		t = (time_t)ts.tv_sec;
 		tt = *localtime(&t);
 		strftime(ftime, sizeof(ftime), "%Y/%m/%d %X", &tt);
