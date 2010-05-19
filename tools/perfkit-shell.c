@@ -1,1599 +1,4405 @@
-/* perfkit-shell.c
+/* pk-shell.c
+ *
+ * Copyright 2010 Christian Hergert <chris@dronelabs.com>
+ *
+ * This file is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  * 
- * Copyright (C) 2009 Christian Hergert
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
+ * This file is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #include <errno.h>
-#include <signal.h>
-#include <stdlib.h>
-
-#include <glib.h>
 #include <glib/gi18n.h>
-#include <glib/gstdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <perfkit/perfkit.h>
+#if __linux__
+#include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+#else
+#error "Your platform is not yet supported"
+#endif
 
+#include "pk-connection.h"
+#include "pk-connection-lowlevel.h"
 #include "egg-fmt.h"
 #include "egg-line.h"
-#include "egg-time.h"
 
-/*
- * Local error codes.
- */
+#ifndef DISABLE_TRACE
+#define TRACE(_m,...)                                               \
+    G_STMT_START {                                                  \
+        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
+              _m, __VA_ARGS__);                                     \
+    } G_STMT_END
+#else
+#define TRACE(_m,...)
+#endif
+
+#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
+
+#define EXIT                                                        \
+    G_STMT_START {                                                  \
+        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
+        return;                                                     \
+    } G_STMT_END
+
+#define RETURN(_r)                                                  \
+    G_STMT_START {                                                  \
+        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
+        return _r;                                                  \
+    } G_STMT_END
+
+#define GOTO(_l)                                                    \
+    G_STMT_START {                                                  \
+        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
+        goto _l;                                                    \
+    } G_STMT_END
+
+#define CASE_RETURN_STR(_l) case _l: return #_l
+
+#define G_LOG_LEVEL_TRACE (1 << G_LOG_LEVEL_USER_SHIFT)
+
+#define PK_SHELL_PARSE_PLUGIN_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+        (*_t) = argv[(_i)]; \
+    } G_STMT_END
+
+#define PK_SHELL_PARSE_ENCODER_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+        if (!pk_shell_parse_int(argv[(_i)], (_t))) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE, \
+                        _("Please specify a valid Encoder.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+    } G_STMT_END
+
+#define PK_SHELL_PARSE_SOURCE_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+        if (!pk_shell_parse_int(argv[(_i)], (_t))) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE, \
+                        _("Please specify a valid Source.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+    } G_STMT_END
+
+#define PK_SHELL_PARSE_MANAGER_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+    } G_STMT_END
+
+#define PK_SHELL_PARSE_CHANNEL_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+        if (!pk_shell_parse_int(argv[(_i)], (_t))) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE, \
+                        _("Please specify a valid Channel.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+    } G_STMT_END
+
+#define PK_SHELL_PARSE_SUBSCRIPTION_OR_FAIL(_i, _t) \
+    G_STMT_START { \
+        if (argc < (_i + 1)) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_ARGS, \
+                        _("Too few arguments to perform operation.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+        if (!pk_shell_parse_int(argv[(_i)], (_t))) { \
+            g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE, \
+                        _("Please specify a valid Subscription.")); \
+            RETURN(EGG_LINE_STATUS_BAD_ARGS); \
+        } \
+    } G_STMT_END
+
 #define PK_SHELL_ERROR (pk_shell_error_quark())
-static GQuark pk_shell_error_quark (void) G_GNUC_CONST;
-enum
+
+typedef enum
 {
-	PK_SHELL_ERROR_URI,
-};
+	PK_SHELL_ERROR_ARGS,
+	PK_SHELL_ERROR_VALUE,
+} PkShellError;
 
-/*
- * Global state.
- */
-static EggFmtFunc    formatter  = NULL;
-static PkConnection *connection = NULL;
-static gboolean      opt_csv    = FALSE;
-static GMainLoop    *mainloop   = NULL;
-/*
- * Command line arguments.
- */
-static GOptionEntry entries[] = {
-	{ "csv", 'c', 0, G_OPTION_ARG_NONE, &opt_csv,
-	  N_("Output comma-separated values"), NULL },
-	{ NULL }
-};
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_util_parse_int --
- *
- *     Parses an integer from @str with proper condition checking.
- *
- * Returns:
- *     TRUE if successful; otherwise FALSE.
- *
- * Side Effects:
- *     None.
- *
- *----------------------------------------------------------------------------
- */
-
-static gboolean
-pk_util_parse_int (const gchar *str,    // IN
-                   gint        *v_int)  // OUT
+typedef struct
 {
-	gchar *ptr;
-	gint   val;
+	GMutex   *mutex;
+	GCond    *cond;
+	gboolean  result;
+	GError   *error;
+	gpointer  params[16];
+} AsyncTask;
 
-	g_return_val_if_fail (str != NULL, FALSE);
-	g_return_val_if_fail (v_int != NULL, FALSE);
-
-	*v_int = 0;
-	errno = 0;
-
-	val = strtol (str, &ptr, 0);
-
-	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0))
-		return FALSE;
-
-	if (str == ptr)
-		return FALSE;
-
-	*v_int = val;
-
-	return TRUE;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_connect --
- *
- *     Connects the shell to the server found at @uri.
- *
- * Returns:
- *     TRUE if successful; otherwise FALSE.
- *
- * Side effects:
- *     The current connection is closed.
- *
- *----------------------------------------------------------------------------
- */
-
-static gboolean
-pk_shell_connect (const gchar  *uri,   // IN
-                  GError      **error) // OUT
-{
-	g_return_val_if_fail (uri != NULL, FALSE);
-
-	/*
-	 * Close previous connection if needed.
-	 */
-	if (connection) {
-		if (!pk_connection_disconnect(connection, error)) {
-			g_print("Error disconnecting from agent.\n");
-		}
-		g_object_unref(connection);
-		connection = NULL;
-	}
-
-	/*
-	 * Create connection instance.
-	 */
-	connection = pk_connection_new_from_uri (uri);
-	if (!connection) {
-		g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_URI,
-		            "Invalid URI");
-		return FALSE;
-	}
-
-	/*
-	 * Connect to the agent.
-	 */
-	if (!pk_connection_connect(connection, error)) {
-		g_object_unref(connection);
-		connection = NULL;
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_missing_cb --
- *
- *    Callback when entered command does not exist.
- *
- * Returns:
- *    None.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
+static gchar           hostname[64]  = { '\0' };
+static EggFmtFunc      formatter     = NULL;
+static GMainLoop      *main_loop     = NULL;
+static PkConnection   *conn          = NULL;
+static GLogLevelFlags  log_threshold = G_LOG_LEVEL_INFO;
 
 static void
-pk_shell_missing_cb (EggLine     *line,      // IN
-                     const gchar *command,   // IN
-                     gpointer     user_data) // IN
+async_task_init (AsyncTask *task) /* IN */
 {
-	g_printerr (_("Command not found: %s\n"), command);
+	ENTRY;
+	memset(task, 0, sizeof(*task));
+	task->mutex = g_mutex_new();
+	task->cond = g_cond_new();
+	g_mutex_lock(task->mutex);
+	EXIT;
 }
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_util_channels_iter --
- *
- *    EggFmtIterNext implementation for iterating through a list of channels.
- *
- * Returns:
- *    TRUE if there are more items; otherwise FALSE.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
 
 static gboolean
-pk_util_channels_iter (EggFmtIter *iter,
-                       gpointer    user_data)
+async_task_wait (AsyncTask *task) /* IN */
 {
-	gint i, channel_id, v_int;
-	gchar *v_str, **v_strv;
-	gint state;
-	struct {
-		gint n_channels;
-		gint *channels;
-		gint offset;
-	} *s = user_data;
-
-	if (!user_data || s->offset >= s->n_channels) {
-		return FALSE;
-	}
-
-	channel_id = s->channels[s->offset++];
-
-	/* load the data into the columns */
-	for (i = 0; i < iter->n_columns; i++) {
-		if (0 == g_ascii_strcasecmp(iter->column_names[i], "id")) {
-			g_value_set_int(&iter->column_values[i], channel_id);
-		}
-		else if (0 == g_ascii_strcasecmp(iter->column_names[i], "pid")) {
-			v_int = 0;
-			pk_connection_channel_get_pid(connection, channel_id, &v_int, NULL);
-			g_value_set_int(&iter->column_values [i], v_int);
-		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "target")) {
-			v_str = NULL;
-			pk_connection_channel_get_target(connection, channel_id, &v_str, NULL);
-			g_value_take_string (&iter->column_values [i], v_str);
-		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "directory")) {
-			v_str = NULL;
-			pk_connection_channel_get_working_dir(connection, channel_id, &v_str, NULL);
-			g_value_take_string (&iter->column_values [i], v_str);
-		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "arguments")) {
-			v_strv = NULL;
-			pk_connection_channel_get_args(connection, channel_id, &v_strv, NULL);
-			g_value_take_boxed (&iter->column_values [i], v_strv);
-		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "state")) {
-			state = 0;
-			pk_connection_channel_get_state(connection, channel_id, &state, NULL);
-			switch (state) {
-			case PK_CHANNEL_READY:
-				g_value_set_string (&iter->column_values [i], "READY");
-				break;
-			case PK_CHANNEL_RUNNING:
-				g_value_set_string (&iter->column_values [i], "STARTED");
-				break;
-			case PK_CHANNEL_MUTED:
-				g_value_set_string (&iter->column_values [i], "MUTED");
-				break;
-			case PK_CHANNEL_STOPPED:
-				g_value_set_string (&iter->column_values [i], "STOPPED");
-				break;
-			case PK_CHANNEL_FAILED:
-				g_value_set_string (&iter->column_values [i], "FAILED");
-				break;
-			default:
-				g_value_set_string (&iter->column_values [i], "?");
-				break;
-			}
-		}
-		else {
-			g_warn_if_reached ();
-		}
-	}
-
-	return TRUE;
-}
-
-#if 0
-static gboolean
-pk_util_source_infos_iter (EggFmtIter *iter,
-                           gpointer    user_data)
-{
-	PkSourceInfo *info;
-	GList *list;
-	gint i;
-
-	if (!user_data)
-		return FALSE;
-
-	/* initialize our iter */
-	if (!iter->user_data2) {
-		iter->user_data2 = user_data;
-		iter->user_data = user_data;
-	}
-
-	/* we are finished if the list is empty */
-	if (!iter->user_data)
-		return FALSE;
-
-	list = iter->user_data;
-	info = list->data;
-
-	if (!info)
-		return FALSE;
-
-	/* load the data into the columns */
-	for (i = 0; i < iter->n_columns; i++) {
-		if (0 == g_ascii_strcasecmp (iter->column_names [i], "uid")) {
-			g_value_set_string (&iter->column_values [i],
-			                    pk_source_info_get_uid (info));
-		}
-		else if (0 == g_ascii_strcasecmp (iter->column_names [i], "name")) {
-			g_value_set_string (&iter->column_values [i],
-			                    pk_source_info_get_name (info));
-		}
-		else {
-			g_warn_if_reached ();
-		}
-	}
-
-	/* move to the next position */
-	iter->user_data = g_list_next (iter->user_data);
-
-	return TRUE;
-}
-#endif
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_quit --
- *
- *    Quit command callback.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_quit (EggLine  *line,
-                   gint      argc,
-                   gchar   **argv,
-                   GError  **error)
-{
-	egg_line_quit (line);
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_ls --
- *
- *    ls command callback.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_ls (EggLine  *line,
-                 gint      argc,
-                 gchar   **argv,
-                 GError  **error)
-{
-	EggLineStatus   result = EGG_LINE_STATUS_OK;
-	gchar         **cmd;
-	gchar          *output = NULL;
-	gint            i,
-	                j;
-
-	cmd = g_malloc0 ((argc + 2) * sizeof (gchar*));
-
-	cmd [0] = g_strdup ("ls");
-	for (i = 0, j = 1; i < argc; i++)
-		if (argv [i] && strlen (argv [i]))
-			cmd [j++] = g_strdup (argv [i]);
-
-	if (!g_spawn_sync (g_get_current_dir (),
-	                   cmd,
-	                   NULL,
-	                   G_SPAWN_SEARCH_PATH,
-	                   NULL,
-	                   NULL,
-	                   &output,
-	                   NULL,
-	                   NULL,
-	                   error)) {
-		result = EGG_LINE_STATUS_FAILURE;
-	}
-	else {
-		g_print ("%s", output);
-		g_free (output);
-	}
-
-	g_strfreev (cmd);
-
-	return result;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_cd --
- *
- *    Changes working directory of process.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_cd (EggLine  *line,
-                 gint      argc,
-                 gchar   **argv,
-                 GError  **error)
-{
-	if (argc == 0 || !argv [0] || !strlen (argv [0]))
-		g_chdir (g_get_home_dir ());
-	else
-		g_chdir (argv [0]);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_version --
- *
- *    Displays the version of the library protocol.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_version (EggLine  *line,
-                      gint      argc,
-                      gchar   **argv,
-                      GError  **error)
-{
-	GError *lerror = NULL;
-	gchar *ver = NULL;
-
-	g_print("Protocol...:  %s\n", PK_VERSION_S);
-
-	if (!pk_connection_manager_get_version(connection, &ver, &lerror)) {
-		g_printerr("Error fetching server version: %s\n", lerror->message);
-		g_error_free(lerror);
-		lerror = NULL;
-	}
-	else {
-		g_print("Agent......:  %s\n", ver);
-		g_free(ver);
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_help --
- *
- *    Displays help text for a given command.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_help (EggLine  *line,
-                   gint      argc,
-                   gchar   **argv,
-                   GError  **error)
-{
-	EggLineCommand *command;
-	gchar          *path;
-
-	if (argc < 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	path = g_strjoinv (" ", argv);
-	command = egg_line_resolve (line, path, NULL, NULL);
-	g_free (path);
-
-	if (!command)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (command->help)
-		g_print ("%s\n", _(command->help));
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_load --
- *
- *    Loads a series of commands from an input file.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_load (EggLine  *line,
-                   gint      argc,
-                   gchar   **argv,
-                   GError  **error)
-{
-	gint i;
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	for (i = 0; i < argc; i++) {
-		egg_line_execute_file (line, argv [i]);
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_sleep --
- *
- *    Sleeps for a given period of time.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_sleep (EggLine  *line,
-                    gint      argc,
-                    gchar   **argv,
-                    GError  **error)
-{
-	gint i = 0;
-
-	if (argc != 1)
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	if (!pk_util_parse_int (argv [0], &i))
-		return EGG_LINE_STATUS_BAD_ARGS;
-
-	g_usleep (G_USEC_PER_SEC * i);
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_list --
- *
- *    Lists the avaialble channels on the agent.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_list (EggLine  *line,
-                           gint      argc,
-                           gchar   **argv,
-                           GError  **error)
-{
-	EggFmtIter  iter;
-	struct {
-		gsize n_channels;
-		gint *channels;
-		gint offset;
-	} s = {0,0};
-
-	/*
-	 * Get list of channels from agent.
-	 */
-	if (!pk_connection_manager_get_channels(connection,
-	                                        &s.channels,
-	                                        &s.n_channels,
-	                                        error)) {
-	    return EGG_LINE_STATUS_FAILURE;
-	}
-
-	if (!s.n_channels) {
-	   g_print(_("No channels where found.\n"));
-	   goto finish;
-	}
-
-	/*
-	 * Write channel information to console.
-	 */
-	egg_fmt_iter_init(&iter,
-	                  pk_util_channels_iter,
-	                  "ID", G_TYPE_INT,
-	                  "PID", G_TYPE_INT,
-	                  "State", G_TYPE_STRING,
-	                  "Target", G_TYPE_STRING,
-	                  "Arguments", G_TYPE_STRV,
-	                  "Directory", G_TYPE_STRING,
-	                  NULL);
-	formatter(&iter, &s, NULL);
-
-finish:
-	if (s.channels) {
-		g_free(s.channels);
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_add --
- *
- *    Add a new channel on the agent.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_add (EggLine  *line,
-                          gint      argc,
-                          gchar   **argv,
-                          GError  **error)
-{
-	EggLineStatus ret = EGG_LINE_STATUS_FAILURE;
-	PkSpawnInfo info;
-	GPtrArray *env;
-	gint channel = 0;
-	gint i;
-
-	memset(&info, 0, sizeof(info));
-	env = g_ptr_array_new();
-
-	/*
-	 * Assign StartInfo properties.
-	 */
-	for (i = 0; (i + 1) < argc; i++) {
-		if (g_strcmp0(argv[i], "target") == 0) {
-			info.target = argv[++i];
-		}
-		else if (g_strcmp0(argv[i], "dir") == 0) {
-			info.working_dir = argv[++i];
-		}
-		else if (g_strcmp0(argv[i], "--") == 0) {
-			info.args = &argv[++i];
-			i += g_strv_length(&argv[i]);
-		}
-		else if (g_strcmp0(argv[i], "pid") == 0) {
-			pk_util_parse_int(argv[++i], (gint *)&info.pid);
-		}
-		else if (g_strcmp0(argv[i], "env") == 0) {
-			g_ptr_array_add(env, argv[++i]);
-		}
-		else {
-			g_printerr("Invalid property: %s\n", argv[i]);
-			return EGG_LINE_STATUS_OK;
-		}
-	}
-
-	g_ptr_array_add(env, NULL);
-	info.env = (gchar **)env->pdata;
-
-	/*
-	 * Make sure we have required fields.
-	 */
-	if (!info.target && !info.pid) {
-		g_printerr("Missing PID or Target.\n");
-		goto finish;
-	}
-
-	/*
-	 * Create channel.
-	 */
-	if (!pk_connection_manager_add_channel(connection, &channel, error)) {
-		g_printerr("Could not create channel.\n");
-		goto finish;
-	}
-
-	if (info.target) {
-		if (!pk_connection_channel_set_target(connection, channel, info.target, error)) {
-			g_printerr("Could not set target.\n");
-			goto finish;
-		}
-	}
-
-	if (info.args) {
-		if (!pk_connection_channel_set_args(connection, channel, info.args, error)) {
-			g_printerr("Could not set args.\n");
-			goto finish;
-		}
-	}
-
-	g_print("Added channel %d.\n", channel);
-	ret = EGG_LINE_STATUS_OK;
-
-  finish:
-	g_ptr_array_unref(env);
-	return ret;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_start --
- *
- *    Start the given channels.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_start (EggLine  *line,
-                            gint      argc,
-                            gchar   **argv,
-                            GError  **error)
-{
-	GError *lerror = NULL;
-	gint i, v_int;
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int(argv[i], &v_int)) {
-			if (!pk_connection_channel_start(connection, v_int, &lerror)) {
-				g_printerr("%s\n", lerror->message);
-				g_error_free(lerror);
-				lerror = NULL;
-			} else {
-				g_print("Channel %d started.\n", v_int);
-			}
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_stop --
- *
- *    Stop the given channels.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_stop (EggLine  *line,
-                           gint      argc,
-                           gchar   **argv,
-                           GError  **error)
-{
-	GError *lerror = NULL;
-	gint i, v_int = 0;
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int(argv [i], &v_int)) {
-			if (!pk_connection_channel_stop(connection, v_int, &lerror)) {
-				g_printerr("%s.\n", lerror->message);
-				g_error_free(lerror);
-				lerror = NULL;
-			} else {
-				g_print("Channel %d stopped.\n", v_int);
-			}
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_mute --
- *
- *    Pause the given channels.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_mute (EggLine  *line,
-                            gint      argc,
-                            gchar   **argv,
-                            GError  **error)
-{
-	GError *lerror = NULL;
-	gint i, v_int = 0;
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int (argv [i], &v_int)) {
-			if (!pk_connection_channel_mute(connection, v_int, &lerror)) {
-				g_printerr("Error pausing channel %d: %s.\n",
-				           v_int, lerror->message);
-				g_error_free(lerror);
-				lerror = NULL;
-			} else {
-				g_print("Paused channel %d.\n", v_int);
-			}
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_unmute --
- *
- *    Unpause the given channels.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_unmute (EggLine  *line,
-                              gint      argc,
-                              gchar   **argv,
-                              GError  **error)
-{
-	GError *lerror = NULL;
-	gint i, v_int = 0;
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	for (i = 0; i < argc; i++) {
-		if (pk_util_parse_int (argv [i], &v_int)) {
-			if (!pk_connection_channel_unmute(connection, v_int, &lerror)) {
-				g_printerr("Error pausing channel %d: %s.\n",
-				           v_int, lerror->message);
-				g_error_free(lerror);
-				lerror = NULL;
-			} else {
-				g_print("Channel %d paused.\n", v_int);
-			}
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_get --
- *
- *    Get a properties of a channel.
- *
- * Returns:
- *    Command exit status.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_get (EggLine  *line,
-                          gint      argc,
-                          gchar   **argv,
-                          GError  **error)
-{
-	gint state = 0;
-	GError *lerror = NULL;
-	gint i, channel_id;
-	gchar *v_str, **v_strv;
-	GPid pid = 0;
-
-	if (argc < 2) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	/*
-	 * Get the channel identifier.
-	 */
-	if (!pk_util_parse_int(argv[0], &channel_id)) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	/*
-	 * Iterate the rest of the property names and print their value.
-	 */
-	for (i = 1; i < argc; i++) {
-		if (!g_str_equal (argv[i], "target") &&
-	        !g_str_equal (argv[i], "args") &&
-	        !g_str_equal (argv[i], "env") &&
-	        !g_str_equal (argv[i], "pid") &&
-	        !g_str_equal (argv[i], "dir") &&
-	        !g_str_equal (argv[i], "state")) {
-	        g_printerr("Invalid property: %s.\n", argv[i]);
-	        continue;
-		}
-
-		if (g_str_equal(argv[i], "target")) {
-			if (!pk_connection_channel_get_target(connection,
-			                                      channel_id,
-			                                      &v_str,
-			                                      &lerror)) {
-			    g_printerr("Error fetching target: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			} else {
-				g_print("target: %s\n", v_str);
-				g_free(v_str);
-			}
-		} else if (g_str_equal(argv[i], "dir")) {
-			if (!pk_connection_channel_get_working_dir(connection,
-			                                           channel_id,
-			                                           &v_str,
-			                                           &lerror)) {
-			    g_printerr("Error fetching dir: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			} else {
-				g_print("dir: %s\n", v_str);
-				g_free(v_str);
-			}
-		}
-		else if (g_str_equal(argv[i], "pid")) {
-			if (!pk_connection_channel_get_pid(connection,
-			                                   channel_id,
-			                                   &pid,
-			                                   &lerror)) {
-			    g_printerr("Error fetching pid: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			} else {
-				g_print("pid: %d\n", (gint)pid);
-			}
-		}
-		else if (g_str_equal(argv[i], "state")) {
-			if (!pk_connection_channel_get_state(connection,
-			                                     channel_id,
-			                                     &state,
-			                                     &lerror)) {
-			    g_printerr("Error fetching state: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			    continue;
-			}
-
-			g_print("state: ");
-
-			switch (state) {
-			case PK_CHANNEL_READY:
-				g_print("READY\n");
-				break;
-			case PK_CHANNEL_STOPPED:
-				g_print("STOPPED\n");
-				break;
-			case PK_CHANNEL_MUTED:
-				g_print("MUTED\n");
-				break;
-			case PK_CHANNEL_RUNNING:
-				g_print("STARTED\n");
-				break;
-			case PK_CHANNEL_FAILED:
-				g_print("FAILED\n");
-				break;
-			default:
-				g_print("UNKNOWN\n");
-				break;
-			}
-		}
-		else if (g_str_equal(argv[i], "args")) {
-			if (!pk_connection_channel_get_args(connection,
-			                                    channel_id,
-			                                    &v_strv,
-			                                    &lerror)) {
-			    g_printerr("Error fetching args: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			    continue;
-			}
-
-			v_str = g_strjoinv(" ", v_strv);
-			g_print("args: %s\n", v_str);
-			g_strfreev(v_strv);
-			g_free(v_str);
-		}
-		else if (g_str_equal(argv[i], "env")) {
-			if (!pk_connection_channel_get_env(connection,
-			                                   channel_id,
-			                                   &v_strv,
-			                                   &lerror)) {
-			    g_printerr("Error fetching env: %s.\n", lerror->message);
-			    g_error_free(lerror);
-			    lerror = NULL;
-			    continue;
-			}
-
-			v_str = g_strjoinv (" ", v_strv);
-			g_print ("env: %s\n", v_str);
-			g_strfreev (v_strv);
-			g_free (v_str);
-		}
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_channel_add_source --
- *
- *    Add a source to a channel.
- *
- * Returns:
- *    Command exit code.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_channel_add_source(EggLine  *line,
-                                gint      argc,
-                                gchar   **argv,
-                                GError  **error)
-{
-	GError *lerror = NULL;
-	gint channel_id = 0, source_id = 0;
-
-	if (argc < 2) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_util_parse_int(argv[0], &channel_id)) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_connection_plugin_create_source(connection, argv[1], &source_id, &lerror)) {
-	    if (lerror) {
-			g_printerr("ERROR: %s.\n", lerror->message);
-			g_clear_error(&lerror);
-		} else {
-			g_printerr("Unknown error adding source.\n");
-		}
-	}
-	else {
-		g_print("Source %d created.\n", source_id);
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-static EggLineStatus
-pk_shell_cmd_channel_remove (EggLine  *line,
-                             gint      argc,
-                             gchar   **argv,
-                             GError  **error)
-{
-	gint channel_id = 0;
-	gboolean removed = FALSE;
-	GError *lerror = NULL;
-
-	if (argc != 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_util_parse_int(argv[0], &channel_id)) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (channel_id < 0) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_connection_manager_remove_channel(connection,
-	                                          channel_id,
-	                                          &removed,
-	                                          &lerror)) {
-	    g_printerr("ERROR: %s\n", lerror->message);
-	    g_error_free(lerror);
-	} else {
-		g_print("Removed channel %d.\n", channel_id);
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-static EggLineStatus
-pk_shell_cmd_channel_remove_source (EggLine  *line,
-                                    gint      argc,
-                                    gchar   **argv,
-                                    GError  **error)
-{
-	gint channel_id, source_id;
-	//GError *lerror = NULL;
-
-	if (argc != 2) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_util_parse_int(argv[0], &channel_id) ||
-	    !pk_util_parse_int(argv[1], &source_id)) {
-	    return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (channel_id < 0 || source_id < 0) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	g_warning("Missing rpcs for removing sources.");
-
-	/*
-	if (!pk_connection_channel_remove_source(connection,
-	                                         channel_id,
-	                                         source_id,
-	                                         &lerror)) {
-	    g_printerr("ERROR: %s\n", lerror->message);
-	    g_error_free(lerror);
-	} else {
-		g_print("Removed source %d from channel %d.\n", source_id, channel_id);
-	}
-	*/
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static PkManifest *current_manifest = NULL;
-
-static void
-print_manifest (PkManifest *manifest)
-{
-	const gchar *name;
-	gint i, rows, len = 0;
-
-	rows = pk_manifest_get_n_rows(manifest);
-
-	for (i = 1; i <= rows; i++) {
-		name = pk_manifest_get_row_name(manifest, i);
-		g_print("%s,", name);
-		len += 1 + (name ? strlen(name) : 6);
-	}
-
-	g_print("\n");
-
-	for (i = 0; i < len; i++) {
-		g_print("-");
-	}
-
-	g_print("\n");
-}
-
-#if 0
-static void
-monitor_on_manifest (PkManifest *manifest,
-                     gpointer    user_data)
-{
-	print_manifest(manifest);
-	if (current_manifest) {
-		pk_manifest_unref(current_manifest);
-	}
-	current_manifest = pk_manifest_ref(manifest);
+	ENTRY;
+	g_cond_wait(task->cond, task->mutex);
+	RETURN(task->result);
 }
 
 static void
-monitor_on_sample (PkSample *sample,
-                   gpointer  user_data)
+async_task_signal (AsyncTask *task) /* IN */
 {
-	GValue value = {0};
-	gint i, n_rows;
-
-	g_return_if_fail(sample);
-	g_return_if_fail(current_manifest);
-
-	n_rows = pk_manifest_get_n_rows(current_manifest);
-
-	for (i = 1; i <= n_rows; i++) {
-		if (pk_sample_get_value(sample, i, &value)) {
-			switch (G_VALUE_TYPE(&value)) {
-			case G_TYPE_INT:
-				g_print("%d,", g_value_get_int(&value));
-				break;
-			case G_TYPE_UINT:
-				g_print("%u,", g_value_get_uint(&value));
-				break;
-			case G_TYPE_INT64:
-				g_print("%" G_GINT64_FORMAT ",", g_value_get_uint64(&value));
-				break;
-			case G_TYPE_UINT64:
-				g_print("%" G_GUINT64_FORMAT ",", g_value_get_uint64(&value));
-				break;
-			case G_TYPE_DOUBLE:
-				g_print("%f,", g_value_get_double(&value));
-				break;
-			case G_TYPE_FLOAT:
-				g_print("%f,", g_value_get_float(&value));
-				break;
-			default:
-				g_debug("TYPE IS %s", g_type_name(G_VALUE_TYPE(&value)));
-				g_print("NaN,");
-			}
-			g_value_unset(&value);
-		}
-	}
-
-	g_print("\n");
-}
-#endif
-
-static gboolean
-show_manifest (gpointer data)
-{
-	print_manifest(current_manifest);
-	return TRUE;
+	ENTRY;
+	g_mutex_lock(task->mutex);
+	g_cond_signal(task->cond);
+	g_mutex_unlock(task->mutex);
+	EXIT;
 }
 
-static void
-monitor_sigint_handler(int sig)
-{
-	g_print("\nStopping monitor\n");
-	g_main_loop_quit(mainloop);
-}
-
-
-static EggLineStatus
-pk_shell_cmd_channel_monitor (EggLine  *line,
-                              gint      argc,
-                              gchar   **argv,
-                              GError  **error)
-{
-	gint channel_id, sub_id = 0;
-	struct sigaction sa;
-
-	/*
-	 * Catch Ctrl-C so we can exit the shell.  Auto reset the signal handler
-	 * after the call.
-	 */
-	sa.sa_handler = monitor_sigint_handler;
-	sa.sa_flags = SA_RESETHAND;
-
-	if (sigaction(SIGINT, &sa, NULL) == -1) {
-		g_printerr("Failed to set signal handler.\n");
-	}
-
-	if (argc < 1) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	if (!pk_util_parse_int(argv[0], &channel_id)) {
-		return EGG_LINE_STATUS_BAD_ARGS;
-	}
-
-	/* Create main mainloop */
-	mainloop = g_main_loop_new(NULL, FALSE);
-
-	/* Create subscription to channel */
-	if (!pk_connection_manager_add_subscription(connection,
-	                                            //channel_id,
-	                                            0,
-	                                            0,
-	                                            0, //NULL,
-	                                            &sub_id,
-	                                            error)) {
-		return EGG_LINE_STATUS_FAILURE;
-	}
-
-	/* Set subscription callbacks */
-	g_warn_if_reached();
-	/*
-	pk_connection_subscription_set_handlers(connection,
-	                                        sub_id,
-	                                        monitor_on_manifest,
-	                                        monitor_on_sample,
-	                                        NULL);
-	*/
-
-	if (!pk_connection_subscription_unmute(connection, sub_id, error)) {
-		return EGG_LINE_STATUS_FAILURE;
-	}
-
-	/* show header every 5 seconds. */
-	g_timeout_add_seconds(20, show_manifest, NULL);
-
-	/* Start main loop */
-	g_main_loop_run(mainloop);
-
-	if (!pk_connection_subscription_mute(connection, sub_id, FALSE, error)) {
-		g_printerr("Failed to disable subscription: %d\n", sub_id);
-		return EGG_LINE_STATUS_FAILURE;
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-
-static EggLineCommand channel_commands[] = {
-	{ "list", NULL, pk_shell_cmd_channel_list,
-	  N_("List perfkit channels"),
-	  "channel list" },
-	{ "add", NULL, pk_shell_cmd_channel_add,
-	  N_("Add a new perfkit channel"),
-	  "channel add" },
-	{ "start", NULL, pk_shell_cmd_channel_start,
-	  N_("Start the perfkit channel"),
-	  "channel start" },
-	{ "stop", NULL, pk_shell_cmd_channel_stop,
-	  N_("Stop the perfkit channel"),
-	  "channel stop" },
-	{ "mute", NULL, pk_shell_cmd_channel_mute,
-	  N_("Pause the perfkit channel"),
-	  "channel mute" },
-	{ "unmute", NULL, pk_shell_cmd_channel_unmute,
-	  N_("Unpause the perfkit channel"),
-	  "channel unmute" },
-	{ "get", NULL, pk_shell_cmd_channel_get,
-	  N_("Retrieve channel properties"),
-	  "channel get [CHANNEL] [pid|target|args|env|state]" },
-	{ "add-source", NULL, pk_shell_cmd_channel_add_source,
-	  N_("Add a source to the channel"),
-	  "channel add-source [CHANNEL] [SOURCE-TYPE]" },
-	{ "remove", NULL, pk_shell_cmd_channel_remove,
-	  N_("Remove a channel"),
-	  "channel remove [CHANNEL]" },
-	{ "remove-source", NULL, pk_shell_cmd_channel_remove_source,
-		N_("Remove a source from channel"),
-		"channel remove-source [CHANNEL] [SOURCE]" },
-	{ "monitor", NULL, pk_shell_cmd_channel_monitor,
-	    N_("Monitor samples from a channel."),
-	    "channel monitor [CHANNEL]" },
-	{ NULL }
-};
-
-static EggLineCommand*
-pk_shell_iter_channel (EggLine   *line,
-                       gint      *argc,
-                       gchar   ***argv)
-{
-	return channel_commands;
-}
-
-
-/*
- *----------------------------------------------------------------------------
- *
- * pk_shell_cmd_ping --
- *
- *    Pings the perfkit agent and displays the network latency.
- *
- * Returns:
- *    Command exit code.
- *
- * Side effects:
- *    None.
- *
- *----------------------------------------------------------------------------
- */
-
-static EggLineStatus
-pk_shell_cmd_ping (EggLine  *line,
-                   gint      argc,
-                   gchar   **argv,
-                   GError  **error)
-{
-	GTimeVal tv;
-	GTimeVal ltv;
-	GError *lerror = NULL;
-	gchar *v_str;
-	GTimeSpan rel;
-
-	g_print("\n  Pinging \"%s\" ...\n\n",
-	        pk_connection_get_uri(connection));
-
-	g_get_current_time(&ltv);
-
-	if (!pk_connection_manager_ping(connection, &tv, &lerror)) {
-		g_printerr("    ERROR: %s.\n", lerror->message);
-		g_error_free(lerror);
-		lerror = NULL;
-	}
-	else {
-		v_str = g_time_val_to_iso8601(&tv);
-		g_print("    %s (%lu.%lu)\n\n", v_str, tv.tv_sec, tv.tv_usec);
-		g_free(v_str);
-		g_time_val_diff(&tv, &ltv, &rel);
-		g_print("    Latency: %lu.%06lu\n\n",
-		        (gulong)(rel / G_TIME_SPAN_SECOND),
-		        (gulong)(rel % G_TIME_SPAN_SECOND));
-	}
-
-	return EGG_LINE_STATUS_OK;
-}
-
-static EggLineCommand commands[] = {
-	{ "quit", NULL, pk_shell_cmd_quit,
-	  N_("Quit perfkit-shell"), "quit" },
-	{ "ls", NULL, pk_shell_cmd_ls,
-	  N_("List directory contents"),
-	  "ls [FILE]..." },
-	{ "cd", NULL, pk_shell_cmd_cd,
-	  N_("Change working directory"),
-	  "cd [DIRECTORY]..." },
-	{ "ping", NULL, pk_shell_cmd_ping,
-	  N_("Ping the perfkit-agent"),
-	  "ping" },
-	{ "version", NULL, pk_shell_cmd_version,
-	  N_("Display version information"),
-	  "version" },
-	{ "help", NULL, pk_shell_cmd_help,
-	  N_("Display help information about perfkit"),
-	  "help [COMMAND]..." },
-	{ "load", NULL, pk_shell_cmd_load,
-	  N_("Load commands from a file"),
-	  "load [FILENAME]..." },
-	{ "sleep", NULL, pk_shell_cmd_sleep,
-	  N_("Delay for a specified amount of time"),
-	  "sleep [SECONDS]" },
-	{ "channel", pk_shell_iter_channel, NULL,
-	  N_("Manage perfkit channels\n"
-	     "\n"
-	     "Commands:\n"
-	     "\n"
-	     "  add           - Add a new channel\n"
-	     "  add-source    - Add a new source to the channel\n"
-	     "  get           - Get channel properties\n"
-	     "  list          - List available channels\n"
-	     "  pause         - Pause a channel\n"
-	     "  unpause       - Unpause a paused channel\n"
-	     "  remove        - Remove a channel\n"
-	     "  set           - Set channel properties\n"
-	     "  start         - Start the channel recording\n"
-	     "  stop          - Stop the channel recording\n"),
-	  "channel [COMMAND]" },
-	{ NULL }
-};
-
-gint
-main (gint   argc,
-      gchar *argv[])
-{
-	GOptionContext *context;
-	GError         *error = NULL;
-	EggLine        *line;
-	gint            i;
-
-	/* parse command line arguments */
-	context = g_option_context_new ("- interactive perfkit shell");
-	g_option_context_add_main_entries (context, entries, GETTEXT_PACKAGE);
-
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_printerr ("%s\n", error->message);
-		g_error_free (error);
-		return EXIT_FAILURE;
-	}
-
-	/* initialize libraries */
-	g_thread_init(NULL);
-	g_type_init ();
-
-	/* connect to the agent */
-	if (!pk_shell_connect ("dbus://", &error)) {
-		g_printerr ("%s\n", error->message);
-		return EXIT_FAILURE;
-	}
-
-	/* determine our console formatter */
-	formatter = opt_csv ? egg_fmt_csv : egg_fmt_table;
-
-	/* setup readline abstraction */
-	line = egg_line_new ();
-	egg_line_set_prompt (line, "perfkit> ");
-	egg_line_set_commands (line, commands);
-	g_signal_connect (line, "missing", G_CALLBACK (pk_shell_missing_cb), NULL);
-
-	if (argc > 1) {
-		/* run any filename arguments */
-		for (i = 1; i < argc; i++)
-			egg_line_execute_file (line, argv [i]);
-	}
-	else {
-		/* run the shell main loop */
-		egg_line_run (line);
-	}
-
-	return EXIT_SUCCESS;
-}
-
-static GQuark
+static inline GQuark
 pk_shell_error_quark (void)
 {
 	return g_quark_from_static_string("pk-shell-error-quark");
+}
+
+static inline gboolean
+pk_shell_parse_int (const gchar *str,   /* IN */
+                    gint        *v_int) /* OUT */
+{
+	gchar *ptr;
+	gint val;
+
+	*v_int = 0;
+	errno = 0;
+	val = strtol (str, &ptr, 0);
+	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0)) {
+		return FALSE;
+	} else if (str == ptr) {
+		return FALSE;
+	}
+	*v_int = val;
+	return TRUE;
+}
+
+static inline gboolean
+pk_shell_parse_boolean (const gchar *str,    /* IN */
+                        gboolean    *v_bool) /* OUT */
+{
+	gchar *utf8;
+	gboolean ret = TRUE;
+
+	g_return_val_if_fail(str != NULL, FALSE);
+	g_return_val_if_fail(v_bool != NULL, FALSE);
+
+	ENTRY;
+	utf8 = g_utf8_strdown(str, -1);
+	if (g_strcmp0("yes", utf8) == 0) {
+		*v_bool = TRUE;
+	} else if (g_strcmp0("no", utf8) == 0) {
+		*v_bool = FALSE;
+	} else if (g_strcmp0("true", utf8) == 0) {
+		*v_bool = TRUE;
+	} else if (g_strcmp0("false", utf8) == 0) {
+		*v_bool = FALSE;
+	} else if (g_strcmp0("1", utf8) == 0) {
+		*v_bool = TRUE;
+	} else if (g_strcmp0("0", utf8) == 0) {
+		*v_bool = FALSE;
+	} else {
+		*v_bool = FALSE;
+		ret = FALSE;
+	}
+	g_free(utf8);
+	RETURN(ret);
+}
+
+
+/**
+ * pk_shell_channel_get_args_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_args_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_args_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_args_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* args */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_args:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_args (EggLine  *line,   /* IN */
+                           gint      argc,   /* IN */
+                           gchar    *argv[], /* IN */
+                           GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar** args;
+	gchar *args_str;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &args;
+	pk_connection_channel_get_args_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_args_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (args && g_strv_length(args)) {
+		args_str = g_strjoinv("', '", args);
+		g_print("%16s: ['%s']\n", "args", args_str);
+		g_free(args_str);
+	} else {
+		g_print("%16s: []\n", "args");
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_env_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_env_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_env_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_env_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* env */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_env:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_env (EggLine  *line,   /* IN */
+                          gint      argc,   /* IN */
+                          gchar    *argv[], /* IN */
+                          GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar** env;
+	gchar *env_str;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &env;
+	pk_connection_channel_get_env_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_env_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (env && g_strv_length(env)) {
+		env_str = g_strjoinv("', '", env);
+		g_print("%16s: ['%s']\n", "env", env_str);
+		g_free(env_str);
+	} else {
+		g_print("%16s: []\n", "env");
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_exit_status_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_exit_status_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_exit_status_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_exit_status_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* exit_status */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_exit_status:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_exit_status (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint exit_status;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &exit_status;
+	pk_connection_channel_get_exit_status_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_exit_status_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "exit_status", (gint)exit_status);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_kill_pid_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_kill_pid_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_kill_pid_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_kill_pid_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* kill_pid */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_kill_pid:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_kill_pid (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gboolean kill_pid;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &kill_pid;
+	pk_connection_channel_get_kill_pid_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_kill_pid_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "kill_pid", kill_pid ? "TRUE" : "FALSE");
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_pid_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_pid_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_pid_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_pid_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* pid */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_pid:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_pid (EggLine  *line,   /* IN */
+                          gint      argc,   /* IN */
+                          gchar    *argv[], /* IN */
+                          GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint pid;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &pid;
+	pk_connection_channel_get_pid_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_pid_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "pid", (gint)pid);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_pid_set_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_pid_set_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_pid_set_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_pid_set_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* pid_set */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_pid_set:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_pid_set (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gboolean pid_set;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &pid_set;
+	pk_connection_channel_get_pid_set_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_pid_set_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "pid_set", pid_set ? "TRUE" : "FALSE");
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_sources_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_sources_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_sources_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_sources_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* sources */
+			task->params[1], /* sources_len */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_sources:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_sources (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint* sources;
+	gsize sources_len;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &sources;
+	task.params[1] = &sources_len;
+	pk_connection_channel_get_sources_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_sources_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (sources && sources_len) {
+		g_print("%16s: [", "sources");
+		for (i = 0; i < sources_len; i++) {
+			g_print("%d%s", sources[i], ((i + 1) == sources_len) ? "" : ", ");
+		}
+		g_print("]\n");
+	}
+	g_print("%16s: %d\n", "sources_len", (gint)sources_len);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_state_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_state_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_state_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_state_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* state */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_state:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_state (EggLine  *line,   /* IN */
+                            gint      argc,   /* IN */
+                            gchar    *argv[], /* IN */
+                            GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint state;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &state;
+	pk_connection_channel_get_state_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_state_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "state", (gint)state);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_target_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_target_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_target_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_target_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* target */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_target:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_target (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar* target;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &target;
+	pk_connection_channel_get_target_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_target_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "target", target);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_get_working_dir_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_working_dir_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_working_dir_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_working_dir_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* working_dir */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_working_dir:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_working_dir (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar* working_dir;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &working_dir;
+	pk_connection_channel_get_working_dir_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_working_dir_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "working_dir", working_dir);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_mute_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_mute_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_mute_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_mute_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_mute:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_mute (EggLine  *line,   /* IN */
+                       gint      argc,   /* IN */
+                       gchar    *argv[], /* IN */
+                       GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_mute_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_mute_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_args_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_args_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_args_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_args_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_args:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_args (EggLine  *line,   /* IN */
+                           gint      argc,   /* IN */
+                           gchar    *argv[], /* IN */
+                           GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar** args;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	args = g_strsplit(argv[i++], ",", 0);
+	async_task_init(&task);
+	pk_connection_channel_set_args_async(conn,
+	                             channel,
+	                             args,
+	                             NULL,
+	                             pk_shell_channel_set_args_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_env_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_env_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_env_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_env_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_env:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_env (EggLine  *line,   /* IN */
+                          gint      argc,   /* IN */
+                          gchar    *argv[], /* IN */
+                          GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gchar** env;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	env = g_strsplit(argv[i++], ",", 0);
+	async_task_init(&task);
+	pk_connection_channel_set_env_async(conn,
+	                             channel,
+	                             env,
+	                             NULL,
+	                             pk_shell_channel_set_env_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_kill_pid_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_kill_pid_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_kill_pid_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_kill_pid_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_kill_pid:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_kill_pid (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gboolean kill_pid;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_boolean(argv[i++], &kill_pid)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_set_kill_pid_async(conn,
+	                             channel,
+	                             kill_pid,
+	                             NULL,
+	                             pk_shell_channel_set_kill_pid_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_pid_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_pid_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_pid_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_pid_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_pid:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_pid (EggLine  *line,   /* IN */
+                          gint      argc,   /* IN */
+                          gchar    *argv[], /* IN */
+                          GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint pid;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &pid)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_set_pid_async(conn,
+	                             channel,
+	                             pid,
+	                             NULL,
+	                             pk_shell_channel_set_pid_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_target_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_target_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_target_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_target_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_target:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_target (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	const gchar* target;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	target = argv[i++];
+	async_task_init(&task);
+	pk_connection_channel_set_target_async(conn,
+	                             channel,
+	                             target,
+	                             NULL,
+	                             pk_shell_channel_set_target_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_set_working_dir_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_set_working_dir_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_set_working_dir_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_set_working_dir_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_set_working_dir:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_set_working_dir (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	const gchar* working_dir;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	working_dir = argv[i++];
+	async_task_init(&task);
+	pk_connection_channel_set_working_dir_async(conn,
+	                             channel,
+	                             working_dir,
+	                             NULL,
+	                             pk_shell_channel_set_working_dir_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_start_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_start_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_start_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_start_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_start:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_start (EggLine  *line,   /* IN */
+                        gint      argc,   /* IN */
+                        gchar    *argv[], /* IN */
+                        GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_start_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_start_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_stop_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_stop_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_stop_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_stop_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_stop:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_stop (EggLine  *line,   /* IN */
+                       gint      argc,   /* IN */
+                       gchar    *argv[], /* IN */
+                       GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_stop_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_stop_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_channel_unmute_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_unmute_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_unmute_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_unmute_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_unmute:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_unmute (EggLine  *line,   /* IN */
+                         gint      argc,   /* IN */
+                         gchar    *argv[], /* IN */
+                         GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_unmute_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_unmute_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_encoder_get_plugin_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_encoder_get_plugin_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_encoder_get_plugin_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_encoder_get_plugin_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* pluign */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_encoder_get_plugin:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint encoder;
+	gchar* pluign;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &encoder)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &pluign;
+	pk_connection_encoder_get_plugin_async(conn,
+	                             encoder,
+	                             NULL,
+	                             pk_shell_encoder_get_plugin_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "pluign", pluign);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_add_channel_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_add_channel_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_add_channel_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_add_channel_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* channel */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_add_channel:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_add_channel (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &channel;
+	pk_connection_manager_add_channel_async(conn,
+	                             NULL,
+	                             pk_shell_manager_add_channel_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "channel", (gint)channel);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_add_subscription_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_add_subscription_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_add_subscription_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_add_subscription_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* subscription */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_add_subscription:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
+                                   gint      argc,   /* IN */
+                                   gchar    *argv[], /* IN */
+                                   GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gsize buffer_size;
+	gint buffer_size_int;
+	gsize timeout;
+	gint timeout_int;
+	gint encoder;
+	gint subscription;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 3) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &buffer_size_int)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	buffer_size = buffer_size_int;
+	if (!pk_shell_parse_int(argv[i++], &timeout_int)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	timeout = timeout_int;
+	if (!pk_shell_parse_int(argv[i++], &encoder)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &subscription;
+	pk_connection_manager_add_subscription_async(conn,
+	                             buffer_size,
+	                             timeout,
+	                             encoder,
+	                             NULL,
+	                             pk_shell_manager_add_subscription_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "subscription", (gint)subscription);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_get_channels_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_get_channels_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_get_channels_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_get_channels_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* channels */
+			task->params[1], /* channels_len */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_get_channels:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_get_channels (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint* channels;
+	gsize channels_len;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &channels;
+	task.params[1] = &channels_len;
+	pk_connection_manager_get_channels_async(conn,
+	                             NULL,
+	                             pk_shell_manager_get_channels_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (channels && channels_len) {
+		g_print("%16s: [", "channels");
+		for (i = 0; i < channels_len; i++) {
+			g_print("%d%s", channels[i], ((i + 1) == channels_len) ? "" : ", ");
+		}
+		g_print("]\n");
+	}
+	g_print("%16s: %d\n", "channels_len", (gint)channels_len);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_get_plugins_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_get_plugins_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_get_plugins_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_get_plugins_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* plugins */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_get_plugins:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_get_plugins (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gchar** plugins;
+	gchar *plugins_str;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &plugins;
+	pk_connection_manager_get_plugins_async(conn,
+	                             NULL,
+	                             pk_shell_manager_get_plugins_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (plugins && g_strv_length(plugins)) {
+		plugins_str = g_strjoinv("', '", plugins);
+		g_print("%16s: ['%s']\n", "plugins", plugins_str);
+		g_free(plugins_str);
+	} else {
+		g_print("%16s: []\n", "plugins");
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_get_version_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_get_version_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_get_version_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_get_version_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* version */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_get_version:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_get_version (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gchar* version;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &version;
+	pk_connection_manager_get_version_async(conn,
+	                             NULL,
+	                             pk_shell_manager_get_version_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "version", version);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_ping_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_ping_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_ping_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_ping_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* tv */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_ping:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_ping (EggLine  *line,   /* IN */
+                       gint      argc,   /* IN */
+                       gchar    *argv[], /* IN */
+                       GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	GTimeVal tv;
+	gchar *tv_str;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &tv;
+	pk_connection_manager_ping_async(conn,
+	                             NULL,
+	                             pk_shell_manager_ping_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	tv_str = g_time_val_to_iso8601(&tv);
+	g_print("%16s: %s\n", "tv", tv_str);
+	g_free(tv_str);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_remove_channel_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_remove_channel_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_remove_channel_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_remove_channel_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* removed */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_remove_channel:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_remove_channel (EggLine  *line,   /* IN */
+                                 gint      argc,   /* IN */
+                                 gchar    *argv[], /* IN */
+                                 GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gboolean removed;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &removed;
+	pk_connection_manager_remove_channel_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_manager_remove_channel_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "removed", removed ? "TRUE" : "FALSE");
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_remove_subscription_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_remove_subscription_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_remove_subscription_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_remove_subscription_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* removed */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_remove_subscription:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_remove_subscription (EggLine  *line,   /* IN */
+                                      gint      argc,   /* IN */
+                                      gchar    *argv[], /* IN */
+                                      GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gboolean removed;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &removed;
+	pk_connection_manager_remove_subscription_async(conn,
+	                             subscription,
+	                             NULL,
+	                             pk_shell_manager_remove_subscription_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "removed", removed ? "TRUE" : "FALSE");
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_create_encoder_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_create_encoder_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_create_encoder_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_create_encoder_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* encoder */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_create_encoder:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_create_encoder (EggLine  *line,   /* IN */
+                                gint      argc,   /* IN */
+                                gchar    *argv[], /* IN */
+                                GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gint encoder;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &encoder;
+	pk_connection_plugin_create_encoder_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_create_encoder_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "encoder", (gint)encoder);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_create_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_create_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_create_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_create_source_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* source */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_create_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_create_source (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &source;
+	pk_connection_plugin_create_source_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_create_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "source", (gint)source);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_get_copyright_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_get_copyright_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_get_copyright_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_get_copyright_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* copyright */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_get_copyright:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_get_copyright (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gchar* copyright;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &copyright;
+	pk_connection_plugin_get_copyright_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_get_copyright_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "copyright", copyright);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_get_description_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_get_description_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_get_description_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_get_description_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* description */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_get_description:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_get_description (EggLine  *line,   /* IN */
+                                 gint      argc,   /* IN */
+                                 gchar    *argv[], /* IN */
+                                 GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gchar* description;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &description;
+	pk_connection_plugin_get_description_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_get_description_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "description", description);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_get_name_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_get_name_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_get_name_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_get_name_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* name */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_get_name:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_get_name (EggLine  *line,   /* IN */
+                          gint      argc,   /* IN */
+                          gchar    *argv[], /* IN */
+                          GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gchar* name;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &name;
+	pk_connection_plugin_get_name_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_get_name_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "name", name);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_get_plugin_type_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_get_plugin_type_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_get_plugin_type_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_get_plugin_type_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* type */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_get_plugin_type:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_get_plugin_type (EggLine  *line,   /* IN */
+                                 gint      argc,   /* IN */
+                                 gchar    *argv[], /* IN */
+                                 GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gint type;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &type;
+	pk_connection_plugin_get_plugin_type_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_get_plugin_type_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "type", (gint)type);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_plugin_get_version_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_plugin_get_version_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_plugin_get_version_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_plugin_get_version_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* version */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_plugin_get_version:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_plugin_get_version (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gchar* version;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &version;
+	pk_connection_plugin_get_version_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_plugin_get_version_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "version", version);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_source_get_plugin_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_source_get_plugin_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_source_get_plugin_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_source_get_plugin_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* plugin */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_source_get_plugin:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_source_get_plugin (EggLine  *line,   /* IN */
+                            gint      argc,   /* IN */
+                            gchar    *argv[], /* IN */
+                            GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint source;
+	gchar* plugin;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &source)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &plugin;
+	pk_connection_source_get_plugin_async(conn,
+	                             source,
+	                             NULL,
+	                             pk_shell_source_get_plugin_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "plugin", plugin);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_add_channel_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_add_channel_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_add_channel_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_add_channel_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_add_channel:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_add_channel (EggLine  *line,   /* IN */
+                                   gint      argc,   /* IN */
+                                   gchar    *argv[], /* IN */
+                                   GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint channel;
+	gboolean monitor;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 3) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_boolean(argv[i++], &monitor)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_add_channel_async(conn,
+	                             subscription,
+	                             channel,
+	                             monitor,
+	                             NULL,
+	                             pk_shell_subscription_add_channel_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_add_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_add_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_add_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_add_source_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_add_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_add_source (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &source)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_add_source_async(conn,
+	                             subscription,
+	                             source,
+	                             NULL,
+	                             pk_shell_subscription_add_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_mute_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_mute_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_mute_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_mute_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_mute:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_mute (EggLine  *line,   /* IN */
+                            gint      argc,   /* IN */
+                            gchar    *argv[], /* IN */
+                            GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gboolean drain;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_boolean(argv[i++], &drain)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_mute_async(conn,
+	                             subscription,
+	                             drain,
+	                             NULL,
+	                             pk_shell_subscription_mute_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_remove_channel_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_remove_channel_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_remove_channel_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_remove_channel_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_remove_channel:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_remove_channel (EggLine  *line,   /* IN */
+                                      gint      argc,   /* IN */
+                                      gchar    *argv[], /* IN */
+                                      GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint channel;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_remove_channel_async(conn,
+	                             subscription,
+	                             channel,
+	                             NULL,
+	                             pk_shell_subscription_remove_channel_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_remove_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_remove_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_remove_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_remove_source_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_remove_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_remove_source (EggLine  *line,   /* IN */
+                                     gint      argc,   /* IN */
+                                     gchar    *argv[], /* IN */
+                                     GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &source)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_remove_source_async(conn,
+	                             subscription,
+	                             source,
+	                             NULL,
+	                             pk_shell_subscription_remove_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_set_buffer_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_set_buffer_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_set_buffer_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_set_buffer_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_set_buffer:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_set_buffer (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint timeout;
+	gint size;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 3) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &timeout)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &size)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_set_buffer_async(conn,
+	                             subscription,
+	                             timeout,
+	                             size,
+	                             NULL,
+	                             pk_shell_subscription_set_buffer_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_unmute_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_unmute_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_unmute_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_unmute_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_unmute:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_unmute (EggLine  *line,   /* IN */
+                              gint      argc,   /* IN */
+                              gchar    *argv[], /* IN */
+                              GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_unmute_async(conn,
+	                             subscription,
+	                             NULL,
+	                             pk_shell_subscription_unmute_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_shell_log:
+ * @line: An #EggLine.
+ * @argc: The argument count.
+ * @argv: The arguments.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Alters the level of log messages which are written to the console.
+ *
+ * Returns: An #EggLineStatus.
+ * Side effects: The log threshold is set.
+ */
+static EggLineStatus
+pk_shell_shell_log (EggLine  *line,   /* IN */
+                    gint      argc,   /* IN */
+                    gchar    *argv[], /* IN */
+                    GError  **error)  /* OUT */
+{
+	if (argc < 1 || !argv[0]) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (g_strcmp0(argv[0], "trace") == 0) {
+		log_threshold = G_LOG_LEVEL_TRACE;
+	} else if (g_strcmp0(argv[0], "debug") == 0) {
+		log_threshold = G_LOG_LEVEL_DEBUG;
+	} else if (g_strcmp0(argv[0], "error") == 0) {
+		log_threshold = G_LOG_LEVEL_ERROR;
+	} else if (g_strcmp0(argv[0], "info") == 0) {
+		log_threshold = G_LOG_LEVEL_INFO;
+	} else if (g_strcmp0(argv[0], "message") == 0) {
+		log_threshold = G_LOG_LEVEL_MESSAGE;
+	} else if (g_strcmp0(argv[0], "warning") == 0) {
+		log_threshold = G_LOG_LEVEL_WARNING;
+	} else if (g_strcmp0(argv[0], "critical") == 0) {
+		log_threshold = G_LOG_LEVEL_CRITICAL;
+	} else {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+static EggLineCommand plugin_commands[] = {
+	{
+		.name      = "create-encoder",
+		.help      = "Creates a new instance of the encoder plugin.  If the plugin type is not\nan encoder plugin then this will fail.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_create_encoder,
+		.usage     = "plugin create-encoder PLUGIN",
+	},
+	{
+		.name      = "create-source",
+		.help      = "Creates a new instance of the source plugin.  If the plugin type is not\na source plugin then this will fail.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_create_source,
+		.usage     = "plugin create-source PLUGIN",
+	},
+	{
+		.name      = "get-copyright",
+		.help      = "The plugin copyright.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_get_copyright,
+		.usage     = "plugin get-copyright PLUGIN",
+	},
+	{
+		.name      = "get-description",
+		.help      = "The plugin description.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_get_description,
+		.usage     = "plugin get-description PLUGIN",
+	},
+	{
+		.name      = "get-name",
+		.help      = "The plugin name.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_get_name,
+		.usage     = "plugin get-name PLUGIN",
+	},
+	{
+		.name      = "get-plugin-type",
+		.help      = "The plugin type.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_get_plugin_type,
+		.usage     = "plugin get-plugin-type PLUGIN",
+	},
+	{
+		.name      = "get-version",
+		.help      = "The plugin version.\n"
+		             "\n"
+		             "options:\n"
+		             "  PLUGIN:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_plugin_get_version,
+		.usage     = "plugin get-version PLUGIN",
+	},
+	{ NULL }
+};
+
+static EggLineCommand encoder_commands[] = {
+	{
+		.name      = "get-plugin",
+		.help      = "Retrieves the plugin which created the encoder instance.\n"
+		             "\n"
+		             "options:\n"
+		             "  ENCODER:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_encoder_get_plugin,
+		.usage     = "encoder get-plugin ENCODER",
+	},
+	{ NULL }
+};
+
+static EggLineCommand source_commands[] = {
+	{
+		.name      = "get-plugin",
+		.help      = "Retrieves the plugin for which the source originates.\n"
+		             "\n"
+		             "options:\n"
+		             "  SOURCE:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_source_get_plugin,
+		.usage     = "source get-plugin SOURCE",
+	},
+	{ NULL }
+};
+
+static EggLineCommand manager_commands[] = {
+	{
+		.name      = "add-channel",
+		.help      = "Adds a channel to the agent.",
+		.callback  = pk_shell_manager_add_channel,
+		.usage     = "manager add-channel ",
+	},
+	{
+		.name      = "add-subscription",
+		.help      = "Adds a new subscription to the agent. @buffer_size is the size of the\ninternal buffer in bytes to queue before flushing data to the subscriber.\n@timeout is the maximum number of milliseconds that should pass before\nflushing data to the subscriber.\n\nIf @buffer_size and @timeout are 0, then no buffering will occur.\n\n@encoder is an optional encoder that can be used to encode the data\ninto a particular format the subscriber is expecting.",
+		.callback  = pk_shell_manager_add_subscription,
+		.usage     = "manager add-subscription BUFFER_SIZE TIMEOUT ENCODER",
+	},
+	{
+		.name      = "get-channels",
+		.help      = "Retrieves the list of channels located within the agent.",
+		.callback  = pk_shell_manager_get_channels,
+		.usage     = "manager get-channels ",
+	},
+	{
+		.name      = "get-plugins",
+		.help      = "Retrieves the list of available plugins within the agent.",
+		.callback  = pk_shell_manager_get_plugins,
+		.usage     = "manager get-plugins ",
+	},
+	{
+		.name      = "get-version",
+		.help      = "Retrieves the version of the agent.",
+		.callback  = pk_shell_manager_get_version,
+		.usage     = "manager get-version ",
+	},
+	{
+		.name      = "ping",
+		.help      = "Pings the agent over the RPC protocol to determine one-way latency.",
+		.callback  = pk_shell_manager_ping,
+		.usage     = "manager ping ",
+	},
+	{
+		.name      = "remove-channel",
+		.help      = "Removes a channel from the agent.",
+		.callback  = pk_shell_manager_remove_channel,
+		.usage     = "manager remove-channel CHANNEL",
+	},
+	{
+		.name      = "remove-subscription",
+		.help      = "Removes a subscription from the agent.",
+		.callback  = pk_shell_manager_remove_subscription,
+		.usage     = "manager remove-subscription SUBSCRIPTION",
+	},
+	{ NULL }
+};
+
+static EggLineCommand channel_commands[] = {
+	{
+		.name      = "get-args",
+		.help      = "Retrieves the arguments for target.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_args,
+		.usage     = "channel get-args CHANNEL",
+	},
+	{
+		.name      = "get-env",
+		.help      = "Retrieves the environment for spawning the target process.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_env,
+		.usage     = "channel get-env CHANNEL",
+	},
+	{
+		.name      = "get-exit-status",
+		.help      = "Retrieves the exit status of the process.  This is only set after the\nprocess has exited.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_exit_status,
+		.usage     = "channel get-exit-status CHANNEL",
+	},
+	{
+		.name      = "get-kill-pid",
+		.help      = "Retrieves if the process should be killed when the channel is stopped.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_kill_pid,
+		.usage     = "channel get-kill-pid CHANNEL",
+	},
+	{
+		.name      = "get-pid",
+		.help      = "Retrieves the process pid of the target process.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_pid,
+		.usage     = "channel get-pid CHANNEL",
+	},
+	{
+		.name      = "get-pid-set",
+		.help      = "Retrieves if the \"pid\" property was set manually.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_pid_set,
+		.usage     = "channel get-pid-set CHANNEL",
+	},
+	{
+		.name      = "get-sources",
+		.help      = "Retrieves the available sources.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_sources,
+		.usage     = "channel get-sources CHANNEL",
+	},
+	{
+		.name      = "get-state",
+		.help      = "Retrieves the current state of the channel.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_state,
+		.usage     = "channel get-state CHANNEL",
+	},
+	{
+		.name      = "get-target",
+		.help      = "Retrieves the channels target.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_target,
+		.usage     = "channel get-target CHANNEL",
+	},
+	{
+		.name      = "get-working-dir",
+		.help      = "Retrieves the working directory of the target.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_working_dir,
+		.usage     = "channel get-working-dir CHANNEL",
+	},
+	{
+		.name      = "mute",
+		.help      = "Notifies @channel to silently drop manifest and sample updates until\nunmute() is called.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_mute,
+		.usage     = "channel mute CHANNEL",
+	},
+	{
+		.name      = "set-args",
+		.help      = "Sets the targets arguments.  This may only be set before the channel\nhas started.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  ARGS:\t\tA string array.\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_args,
+		.usage     = "channel set-args CHANNEL ARGS",
+	},
+	{
+		.name      = "set-env",
+		.help      = "Sets the environment of the target process.  This may only be set before\nthe channel has started.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  ENV:\t\tA string array.\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_env,
+		.usage     = "channel set-env CHANNEL ENV",
+	},
+	{
+		.name      = "set-kill-pid",
+		.help      = "Sets if the process should be killed when the channel is stopped.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  KILL_PID:\t\tA boolean [yes, no, true, false, 0, 1].\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_kill_pid,
+		.usage     = "channel set-kill-pid CHANNEL KILL_PID",
+	},
+	{
+		.name      = "set-pid",
+		.help      = "Sets the target pid to attach to rather than spawning a process.  This can\nonly be set before the channel has started.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  PID:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_pid,
+		.usage     = "channel set-pid CHANNEL PID",
+	},
+	{
+		.name      = "set-target",
+		.help      = "Sets the channels target.  This may only be set before the channel has\nstarted.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  TARGET:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_target,
+		.usage     = "channel set-target CHANNEL TARGET",
+	},
+	{
+		.name      = "set-working-dir",
+		.help      = "Sets the targets working directory.  This may only be set before the\nchannel has started.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  WORKING_DIR:\t\tA string.\n"
+		             "\n",
+		.callback  = pk_shell_channel_set_working_dir,
+		.usage     = "channel set-working-dir CHANNEL WORKING_DIR",
+	},
+	{
+		.name      = "start",
+		.help      = "Start the channel. If required, the process will be spawned.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_start,
+		.usage     = "channel start CHANNEL",
+	},
+	{
+		.name      = "stop",
+		.help      = "Stop the channel. If @killpid, the inferior process is terminated.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_stop,
+		.usage     = "channel stop CHANNEL",
+	},
+	{
+		.name      = "unmute",
+		.help      = "Resumes delivery of manifest and samples for sources within the channel.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_unmute,
+		.usage     = "channel unmute CHANNEL",
+	},
+	{ NULL }
+};
+
+static EggLineCommand subscription_commands[] = {
+	{
+		.name      = "add-channel",
+		.help      = "Adds all sources of @channel to the list of sources for which manifest\nand samples are delivered to the subscriber.\n\nIf @monitor is TRUE, then sources added to @channel will automatically\nbe added to the subscription.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  MONITOR:\t\tA boolean [yes, no, true, false, 0, 1].\n"
+		             "\n",
+		.callback  = pk_shell_subscription_add_channel,
+		.usage     = "subscription add-channel SUBSCRIPTION CHANNEL MONITOR",
+	},
+	{
+		.name      = "add-source",
+		.help      = "Adds @source to the list of sources for which manifest and samples are\ndelivered to the subscriber.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  SOURCE:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_add_source,
+		.usage     = "subscription add-source SUBSCRIPTION SOURCE",
+	},
+	{
+		.name      = "mute",
+		.help      = "Prevents the subscription from further manifest or sample delivery.  If\n@drain is set, the current buffer will be flushed.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  DRAIN:\t\tA boolean [yes, no, true, false, 0, 1].\n"
+		             "\n",
+		.callback  = pk_shell_subscription_mute,
+		.usage     = "subscription mute SUBSCRIPTION DRAIN",
+	},
+	{
+		.name      = "remove-channel",
+		.help      = "Removes @channel and all of its sources from the subscription.  This\nprevents further manifest and sample delivery to the subscriber.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_remove_channel,
+		.usage     = "subscription remove-channel SUBSCRIPTION CHANNEL",
+	},
+	{
+		.name      = "remove-source",
+		.help      = "Removes @source from the subscription.  This prevents further manifest\nand sample delivery to the subscriber.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  SOURCE:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_remove_source,
+		.usage     = "subscription remove-source SUBSCRIPTION SOURCE",
+	},
+	{
+		.name      = "set-buffer",
+		.help      = "Sets the buffering timeout and maximum buffer size for the subscription.\nIf @timeout milliseconds pass or @size bytes are consummed buffering,\nthe data will be delivered to the subscriber.\n\nSet @timeout and @size to 0 to disable buffering.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  TIMEOUT:\t\tAn integer.\n"
+		             "  SIZE:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_set_buffer,
+		.usage     = "subscription set-buffer SUBSCRIPTION TIMEOUT SIZE",
+	},
+	{
+		.name      = "unmute",
+		.help      = "Enables the subscription for manifest and sample delivery.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_unmute,
+		.usage     = "subscription unmute SUBSCRIPTION",
+	},
+	{ NULL }
+};
+
+
+static EggLineCommand shell_commands[] = {
+	{
+		.name      = "log",
+		.help      = "Set the shell's logging level.\n"
+		             "\n"
+		             "usage:\n"
+		             "  shell log [LEVEL]\n"
+		             "\n"
+		             "levels:\n"
+		             "  error    -- log error messages and higher\n"
+		             "  critical -- log critical messages and higher\n"
+		             "  warning  -- log warning messages and higher\n"
+		             "  message  -- log generic messages and higher\n"
+		             "  info     -- log informative messages and higher\n"
+		             "  debug    -- log debug messages and higher\n"
+		             "  trace    -- log function tracing and higher\n\n",
+		.usage     = "shell log [error | critical | warning | message | info | debug | trace]",
+		.callback  = pk_shell_shell_log,
+		.generator = NULL,
+	},
+	{ NULL }
+};
+
+/**
+ * pk_shell_plugin_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_plugin_generator (EggLine   *line, /* IN */
+                           gint      *argc, /* IN/OUT */
+                           gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(plugin_commands);
+}
+
+/**
+ * pk_shell_encoder_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_encoder_generator (EggLine   *line, /* IN */
+                            gint      *argc, /* IN/OUT */
+                            gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(encoder_commands);
+}
+
+/**
+ * pk_shell_source_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_source_generator (EggLine   *line, /* IN */
+                           gint      *argc, /* IN/OUT */
+                           gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(source_commands);
+}
+
+/**
+ * pk_shell_manager_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_manager_generator (EggLine   *line, /* IN */
+                            gint      *argc, /* IN/OUT */
+                            gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(manager_commands);
+}
+
+/**
+ * pk_shell_channel_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_channel_generator (EggLine   *line, /* IN */
+                            gint      *argc, /* IN/OUT */
+                            gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(channel_commands);
+}
+
+/**
+ * pk_shell_subscription_generator:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ *
+ * Generator for #EggLine to retrieve the sub-commands of the current command
+ * request.
+ *
+ * Returns: A %NULL terminated EggLineCommand array.
+ * Side effects: None.
+ */
+static EggLineCommand*
+pk_shell_subscription_generator (EggLine   *line, /* IN */
+                                 gint      *argc, /* IN/OUT */
+                                 gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(subscription_commands);
+}
+
+
+static EggLineCommand*
+pk_shell_shell_generator (EggLine   *line, /* IN */
+                          gint      *argc, /* IN/OUT */
+                          gchar   ***argv) /* IN/OUT */
+{
+	ENTRY;
+	RETURN(shell_commands);
+}
+
+static EggLineCommand root_commands[] = {
+	{
+		.name      = "plugin",
+		.help      = "Plugin commands.",
+		.callback  = NULL,
+		.generator = pk_shell_plugin_generator,
+		.usage     = "plugin [create-encoder | create-source | get-copyright | get-description | get-name | get-plugin-type | get-version]",
+	},
+	{
+		.name      = "encoder",
+		.help      = "Encoder commands.",
+		.callback  = NULL,
+		.generator = pk_shell_encoder_generator,
+		.usage     = "encoder [get-plugin]",
+	},
+	{
+		.name      = "source",
+		.help      = "Source commands.",
+		.callback  = NULL,
+		.generator = pk_shell_source_generator,
+		.usage     = "source [get-plugin]",
+	},
+	{
+		.name      = "manager",
+		.help      = "Manager commands.",
+		.callback  = NULL,
+		.generator = pk_shell_manager_generator,
+		.usage     = "manager [add-channel | add-subscription | get-channels | get-plugins | get-version | ping | remove-channel | remove-subscription]",
+	},
+	{
+		.name      = "channel",
+		.help      = "Channel commands.",
+		.callback  = NULL,
+		.generator = pk_shell_channel_generator,
+		.usage     = "channel [get-args | get-env | get-exit-status | get-kill-pid | get-pid | get-pid-set | get-sources | get-state | get-target | get-working-dir | mute | set-args | set-env | set-kill-pid | set-pid | set-target | set-working-dir | start | stop | unmute]",
+	},
+	{
+		.name      = "subscription",
+		.help      = "Subscription commands.",
+		.callback  = NULL,
+		.generator = pk_shell_subscription_generator,
+		.usage     = "subscription [add-channel | add-source | mute | remove-channel | remove-source | set-buffer | unmute]",
+	},
+	{
+		.name      = "shell",
+		.help      = "Manage the interactive shell.",
+		.callback  = NULL,
+		.generator = pk_shell_shell_generator,
+		.usage     = "shell [log]",
+	},
+	{ NULL }
+};
+
+/**
+ * pk_shell_missing_cb:
+ * @line: An #EggLine.
+ * @command: The command that was called.
+ * @user_data: user data supplied to g_signal_connect().
+ *
+ * Callback upon an unknown command being entered into the shell.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_shell_missing_cb (EggLine     *line,      /* IN */
+                     const gchar *command,   /* IN */
+                     gpointer     user_data) /* IN */
+{
+	ENTRY;
+	g_printerr(_("Command not found: %s\n"), command);
+	EXIT;
+}
+
+/**
+ * pk_shell_log_level_to_str:
+ * @log_level: A #GLogLevelFlags.
+ *
+ * Converts a log level into its string name.
+ *
+ * Returns: A const string.
+ * Side effects: None.
+ */
+static const gchar *
+pk_shell_log_level_to_str (GLogLevelFlags log_level) /* IN */
+{
+	#define CASE_LEVEL_STR(_n) case G_LOG_LEVEL_##_n: return #_n
+	switch ((long)log_level) {
+	CASE_LEVEL_STR(ERROR);
+	CASE_LEVEL_STR(CRITICAL);
+	CASE_LEVEL_STR(WARNING);
+	CASE_LEVEL_STR(MESSAGE);
+	CASE_LEVEL_STR(INFO);
+	CASE_LEVEL_STR(DEBUG);
+	CASE_LEVEL_STR(TRACE);
+	default:
+		return "UNKNOWN";
+	}
+	#undef CASE_LEVEL_STR
+}
+
+/**
+ * pk_shell_get_thread:
+ *
+ * Retrieves the task id of the caller.  Every thread has a unique task id
+ * on linux.  On other systems, this will return the process id.
+ *
+ * Returns: The task id of the thread.
+ * Side effects: None.
+ */
+static inline gint
+pk_shell_get_thread (void)
+{
+#if __linux__
+	return (gint)syscall(SYS_gettid);
+#else
+	return getpid();
+#endif /* __linux__ */
+}
+
+/**
+ * pk_shell_log_handler:
+ * @log_domain: The modules log domain.
+ * @log_level: The message log level.
+ * @message: A message to log.
+ * @user_data: user data supplied to g_log_set_default_handler().
+ *
+ * Default handler for log messages from the GLib logging subsystem.  If
+ * the log message meets or exceeds the current log level, it will be
+ * logged to the console.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_shell_log_handler (const gchar    *log_domain, /* IN */
+                      GLogLevelFlags  log_level,  /* IN */
+                      const gchar    *message,    /* IN */
+                      gpointer        user_data)  /* IN */
+{
+	struct timespec ts;
+	struct tm tt;
+	time_t t;
+	const gchar *level;
+	gchar ftime[32];
+	gchar *buffer;
+
+	if (log_threshold < log_level) {
+		return;
+	}
+	level = pk_shell_log_level_to_str(log_level);
+	clock_gettime(CLOCK_REALTIME, &ts);
+	t = (time_t)ts.tv_sec;
+	tt = *localtime(&t);
+	strftime(ftime, sizeof(ftime), "%x %X", &tt);
+	buffer = g_strdup_printf("%s.%04ld  %s: %10s[%d]: %8s: %s\n",
+	                         ftime, ts.tv_nsec / 100000,
+	                         hostname, log_domain ? log_domain : "Default",
+	                         pk_shell_get_thread(), level, message);
+	g_printerr("%s", buffer);
+	g_free(buffer);
+}
+
+/**
+ * pk_shell_egg_line_thread:
+ * @line: A #EggLine.
+ *
+ * Worker thread to manage readline input.  Quits the main loop when it
+ * finishes.
+ *
+ * Returns: None.
+ * Side effects: Mainloop armageddon.
+ */
+static gpointer
+pk_shell_egg_line_thread (EggLine *line) /* IN */
+{
+	ENTRY;
+	egg_line_run(line);
+	g_main_loop_quit(main_loop);
+	RETURN(NULL);
+}
+
+/**
+ * pk_shell_connect_cb:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: user data supplied to pk_connection_connect_async().
+ *
+ * Asynchronous callback when the connection has successfully connected.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_shell_connect_cb (PkConnection *connection, /* IN */
+                     GAsyncResult *result,     /* IN */
+                     gpointer      user_data)  /* IN */
+{
+	GError *error = NULL;
+
+	/*
+	 * Check if we connected.
+	 */
+	if (!pk_connection_connect_finish(connection, result, &error)) {
+		g_error("Could not connect to Perfkit: %s",
+		        error->message);
+		EXIT;
+	}
+
+	/*
+	 * Spawn the readline thread.
+	 */
+	if (!g_thread_create((GThreadFunc)pk_shell_egg_line_thread, user_data,
+	                     FALSE, &error)) {
+		g_error("Could not spawn readline thread: %s",
+		        error->message);
+		EXIT;
+	}
+}
+
+gint
+main (gint   argc,   /* IN */
+      gchar *argv[]) /* IN */
+{
+	struct utsname u;
+	EggLine *line;
+
+	g_thread_init(NULL);
+	g_type_init();
+
+	/*
+	 * TODO: Initialize i18n.
+	 */
+
+	/*
+	 * Initialize logging.
+	 */
+	uname(&u);
+	memcpy(hostname, u.nodename, sizeof(hostname));
+	g_log_set_default_handler(pk_shell_log_handler, NULL);
+
+	/*
+	 * Initialize libraries.
+	 */
+	main_loop = g_main_loop_new(NULL, FALSE);
+	formatter = egg_fmt_table;
+	line = egg_line_new();
+	egg_line_set_prompt(line, "perfkit> ");
+	egg_line_set_commands(line, root_commands);
+	g_signal_connect(line,
+	                 "missing",
+	                 G_CALLBACK(pk_shell_missing_cb),
+	                 NULL);
+
+	/*
+	 * Create connection.
+	 */
+	if (!(conn = pk_connection_new_from_uri("dbus://"))) {
+		g_printerr("Could not load DBus protocol. EXITING.\n");
+		RETURN(EXIT_FAILURE);
+	}
+
+	/*
+	 * Asynchronously connect to Perfkit.
+	 */
+	g_message("Connecting to Perfkit ...\n");
+	pk_connection_connect_async(conn, NULL,
+	                            (GAsyncReadyCallback)pk_shell_connect_cb,
+	                            line);
+
+	/*
+	 * Run the main loop.
+	 */
+	g_main_loop_run(main_loop);
+
+	RETURN(EXIT_SUCCESS);
 }
