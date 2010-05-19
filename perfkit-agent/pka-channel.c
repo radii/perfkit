@@ -548,6 +548,7 @@ pka_channel_inferior_exited (GPid        pid,     /* IN */
 	g_return_if_fail(PKA_IS_CHANNEL(channel));
 
 	ENTRY;
+	INFO(Channel, "Process %d exited with status %d.", (gint)pid, status);
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	priv->exit_status = status;
