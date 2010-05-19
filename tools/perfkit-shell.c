@@ -1,4 +1,4 @@
-/* pk-shell.c
+/* perfkit-shell.c
  *
  * Copyright 2010 Christian Hergert <chris@dronelabs.com>
  *
