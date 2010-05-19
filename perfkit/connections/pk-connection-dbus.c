@@ -3619,7 +3619,7 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 
 	if (channel_path) {
 		sscanf(channel_path,
-		       "/org/perfkit/Agent/Manager/%d",
+		       "/org/perfkit/Agent/Channel/%d",
 		       channel);
 	}
 
