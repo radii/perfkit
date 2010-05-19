@@ -27,6 +27,7 @@
 
 #include <errno.h>
 #include <glib/gi18n.h>
+#include <glib/gstdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -3450,6 +3451,76 @@ pk_shell_shell_log (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+/**
+ * pk_shell_cd:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ * @error: location for a #GError, or %NULL.
+ *
+ * Changes the working directory of the shell.
+ *
+ * Returns: An EggLineStatus.
+ * Side effects: The processes working directory is changed.
+ */
+static EggLineStatus
+pk_shell_cd (EggLine  *line,   /* IN */
+             gint      argc,   /* IN */
+             gchar    *argv[], /* IN */
+             GError  **error)  /* OUT */
+{
+	ENTRY;
+	if (argc < 1) {
+		g_chdir(g_get_home_dir());
+		RETURN(EGG_LINE_STATUS_OK);
+	} else if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	} else if (!g_file_test(argv[0], G_FILE_TEST_IS_DIR)) {
+		g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE,
+		            "Directory not found: %s", argv[0]);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (g_chdir(argv[0]) != 0) {
+		g_set_error(error, PK_SHELL_ERROR, PK_SHELL_ERROR_VALUE,
+		            "Could not change directories.");
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_ls:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ * @error: location for a #GError, or %NULL.
+ *
+ * Lists the contents of the current directory.
+ *
+ * Returns: An EggLineStatus.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_ls (EggLine  *line,   /* IN */
+             gint      argc,   /* IN */
+             gchar    *argv[], /* IN */
+             GError  **error)  /* OUT */
+{
+	gchar **spawn_argv;
+	gint i;
+
+	ENTRY;
+	spawn_argv = g_new0(gchar*, argc + 2);
+	spawn_argv[0] = g_strdup("ls");
+	for (i = 0; i < argc; i++) {
+		spawn_argv[1 + i] = g_strdup(argv[i]);
+	}
+	g_spawn_sync(".", spawn_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+	             NULL, NULL, NULL, NULL);
+	g_strfreev(spawn_argv);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
 static EggLineCommand plugin_commands[] = {
 	{
 		.name      = "create-encoder",
@@ -4105,6 +4176,20 @@ static EggLineCommand root_commands[] = {
 		.callback  = NULL,
 		.generator = pk_shell_shell_generator,
 		.usage     = "shell [log]",
+	},
+	{
+		.name      = "cd",
+		.help      = "Change the working directory.",
+		.usage     = "cd [DIRECTORY]",
+		.generator = NULL,
+		.callback  = pk_shell_cd,
+	},
+	{
+		.name      = "ls",
+		.help      = "List contents of the working directory.",
+		.usage     = "ls [OPTIONS]",
+		.generator = NULL,
+		.callback  = pk_shell_ls,
 	},
 	{ NULL }
 };
