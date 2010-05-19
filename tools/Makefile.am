@@ -22,6 +22,7 @@ AM_CPPFLAGS =								\
 	-DGETTEXT_PACKAGE=\"PerfkitTools\"				\
 	-DLOCALEDIR=\""$(localedir)"\"					\
 	-I$(top_srcdir)/cut-n-paste					\
+	-I$(top_srcdir)/perfkit						\
 	-I$(top_srcdir)							\
 	$(PERFKIT_TOOLS_CFLAGS)						\
 	$(WARNINGS)							\
@@ -45,12 +46,12 @@ perfkit_shell_LDFLAGS =							\
 
 perfkit_shell_LDADD = $(top_builddir)/perfkit/libperfkit-1.0.la
 
-debug:
+debug-shell:
 	echo "quit" | PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs ./perfkit-shell
 	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs gdb ./.libs/lt-perfkit-shell
 
-test-shell:
-	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs $(builddir)/perfkit-shell
+run-shell:
+	@PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs $(builddir)/perfkit-shell
 
 
 #
