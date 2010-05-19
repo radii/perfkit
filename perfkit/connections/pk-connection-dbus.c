@@ -607,6 +607,7 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gint args_len = 0;
 
@@ -635,9 +636,14 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -757,6 +763,7 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gint env_len = 0;
 
@@ -785,9 +792,14 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -907,6 +919,7 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(exit_status != NULL, FALSE);
@@ -934,9 +947,14 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1056,6 +1074,7 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(kill_pid != NULL, FALSE);
@@ -1083,9 +1102,14 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1205,6 +1229,7 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pid != NULL, FALSE);
@@ -1232,9 +1257,14 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1354,6 +1384,7 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pid_set != NULL, FALSE);
@@ -1381,9 +1412,14 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1504,6 +1540,7 @@ pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar **sources_paths = NULL;
 	gint sources_paths_len = 0;
@@ -1535,9 +1572,14 @@ pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1668,6 +1710,7 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(state != NULL, FALSE);
@@ -1695,9 +1738,14 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1817,6 +1865,7 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(target != NULL, FALSE);
@@ -1844,9 +1893,14 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -1967,6 +2021,7 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(working_dir != NULL, FALSE);
@@ -1994,9 +2049,14 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2116,6 +2176,7 @@ pk_connection_dbus_channel_mute_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_mute), FALSE);
@@ -2140,9 +2201,14 @@ pk_connection_dbus_channel_mute_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2248,6 +2314,7 @@ pk_connection_dbus_channel_set_args_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_args), FALSE);
@@ -2272,9 +2339,14 @@ pk_connection_dbus_channel_set_args_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2380,6 +2452,7 @@ pk_connection_dbus_channel_set_env_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_env), FALSE);
@@ -2404,9 +2477,14 @@ pk_connection_dbus_channel_set_env_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2512,6 +2590,7 @@ pk_connection_dbus_channel_set_kill_pid_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_kill_pid), FALSE);
@@ -2536,9 +2615,14 @@ pk_connection_dbus_channel_set_kill_pid_finish (PkConnection  *connection, /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2644,6 +2728,7 @@ pk_connection_dbus_channel_set_pid_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_pid), FALSE);
@@ -2668,9 +2753,14 @@ pk_connection_dbus_channel_set_pid_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2776,6 +2866,7 @@ pk_connection_dbus_channel_set_target_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_target), FALSE);
@@ -2800,9 +2891,14 @@ pk_connection_dbus_channel_set_target_finish (PkConnection  *connection, /* IN *
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -2908,6 +3004,7 @@ pk_connection_dbus_channel_set_working_dir_finish (PkConnection  *connection, /*
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_working_dir), FALSE);
@@ -2932,9 +3029,14 @@ pk_connection_dbus_channel_set_working_dir_finish (PkConnection  *connection, /*
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3038,6 +3140,7 @@ pk_connection_dbus_channel_start_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_start), FALSE);
@@ -3062,9 +3165,14 @@ pk_connection_dbus_channel_start_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3168,6 +3276,7 @@ pk_connection_dbus_channel_stop_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_stop), FALSE);
@@ -3192,9 +3301,14 @@ pk_connection_dbus_channel_stop_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3298,6 +3412,7 @@ pk_connection_dbus_channel_unmute_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_unmute), FALSE);
@@ -3322,9 +3437,14 @@ pk_connection_dbus_channel_unmute_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3429,6 +3549,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(pluign != NULL, FALSE);
@@ -3456,9 +3577,14 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3568,6 +3694,7 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *channel_path = NULL;
 
@@ -3596,9 +3723,14 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3619,7 +3751,7 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 
 	if (channel_path) {
 		sscanf(channel_path,
-		       "/org/perfkit/Agent/Channel/%d",
+		       "/org/perfkit/Agent/Manager/%d",
 		       channel);
 	}
 
@@ -3724,6 +3856,7 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *subscription_path = NULL;
 
@@ -3752,9 +3885,14 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -3869,6 +4007,7 @@ pk_connection_dbus_manager_get_channels_finish (PkConnection  *connection,   /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar **channels_paths = NULL;
 	gint channels_paths_len = 0;
@@ -3900,9 +4039,14 @@ pk_connection_dbus_manager_get_channels_finish (PkConnection  *connection,   /* 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4022,6 +4166,7 @@ pk_connection_dbus_manager_get_plugins_finish (PkConnection   *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar **plugins_paths = NULL;
 	gint plugins_paths_len = 0;
@@ -4051,9 +4196,14 @@ pk_connection_dbus_manager_get_plugins_finish (PkConnection   *connection, /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4172,6 +4322,7 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(version != NULL, FALSE);
@@ -4199,9 +4350,14 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4311,6 +4467,7 @@ pk_connection_dbus_manager_ping_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *tv_str = NULL;
 
@@ -4339,9 +4496,14 @@ pk_connection_dbus_manager_ping_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4459,6 +4621,7 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(removed != NULL, FALSE);
@@ -4486,9 +4649,14 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4605,6 +4773,7 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(removed != NULL, FALSE);
@@ -4632,9 +4801,14 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4754,6 +4928,7 @@ pk_connection_dbus_plugin_create_encoder_finish (PkConnection  *connection, /* I
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *encoder_path = NULL;
 
@@ -4782,9 +4957,14 @@ pk_connection_dbus_plugin_create_encoder_finish (PkConnection  *connection, /* I
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -4909,6 +5089,7 @@ pk_connection_dbus_plugin_create_source_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *source_path = NULL;
 
@@ -4937,9 +5118,14 @@ pk_connection_dbus_plugin_create_source_finish (PkConnection  *connection, /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5064,6 +5250,7 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(copyright != NULL, FALSE);
@@ -5091,9 +5278,14 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5214,6 +5406,7 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(description != NULL, FALSE);
@@ -5241,9 +5434,14 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5364,6 +5562,7 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(name != NULL, FALSE);
@@ -5391,9 +5590,14 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5514,6 +5718,7 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(type != NULL, FALSE);
@@ -5541,9 +5746,14 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5663,6 +5873,7 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 
 	g_return_val_if_fail(version != NULL, FALSE);
@@ -5690,9 +5901,14 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5813,6 +6029,7 @@ pk_connection_dbus_source_get_plugin_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
 	gchar *plugin_path = NULL;
 
@@ -5841,9 +6058,14 @@ pk_connection_dbus_source_get_plugin_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -5971,6 +6193,7 @@ pk_connection_dbus_subscription_add_channel_finish (PkConnection  *connection, /
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_add_channel), FALSE);
@@ -5995,9 +6218,14 @@ pk_connection_dbus_subscription_add_channel_finish (PkConnection  *connection, /
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6103,6 +6331,7 @@ pk_connection_dbus_subscription_add_source_finish (PkConnection  *connection, /*
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_add_source), FALSE);
@@ -6127,9 +6356,14 @@ pk_connection_dbus_subscription_add_source_finish (PkConnection  *connection, /*
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6235,6 +6469,7 @@ pk_connection_dbus_subscription_mute_finish (PkConnection  *connection, /* IN */
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_mute), FALSE);
@@ -6259,9 +6494,14 @@ pk_connection_dbus_subscription_mute_finish (PkConnection  *connection, /* IN */
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6367,6 +6607,7 @@ pk_connection_dbus_subscription_remove_channel_finish (PkConnection  *connection
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_remove_channel), FALSE);
@@ -6391,9 +6632,14 @@ pk_connection_dbus_subscription_remove_channel_finish (PkConnection  *connection
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6499,6 +6745,7 @@ pk_connection_dbus_subscription_remove_source_finish (PkConnection  *connection,
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_remove_source), FALSE);
@@ -6523,9 +6770,14 @@ pk_connection_dbus_subscription_remove_source_finish (PkConnection  *connection,
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6633,6 +6885,7 @@ pk_connection_dbus_subscription_set_buffer_finish (PkConnection  *connection, /*
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_set_buffer), FALSE);
@@ -6657,9 +6910,14 @@ pk_connection_dbus_subscription_set_buffer_finish (PkConnection  *connection, /*
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
@@ -6763,6 +7021,7 @@ pk_connection_dbus_subscription_unmute_finish (PkConnection  *connection, /* IN 
 	DBusPendingCall *call;
 	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *error_str = NULL;
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_unmute), FALSE);
@@ -6787,9 +7046,14 @@ pk_connection_dbus_subscription_unmute_finish (PkConnection  *connection, /* IN 
 	 * Check if response is an error.
 	 */
 	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
-		            "%s", dbus_message_get_error_name(msg));
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
 		goto finish;
 	}
 
