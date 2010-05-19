@@ -20,6 +20,11 @@
 #include "config.h"
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Shell"
+
 #include <errno.h>
 #include <glib/gi18n.h>
 #include <stdlib.h>
