@@ -654,7 +654,6 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 	gint len, i;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
-	g_return_val_if_fail(channel->priv->state == PKA_CHANNEL_READY, FALSE);
 
 	ENTRY;
 	priv = channel->priv;
