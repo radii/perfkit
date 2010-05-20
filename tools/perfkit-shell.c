@@ -2318,148 +2318,6 @@ pk_shell_manager_remove_subscription (EggLine  *line,   /* IN */
 }
 
 /**
- * pk_shell_plugin_create_encoder_cb:
- * @object: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #gpointer.
- *
- * Asynchronous completion of pk_connection_plugin_create_encoder_async().
- *
- * Returns: None.
- * Side effects: Blocking AsyncTask is signaled.
- */
-static void
-pk_shell_plugin_create_encoder_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
-{
-	AsyncTask *task = user_data;
-
-	ENTRY;
-	task->result = pk_connection_plugin_create_encoder_finish(
-			PK_CONNECTION(object),
-			result,
-			task->params[0], /* encoder */
-			&task->error);
-	async_task_signal(task);
-	EXIT;
-}
-
-/**
- * pk_shell_plugin_create_encoder:
- * @line: An #EggLine.
- * @argc: The number of arguments in @argv.
- * @argv: The arguments to the command.
- * @error: A location for #GError, or %NULL.
- *
- * 
- *
- * Returns: The commands status.
- * Side effects: None.
- */
-static EggLineStatus
-pk_shell_plugin_create_encoder (EggLine  *line,   /* IN */
-                                gint      argc,   /* IN */
-                                gchar    *argv[], /* IN */
-                                GError  **error)  /* OUT */
-{
-	AsyncTask task;
-	const gchar* plugin;
-	gint encoder;
-	gint i = 0;
-
-	ENTRY;
-	if (argc != 1) {
-		RETURN(EGG_LINE_STATUS_BAD_ARGS);
-	}
-	plugin = argv[i++];
-	async_task_init(&task);
-	task.params[0] = &encoder;
-	pk_connection_plugin_create_encoder_async(conn,
-	                             plugin,
-	                             NULL,
-	                             pk_shell_plugin_create_encoder_cb,
-	                             &task);
-	if (!async_task_wait(&task)) {
-		g_propagate_error(error, task.error);
-		RETURN(EGG_LINE_STATUS_FAILURE);
-	}
-	g_print("%16s: %d\n", "encoder", (gint)encoder);
-	RETURN(EGG_LINE_STATUS_OK);
-}
-
-/**
- * pk_shell_plugin_create_source_cb:
- * @object: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #gpointer.
- *
- * Asynchronous completion of pk_connection_plugin_create_source_async().
- *
- * Returns: None.
- * Side effects: Blocking AsyncTask is signaled.
- */
-static void
-pk_shell_plugin_create_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
-{
-	AsyncTask *task = user_data;
-
-	ENTRY;
-	task->result = pk_connection_plugin_create_source_finish(
-			PK_CONNECTION(object),
-			result,
-			task->params[0], /* source */
-			&task->error);
-	async_task_signal(task);
-	EXIT;
-}
-
-/**
- * pk_shell_plugin_create_source:
- * @line: An #EggLine.
- * @argc: The number of arguments in @argv.
- * @argv: The arguments to the command.
- * @error: A location for #GError, or %NULL.
- *
- * 
- *
- * Returns: The commands status.
- * Side effects: None.
- */
-static EggLineStatus
-pk_shell_plugin_create_source (EggLine  *line,   /* IN */
-                               gint      argc,   /* IN */
-                               gchar    *argv[], /* IN */
-                               GError  **error)  /* OUT */
-{
-	AsyncTask task;
-	const gchar* plugin;
-	gint source;
-	gint i = 0;
-
-	ENTRY;
-	if (argc != 1) {
-		RETURN(EGG_LINE_STATUS_BAD_ARGS);
-	}
-	plugin = argv[i++];
-	async_task_init(&task);
-	task.params[0] = &source;
-	pk_connection_plugin_create_source_async(conn,
-	                             plugin,
-	                             NULL,
-	                             pk_shell_plugin_create_source_cb,
-	                             &task);
-	if (!async_task_wait(&task)) {
-		g_propagate_error(error, task.error);
-		RETURN(EGG_LINE_STATUS_FAILURE);
-	}
-	g_print("%16s: %d\n", "source", (gint)source);
-	RETURN(EGG_LINE_STATUS_OK);
-}
-
-/**
  * pk_shell_plugin_get_copyright_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -3523,26 +3381,6 @@ pk_shell_ls (EggLine  *line,   /* IN */
 
 static EggLineCommand plugin_commands[] = {
 	{
-		.name      = "create-encoder",
-		.help      = "Creates a new instance of the encoder plugin.  If the plugin type is not\nan encoder plugin then this will fail.\n"
-		             "\n"
-		             "options:\n"
-		             "  PLUGIN:\t\tA string.\n"
-		             "\n",
-		.callback  = pk_shell_plugin_create_encoder,
-		.usage     = "plugin create-encoder PLUGIN",
-	},
-	{
-		.name      = "create-source",
-		.help      = "Creates a new instance of the source plugin.  If the plugin type is not\na source plugin then this will fail.\n"
-		             "\n"
-		             "options:\n"
-		             "  PLUGIN:\t\tA string.\n"
-		             "\n",
-		.callback  = pk_shell_plugin_create_source,
-		.usage     = "plugin create-source PLUGIN",
-	},
-	{
 		.name      = "get-copyright",
 		.help      = "The plugin copyright.\n"
 		             "\n"
@@ -4133,7 +3971,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Plugin commands.",
 		.callback  = NULL,
 		.generator = pk_shell_plugin_generator,
-		.usage     = "plugin [create-encoder | create-source | get-copyright | get-description | get-name | get-plugin-type | get-version]",
+		.usage     = "plugin [get-copyright | get-description | get-name | get-plugin-type | get-version]",
 	},
 	{
 		.name      = "encoder",

@@ -51,12 +51,6 @@ static const gchar * PluginIntrospection =
 	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE
 	"<node>"
 	" <interface name=\"org.perfkit.Agent.Plugin\">"
-	"  <method name=\"CreateEncoder\">"
-    "   <arg name=\"encoder\" direction=\"out\" type=\"o\"/>"
-	"  </method>"
-	"  <method name=\"CreateSource\">"
-    "   <arg name=\"source\" direction=\"out\" type=\"o\"/>"
-	"  </method>"
 	"  <method name=\"GetCopyright\">"
     "   <arg name=\"copyright\" direction=\"out\" type=\"s\"/>"
 	"  </method>"
@@ -79,102 +73,6 @@ static const gchar * PluginIntrospection =
 	"  </method>"
 	" </interface>"
 	"</node>";
-
-/**
- * pka_listener_dbus_plugin_create_encoder_cb:
- * @listener: A #PkaListenerDBus.
- * @result: A #GAsyncResult.
- * @user_data: A #DBusMessage containing the incoming method call.
- *
- * Handles the completion of the "plugin_create_encoder" RPC.  A response
- * to the message is created and sent as a reply to the caller.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pka_listener_dbus_plugin_create_encoder_cb (GObject      *listener,  /* IN */
-                                            GAsyncResult *result,    /* IN */
-                                            gpointer      user_data) /* IN */
-{
-	PkaListenerDBusPrivate *priv;
-	DBusMessage *message = user_data;
-	DBusMessage *reply = NULL;
-	GError *error = NULL;
-	gint encoder = 0;
-	gchar *encoder_path = NULL;
-
-	ENTRY;
-	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_plugin_create_encoder_finish(
-			PKA_LISTENER(listener),
-			result, 
-			&encoder,
-			&error)) {
-		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
-		                               error->message);
-		g_error_free(error);
-	} else {
-		encoder_path = g_strdup_printf("/org/perfkit/Agent/Encoder/%d", encoder);
-		reply = dbus_message_new_method_return(message);
-		dbus_message_append_args(reply,
-		                         DBUS_TYPE_OBJECT_PATH, &encoder_path,
-		                         DBUS_TYPE_INVALID);
-		g_free(encoder_path);
-	}
-	dbus_connection_send(priv->dbus, reply, NULL);
-	dbus_message_unref(reply);
-	dbus_message_unref(message);
-	EXIT;
-}
-
-/**
- * pka_listener_dbus_plugin_create_source_cb:
- * @listener: A #PkaListenerDBus.
- * @result: A #GAsyncResult.
- * @user_data: A #DBusMessage containing the incoming method call.
- *
- * Handles the completion of the "plugin_create_source" RPC.  A response
- * to the message is created and sent as a reply to the caller.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pka_listener_dbus_plugin_create_source_cb (GObject      *listener,  /* IN */
-                                           GAsyncResult *result,    /* IN */
-                                           gpointer      user_data) /* IN */
-{
-	PkaListenerDBusPrivate *priv;
-	DBusMessage *message = user_data;
-	DBusMessage *reply = NULL;
-	GError *error = NULL;
-	gint source = 0;
-	gchar *source_path = NULL;
-
-	ENTRY;
-	priv = PKA_LISTENER_DBUS(listener)->priv;
-	if (!pka_listener_plugin_create_source_finish(
-			PKA_LISTENER(listener),
-			result, 
-			&source,
-			&error)) {
-		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
-		                               error->message);
-		g_error_free(error);
-	} else {
-		source_path = g_strdup_printf("/org/perfkit/Agent/Source/%d", source);
-		reply = dbus_message_new_method_return(message);
-		dbus_message_append_args(reply,
-		                         DBUS_TYPE_OBJECT_PATH, &source_path,
-		                         DBUS_TYPE_INVALID);
-		g_free(source_path);
-	}
-	dbus_connection_send(priv->dbus, reply, NULL);
-	dbus_message_unref(reply);
-	dbus_message_unref(message);
-	EXIT;
-}
 
 /**
  * pka_listener_dbus_plugin_get_copyright_cb:
@@ -453,47 +351,7 @@ pka_listener_dbus_handle_plugin_message (DBusConnection *connection, /* IN */
 		}
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	} else if (IS_INTERFACE(message, "org.perfkit.Agent.Plugin")) {
-		if (IS_MEMBER(message, "CreateEncoder")) {
-			gchar* plugin = NULL;
-			const gchar *dbus_path;
-
-			dbus_path = dbus_message_get_path(message);
-			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
-				goto oom;
-			}
-			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_INVALID)) {
-				GOTO(oom);
-			}
-			pka_listener_plugin_create_encoder_async(PKA_LISTENER(listener),
-			                                         plugin,
-			                                         NULL,
-			                                         pka_listener_dbus_plugin_create_encoder_cb,
-			                                         dbus_message_ref(message));
-			ret = DBUS_HANDLER_RESULT_HANDLED;
-			free(plugin);
-		}
-		else if (IS_MEMBER(message, "CreateSource")) {
-			gchar* plugin = NULL;
-			const gchar *dbus_path;
-
-			dbus_path = dbus_message_get_path(message);
-			if (sscanf(dbus_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
-				goto oom;
-			}
-			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_INVALID)) {
-				GOTO(oom);
-			}
-			pka_listener_plugin_create_source_async(PKA_LISTENER(listener),
-			                                        plugin,
-			                                        NULL,
-			                                        pka_listener_dbus_plugin_create_source_cb,
-			                                        dbus_message_ref(message));
-			ret = DBUS_HANDLER_RESULT_HANDLED;
-			free(plugin);
-		}
-		else if (IS_MEMBER(message, "GetCopyright")) {
+		if (IS_MEMBER(message, "GetCopyright")) {
 			gchar* plugin = NULL;
 			const gchar *dbus_path;
 
@@ -1838,7 +1696,7 @@ pka_listener_dbus_channel_get_sources_cb (GObject      *listener,  /* IN */
 	} else {
 		sources_paths = g_new0(gchar*, sources_len + 1);
 		for (i = 0; i < sources_len; i++) {
-			sources_paths[i] = g_strdup_printf("/org/perfkit/Agent/Sources/%d", sources[i]);
+			sources_paths[i] = g_strdup_printf("/org/perfkit/Agent/Source/%d", sources[i]);
 		}
 		reply = dbus_message_new_method_return(message);
 		dbus_message_append_args(reply,

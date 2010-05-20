@@ -279,24 +279,6 @@ gboolean      pka_listener_manager_remove_subscription_finish (PkaListener      
                                                                GAsyncResult          *result,
                                                                gboolean              *removed,
                                                                GError               **error);
-void          pka_listener_plugin_create_encoder_async        (PkaListener           *listener,
-                                                               const gchar           *plugin,
-                                                               GCancellable          *cancellable,
-                                                               GAsyncReadyCallback    callback,
-                                                               gpointer               user_data);
-gboolean      pka_listener_plugin_create_encoder_finish       (PkaListener           *listener,
-                                                               GAsyncResult          *result,
-                                                               gint                  *encoder,
-                                                               GError               **error);
-void          pka_listener_plugin_create_source_async         (PkaListener           *listener,
-                                                               const gchar           *plugin,
-                                                               GCancellable          *cancellable,
-                                                               GAsyncReadyCallback    callback,
-                                                               gpointer               user_data);
-gboolean      pka_listener_plugin_create_source_finish        (PkaListener           *listener,
-                                                               GAsyncResult          *result,
-                                                               gint                  *source,
-                                                               GError               **error);
 void          pka_listener_plugin_get_copyright_async         (PkaListener           *listener,
                                                                const gchar           *plugin,
                                                                GCancellable          *cancellable,
