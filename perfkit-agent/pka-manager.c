@@ -30,6 +30,8 @@
 #include "pka-log.h"
 #include "pka-manager.h"
 #include "pka-plugin.h"
+#include "pka-source.h"
+#include "pka-source-simple.h"
 
 #define AUTHORIZE_IOCTL(_c, _i)                                     \
     G_STMT_START {                                                  \
@@ -238,6 +240,11 @@ pka_manager_init (void)
 	manager.mainloop = g_main_loop_new(NULL, FALSE);
 	pka_manager_load_all_plugins();
 	pka_manager_init_listeners();
+	/*
+	 * Work around linker issues by using the source types.
+	 */
+	DEBUG(Source, "Registering base source %s",
+	      g_type_name(PKA_TYPE_SOURCE_SIMPLE));
 	EXIT;
 }
 
