@@ -40,42 +40,9 @@
 #error "Your platform is not yet supported"
 #endif
 
-#include "pk-connection.h"
-#include "pk-connection-lowlevel.h"
+#include <perfkit/perfkit.h>
 #include "egg-fmt.h"
 #include "egg-line.h"
-
-#ifndef DISABLE_TRACE
-#define TRACE(_m,...)                                               \
-    G_STMT_START {                                                  \
-        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
-              _m, __VA_ARGS__);                                     \
-    } G_STMT_END
-#else
-#define TRACE(_m,...)
-#endif
-
-#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
-
-#define EXIT                                                        \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return;                                                     \
-    } G_STMT_END
-
-#define RETURN(_r)                                                  \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return _r;                                                  \
-    } G_STMT_END
-
-#define GOTO(_l)                                                    \
-    G_STMT_START {                                                  \
-        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
-        goto _l;                                                    \
-    } G_STMT_END
-
-#define CASE_RETURN_STR(_l) case _l: return #_l
 
 #define G_LOG_LEVEL_TRACE (1 << G_LOG_LEVEL_USER_SHIFT)
 
@@ -129,6 +96,20 @@ async_task_signal (AsyncTask *task) /* IN */
 	g_cond_signal(task->cond);
 	g_mutex_unlock(task->mutex);
 	EXIT;
+}
+
+static inline const gchar *
+pk_shell_state_to_str (gint state)
+{
+	switch (state) {
+	CASE_RETURN_STR(PK_CHANNEL_READY);
+	CASE_RETURN_STR(PK_CHANNEL_RUNNING);
+	CASE_RETURN_STR(PK_CHANNEL_MUTED);
+	CASE_RETURN_STR(PK_CHANNEL_STOPPED);
+	CASE_RETURN_STR(PK_CHANNEL_FAILED);
+	default:
+		return "UNKNOWN";
+	}
 }
 
 static inline GQuark
@@ -793,7 +774,8 @@ pk_shell_channel_get_state (EggLine  *line,   /* IN */
 		g_propagate_error(error, task.error);
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
-	g_print("%16s: %d\n", "state", (gint)state);
+	g_print("%16s: %d (%s)\n", "state", (gint)state,
+	        pk_shell_state_to_str(state));
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
