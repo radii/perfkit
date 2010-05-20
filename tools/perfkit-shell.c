@@ -1051,7 +1051,9 @@ pk_shell_channel_set_args (EggLine  *line,   /* IN */
 	if (!pk_shell_parse_int(argv[i++], &channel)) {
 		RETURN(EGG_LINE_STATUS_BAD_ARGS);
 	}
-	args = g_strsplit(argv[i++], ",", 0);
+	if (!g_shell_parse_argv(argv[i++], NULL, &args, error)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
 	async_task_init(&task);
 	pk_connection_channel_set_args_async(conn,
 	                             channel,
@@ -1123,7 +1125,9 @@ pk_shell_channel_set_env (EggLine  *line,   /* IN */
 	if (!pk_shell_parse_int(argv[i++], &channel)) {
 		RETURN(EGG_LINE_STATUS_BAD_ARGS);
 	}
-	env = g_strsplit(argv[i++], ",", 0);
+	if (!g_shell_parse_argv(argv[i++], NULL, &env, error)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
 	async_task_init(&task);
 	pk_connection_channel_set_env_async(conn,
 	                             channel,
