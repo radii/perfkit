@@ -815,8 +815,8 @@ pka_channel_stop (PkaChannel  *channel, /* IN */
 		 * process outself.
 		 */
 		if ((priv->kill_pid) && (!priv->pid_set) && (priv->pid)) {
-			INFO(Channel, "Channel %d killing process %d.",
-			     priv->id, (gint)priv->pid);
+			INFO(Channel, "Channel %d killing process %d on behalf of context %d.",
+			     priv->id, (gint)priv->pid, pka_context_get_id(context));
 			kill(priv->pid, SIGKILL);
 		}
 		BREAK;
