@@ -152,6 +152,8 @@ pka_sample_get_data (PkaSample     *sample,
 gint
 pka_sample_get_source_id (PkaSample *sample)
 {
+	g_return_val_if_fail(sample != NULL, G_MININT);
+
 	return sample->source_id;
 }
 
@@ -166,6 +168,9 @@ void
 pka_sample_set_source_id (PkaSample *sample,
                           gint       source_id)
 {
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(sample->source_id == 0);
+
 	sample->source_id = source_id;
 }
 
