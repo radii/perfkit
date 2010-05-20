@@ -318,6 +318,15 @@ struct _PkConnectionClass
 	                                                     GAsyncResult          *result,
 	                                                     gchar               ***plugins,
 	                                                     GError               **error);
+	void          (*manager_get_sources_async)          (PkConnection          *connection,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*manager_get_sources_finish)         (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                 **sources,
+	                                                     gsize                 *sources_len,
+	                                                     GError               **error);
 	void          (*manager_get_version_async)          (PkConnection          *connection,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,

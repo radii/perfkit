@@ -2253,6 +2253,7 @@ pka_listener_manager_get_plugins_finish (PkaListener    *listener, /* IN */
 	gint i = 0;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(plugins != NULL, FALSE);
 
 	ENTRY;
 	if ((ret = pka_manager_get_plugins(DEFAULT_CONTEXT, &list, error))) {
@@ -2266,6 +2267,90 @@ pka_listener_manager_get_plugins_finish (PkaListener    *listener, /* IN */
 		g_list_foreach(list, (GFunc)g_object_unref, NULL);
 		g_list_free(list);
 	}
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_manager_get_sources_async:
+ * @connection: A #PkConnection.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "manager_get_sources_async" RPC.  @callback
+ * MUST call pka_listener_manager_get_sources_finish().
+ *
+ * Retrieves the list of sources located within the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_manager_get_sources_async (PkaListener           *listener,    /* IN */
+                                        GCancellable          *cancellable, /* IN */
+                                        GAsyncReadyCallback    callback,    /* IN */
+                                        gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_manager_get_sources_async);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_sources_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @sources: A #gint.
+ * @sources_len: A #gsize.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "manager_get_sources_finish" RPC.
+ *
+ * Retrieves the list of sources located within the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_manager_get_sources_finish (PkaListener    *listener,    /* IN */
+                                         GAsyncResult   *result,      /* IN */
+                                         gint          **sources,     /* OUT */
+                                         gsize          *sources_len, /* OUT */
+                                         GError        **error)       /* OUT */
+{
+	ManagerGetSourcesCall *call;
+	GList *list = NULL;
+	GList *iter = NULL;
+	gboolean ret = FALSE;
+	gint i = 0;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_get_sources), FALSE);
+	g_return_val_if_fail(sources != NULL, FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(ManagerGetSourcesCall, result);
+	if (!pka_manager_get_sources(DEFAULT_CONTEXT, &list, error)) {
+		GOTO(failed);
+	}
+	*sources_len = g_list_length(list);
+	*sources = g_new0(gint, *sources_len);
+	for (iter = list; iter; iter = iter->next) {
+		(*sources)[i++] = pka_source_get_id(iter->data);
+		g_object_unref(iter->data);
+	}
+	g_list_free(list);
+	ret = TRUE;
+  failed:
 	RETURN(ret);
 }
 

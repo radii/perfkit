@@ -254,6 +254,15 @@ gboolean      pka_listener_manager_get_plugins_finish         (PkaListener      
                                                                GAsyncResult          *result,
                                                                gchar               ***plugins,
                                                                GError               **error);
+void          pka_listener_manager_get_sources_async          (PkaListener           *listener,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_manager_get_sources_finish         (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                 **sources,
+                                                               gsize                 *sources_len,
+                                                               GError               **error);
 void          pka_listener_manager_get_version_async          (PkaListener           *listener,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
