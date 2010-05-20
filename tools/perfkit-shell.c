@@ -3579,6 +3579,36 @@ pk_shell_ls (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+/**
+ * pk_shell_load:
+ * @line: An #EggLine.
+ * @argc: Argument count.
+ * @argv: Arguments.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Loads commands from the files provided.
+ *
+ * Returns: An EggLineStatus.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_load (EggLine  *line,   /* IN */
+             gint      argc,   /* IN */
+             gchar    *argv[], /* IN */
+             GError  **error)  /* OUT */
+{
+	gint i;
+
+	ENTRY;
+	if (argc < 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	for (i = 0; argv[i]; i++) {
+		egg_line_execute_file(line, argv[i]);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
 static EggLineCommand plugin_commands[] = {
 	{
 		.name      = "get-copyright",
@@ -4246,6 +4276,13 @@ static EggLineCommand root_commands[] = {
 		.usage     = "ls [OPTIONS]",
 		.generator = NULL,
 		.callback  = pk_shell_ls,
+	},
+	{
+		.name      = "load",
+		.help      = "Load an external script.",
+		.usage     = "load [FILENAME]",
+		.generator = NULL,
+		.callback  = pk_shell_load,
 	},
 	{ NULL }
 };
