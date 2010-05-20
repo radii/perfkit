@@ -1316,6 +1316,7 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		else if (IS_MEMBER(message, "AddSource")) {
 			gchar* plugin = NULL;
 			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_STRING, &plugin,
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
