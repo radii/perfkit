@@ -286,7 +286,7 @@ egg_line_execute (EggLine     *line,
 			break;
 		case EGG_LINE_STATUS_FAILURE:
 			if (error) {
-				g_printerr ("EGG_LINE_ERROR: %s\n", error->message);
+				g_printerr ("%s\n", error->message);
 				g_error_free (error);
 			} else {
 				g_printerr ("There was an unknown error running the "
