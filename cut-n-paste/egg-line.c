@@ -274,6 +274,10 @@ egg_line_execute (EggLine     *line,
 	g_return_if_fail (EGG_IS_LINE (line));
 	g_return_if_fail (text != NULL);
 
+	if (g_str_has_prefix(text, "#")) {
+		return;
+	}
+
 	command = egg_line_resolve (line, text, &argc, &argv);
 
 	if (command && command->callback) {
