@@ -243,7 +243,7 @@ pka_manager_init (void)
 	/*
 	 * Work around linker issues by using the source types.
 	 */
-	DEBUG(Source, "Registering base source %s",
+	DEBUG(Source, "Registering %s source.",
 	      g_type_name(PKA_TYPE_SOURCE_SIMPLE));
 	EXIT;
 }
