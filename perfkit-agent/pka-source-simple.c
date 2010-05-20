@@ -82,6 +82,22 @@ pka_source_simple_new (void)
 	return g_object_new(PKA_TYPE_SOURCE_SIMPLE, NULL);
 }
 
+/**
+ * pka_source_simple_new_full:
+ * @callback: A #PkaSourceSimpleFunc.
+ * @spawn_callback: A callback up on channel spawn.
+ *
+ * Creates a new #PkaSource instance using the callbacks provided.  This source
+ * can run in either of two modes depending on the requirements.  If the
+ * "use-thread" property is set to %TRUE, then a thread will be spawned and
+ * dedicated to calling the callback on regular schedule with as little latency
+ * as possible.  If the "use-thread" property is %FALSE, the default, then
+ * a shared thread with other sources will be used in a co-routine fashion.
+ *
+ * Returns: The newly created #PkaSource instance.  This should be freed with
+ *   g_object_unref().
+ * Side effects: None.
+ */
 PkaSource*
 pka_source_simple_new_full (PkaSourceSimpleFunc  callback,
                             PkaSourceSimpleSpawn spawn_callback,
