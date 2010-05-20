@@ -3024,6 +3024,133 @@ pk_connection_manager_add_channel_finish (PkConnection  *connection, /* IN */
 }
 
 /**
+ * pk_connection_manager_add_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_add_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_add_source_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_add_source_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->params[0],
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_add_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Create a new source from a plugin in the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_source (PkConnection  *connection, /* IN */
+                                  const gchar   *plugin,     /* IN */
+                                  gint          *source,     /* OUT */
+                                  GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_add_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = source;
+	pk_connection_manager_add_source_async(connection,
+	                                       plugin,
+	                                       NULL,
+	                                       pk_connection_manager_add_source_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_add_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_add_source_async" RPC.
+ *
+ * Create a new source from a plugin in the Agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_add_source_async (PkConnection        *connection,  /* IN */
+                                        const gchar         *plugin,      /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_add_source)(connection,
+	                              plugin,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_add_source_finish" RPC.
+ *
+ * Create a new source from a plugin in the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_add_source_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         gint          *source,     /* OUT */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_add_source)(connection,
+	                                    result,
+	                                    source,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_manager_add_subscription_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -3807,6 +3934,128 @@ pk_connection_manager_remove_channel_finish (PkConnection  *connection, /* IN */
 }
 
 /**
+ * pk_connection_manager_remove_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_remove_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_remove_source_cb (GObject      *source,    /* IN */
+                                        GAsyncResult *result,    /* IN */
+                                        gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_remove_source_finish(PK_CONNECTION(source),
+	                                                          result,
+	                                                          sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_remove_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Remove a source from the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_source (PkConnection  *connection, /* IN */
+                                     gint           source,     /* IN */
+                                     GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_remove_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_manager_remove_source_async(connection,
+	                                          source,
+	                                          NULL,
+	                                          pk_connection_manager_remove_source_cb,
+	                                          &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_remove_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_remove_source_async" RPC.
+ *
+ * Remove a source from the Agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_remove_source_async (PkConnection        *connection,  /* IN */
+                                           gint                 source,      /* IN */
+                                           GCancellable        *cancellable, /* IN */
+                                           GAsyncReadyCallback  callback,    /* IN */
+                                           gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_remove_source)(connection,
+	                                 source,
+	                                 cancellable,
+	                                 callback,
+	                                 user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_remove_source_finish" RPC.
+ *
+ * Remove a source from the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_remove_source_finish (PkConnection  *connection, /* IN */
+                                            GAsyncResult  *result,     /* IN */
+                                            GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_remove_source)(connection,
+	                                       result,
+	                                       error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_manager_remove_subscription_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -3930,266 +4179,6 @@ pk_connection_manager_remove_subscription_finish (PkConnection  *connection, /* 
 	                                             result,
 	                                             removed,
 	                                             error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_create_encoder_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #GAsyncResult.
- *
- * Callback to notify a synchronous call to the "plugin_create_encoder" RPC that it
- * has completed.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_plugin_create_encoder_cb (GObject      *source,    /* IN */
-                                        GAsyncResult *result,    /* IN */
-                                        gpointer      user_data) /* IN */
-{
-	PkConnectionSync *sync = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
-
-	ENTRY;
-	sync->result = pk_connection_plugin_create_encoder_finish(PK_CONNECTION(source),
-	                                                          result,
-	                                                          sync->params[0],
-	                                                          sync->error);
-	pk_connection_sync_signal(sync);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_create_encoder:
- * @connection: A #PkConnection.
- *
- * Synchronous implemenation of the "plugin_create_encoder" RPC.  Using
- * synchronous RPCs is generally frowned upon.
- *
- * Creates a new instance of the encoder plugin.  If the plugin type is not
- * an encoder plugin then this will fail.
- *
- * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_create_encoder (PkConnection  *connection, /* IN */
-                                     const gchar   *plugin,     /* IN */
-                                     gint          *encoder,    /* OUT */
-                                     GError       **error)      /* OUT */
-{
-	PkConnectionSync sync;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(plugin_create_encoder);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = encoder;
-	pk_connection_plugin_create_encoder_async(connection,
-	                                          plugin,
-	                                          NULL,
-	                                          pk_connection_plugin_create_encoder_cb,
-	                                          &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
-}
-
-/**
- * pk_connection_plugin_create_encoder_async:
- * @connection: A #PkConnection.
- *
- * Asynchronous implementation of the "plugin_create_encoder_async" RPC.
- *
- * Creates a new instance of the encoder plugin.  If the plugin type is not
- * an encoder plugin then this will fail.
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_plugin_create_encoder_async (PkConnection        *connection,  /* IN */
-                                           const gchar         *plugin,      /* IN */
-                                           GCancellable        *cancellable, /* IN */
-                                           GAsyncReadyCallback  callback,    /* IN */
-                                           gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_create_encoder)(connection,
-	                                 plugin,
-	                                 cancellable,
-	                                 callback,
-	                                 user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_create_encoder_finish:
- * @connection: A #PkConnection.
- *
- * Completion of an asynchronous call to the "plugin_create_encoder_finish" RPC.
- *
- * Creates a new instance of the encoder plugin.  If the plugin type is not
- * an encoder plugin then this will fail.
- *
- * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_create_encoder_finish (PkConnection  *connection, /* IN */
-                                            GAsyncResult  *result,     /* IN */
-                                            gint          *encoder,    /* OUT */
-                                            GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_create_encoder)(connection,
-	                                       result,
-	                                       encoder,
-	                                       error);
-	RETURN(ret);
-}
-
-/**
- * pk_connection_plugin_create_source_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #GAsyncResult.
- *
- * Callback to notify a synchronous call to the "plugin_create_source" RPC that it
- * has completed.
- *
- * Returns: None.
- * Side effects: None.
- */
-static void
-pk_connection_plugin_create_source_cb (GObject      *source,    /* IN */
-                                       GAsyncResult *result,    /* IN */
-                                       gpointer      user_data) /* IN */
-{
-	PkConnectionSync *sync = user_data;
-
-	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
-
-	ENTRY;
-	sync->result = pk_connection_plugin_create_source_finish(PK_CONNECTION(source),
-	                                                         result,
-	                                                         sync->params[0],
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_create_source:
- * @connection: A #PkConnection.
- *
- * Synchronous implemenation of the "plugin_create_source" RPC.  Using
- * synchronous RPCs is generally frowned upon.
- *
- * Creates a new instance of the source plugin.  If the plugin type is not
- * a source plugin then this will fail.
- *
- * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_create_source (PkConnection  *connection, /* IN */
-                                    const gchar   *plugin,     /* IN */
-                                    gint          *source,     /* OUT */
-                                    GError       **error)      /* OUT */
-{
-	PkConnectionSync sync;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	CHECK_FOR_RPC(plugin_create_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = source;
-	pk_connection_plugin_create_source_async(connection,
-	                                         plugin,
-	                                         NULL,
-	                                         pk_connection_plugin_create_source_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
-}
-
-/**
- * pk_connection_plugin_create_source_async:
- * @connection: A #PkConnection.
- *
- * Asynchronous implementation of the "plugin_create_source_async" RPC.
- *
- * Creates a new instance of the source plugin.  If the plugin type is not
- * a source plugin then this will fail.
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pk_connection_plugin_create_source_async (PkConnection        *connection,  /* IN */
-                                          const gchar         *plugin,      /* IN */
-                                          GCancellable        *cancellable, /* IN */
-                                          GAsyncReadyCallback  callback,    /* IN */
-                                          gpointer             user_data)   /* IN */
-{
-	g_return_if_fail(PK_IS_CONNECTION(connection));
-	g_return_if_fail(callback != NULL);
-
-	ENTRY;
-	RPC_ASYNC(plugin_create_source)(connection,
-	                                plugin,
-	                                cancellable,
-	                                callback,
-	                                user_data);
-	EXIT;
-}
-
-/**
- * pk_connection_plugin_create_source_finish:
- * @connection: A #PkConnection.
- *
- * Completion of an asynchronous call to the "plugin_create_source_finish" RPC.
- *
- * Creates a new instance of the source plugin.  If the plugin type is not
- * a source plugin then this will fail.
- *
- * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
- * Side effects: None.
- */
-gboolean
-pk_connection_plugin_create_source_finish (PkConnection  *connection, /* IN */
-                                           GAsyncResult  *result,     /* IN */
-                                           gint          *source,     /* OUT */
-                                           GError       **error)      /* OUT */
-{
-	gboolean ret;
-
-	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
-
-	ENTRY;
-	RPC_FINISH(ret, plugin_create_source)(connection,
-	                                      result,
-	                                      source,
-	                                      error);
 	RETURN(ret);
 }
 

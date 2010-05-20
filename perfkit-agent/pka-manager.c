@@ -604,10 +604,12 @@ pka_manager_find_plugin (PkaContext       *context,   /* IN */
 
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(plugin != NULL, FALSE);
-	g_return_val_if_fail(plugin_id != NULL, FALSE);
 
 	ENTRY;
 	*plugin = NULL;
+	if (!plugin_id) {
+		GOTO(failed);
+	}
 	G_LOCK(plugins);
 	for (i = 0; i < manager.plugins->len; i++) {
 		iter = g_ptr_array_index(manager.plugins, i);
@@ -616,12 +618,16 @@ pka_manager_find_plugin (PkaContext       *context,   /* IN */
 			 * TODO: Verify permissions.
 			 */
 			*plugin = g_object_ref(iter);
-			GOTO(unlock);
+			BREAK;
 		}
 	}
-  unlock:
 	G_UNLOCK(plugins);
-	RETURN(TRUE);
+  failed:
+  	if (!*plugin) {
+  		g_set_error(error, PKA_PLUGIN_ERROR, PKA_PLUGIN_ERROR_INVALID_TYPE,
+  		            "The specified plugin could not be found.");
+	}
+	RETURN(*plugin != NULL);
 }
 
 /**

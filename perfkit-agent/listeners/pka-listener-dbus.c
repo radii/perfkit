@@ -738,6 +738,10 @@ static const gchar * ManagerIntrospection =
 	"  <method name=\"AddChannel\">"
     "   <arg name=\"channel\" direction=\"out\" type=\"o\"/>"
 	"  </method>"
+	"  <method name=\"AddSource\">"
+    "   <arg name=\"plugin\" direction=\"in\" type=\"s\"/>"
+    "   <arg name=\"source\" direction=\"out\" type=\"o\"/>"
+	"  </method>"
 	"  <method name=\"AddSubscription\">"
     "   <arg name=\"buffer_size\" direction=\"in\" type=\"u\"/>"
     "   <arg name=\"timeout\" direction=\"in\" type=\"u\"/>"
@@ -759,6 +763,9 @@ static const gchar * ManagerIntrospection =
 	"  <method name=\"RemoveChannel\">"
     "   <arg name=\"channel\" direction=\"in\" type=\"i\"/>"
     "   <arg name=\"removed\" direction=\"out\" type=\"b\"/>"
+	"  </method>"
+	"  <method name=\"RemoveSource\">"
+    "   <arg name=\"source\" direction=\"in\" type=\"i\"/>"
 	"  </method>"
 	"  <method name=\"RemoveSubscription\">"
     "   <arg name=\"subscription\" direction=\"in\" type=\"i\"/>"
@@ -813,6 +820,54 @@ pka_listener_dbus_manager_add_channel_cb (GObject      *listener,  /* IN */
 		                         DBUS_TYPE_OBJECT_PATH, &channel_path,
 		                         DBUS_TYPE_INVALID);
 		g_free(channel_path);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_manager_add_source_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "manager_add_source" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_manager_add_source_cb (GObject      *listener,  /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint source = 0;
+	gchar *source_path = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_manager_add_source_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&source,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		source_path = g_strdup_printf("/org/perfkit/Agent/Source/%d", source);
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_OBJECT_PATH, &source_path,
+		                         DBUS_TYPE_INVALID);
+		g_free(source_path);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
 	dbus_message_unref(reply);
@@ -1121,6 +1176,48 @@ pka_listener_dbus_manager_remove_channel_cb (GObject      *listener,  /* IN */
 }
 
 /**
+ * pka_listener_dbus_manager_remove_source_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "manager_remove_source" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_manager_remove_source_cb (GObject      *listener,  /* IN */
+                                            GAsyncResult *result,    /* IN */
+                                            gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_manager_remove_source_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
  * pka_listener_dbus_manager_remove_subscription_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
@@ -1216,6 +1313,19 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			                                       dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
+		else if (IS_MEMBER(message, "AddSource")) {
+			gchar* plugin = NULL;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_manager_add_source_async(PKA_LISTENER(listener),
+			                                      plugin,
+			                                      NULL,
+			                                      pka_listener_dbus_manager_add_source_cb,
+			                                      dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
 		else if (IS_MEMBER(message, "AddSubscription")) {
 			gsize buffer_size = 0;
 			gsize timeout = 0;
@@ -1289,6 +1399,19 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			                                          NULL,
 			                                          pka_listener_dbus_manager_remove_channel_cb,
 			                                          dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "RemoveSource")) {
+			gint source = 0;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_manager_remove_source_async(PKA_LISTENER(listener),
+			                                         source,
+			                                         NULL,
+			                                         pka_listener_dbus_manager_remove_source_cb,
+			                                         dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "RemoveSubscription")) {

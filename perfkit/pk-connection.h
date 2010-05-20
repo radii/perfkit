@@ -281,6 +281,15 @@ struct _PkConnectionClass
 	                                                     GAsyncResult          *result,
 	                                                     gint                  *channel,
 	                                                     GError               **error);
+	void          (*manager_add_source_async)           (PkConnection          *connection,
+	                                                     const gchar           *plugin,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*manager_add_source_finish)          (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                  *source,
+	                                                     GError               **error);
 	void          (*manager_add_subscription_async)     (PkConnection          *connection,
 	                                                     gsize                  buffer_size,
 	                                                     gsize                  timeout,
@@ -334,6 +343,14 @@ struct _PkConnectionClass
 	                                                     GAsyncResult          *result,
 	                                                     gboolean              *removed,
 	                                                     GError               **error);
+	void          (*manager_remove_source_async)        (PkConnection          *connection,
+	                                                     gint                   source,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*manager_remove_source_finish)       (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
 	void          (*manager_remove_subscription_async)  (PkConnection          *connection,
 	                                                     gint                   subscription,
 	                                                     GCancellable          *cancellable,
@@ -342,24 +359,6 @@ struct _PkConnectionClass
 	gboolean      (*manager_remove_subscription_finish) (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     gboolean              *removed,
-	                                                     GError               **error);
-	void          (*plugin_create_encoder_async)        (PkConnection          *connection,
-	                                                     const gchar           *plugin,
-	                                                     GCancellable          *cancellable,
-	                                                     GAsyncReadyCallback    callback,
-	                                                     gpointer               user_data);
-	gboolean      (*plugin_create_encoder_finish)       (PkConnection          *connection,
-	                                                     GAsyncResult          *result,
-	                                                     gint                  *encoder,
-	                                                     GError               **error);
-	void          (*plugin_create_source_async)         (PkConnection          *connection,
-	                                                     const gchar           *plugin,
-	                                                     GCancellable          *cancellable,
-	                                                     GAsyncReadyCallback    callback,
-	                                                     gpointer               user_data);
-	gboolean      (*plugin_create_source_finish)        (PkConnection          *connection,
-	                                                     GAsyncResult          *result,
-	                                                     gint                  *source,
 	                                                     GError               **error);
 	void          (*plugin_get_copyright_async)         (PkConnection          *connection,
 	                                                     const gchar           *plugin,

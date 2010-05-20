@@ -3765,6 +3765,164 @@ finish:
 
 
 static void
+pk_connection_dbus_manager_add_source_async (PkConnection        *connection,  /* IN */
+                                             const gchar         *plugin,      /* IN */
+                                             GCancellable        *cancellable, /* IN */
+                                             GAsyncReadyCallback  callback,    /* IN */
+                                             gpointer             user_data)   /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusPendingCall *call = NULL;
+	GSimpleAsyncResult *result;
+	DBusMessageIter iter;
+	DBusMessage *msg;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+
+	/*
+	 * Allocate DBus message.
+	 */
+	msg = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+	g_assert(msg);
+
+	/*
+	 * Create asynchronous connection handle.
+	 */
+	result = g_simple_async_result_new(
+			G_OBJECT(connection), callback, user_data,
+			pk_connection_dbus_manager_add_source_async);
+
+	/*
+	 * Wire cancellable if needed.
+	 */
+	if (cancellable) {
+		g_cancellable_connect(cancellable,
+		                      G_CALLBACK(pk_connection_dbus_cancel),
+		                      g_object_ref(result), g_object_unref);
+	}
+
+	/*
+	 * Build the DBus message.
+	 */
+	dbus_message_set_destination(msg, "org.perfkit.Agent");
+	dbus_message_set_interface(msg, "org.perfkit.Agent.Manager");
+	dbus_message_set_member(msg, "AddSource");
+	dbus_message_set_path(msg, "/org/perfkit/Agent/Manager");
+
+	/*
+	 * Add message parameters.
+	 */
+	dbus_message_iter_init_append(msg, &iter);
+	APPEND_STRING_PARAM(plugin);
+
+	/*
+	 * Send message to agent and schedule to be notified of the result.
+	 */
+	if (!dbus_connection_send_with_reply(priv->dbus, msg, &call, -1)) {
+		g_warning("Error dispatching message to %s/%s",
+		          dbus_message_get_path(msg),
+		          dbus_message_get_member(msg));
+		dbus_message_unref(msg);
+		EXIT;
+	}
+
+	/*
+	 * Get notified when the reply is received or timeout expires.
+	 */
+	dbus_pending_call_set_notify(call, pk_connection_dbus_notify,
+	                             result, g_object_unref);
+
+	/*
+	 * Release resources.
+	 */
+	dbus_message_unref(msg);
+	EXIT;
+}
+
+
+static gboolean
+pk_connection_dbus_manager_add_source_finish (PkConnection  *connection, /* IN */
+                                              GAsyncResult  *result,     /* IN */
+                                              gint          *source,     /* OUT */
+                                              GError       **error)      /* OUT */
+{
+	DBusPendingCall *call;
+	DBusMessage *msg;
+	gboolean ret = FALSE;
+	gchar *error_str = NULL;
+	DBusError dbus_error = { 0 };
+	gchar *source_path = NULL;
+
+	g_return_val_if_fail(source != NULL, FALSE);
+	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_add_source), FALSE);
+	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
+	                     FALSE);
+
+	/*
+	 * Clear out params.
+	 */
+	*source = 0;
+
+	/*
+	 * Check if call was cancelled.
+	 */
+	if (!(msg = dbus_pending_call_steal_reply(call))) {
+		g_simple_async_result_propagate_error(
+				G_SIMPLE_ASYNC_RESULT(result),
+				error);
+		goto finish;
+	}
+
+	/*
+	 * Check if response is an error.
+	 */
+	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
+		goto finish;
+	}
+
+	/*
+	 * Process message arguments.
+	 */
+	if (!dbus_message_get_args(msg,
+	                           &dbus_error,
+
+	                           DBUS_TYPE_OBJECT_PATH, &source_path,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(finish);
+	}
+
+	if (source_path) {
+		sscanf(source_path,
+		       "/org/perfkit/Agent/Manager/%d",
+		       source);
+	}
+
+	ret = TRUE;
+
+finish:
+	dbus_message_unref(msg);
+	g_object_unref(result);
+	RETURN(ret);
+}
+
+
+static void
 pk_connection_dbus_manager_add_subscription_async (PkConnection        *connection,  /* IN */
                                                    gsize                buffer_size, /* IN */
                                                    gsize                timeout,     /* IN */
@@ -4673,6 +4831,139 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 		            "%s: %s", dbus_error.name, dbus_error.message);
 		dbus_error_free(&dbus_error);
 		GOTO(finish);
+	}
+
+
+	ret = TRUE;
+
+finish:
+	dbus_message_unref(msg);
+	g_object_unref(result);
+	RETURN(ret);
+}
+
+
+static void
+pk_connection_dbus_manager_remove_source_async (PkConnection        *connection,  /* IN */
+                                                gint                 source,      /* IN */
+                                                GCancellable        *cancellable, /* IN */
+                                                GAsyncReadyCallback  callback,    /* IN */
+                                                gpointer             user_data)   /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusPendingCall *call = NULL;
+	GSimpleAsyncResult *result;
+	DBusMessageIter iter;
+	DBusMessage *msg;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+
+	/*
+	 * Allocate DBus message.
+	 */
+	msg = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+	g_assert(msg);
+
+	/*
+	 * Create asynchronous connection handle.
+	 */
+	result = g_simple_async_result_new(
+			G_OBJECT(connection), callback, user_data,
+			pk_connection_dbus_manager_remove_source_async);
+
+	/*
+	 * Wire cancellable if needed.
+	 */
+	if (cancellable) {
+		g_cancellable_connect(cancellable,
+		                      G_CALLBACK(pk_connection_dbus_cancel),
+		                      g_object_ref(result), g_object_unref);
+	}
+
+	/*
+	 * Build the DBus message.
+	 */
+	dbus_message_set_destination(msg, "org.perfkit.Agent");
+	dbus_message_set_interface(msg, "org.perfkit.Agent.Manager");
+	dbus_message_set_member(msg, "RemoveSource");
+	dbus_message_set_path(msg, "/org/perfkit/Agent/Manager");
+
+	/*
+	 * Add message parameters.
+	 */
+	dbus_message_iter_init_append(msg, &iter);
+	APPEND_INT_PARAM(source);
+
+	/*
+	 * Send message to agent and schedule to be notified of the result.
+	 */
+	if (!dbus_connection_send_with_reply(priv->dbus, msg, &call, -1)) {
+		g_warning("Error dispatching message to %s/%s",
+		          dbus_message_get_path(msg),
+		          dbus_message_get_member(msg));
+		dbus_message_unref(msg);
+		EXIT;
+	}
+
+	/*
+	 * Get notified when the reply is received or timeout expires.
+	 */
+	dbus_pending_call_set_notify(call, pk_connection_dbus_notify,
+	                             result, g_object_unref);
+
+	/*
+	 * Release resources.
+	 */
+	dbus_message_unref(msg);
+	EXIT;
+}
+
+
+static gboolean
+pk_connection_dbus_manager_remove_source_finish (PkConnection  *connection, /* IN */
+                                                 GAsyncResult  *result,     /* IN */
+                                                 GError       **error)      /* OUT */
+{
+	DBusPendingCall *call;
+	DBusMessage *msg;
+	gboolean ret = FALSE;
+	gchar *error_str = NULL;
+
+	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_remove_source), FALSE);
+	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
+	                     FALSE);
+
+	/*
+	 * Clear out params.
+	 */
+
+	/*
+	 * Check if call was cancelled.
+	 */
+	if (!(msg = dbus_pending_call_steal_reply(call))) {
+		g_simple_async_result_propagate_error(
+				G_SIMPLE_ASYNC_RESULT(result),
+				error);
+		goto finish;
+	}
+
+	/*
+	 * Check if response is an error.
+	 */
+	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
+		goto finish;
 	}
 
 
@@ -6818,12 +7109,14 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	OVERRIDE_VTABLE(disconnect);
 	OVERRIDE_VTABLE(encoder_get_plugin);
 	OVERRIDE_VTABLE(manager_add_channel);
+	OVERRIDE_VTABLE(manager_add_source);
 	OVERRIDE_VTABLE(manager_add_subscription);
 	OVERRIDE_VTABLE(manager_get_channels);
 	OVERRIDE_VTABLE(manager_get_plugins);
 	OVERRIDE_VTABLE(manager_get_version);
 	OVERRIDE_VTABLE(manager_ping);
 	OVERRIDE_VTABLE(manager_remove_channel);
+	OVERRIDE_VTABLE(manager_remove_source);
 	OVERRIDE_VTABLE(manager_remove_subscription);
 	OVERRIDE_VTABLE(plugin_get_copyright);
 	OVERRIDE_VTABLE(plugin_get_description);

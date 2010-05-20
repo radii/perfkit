@@ -1796,6 +1796,77 @@ pk_shell_manager_add_channel (EggLine  *line,   /* IN */
 }
 
 /**
+ * pk_shell_manager_add_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_add_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_add_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_add_source_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* source */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_add_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_add_source (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	const gchar* plugin;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	plugin = argv[i++];
+	async_task_init(&task);
+	task.params[0] = &source;
+	pk_connection_manager_add_source_async(conn,
+	                             plugin,
+	                             NULL,
+	                             pk_shell_manager_add_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "source", (gint)source);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_manager_add_subscription_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -2241,6 +2312,75 @@ pk_shell_manager_remove_channel (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "removed", removed ? "TRUE" : "FALSE");
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_manager_remove_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_remove_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_remove_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_remove_source_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_remove_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_remove_source (EggLine  *line,   /* IN */
+                                gint      argc,   /* IN */
+                                gchar    *argv[], /* IN */
+                                GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &source)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_manager_remove_source_async(conn,
+	                             source,
+	                             NULL,
+	                             pk_shell_manager_remove_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -3469,6 +3609,12 @@ static EggLineCommand manager_commands[] = {
 		.usage     = "manager add-channel ",
 	},
 	{
+		.name      = "add-source",
+		.help      = "Create a new source from a plugin in the Agent.",
+		.callback  = pk_shell_manager_add_source,
+		.usage     = "manager add-source PLUGIN",
+	},
+	{
 		.name      = "add-subscription",
 		.help      = "Adds a new subscription to the agent. @buffer_size is the size of the\ninternal buffer in bytes to queue before flushing data to the subscriber.\n@timeout is the maximum number of milliseconds that should pass before\nflushing data to the subscriber.\n\nIf @buffer_size and @timeout are 0, then no buffering will occur.\n\n@encoder is an optional encoder that can be used to encode the data\ninto a particular format the subscriber is expecting.",
 		.callback  = pk_shell_manager_add_subscription,
@@ -3503,6 +3649,12 @@ static EggLineCommand manager_commands[] = {
 		.help      = "Removes a channel from the agent.",
 		.callback  = pk_shell_manager_remove_channel,
 		.usage     = "manager remove-channel CHANNEL",
+	},
+	{
+		.name      = "remove-source",
+		.help      = "Remove a source from the Agent.",
+		.callback  = pk_shell_manager_remove_source,
+		.usage     = "manager remove-source SOURCE",
 	},
 	{
 		.name      = "remove-subscription",
@@ -3992,7 +4144,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Manager commands.",
 		.callback  = NULL,
 		.generator = pk_shell_manager_generator,
-		.usage     = "manager [add-channel | add-subscription | get-channels | get-plugins | get-version | ping | remove-channel | remove-subscription]",
+		.usage     = "manager [add-channel | add-source | add-subscription | get-channels | get-plugins | get-version | ping | remove-channel | remove-source | remove-subscription]",
 	},
 	{
 		.name      = "channel",

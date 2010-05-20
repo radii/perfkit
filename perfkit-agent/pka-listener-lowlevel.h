@@ -217,6 +217,15 @@ gboolean      pka_listener_manager_add_channel_finish         (PkaListener      
                                                                GAsyncResult          *result,
                                                                gint                  *channel,
                                                                GError               **error);
+void          pka_listener_manager_add_source_async           (PkaListener           *listener,
+                                                               const gchar           *plugin,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_manager_add_source_finish          (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                  *source,
+                                                               GError               **error);
 void          pka_listener_manager_add_subscription_async     (PkaListener           *listener,
                                                                gsize                  buffer_size,
                                                                gsize                  timeout,
@@ -269,6 +278,14 @@ void          pka_listener_manager_remove_channel_async       (PkaListener      
 gboolean      pka_listener_manager_remove_channel_finish      (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                gboolean              *removed,
+                                                               GError               **error);
+void          pka_listener_manager_remove_source_async        (PkaListener           *listener,
+                                                               gint                   source,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_manager_remove_source_finish       (PkaListener           *listener,
+                                                               GAsyncResult          *result,
                                                                GError               **error);
 void          pka_listener_manager_remove_subscription_async  (PkaListener           *listener,
                                                                gint                   subscription,

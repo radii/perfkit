@@ -144,6 +144,11 @@ typedef struct
 
 typedef struct
 {
+	gchar *plugin;
+} ManagerAddSourceCall;
+
+typedef struct
+{
 	gsize buffer_size;
 	gsize timeout;
 	gint encoder;
@@ -172,18 +177,13 @@ typedef struct
 
 typedef struct
 {
+	gint source;
+} ManagerRemoveSourceCall;
+
+typedef struct
+{
 	gint subscription;
 } ManagerRemoveSubscriptionCall;
-
-typedef struct
-{
-	gchar *plugin;
-} PluginCreateEncoderCall;
-
-typedef struct
-{
-	gchar *plugin;
-} PluginCreateSourceCall;
 
 typedef struct
 {
@@ -447,6 +447,15 @@ ManagerAddChannelCall_Free (ManagerAddChannelCall *call) /* IN */
 }
 
 void
+ManagerAddSourceCall_Free (ManagerAddSourceCall *call) /* IN */
+{
+	ENTRY;
+	g_free(call->plugin);
+	g_slice_free(ManagerAddSourceCall, call);
+	EXIT;
+}
+
+void
 ManagerAddSubscriptionCall_Free (ManagerAddSubscriptionCall *call) /* IN */
 {
 	ENTRY;
@@ -495,28 +504,18 @@ ManagerRemoveChannelCall_Free (ManagerRemoveChannelCall *call) /* IN */
 }
 
 void
+ManagerRemoveSourceCall_Free (ManagerRemoveSourceCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ManagerRemoveSourceCall, call);
+	EXIT;
+}
+
+void
 ManagerRemoveSubscriptionCall_Free (ManagerRemoveSubscriptionCall *call) /* IN */
 {
 	ENTRY;
 	g_slice_free(ManagerRemoveSubscriptionCall, call);
-	EXIT;
-}
-
-void
-PluginCreateEncoderCall_Free (PluginCreateEncoderCall *call) /* IN */
-{
-	ENTRY;
-	g_free(call->plugin);
-	g_slice_free(PluginCreateEncoderCall, call);
-	EXIT;
-}
-
-void
-PluginCreateSourceCall_Free (PluginCreateSourceCall *call) /* IN */
-{
-	ENTRY;
-	g_free(call->plugin);
-	g_slice_free(PluginCreateSourceCall, call);
 	EXIT;
 }
 
@@ -790,6 +789,13 @@ ManagerAddChannelCall_Create (void)
 	RETURN(g_slice_new0(ManagerAddChannelCall));
 }
 
+ManagerAddSourceCall*
+ManagerAddSourceCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ManagerAddSourceCall));
+}
+
 ManagerAddSubscriptionCall*
 ManagerAddSubscriptionCall_Create (void)
 {
@@ -832,25 +838,18 @@ ManagerRemoveChannelCall_Create (void)
 	RETURN(g_slice_new0(ManagerRemoveChannelCall));
 }
 
+ManagerRemoveSourceCall*
+ManagerRemoveSourceCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ManagerRemoveSourceCall));
+}
+
 ManagerRemoveSubscriptionCall*
 ManagerRemoveSubscriptionCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(ManagerRemoveSubscriptionCall));
-}
-
-PluginCreateEncoderCall*
-PluginCreateEncoderCall_Create (void)
-{
-	ENTRY;
-	RETURN(g_slice_new0(PluginCreateEncoderCall));
-}
-
-PluginCreateSourceCall*
-PluginCreateSourceCall_Create (void)
-{
-	ENTRY;
-	RETURN(g_slice_new0(PluginCreateSourceCall));
 }
 
 PluginGetCopyrightCall*

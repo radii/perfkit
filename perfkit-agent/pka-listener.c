@@ -1903,6 +1903,93 @@ pka_listener_manager_add_channel_finish (PkaListener    *listener, /* IN */
 	RETURN(FALSE);
 }
 
+/**
+ * pk_connection_manager_add_source_async:
+ * @connection: A #PkConnection.
+ * @plugin: A #const gchar.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "manager_add_source_async" RPC.  @callback
+ * MUST call pka_listener_manager_add_source_finish().
+ *
+ * Create a new source from a plugin in the Agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_manager_add_source_async (PkaListener           *listener,    /* IN */
+                                       const gchar           *plugin,      /* IN */
+                                       GCancellable          *cancellable, /* IN */
+                                       GAsyncReadyCallback    callback,    /* IN */
+                                       gpointer               user_data)   /* IN */
+{
+	ManagerAddSourceCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_manager_add_source_async);
+	call = ManagerAddSourceCall_Create();
+	call->plugin = g_strdup(plugin);
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ManagerAddSourceCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_add_source_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @source: A #gint.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "manager_add_source_finish" RPC.
+ *
+ * Create a new source from a plugin in the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_manager_add_source_finish (PkaListener    *listener, /* IN */
+                                        GAsyncResult   *result,   /* IN */
+                                        gint           *source,   /* OUT */
+                                        GError        **error)    /* OUT */
+{
+	ManagerAddSourceCall *call;
+	PkaSource *real_source;
+	PkaPlugin *plugin;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_add_source), FALSE);
+	g_return_val_if_fail(source != NULL, FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(ManagerAddSourceCall, result);
+	if (!pka_manager_find_plugin(DEFAULT_CONTEXT, call->plugin,
+	                             &plugin, error)) {
+		GOTO(failed);
+	}
+	if ((ret = pka_manager_add_source(DEFAULT_CONTEXT, plugin,
+	                                  &real_source, error))) {
+	    *source = pka_source_get_id(real_source);
+	    g_object_unref(real_source);
+	}
+	g_object_unref(plugin);
+  failed:
+	RETURN(ret);
+}
+
 #if 0
 static void
 pka_listener_manager_add_subscription_cb (GObject      *listener,    /* IN */
@@ -2383,6 +2470,86 @@ pka_listener_manager_remove_channel_finish (PkaListener    *listener, /* IN */
   failed:
 	RETURN(ret);
 }
+
+/**
+ * pk_connection_manager_remove_source_async:
+ * @connection: A #PkConnection.
+ * @source: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "manager_remove_source_async" RPC.  @callback
+ * MUST call pka_listener_manager_remove_source_finish().
+ *
+ * Remove a source from the Agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_manager_remove_source_async (PkaListener           *listener,    /* IN */
+                                          gint                   source,      /* IN */
+                                          GCancellable          *cancellable, /* IN */
+                                          GAsyncReadyCallback    callback,    /* IN */
+                                          gpointer               user_data)   /* IN */
+{
+	ManagerRemoveSourceCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_manager_remove_source_async);
+	call = ManagerRemoveSourceCall_Create();
+	call->source = source;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ManagerRemoveSourceCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_remove_source_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "manager_remove_source_finish" RPC.
+ *
+ * Remove a source from the Agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_manager_remove_source_finish (PkaListener    *listener, /* IN */
+                                           GAsyncResult   *result,   /* IN */
+                                           GError        **error)    /* OUT */
+{
+	ManagerRemoveSourceCall *call;
+	PkaSource *real_source;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_remove_source), FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(ManagerRemoveSourceCall, result);
+	if (!pka_manager_find_source(DEFAULT_CONTEXT, call->source,
+	                             &real_source, error)) {
+		GOTO(failed);
+	}
+	ret = pka_manager_remove_source(DEFAULT_CONTEXT, real_source, error);
+	g_object_unref(real_source);
+  failed:
+	RETURN(ret);
+}
+
 
 #if 0
 static void
