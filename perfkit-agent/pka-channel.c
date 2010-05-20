@@ -1338,6 +1338,7 @@ pka_channel_init (PkaChannel *channel) /* IN */
 		(GDestroyNotify)pka_manifest_unref);
 	channel->priv->id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
 	channel->priv->state = PKA_CHANNEL_READY;
+	channel->priv->kill_pid = TRUE;
 	EXIT;
 }
 
