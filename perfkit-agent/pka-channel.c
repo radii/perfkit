@@ -557,6 +557,8 @@ pka_channel_add_source (PkaChannel  *channel, /* IN */
 	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, unauthorized);
 	g_mutex_lock(priv->mutex);
 	if (!pka_source_set_channel(source, channel)) {
+		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
+		            "Source already attached to a channel.");
 		GOTO(failed);
 	}
 	/*
