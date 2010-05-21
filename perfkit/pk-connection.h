@@ -73,6 +73,15 @@ struct _PkConnectionClass
 {
 	GObjectClass parent_class;
 
+	void          (*channel_add_source_async)           (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     gint                   source,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_add_source_finish)          (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
 	void          (*channel_get_args_async)             (PkConnection          *connection,
 	                                                     gint                   channel,
 	                                                     GCancellable          *cancellable,

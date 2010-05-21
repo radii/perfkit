@@ -1514,6 +1514,9 @@ static const gchar * ChannelIntrospection =
 	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE
 	"<node>"
 	" <interface name=\"org.perfkit.Agent.Channel\">"
+	"  <method name=\"AddSource\">"
+    "   <arg name=\"source\" direction=\"in\" type=\"i\"/>"
+	"  </method>"
 	"  <method name=\"GetArgs\">"
     "   <arg name=\"args\" direction=\"out\" type=\"as\"/>"
 	"  </method>"
@@ -1577,6 +1580,48 @@ static const gchar * ChannelIntrospection =
 	"  </method>"
 	" </interface>"
 	"</node>";
+
+/**
+ * pka_listener_dbus_channel_add_source_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "channel_add_source" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_channel_add_source_cb (GObject      *listener,  /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_channel_add_source_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
 
 /**
  * pka_listener_dbus_channel_get_args_cb:
@@ -2507,7 +2552,29 @@ pka_listener_dbus_handle_channel_message (DBusConnection *connection, /* IN */
 		}
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	} else if (IS_INTERFACE(message, "org.perfkit.Agent.Channel")) {
-		if (IS_MEMBER(message, "GetArgs")) {
+		if (IS_MEMBER(message, "AddSource")) {
+			gint channel = 0;
+			gint source = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Channel/%d", &channel) != 1) {
+				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &source,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_channel_add_source_async(PKA_LISTENER(listener),
+			                                      channel,
+			                                      source,
+			                                      NULL,
+			                                      pka_listener_dbus_channel_add_source_cb,
+			                                      dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetArgs")) {
 			gint channel = 0;
 			const gchar *dbus_path;
 

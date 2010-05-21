@@ -119,21 +119,21 @@ G_DEFINE_TYPE (PkaChannel, pka_channel, G_TYPE_OBJECT)
 /*
  * Internal methods used for management of samples and manifests.
  */
-extern void pka_subscription_deliver_sample   (PkaSubscription *subscription,
-                                               PkaSample       *sample);
-extern void pka_subscription_deliver_manifest (PkaSubscription *subscription,
-                                               PkaManifest     *manifest);
-extern void pka_sample_set_source_id          (PkaSample       *sample,
-                                               gint             source_id);
-extern void pka_manifest_set_source_id        (PkaManifest     *manifest,
-                                               gint             source_id);
-extern void pka_source_notify_started         (PkaSource       *source,
-                                               PkaSpawnInfo    *spawn_info);
-extern void pka_source_notify_stopped         (PkaSource       *source);
-extern void pka_source_notify_muted           (PkaSource       *source);
-extern void pka_source_notify_unmuted         (PkaSource       *source);
-extern void pka_source_set_channel            (PkaSource       *source,
-                                               PkaChannel      *channel);
+extern void     pka_subscription_deliver_sample   (PkaSubscription *subscription,
+                                                   PkaSample       *sample);
+extern void     pka_subscription_deliver_manifest (PkaSubscription *subscription,
+                                                   PkaManifest     *manifest);
+extern void     pka_sample_set_source_id          (PkaSample       *sample,
+                                                   gint             source_id);
+extern void     pka_manifest_set_source_id        (PkaManifest     *manifest,
+                                                   gint             source_id);
+extern void     pka_source_notify_started         (PkaSource       *source,
+                                                   PkaSpawnInfo    *spawn_info);
+extern void     pka_source_notify_stopped         (PkaSource       *source);
+extern void     pka_source_notify_muted           (PkaSource       *source);
+extern void     pka_source_notify_unmuted         (PkaSource       *source);
+extern gboolean pka_source_set_channel            (PkaSource       *source,
+                                                   PkaChannel      *channel);
 
 struct _PkaChannelPrivate
 {
@@ -524,6 +524,51 @@ pka_channel_get_exit_status (PkaChannel  *channel,     /* IN */
 	ret = TRUE;
   failed:
 	g_mutex_unlock(priv->mutex);
+	RETURN(ret);
+}
+
+/**
+ * pka_channel_add_source:
+ * @channel: A #PkaChannel.
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
+gboolean
+pka_channel_add_source (PkaChannel  *channel, /* IN */
+                        PkaContext  *context, /* IN */
+                        PkaSource   *source,  /* IN */
+                        GError     **error)   /* OUT */
+{
+	PkaChannelPrivate *priv;
+	guint idx;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
+	g_return_val_if_fail(context != NULL, FALSE);
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+
+	ENTRY;
+	priv = channel->priv;
+	AUTHORIZE_IOCTL(context, MODIFY_CHANNEL, channel, unauthorized);
+	g_mutex_lock(priv->mutex);
+	if (!pka_source_set_channel(source, channel)) {
+		GOTO(failed);
+	}
+	/*
+	 * TODO: Figure out how to handle circular reference count.
+	 */
+	g_ptr_array_add(priv->sources, g_object_ref(source));
+	idx = priv->sources->len;
+	g_tree_insert(priv->indexed, source, GINT_TO_POINTER(idx));
+	ret = TRUE;
+  failed:
+	g_mutex_unlock(priv->mutex);
+  unauthorized:
 	RETURN(ret);
 }
 

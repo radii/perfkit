@@ -28,6 +28,7 @@
 #include "pka-context.h"
 #include "pka-manifest.h"
 #include "pka-sample.h"
+#include "pka-source.h"
 #include "pka-spawn-info.h"
 
 G_BEGIN_DECLS
@@ -128,6 +129,10 @@ gboolean        pka_channel_set_kill_pid    (PkaChannel   *channel,
                                              GError      **error);
 gboolean        pka_channel_get_exit_status (PkaChannel   *channel,
                                              gint         *exit_status,
+                                             GError      **error);
+gboolean        pka_channel_add_source      (PkaChannel   *channel,
+                                             PkaContext   *context,
+                                             PkaSource    *source,
                                              GError      **error);
 gboolean        pka_channel_start           (PkaChannel   *channel,
                                              PkaContext   *context,

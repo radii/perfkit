@@ -171,6 +171,80 @@ pk_shell_parse_boolean (const gchar *str,    /* IN */
 
 
 /**
+ * pk_shell_channel_add_source_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_add_source_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_add_source_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_add_source_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_add_source:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_add_source (EggLine  *line,   /* IN */
+                             gint      argc,   /* IN */
+                             gchar    *argv[], /* IN */
+                             GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel;
+	gint source;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &source)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_channel_add_source_async(conn,
+	                             channel,
+	                             source,
+	                             NULL,
+	                             pk_shell_channel_add_source_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_channel_get_args_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -3767,6 +3841,17 @@ static EggLineCommand manager_commands[] = {
 
 static EggLineCommand channel_commands[] = {
 	{
+		.name      = "add-source",
+		.help      = "Adds an existing source to the channel.  If the channel has already been\nstarted, the source will be started immediately.  The source must not have\nbeen previous added to another channel or this will fail.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "  SOURCE:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_add_source,
+		.usage     = "channel add-source CHANNEL SOURCE",
+	},
+	{
 		.name      = "get-args",
 		.help      = "Retrieves the arguments for target.\n"
 		             "\n"
@@ -4251,7 +4336,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Channel commands.",
 		.callback  = NULL,
 		.generator = pk_shell_channel_generator,
-		.usage     = "channel [get-args | get-env | get-exit-status | get-kill-pid | get-pid | get-pid-set | get-sources | get-state | get-target | get-working-dir | mute | set-args | set-env | set-kill-pid | set-pid | set-target | set-working-dir | start | stop | unmute]",
+		.usage     = "channel [add-source | get-args | get-env | get-exit-status | get-kill-pid | get-pid | get-pid-set | get-sources | get-state | get-target | get-working-dir | mute | set-args | set-env | set-kill-pid | set-pid | set-target | set-working-dir | start | stop | unmute]",
 	},
 	{
 		.name      = "subscription",

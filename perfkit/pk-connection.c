@@ -234,6 +234,138 @@ pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
 }
 
 /**
+ * pk_connection_channel_add_source_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_add_source" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_add_source_cb (GObject      *source,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_add_source_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_add_source:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_add_source" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_add_source (PkConnection  *connection, /* IN */
+                                  gint           channel,    /* IN */
+                                  gint           source,     /* IN */
+                                  GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_add_source);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_channel_add_source_async(connection,
+	                                       channel,
+	                                       source,
+	                                       NULL,
+	                                       pk_connection_channel_add_source_cb,
+	                                       &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_add_source_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_add_source_async" RPC.
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_add_source_async (PkConnection        *connection,  /* IN */
+                                        gint                 channel,     /* IN */
+                                        gint                 source,      /* IN */
+                                        GCancellable        *cancellable, /* IN */
+                                        GAsyncReadyCallback  callback,    /* IN */
+                                        gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_add_source)(connection,
+	                              channel,
+	                              source,
+	                              cancellable,
+	                              callback,
+	                              user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_add_source_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_add_source_finish" RPC.
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_add_source_finish (PkConnection  *connection, /* IN */
+                                         GAsyncResult  *result,     /* IN */
+                                         GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_add_source)(connection,
+	                                    result,
+	                                    error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_channel_get_args_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

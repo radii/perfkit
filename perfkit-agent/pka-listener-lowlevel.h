@@ -23,6 +23,15 @@
 
 G_BEGIN_DECLS
 
+void          pka_listener_channel_add_source_async           (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               gint                   source,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_add_source_finish          (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
 void          pka_listener_channel_get_args_async             (PkaListener           *listener,
                                                                gint                   channel,
                                                                GCancellable          *cancellable,

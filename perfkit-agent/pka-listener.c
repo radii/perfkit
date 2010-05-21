@@ -96,6 +96,102 @@ pka_listener_close (PkaListener *listener) /* IN */
 }
 
 /**
+ * pk_connection_channel_add_source_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @source: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_add_source_async" RPC.  @callback
+ * MUST call pka_listener_channel_add_source_finish().
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_add_source_async (PkaListener           *listener,    /* IN */
+                                       gint                   channel,     /* IN */
+                                       gint                   source,      /* IN */
+                                       GCancellable          *cancellable, /* IN */
+                                       GAsyncReadyCallback    callback,    /* IN */
+                                       gpointer               user_data)   /* IN */
+{
+	ChannelAddSourceCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_add_source_async);
+	call = ChannelAddSourceCall_Create();
+	call->channel = channel;
+	call->source = source;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ChannelAddSourceCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_add_source_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "channel_add_source_finish" RPC.
+ *
+ * Adds an existing source to the channel.  If the channel has already been
+ * started, the source will be started immediately.  The source must not have
+ * been previous added to another channel or this will fail.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_channel_add_source_finish (PkaListener    *listener, /* IN */
+                                        GAsyncResult   *result,   /* IN */
+                                        GError        **error)    /* OUT */
+{
+	ChannelAddSourceCall *call;
+	PkaChannel *channel = NULL;
+	PkaSource *source = NULL;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_add_source), FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(ChannelAddSourceCall, result);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel,
+	                              &channel, error)) {
+		GOTO(failed);
+	}
+	if (!pka_manager_find_source(DEFAULT_CONTEXT, call->source,
+	                             &source, error)) {
+	    GOTO(failed);
+	}
+	ret = pka_channel_add_source(channel, DEFAULT_CONTEXT, source, error);
+  failed:
+  	if (channel) {
+		g_object_unref(channel);
+	}
+	if (source) {
+		g_object_unref(source);
+	}
+	RETURN(ret);
+}
+
+/**
  * pk_connection_channel_mute_async:
  * @connection: A #PkConnection.
  * @channel: A #gint.

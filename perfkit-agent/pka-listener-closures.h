@@ -22,6 +22,11 @@
 #include <glib.h>
 
 #include "pka-log.h"
+typedef struct
+{
+	gint channel;
+	gint source;
+} ChannelAddSourceCall;
 
 typedef struct
 {
@@ -261,6 +266,14 @@ typedef struct
 {
 	gint subscription;
 } SubscriptionUnmuteCall;
+
+void
+ChannelAddSourceCall_Free (ChannelAddSourceCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ChannelAddSourceCall, call);
+	EXIT;
+}
 
 void
 ChannelGetArgsCall_Free (ChannelGetArgsCall *call) /* IN */
@@ -638,6 +651,13 @@ SubscriptionUnmuteCall_Free (SubscriptionUnmuteCall *call) /* IN */
 	ENTRY;
 	g_slice_free(SubscriptionUnmuteCall, call);
 	EXIT;
+}
+
+ChannelAddSourceCall*
+ChannelAddSourceCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ChannelAddSourceCall));
 }
 
 ChannelGetArgsCall*

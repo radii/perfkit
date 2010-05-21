@@ -23,6 +23,19 @@
 
 G_BEGIN_DECLS
 
+gboolean      pk_connection_channel_add_source                (PkConnection          *connection,
+                                                               gint                   channel,
+                                                               gint                   source,
+                                                               GError               **error);
+void          pk_connection_channel_add_source_async          (PkConnection          *connection,
+                                                               gint                   channel,
+                                                               gint                   source,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_channel_add_source_finish         (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
 gboolean      pk_connection_channel_get_args                  (PkConnection          *connection,
                                                                gint                   channel,
                                                                gchar               ***args,

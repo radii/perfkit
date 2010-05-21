@@ -50,7 +50,8 @@ extern void pka_channel_deliver_manifest (PkaChannel  *channel,
 
 struct _PkaSourcePrivate
 {
-	guint       source_id;
+	guint       id;
+	GMutex     *mutex;
 	PkaChannel *channel;
 	PkaPlugin  *plugin;
 };
@@ -65,17 +66,32 @@ static guint source_seq = 0;
  * Internal method used by channels to attach themselves as the destination
  * for a sources samples and manifest.
  *
+ * Returns: %TRUE if the channel was attached.
  * Side effects: None.
  */
-void
+gboolean
 pka_source_set_channel (PkaSource  *source,
                         PkaChannel *channel)
 {
-	g_return_if_fail(PKA_IS_SOURCE(source));
-	g_return_if_fail(PKA_IS_CHANNEL(channel));
-	g_return_if_fail(!source->priv->channel);
+	PkaSourcePrivate *priv;
+	gboolean ret = FALSE;
 
-	source->priv->channel = g_object_ref(channel);
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
+
+	ENTRY;
+	priv = source->priv;
+	g_mutex_lock(priv->mutex);
+	if (priv->channel) {
+		GOTO(failed);
+	}
+	DEBUG(Source, "Source %d accepting channel %d as master.",
+	      priv->id, pka_channel_get_id(channel));
+	priv->channel = g_object_ref(channel);
+	ret = TRUE;
+  failed:
+	g_mutex_unlock(priv->mutex);
+	RETURN(ret);
 }
 
 /**
@@ -145,7 +161,7 @@ guint
 pka_source_get_id (PkaSource *source)
 {
 	g_return_val_if_fail(PKA_IS_SOURCE(source), 0);
-	return source->priv->source_id;
+	return source->priv->id;
 }
 
 void
@@ -235,14 +251,14 @@ pka_source_class_init (PkaSourceClass *klass)
 static void
 pka_source_init (PkaSource *source)
 {
-	gint source_id;
+	gint id;
 
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKA_TYPE_SOURCE,
 	                                           PkaSourcePrivate);
-
-	source_id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
-	source->priv->source_id = source_id;
+	id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
+	source->priv->id = id;
+	source->priv->mutex = g_mutex_new();
 }
 
 gboolean
