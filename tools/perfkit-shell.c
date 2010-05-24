@@ -3687,6 +3687,21 @@ pk_shell_load (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+static EggLineStatus
+pk_shell_echo (EggLine  *line,   /* IN */
+               gint      argc,   /* IN */
+               gchar    *argv[], /* IN */
+               GError  **error)  /* OUT */
+{
+	gchar *text;
+
+	ENTRY;
+	text = g_strjoinv(" ", argv);
+	g_print("%s\n", text);
+	g_free(text);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
 static EggLineCommand plugin_commands[] = {
 	{
 		.name      = "get-copyright",
@@ -4372,6 +4387,13 @@ static EggLineCommand root_commands[] = {
 		.usage     = "load [FILENAME]",
 		.generator = NULL,
 		.callback  = pk_shell_load,
+	},
+	{
+		.name      = "echo",
+		.help      = "Echo text and variables to the console.",
+		.usage     = "echo ...",
+		.generator = NULL,
+		.callback  = pk_shell_echo,
 	},
 	{ NULL }
 };
