@@ -34,6 +34,7 @@
 
 #define CASE_LEVEL_STR(_l) case G_LOG_LEVEL_##_l: return #_l
 
+G_LOCK_DEFINE(channels_lock);
 static GPtrArray  *channels = NULL;
 static gchar       hostname[64] = "";
 static GLogFunc    last_handler = NULL;
@@ -118,7 +119,9 @@ pka_log_handler (const gchar    *log_domain, /* IN */
 								 ftime, ts.tv_nsec / 100000,
 								 hostname, log_domain,
 								 pka_log_get_thread(), level, message);
+		G_LOCK(channels_lock);
 		g_ptr_array_foreach(channels, (GFunc)pka_log_write_to_channel, buffer);
+		G_UNLOCK(channels_lock);
 		g_free(buffer);
 	}
 }
