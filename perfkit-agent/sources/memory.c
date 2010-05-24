@@ -22,6 +22,11 @@
 #include <unistd.h>
 #include <perfkit-agent/perfkit-agent.h>
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Memory"
+
 typedef struct
 {
 	PkaManifest *manifest;
@@ -45,19 +50,17 @@ memory_read (Memory *state)
 	gchar path[64];
 	gchar buffer[64];
  
+ 	ENTRY;
 	memset(path, 0, sizeof(path));
 	snprintf(path, sizeof(path), "/proc/%d/statm", state->pid);
 	fd = open(path, O_RDONLY);
-
 	if (fd < 0) {
-		return FALSE;
+		RETURN(FALSE);
 	}
-
 	if (read(fd, buffer, sizeof(buffer)) < 1) {
 		close(fd);
-		return FALSE;
+		RETURN(FALSE);
 	}
-
 	sscanf(buffer,
 	       "%d %d %d %d %d %d %d",
 	       &state->size,
@@ -67,10 +70,8 @@ memory_read (Memory *state)
 	       &state->lib,
 	       &state->data,
 	       &state->dt);
-
 	close(fd);
-
-	return TRUE;
+	RETURN(TRUE);
 }
 
 /*
@@ -83,10 +84,13 @@ memory_sample (PkaSourceSimple *source,
 	Memory *state = user_data;
 	PkaSample *s;
 
+	ENTRY;
+
 	/*
 	 * Create and deliver our manifest if it has not yet been done.
 	 */
 	if (G_UNLIKELY(!state->manifest)) {
+		TRACE(Memory, "Initializing manifest");
 		state->manifest = pka_manifest_sized_new(5);
 		pka_manifest_append(state->manifest, "size", G_TYPE_UINT);
 		pka_manifest_append(state->manifest, "resident", G_TYPE_UINT);
@@ -120,6 +124,8 @@ memory_sample (PkaSourceSimple *source,
 		 */
 		pka_sample_unref(s);
 	}
+
+	EXIT;
 }
 
 /*
@@ -130,7 +136,9 @@ memory_spawn (PkaSourceSimple *source,
               PkaSpawnInfo    *spawn_info,
               gpointer         user_data)
 {
+	ENTRY;
 	((Memory *)user_data)->pid = spawn_info->pid;
+	EXIT;
 }
 
 /*
@@ -140,13 +148,15 @@ static void
 memory_free (gpointer data)
 {
 	Memory *state = data;
-	g_assert(state);
 
+	g_return_if_fail(state != NULL);
+
+	ENTRY;
 	if (state->manifest) {
 		pka_manifest_unref(state->manifest);
 	}
-
 	g_slice_free(Memory, data);
+	EXIT;
 }
 
 /*
@@ -157,11 +167,12 @@ memory_new (GError **error)
 {
 	Memory *memory;
 
+	ENTRY;
 	memory = g_slice_new0(Memory);
-	return G_OBJECT(pka_source_simple_new_full(memory_sample,
+	RETURN(G_OBJECT(pka_source_simple_new_full(memory_sample,
 	                                           memory_spawn,
 	                                           memory,
-	                                           memory_free));
+	                                           memory_free)));
 }
 
 const PkaPluginInfo pka_plugin_info = {
