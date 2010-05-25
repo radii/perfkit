@@ -3889,7 +3889,7 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 
 	if (channel_path) {
 		sscanf(channel_path,
-		       "/org/perfkit/Agent/Manager/%d",
+		       "/org/perfkit/Agent/Channel/%d",
 		       channel);
 	}
 
@@ -4047,7 +4047,7 @@ pk_connection_dbus_manager_add_source_finish (PkConnection  *connection, /* IN *
 
 	if (source_path) {
 		sscanf(source_path,
-		       "/org/perfkit/Agent/Manager/%d",
+		       "/org/perfkit/Agent/Source/%d",
 		       source);
 	}
 
@@ -4209,7 +4209,7 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 
 	if (subscription_path) {
 		sscanf(subscription_path,
-		       "/org/perfkit/Agent/Manager/%d",
+		       "/org/perfkit/Agent/Subscription/%d",
 		       subscription);
 	}
 
