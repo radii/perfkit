@@ -51,6 +51,8 @@ AM_CPPFLAGS =								\
 	$(PERFKIT_AGENT_CFLAGS)						\
 	$(NULL)
 
+# AM_CPPFLAGS += -DDISABLE_TRACE
+
 INST_H_FILES =								\
 	pka-channel.h							\
 	pka-config.h							\

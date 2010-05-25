@@ -43,6 +43,8 @@ AM_CPPFLAGS =								\
 	$(DBUS_CFLAGS)							\
 	$(NULL)
 
+# AM_CPPFLAGS += -DDISABLE_TRACE
+
 NOINST_H_FILES =							\
 	pka-listener-dbus.h						\
 	$(NULL)

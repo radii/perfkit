@@ -41,6 +41,8 @@ AM_CPPFLAGS =								\
 	$(PERFKIT_AGENT_CFLAGS)						\
 	$(NULL)
 
+# AM_CPPFLAGS += -DDISABLE_TRACE
+
 AM_LDFLAGS =								\
 	-export-dynamic							\
 	-module								\
