@@ -314,10 +314,12 @@ static gint
 pka_source_simple_compare_func (gconstpointer a,
                                 gconstpointer b)
 {
-	PkaSourceSimplePrivate *priva = PKA_SOURCE_SIMPLE(a)->priv;
-	PkaSourceSimplePrivate *privb = PKA_SOURCE_SIMPLE(b)->priv;
+	PkaSourceSimple **sa = (PkaSourceSimple **)a;
+	PkaSourceSimple **sb = (PkaSourceSimple **)b;
+	PkaSourceSimplePrivate *pa = (*sa)->priv;
+	PkaSourceSimplePrivate *pb = (*sb)->priv;
 
-	return timespec_compare(&priva->timeout, &privb->timeout);
+	return timespec_compare(&pa->timeout, &pb->timeout);
 }
 
 static inline gboolean
