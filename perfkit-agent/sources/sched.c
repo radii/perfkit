@@ -22,6 +22,11 @@
 #include <string.h>
 #include <perfkit-agent/perfkit-agent.h>
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Scheduler"
+
 typedef struct
 {
 	PkaManifest *manifest;
@@ -66,18 +71,17 @@ sched_read (Sched *sched)
 	gchar *contents = NULL;
 	GError *error = NULL;
 
+	ENTRY;
 	if (G_UNLIKELY(!sched->filename)) {
 		sched->filename = g_strdup_printf("/proc/%d/sched", sched->pid);
 		g_assert(sched->filename);
 	}
-
 	if (!g_file_get_contents(sched->filename, &contents, NULL, &error)) {
-		g_warning("sched: Failed to read: %s: %s",
-		          sched->filename, error->message);
+		WARNING(Scheduler, "Failed to read: %s: %s",
+		        sched->filename, error->message);
 		g_error_free(error);
 	}
-
-	return contents;
+	RETURN(contents);
 }
 
 static inline gboolean
@@ -110,6 +114,8 @@ sched_parse (Sched      *sched,
 	GMatchInfo *matchInfo = NULL;
 	gchar *contents = NULL;
 
+	ENTRY;
+
 	if (g_once_init_enter(&initialized)) {
 		regex = g_regex_new("^([\\w\\.\\-]+)\\s*:\\s*([\\d\\.]+)$",
 		                    G_REGEX_CASELESS | G_REGEX_MULTILINE,
@@ -133,7 +139,7 @@ sched_parse (Sched      *sched,
 
 		if (matches == 3) {
 			gchar *val = g_match_info_fetch(matchInfo, 2);
-			SchedEntry se = {0};
+			SchedEntry se = { 0 };
 
 			/* Don't populate the names if they already exist */
 			if (!se.name) {
@@ -161,13 +167,13 @@ sched_parse (Sched      *sched,
 
 			g_array_append_val(entries, se);
 			g_free(val);
-		} 
+		}
 	}
 
 	g_match_info_free(matchInfo);
 	g_free(contents);
 
-	return TRUE;
+	RETURN(TRUE);
 }
 
 static inline void
@@ -177,6 +183,7 @@ populate_manifest (PkaManifest *m,
 	SchedEntry *ent;
 	gint i;
 
+	ENTRY;
 	for (i = 0; i < entries->len; i++) {
 		ent = &g_array_index(entries, SchedEntry, i);
 
@@ -193,6 +200,7 @@ populate_manifest (PkaManifest *m,
 			break;
 		}
 	}
+	EXIT;
 }
 
 static inline void
@@ -202,6 +210,7 @@ populate_sample (PkaSample *s,
 	SchedEntry *ent;
 	int i;
 
+	ENTRY;
 	for (i = 0; i < entries->len; i++) {
 		ent = &g_array_index(entries, SchedEntry, i);
 
@@ -218,6 +227,7 @@ populate_sample (PkaSample *s,
 			break;
 		}
 	}
+	EXIT;
 }
 
 static void
@@ -230,6 +240,7 @@ sched_sample (PkaSourceSimple *source,
 	PkaSample *s;
 	gint linesRead, i;
 
+	ENTRY;
 	entries = g_array_sized_new(FALSE, FALSE, sizeof(SchedEntry), 64);
 
 	if (!(linesRead = sched_parse(sched, entries))) {
@@ -247,13 +258,13 @@ sched_sample (PkaSourceSimple *source,
 	pka_source_deliver_sample(PKA_SOURCE(source), s);
 	pka_sample_unref(s);
 
-cleanup:
+  cleanup:
 	for (i = 0; i < entries->len; i++) {
 		ent = &g_array_index(entries, SchedEntry, i);
 		g_free(ent->name);
 	}
-
 	g_array_unref(entries);
+	EXIT;
 }
 
 static void
@@ -262,7 +273,10 @@ sched_spawn (PkaSourceSimple *source,
              gpointer         user_data)
 {
 	Sched *sched = user_data;
+
+	ENTRY;
 	sched->pid = spawn_info->pid;
+	EXIT;
 }
 
 static void
@@ -270,11 +284,12 @@ sched_free (gpointer data)
 {
 	Sched *sched = data;
 
+	ENTRY;
 	if (sched->manifest) {
 		pka_manifest_unref(sched->manifest);
 	}
-
 	g_slice_free(Sched, data);
+	EXIT;
 }
 
 GObject*
@@ -282,9 +297,10 @@ sched_new (GError **error)
 {
 	Sched *sched;
 
+	ENTRY;
 	sched = g_slice_new0(Sched);
-	return G_OBJECT(pka_source_simple_new_full(sched_sample, sched_spawn,
-	                                           sched, sched_free));
+	RETURN(G_OBJECT(pka_source_simple_new_full(sched_sample, sched_spawn,
+	                                           sched, sched_free)));
 }
 
 const PkaPluginInfo pka_plugin_info = {
