@@ -29,9 +29,10 @@
 #define WARNING(_d, _f, ...)  g_log(#_d, G_LOG_LEVEL_WARNING, _f, ##__VA_ARGS__)
 #define DEBUG(_d, _f, ...)    g_log(#_d, G_LOG_LEVEL_DEBUG, _f, ##__VA_ARGS__)
 #define INFO(_d, _f, ...)     g_log(#_d, G_LOG_LEVEL_INFO, _f, ##__VA_ARGS__)
-#define TRACE(_d, _f, ...)    g_log(#_d, G_LOG_LEVEL_TRACE, "  MSG: " _f, ##__VA_ARGS__)
 #define CRITICAL(_d, _f, ...) g_log(#_d, G_LOG_LEVEL_CRITICAL, _f, ##__VA_ARGS__)
 
+#ifndef DISABLE_TRACE
+#define TRACE(_d, _f, ...) g_log(#_d, G_LOG_LEVEL_TRACE, "  MSG: " _f, ##__VA_ARGS__)
 #define ENTRY                                                       \
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "ENTRY: %s():%d", G_STRFUNC, __LINE__)
@@ -57,6 +58,15 @@
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "BREAK: %s:%d", G_STRFUNC, __LINE__);                     \
     break
+#else
+#define TRACE(_d, _f, ...)
+#define ENTRY
+#define EXIT       return
+#define RETURN(_r) return _r
+#define GOTO(_l)   goto _l
+#define BREAK      break
+#endif
+
 #define CASE_RETURN_STR(_l) case _l: return #_l
 
 #endif /* __PKA_LOG_H__ */
