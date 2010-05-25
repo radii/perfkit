@@ -23,7 +23,7 @@
 #include <egg-time.h>
 #include <pthread.h>
 
-#include "pka-source-simple.h"
+#include <perfkit-agent/perfkit-agent.h>
 
 /**
  * SECTION:pka-source-simple
@@ -258,7 +258,7 @@ static inline void
 pka_source_simple_invoke (PkaSourceSimple *source)
 {
 	PkaSourceSimplePrivate *priv = source->priv;
-	GValue params = {0};
+	GValue params = { 0 };
 
 	/*
 	 * Update when our next timeout should be. This is done before invoking
@@ -412,6 +412,7 @@ pka_source_simple_notify_started (PkaSource    *source,
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
 	GError *error = NULL;
 
+	ENTRY;
 	if (priv->spawn) {
 		GValue params[2] = {{0}};
 
@@ -423,7 +424,6 @@ pka_source_simple_notify_started (PkaSource    *source,
 		g_value_unset(&params[0]);
 		g_value_unset(&params[1]);
 	}
-
 	if (priv->dedicated) {
 		g_assert(!priv->thread && !priv->running);
 		priv->running = TRUE;
@@ -434,18 +434,21 @@ pka_source_simple_notify_started (PkaSource    *source,
 			           "Attempting best effort with shared worker.",
 			           error->message);
 			g_error_free(error);
-			goto attach_shared;
+			GOTO(attach_shared);
 		}
-		return;
+		EXIT;
 	}
 
-attach_shared:
+  attach_shared:
+	INFO(Source, "Attaching source %d to cooperative thread manager.",
+	     pka_source_get_id(source));
 	priv->dedicated = FALSE;
 	pthread_mutex_lock(&mutex);
-	g_ptr_array_add(sources, source);
+	g_ptr_array_add(sources, g_object_ref(source));
 	g_ptr_array_sort(sources, pka_source_simple_compare_func);
 	pthread_cond_signal(&cond);
 	pthread_mutex_unlock(&mutex);
+	EXIT;
 }
 
 static void
@@ -453,6 +456,7 @@ pka_source_simple_notify_stopped (PkaSource *source)
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
 
+	ENTRY;
 	if (priv->dedicated) {
 		pthread_mutex_lock(&priv->mutex);
 		priv->running = FALSE;
@@ -461,13 +465,13 @@ pka_source_simple_notify_stopped (PkaSource *source)
 		pthread_mutex_unlock(&priv->mutex);
 		return;
 	}
-
 	pthread_mutex_lock(&mutex);
 	g_ptr_array_remove(sources, source);
 	priv->running = FALSE;
 	g_signal_emit(source, signals[CLEANUP], 0);
 	pthread_cond_signal(&cond);
 	pthread_mutex_unlock(&mutex);
+	EXIT;
 }
 
 /**
@@ -486,8 +490,11 @@ pka_source_simple_set_frequency (PkaSourceSimple *source,
                                  const GTimeVal  *frequency)
 {
 	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
+
+	ENTRY;
 	source->priv->freq.tv_sec = frequency->tv_sec;
 	source->priv->freq.tv_nsec = frequency->tv_usec * 1000;
+	EXIT;
 }
 
 static void
@@ -495,14 +502,14 @@ pka_source_simple_finalize (GObject *object)
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(object)->priv;
 
+	ENTRY;
 	pthread_cond_destroy(&priv->cond);
 	pthread_mutex_destroy(&priv->mutex);
-
 	if (priv->sample) {
 		g_closure_unref(priv->sample);
 	}
-
 	G_OBJECT_CLASS(pka_source_simple_parent_class)->finalize(object);
+	EXIT;
 }
 
 static void
@@ -615,7 +622,8 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass)
 	thread = g_thread_create(pka_source_simple_shared_worker,
 	                         NULL, FALSE, &error);
 	if (!thread) {
-		g_error("Failed to initialize monitor thread: %s", error->message);
+		CRITICAL(Source, "Failed to initialize monitor thread: %s",
+		         error->message);
 		g_error_free(error);
 	}
 }
@@ -623,14 +631,12 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass)
 static void
 pka_source_simple_init (PkaSourceSimple *source)
 {
+	ENTRY;
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKA_TYPE_SOURCE_SIMPLE,
 	                                           PkaSourceSimplePrivate);
 	source->priv->freq.tv_sec = 1;
-
-	/*
-	 * Initialize dedicated worker threading synchronization.
-	 */
 	pka_source_simple_init_pthreads(&source->priv->mutex,
 	                                &source->priv->cond);
+	EXIT;
 }
