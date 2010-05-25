@@ -7,6 +7,10 @@ manager add-source Memory
 source=$1
 channel add-source $channel $source
 
+# Create a scheduler data source and add to channel
+manager add-source Scheduler
+channel add-source $channel $1
+
 # Set the channel properties
 channel set-target $channel /bin/nc
 channel set-args $channel '-l 10000'
