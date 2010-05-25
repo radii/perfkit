@@ -756,9 +756,9 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 		     priv->id, pka_context_get_id(context));
 		INFO(Channel, "             Target = %s",
 		     spawn_info.target ? spawn_info.target : "");
-		INFO(Channel, "          Arguments = %s", argv_str);
+		INFO(Channel, "          Arguments = [%s]", argv_str);
+		INFO(Channel, "        Environment = [%s]", env_str);
 		INFO(Channel, "  Working Directory = %s", spawn_info.working_dir);
-		INFO(Channel, "        Environment = %s", env_str);
 		g_free(argv_str);
 		g_free(env_str);
 
