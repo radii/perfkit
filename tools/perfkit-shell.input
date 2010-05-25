@@ -1,14 +1,16 @@
 # Add a new channel
-channel add target /bin/nc -- -l -p 10000
+manager add-channel
+channel=$1
 
-# Create a memory instrument
-source add-source 0 Memory
+# Create a memory data source and add to channel
+manager add-source Memory
+source=$1
+channel add-source $channel $source
 
-# Start the channel (spawns procses)
-channel start 0
+# Set the channel properties
+channel set-target $channel /bin/nc
+channel set-args $channel '-l 10000'
 
-# Monitor the channel
-channel monitor 0
+# Start the channel (spawns process)
+channel start $channel
 
-# Stop the channel (kills process)
-channel stop 0
