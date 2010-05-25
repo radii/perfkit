@@ -14,6 +14,7 @@ channel add-source $channel $1
 # Set the channel properties
 channel set-target $channel /bin/nc
 channel set-args $channel '-l 10000'
+channel set-env $channel 'KEY1=VALUE1 KEY2=VALUE2'
 
 # Start the channel (spawns process)
 channel start $channel
