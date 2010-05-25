@@ -136,6 +136,7 @@ enum
 static guint         signals[LAST_SIGNAL] = { 0 };
 static GStaticMutex  protocol_mutex       = G_STATIC_MUTEX_INIT;
 static GHashTable   *protocol_types       = NULL;
+static gsize         protocol_init        = FALSE;
 
 /**
  * pk_connection_sync_init:
@@ -6426,10 +6427,10 @@ pk_connection_get_protocol_type (const gchar *protocol) /* IN */
 	/*
 	 * Make sure the lookup hash table exists.
 	 */
-	if (g_once_init_enter((gsize *)&protocol_types)) {
-		GHashTable *hash;
-		hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-		g_once_init_leave((gsize *)&protocol_types, (gsize)hash);
+	if (G_UNLIKELY(g_once_init_enter(&protocol_init))) {
+		protocol_types = g_hash_table_new_full(g_str_hash, g_str_equal,
+		                                       g_free, NULL);
+		g_once_init_leave(&protocol_init, TRUE);
 	}
 
 	/*

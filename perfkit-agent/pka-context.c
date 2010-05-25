@@ -56,15 +56,16 @@ pka_context_destroy (PkaContext *context)
 PkaContext*
 pka_context_default (void)
 {
-	static PkaContext *default_context = NULL;
-	PkaContext *context;
+	static gsize initialized = FALSE;
+	static PkaContext *context = NULL;
 
-	if (G_UNLIKELY(g_once_init_enter((gsize *)&default_context))) {
+	if (G_UNLIKELY(g_once_init_enter(&initialized))) {
+		TRACE(Context, "Initializing default context.");
 		context = pka_context_new();
 		context->id = 0;
-		g_once_init_leave((gsize *)&default_context, (gsize)context);
+		g_once_init_leave(&initialized, TRUE);
 	}
-	return default_context;
+	return context;
 }
 
 /**
