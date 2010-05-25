@@ -32,11 +32,11 @@
 
 #include "pka-log.h"
 
-#define CASE_LEVEL_STR(_l) case G_LOG_LEVEL_##_l: return #_l
+static GPtrArray *channels = NULL;
+static gchar      hostname[64] = "";
+static GLogFunc   last_handler = NULL;
 
-static GPtrArray  *channels = NULL;
-static gchar       hostname[64] = "";
-static GLogFunc    last_handler = NULL;
+G_LOCK_DEFINE(channels_lock);
 
 static inline gint
 pka_log_get_thread (void)
@@ -51,6 +51,7 @@ pka_log_get_thread (void)
 static inline const gchar *
 pka_log_level_str (GLogLevelFlags log_level)
 {
+	#define CASE_LEVEL_STR(_l) case G_LOG_LEVEL_##_l: return #_l
 	switch ((long)log_level) {
 	CASE_LEVEL_STR(ERROR);
 	CASE_LEVEL_STR(CRITICAL);
@@ -62,6 +63,7 @@ pka_log_level_str (GLogLevelFlags log_level)
 	default:
 		return "UNKNOWN";
 	}
+	#undef CASE_LEVEL_STR
 }
 
 /**
@@ -115,10 +117,12 @@ pka_log_handler (const gchar    *log_domain, /* IN */
 		tt = *localtime(&t);
 		strftime(ftime, sizeof(ftime), "%Y/%m/%d %X", &tt);
 		buffer = g_strdup_printf("%s.%04ld  %s: %10s[%d]: %8s: %s\n",
-								 ftime, ts.tv_nsec / 100000,
-								 hostname, log_domain,
-								 pka_log_get_thread(), level, message);
+		                         ftime, ts.tv_nsec / 100000,
+		                         hostname, log_domain,
+		                         pka_log_get_thread(), level, message);
+		G_LOCK(channels_lock);
 		g_ptr_array_foreach(channels, (GFunc)pka_log_write_to_channel, buffer);
+		G_UNLOCK(channels_lock);
 		g_free(buffer);
 	}
 }

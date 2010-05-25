@@ -26,6 +26,7 @@
 #include "pka-encoder.h"
 #include "pka-listener.h"
 #include "pka-listener-lowlevel.h"
+#include "pka-log.h"
 #include "pka-manager.h"
 #include "pka-manifest.h"
 #include "pka-plugin.h"

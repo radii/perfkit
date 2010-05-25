@@ -85,6 +85,8 @@ void            egg_line_execute      (EggLine              *line,
                                        const gchar          *text);
 void            egg_line_execute_file (EggLine              *line,
                                        const gchar          *filename);
+gboolean        egg_line_is_assignment(EggLine              *line,
+                                       const gchar          *text);
 void            egg_line_run          (EggLine              *line);
 void            egg_line_quit         (EggLine              *line);
 void            egg_line_set_commands (EggLine              *line,
@@ -95,6 +97,11 @@ void            egg_line_show_help    (EggLine              *line,
                                        const EggLineCommand *entries);
 void            egg_line_show_usage   (EggLine              *line,
                                        const EggLineCommand *entry);
+void            egg_line_set_variable (EggLine              *line,
+                                       const gchar          *key,
+                                       const gchar          *value);
+const gchar*    egg_line_get_variable (EggLine              *line,
+                                       const gchar          *key);
 
 G_END_DECLS
 

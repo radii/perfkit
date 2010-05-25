@@ -32,6 +32,7 @@ struct _EggLinePrivate
 	EggLineCommand *commands;
 	gchar          *prompt;
 	gboolean        quit;
+	GHashTable     *keys;
 };
 
 static EggLineCommand empty[] = {
@@ -52,6 +53,11 @@ static EggLine *current = NULL;
 static void
 egg_line_finalize (GObject *object)
 {
+	EggLinePrivate *priv = EGG_LINE(object)->priv;
+
+	g_free(priv->prompt);
+	g_hash_table_unref(priv->keys);
+
 	G_OBJECT_CLASS (egg_line_parent_class)->finalize (object);
 }
 
@@ -90,6 +96,9 @@ egg_line_init (EggLine *line)
 	                                          EggLinePrivate);
 	line->priv->quit = FALSE;
 	line->priv->prompt = g_strdup ("> ");
+	line->priv->keys = g_hash_table_new_full(g_str_hash, g_str_equal,
+	                                         g_free, g_free);
+	g_hash_table_insert(line->priv->keys, g_strdup("0"), g_strdup("0"));
 }
 
 static gchar*
@@ -98,12 +107,12 @@ egg_line_generator (const gchar *text,
 {
 	EggLineCommand  *command;
 	static gint      list_index,
-	                 len   = 0,
-	                 argc  = 0;
+	                 len      = 0,
+	                 argc     = 0;
 	const gchar     *name;
 	gchar           *tmp,
-	               **argv  = NULL,
-	               **largv = NULL;
+	               **argv     = NULL,
+	               **largv    = NULL;
 
 	if (!current || !text || !current->priv->commands)
 		return NULL;
@@ -112,19 +121,20 @@ egg_line_generator (const gchar *text,
 	largv = argv;
 
 	if (command) {
-		if (command->generator)
+		if (command->generator) {
 			command = command->generator (current, &argc, &argv);
-		else
+		} else {
 			command = empty;
-	}
-	else {
+		}
+	} else {
 		command = current->priv->commands;
 	}
 
-	if (argv && argv [0])
+	if (argv && argv [0]) {
 		tmp = g_strdup (argv [0]);
-	else
+	} else {
 		tmp = g_strdup ("");
+	}
 
 	g_strfreev (largv);
 
@@ -265,6 +275,7 @@ void
 egg_line_execute (EggLine     *line,
                   const gchar *text)
 {
+	EggLinePrivate   *priv;
 	EggLineStatus     result;
 	EggLineCommand   *command;
 	GError           *error = NULL;
@@ -274,7 +285,27 @@ egg_line_execute (EggLine     *line,
 	g_return_if_fail (EGG_IS_LINE (line));
 	g_return_if_fail (text != NULL);
 
-	if (g_str_has_prefix(text, "#")) {
+	if (g_str_has_prefix (text, "#")) {
+		return;
+	}
+
+	priv = line->priv;
+
+	if (egg_line_is_assignment(line, text)) {
+		gchar *key;
+		gchar *value;
+
+		key = g_strdup(text);
+		g_assert(key);
+		value = strstr(key, "=");
+		g_assert(value);
+		value[0] = '\0';
+		value++;
+		if (g_str_has_prefix(value, "$")) {
+			value = g_hash_table_lookup(priv->keys, value + 1);
+		}
+		egg_line_set_variable(line, key, value);
+		g_free(key);
 		return;
 	}
 
@@ -353,10 +384,86 @@ egg_line_execute_file (EggLine     *line,
 	g_io_channel_unref (channel);
 }
 
+gboolean
+egg_line_is_assignment (EggLine     *line, /* IN */
+                        const gchar *text) /* IN */
+{
+	gboolean has_space = FALSE;
+	gboolean has_eq = FALSE;
+	gint i;
+
+	g_return_val_if_fail(EGG_IS_LINE(line), FALSE);
+	g_return_val_if_fail(text != NULL, FALSE);
+
+	g_debug("Checking if \"%s\" is an assignment.", text);
+
+	for (i = 0; i < strlen(text); i++) {
+		if (text[i] == '=') {
+			has_eq = TRUE;
+		} else if (g_ascii_isspace(text[i])) {
+			has_space = TRUE;
+			break;
+		}
+	}
+
+	return (has_eq && !has_space);
+}
+
+void
+egg_line_set_variable (EggLine     *line,  /* IN */
+                       const gchar *key,   /* IN */
+                       const gchar *value) /* IN */
+{
+	EggLinePrivate *priv;
+
+	g_return_if_fail(EGG_IS_LINE(line));
+	g_return_if_fail(key != NULL);
+
+	priv = line->priv;
+
+	if (value) {
+		g_hash_table_insert(priv->keys, g_strdup(key), g_strdup(value));
+		g_debug("Setting variable %s to %s", key, value);
+	} else {
+		g_hash_table_remove(priv->keys, key);
+	}
+}
+
+const gchar*
+egg_line_get_variable (EggLine     *line, /* IN */
+                       const gchar *key)  /* IN */
+{
+	EggLinePrivate *priv;
+
+	g_return_val_if_fail(EGG_IS_LINE(line), NULL);
+	g_return_val_if_fail(key != NULL, NULL);
+
+	priv = line->priv;
+	return g_hash_table_lookup(priv->keys, key);
+}
+
+static void
+egg_line_expand (EggLine  *line, /* IN */
+                 gchar   **arg)  /* IN/OUT */
+{
+	EggLinePrivate *priv = line->priv;
+	gchar *real = *arg;
+	gchar *found;
+
+	if (real[0] != '$') {
+		return;
+	} else if ((found = g_hash_table_lookup(priv->keys, real + 1))) {
+		g_free(real);
+		*arg = g_strdup(found);
+	}
+}
+
 /**
  * egg_line_resolve:
  * @line: An #EggLine
  * @text: command text
+ * @argc: A location for the argument count.
+ * @argv: A location for the arguments.
  *
  * Resolves a command and arguments for @text.
  *
@@ -381,19 +488,28 @@ egg_line_resolve (EggLine       *line,
 	g_return_val_if_fail (EGG_IS_LINE (line), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
 
-	if (argc)
+	if (argc) {
 		*argc = 0;
-
-	if (argv)
+	}
+	if (argv) {
 		*argv = NULL;
-
-	if (strlen (text) == 0)
+	}
+	if (text[0] == '\0') {
 		return NULL;
+	}
+
+	if (egg_line_is_assignment(line, text)) {
+		return NULL;
+	}
 
 	if (!g_shell_parse_argv (text, &largc, &largv, &error)) {
 		g_printerr ("%s\n", error->message);
 		g_error_free (error);
 		return NULL;
+	}
+
+	for (i = 0; i < largc; i++) {
+		egg_line_expand(line, &largv[i]);
 	}
 
 	command = line->priv->commands;
@@ -404,25 +520,24 @@ egg_line_resolve (EggLine       *line,
 			if (command [i].generator) {
 				tmp = command [i].generator (line, &largc, &largv);
 			}
-
 			result = &command [i];
 			command = tmp ? tmp : empty;
-
 			i = 0;
 			largv = &largv [1];
 			largc--;
+		} else {
+			i++;
 		}
-		else i++;
 	}
 
-	if (argv)
+	if (argv) {
 		*argv = largv ? g_strdupv (largv) : NULL;
-
-	if (argc)
+	}
+	if (argc) {
 		*argc = largc;
+	}
 
 	g_strfreev (origv);
-
 	return result;
 }
 

@@ -321,6 +321,7 @@ pk_shell_channel_get_args (EggLine  *line,   /* IN */
 	} else {
 		g_print("%16s: []\n", "args");
 	}
+	egg_line_set_variable(line, "1", "");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -401,6 +402,7 @@ pk_shell_channel_get_env (EggLine  *line,   /* IN */
 	} else {
 		g_print("%16s: []\n", "env");
 	}
+	egg_line_set_variable(line, "1", "");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -454,6 +456,7 @@ pk_shell_channel_get_exit_status (EggLine  *line,   /* IN */
 	gint channel;
 	gint exit_status;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -474,6 +477,9 @@ pk_shell_channel_get_exit_status (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "exit_status", (gint)exit_status);
+	tmp = g_strdup_printf("%d", (gint)exit_status);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -547,6 +553,7 @@ pk_shell_channel_get_kill_pid (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "kill_pid", kill_pid ? "TRUE" : "FALSE");
+	egg_line_set_variable(line, "1", kill_pid ? "1" : "0");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -600,6 +607,7 @@ pk_shell_channel_get_pid (EggLine  *line,   /* IN */
 	gint channel;
 	gint pid;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -620,6 +628,9 @@ pk_shell_channel_get_pid (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "pid", (gint)pid);
+	tmp = g_strdup_printf("%d", (gint)pid);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -693,6 +704,7 @@ pk_shell_channel_get_pid_set (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "pid_set", pid_set ? "TRUE" : "FALSE");
+	egg_line_set_variable(line, "1", pid_set ? "1" : "0");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -748,6 +760,7 @@ pk_shell_channel_get_sources (EggLine  *line,   /* IN */
 	gint* sources;
 	gsize sources_len;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -775,7 +788,11 @@ pk_shell_channel_get_sources (EggLine  *line,   /* IN */
 		}
 		g_print("]\n");
 	}
+	egg_line_set_variable(line, "1", "");
 	g_print("%16s: %d\n", "sources_len", (gint)sources_len);
+	tmp = g_strdup_printf("%d", (gint)sources_len);
+	egg_line_set_variable(line, "2", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -829,6 +846,7 @@ pk_shell_channel_get_state (EggLine  *line,   /* IN */
 	gint channel;
 	gint state;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -850,6 +868,9 @@ pk_shell_channel_get_state (EggLine  *line,   /* IN */
 	}
 	g_print("%16s: %d (%s)\n", "state", (gint)state,
 	        pk_shell_state_to_str(state));
+	tmp = g_strdup_printf("%d", (gint)state);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -923,6 +944,7 @@ pk_shell_channel_get_target (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "target", target);
+	egg_line_set_variable(line, "1", target);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -996,6 +1018,7 @@ pk_shell_channel_get_working_dir (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "working_dir", working_dir);
+	egg_line_set_variable(line, "1", working_dir);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -1737,7 +1760,7 @@ pk_shell_encoder_get_plugin_cb (GObject       *object,    /* IN */
 	task->result = pk_connection_encoder_get_plugin_finish(
 			PK_CONNECTION(object),
 			result,
-			task->params[0], /* pluign */
+			task->params[0], /* plugin */
 			&task->error);
 	async_task_signal(task);
 	EXIT;
@@ -1763,7 +1786,7 @@ pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
 {
 	AsyncTask task;
 	gint encoder;
-	gchar* pluign;
+	gchar* plugin;
 	gint i = 0;
 
 	ENTRY;
@@ -1774,7 +1797,7 @@ pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_BAD_ARGS);
 	}
 	async_task_init(&task);
-	task.params[0] = &pluign;
+	task.params[0] = &plugin;
 	pk_connection_encoder_get_plugin_async(conn,
 	                             encoder,
 	                             NULL,
@@ -1784,7 +1807,8 @@ pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
 		g_propagate_error(error, task.error);
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
-	g_print("%16s: %s\n", "pluign", pluign);
+	g_print("%16s: %s\n", "plugin", plugin);
+	egg_line_set_variable(line, "1", plugin);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -1836,6 +1860,7 @@ pk_shell_manager_add_channel (EggLine  *line,   /* IN */
 {
 	AsyncTask task;
 	gint channel;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 0) {
@@ -1852,6 +1877,9 @@ pk_shell_manager_add_channel (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "channel", (gint)channel);
+	tmp = g_strdup_printf("%d", (gint)channel);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -1905,6 +1933,7 @@ pk_shell_manager_add_source (EggLine  *line,   /* IN */
 	const gchar* plugin;
 	gint source;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -1923,6 +1952,9 @@ pk_shell_manager_add_source (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "source", (gint)source);
+	tmp = g_strdup_printf("%d", (gint)source);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -1980,6 +2012,7 @@ pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
 	gint encoder;
 	gint subscription;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 3) {
@@ -2010,6 +2043,9 @@ pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "subscription", (gint)subscription);
+	tmp = g_strdup_printf("%d", (gint)subscription);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2064,6 +2100,7 @@ pk_shell_manager_get_channels (EggLine  *line,   /* IN */
 	gint* channels;
 	gsize channels_len;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 0) {
@@ -2087,7 +2124,11 @@ pk_shell_manager_get_channels (EggLine  *line,   /* IN */
 		}
 		g_print("]\n");
 	}
+	egg_line_set_variable(line, "1", "");
 	g_print("%16s: %d\n", "channels_len", (gint)channels_len);
+	tmp = g_strdup_printf("%d", (gint)channels_len);
+	egg_line_set_variable(line, "2", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2162,6 +2203,7 @@ pk_shell_manager_get_plugins (EggLine  *line,   /* IN */
 	} else {
 		g_print("%16s: []\n", "plugins");
 	}
+	egg_line_set_variable(line, "1", "");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2216,6 +2258,7 @@ pk_shell_manager_get_sources (EggLine  *line,   /* IN */
 	gint* sources;
 	gsize sources_len;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 0) {
@@ -2239,7 +2282,11 @@ pk_shell_manager_get_sources (EggLine  *line,   /* IN */
 		}
 		g_print("]\n");
 	}
+	egg_line_set_variable(line, "1", "");
 	g_print("%16s: %d\n", "sources_len", (gint)sources_len);
+	tmp = g_strdup_printf("%d", (gint)sources_len);
+	egg_line_set_variable(line, "2", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2307,6 +2354,7 @@ pk_shell_manager_get_version (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "version", version);
+	egg_line_set_variable(line, "1", version);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2376,6 +2424,7 @@ pk_shell_manager_ping (EggLine  *line,   /* IN */
 	}
 	tv_str = g_time_val_to_iso8601(&tv);
 	g_print("%16s: %s\n", "tv", tv_str);
+	egg_line_set_variable(line, "1", tv_str);
 	g_free(tv_str);
 	RETURN(EGG_LINE_STATUS_OK);
 }
@@ -2450,6 +2499,7 @@ pk_shell_manager_remove_channel (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "removed", removed ? "TRUE" : "FALSE");
+	egg_line_set_variable(line, "1", removed ? "1" : "0");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2592,6 +2642,7 @@ pk_shell_manager_remove_subscription (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "removed", removed ? "TRUE" : "FALSE");
+	egg_line_set_variable(line, "1", removed ? "1" : "0");
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2663,6 +2714,7 @@ pk_shell_plugin_get_copyright (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "copyright", copyright);
+	egg_line_set_variable(line, "1", copyright);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2734,6 +2786,7 @@ pk_shell_plugin_get_description (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "description", description);
+	egg_line_set_variable(line, "1", description);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2805,6 +2858,7 @@ pk_shell_plugin_get_name (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "name", name);
+	egg_line_set_variable(line, "1", name);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2858,6 +2912,7 @@ pk_shell_plugin_get_plugin_type (EggLine  *line,   /* IN */
 	const gchar* plugin;
 	gint type;
 	gint i = 0;
+	gchar *tmp;
 
 	ENTRY;
 	if (argc != 1) {
@@ -2876,6 +2931,9 @@ pk_shell_plugin_get_plugin_type (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %d\n", "type", (gint)type);
+	tmp = g_strdup_printf("%d", (gint)type);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -2947,6 +3005,7 @@ pk_shell_plugin_get_version (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "version", version);
+	egg_line_set_variable(line, "1", version);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -3020,6 +3079,7 @@ pk_shell_source_get_plugin (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_FAILURE);
 	}
 	g_print("%16s: %s\n", "plugin", plugin);
+	egg_line_set_variable(line, "1", plugin);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -3684,6 +3744,21 @@ pk_shell_load (EggLine  *line,   /* IN */
 	for (i = 0; argv[i]; i++) {
 		egg_line_execute_file(line, argv[i]);
 	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+static EggLineStatus
+pk_shell_echo (EggLine  *line,   /* IN */
+               gint      argc,   /* IN */
+               gchar    *argv[], /* IN */
+               GError  **error)  /* OUT */
+{
+	gchar *text;
+
+	ENTRY;
+	text = g_strjoinv(" ", argv);
+	g_print("%s\n", text);
+	g_free(text);
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
@@ -4372,6 +4447,13 @@ static EggLineCommand root_commands[] = {
 		.usage     = "load [FILENAME]",
 		.generator = NULL,
 		.callback  = pk_shell_load,
+	},
+	{
+		.name      = "echo",
+		.help      = "Echo text and variables to the console.",
+		.usage     = "echo ...",
+		.generator = NULL,
+		.callback  = pk_shell_echo,
 	},
 	{ NULL }
 };
