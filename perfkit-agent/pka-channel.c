@@ -791,6 +791,7 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 		                  (GChildWatchFunc)pka_channel_inferior_exited,
 		                  g_object_ref(channel));
 
+		spawn_info.pid = priv->pid;
 		INFO(Channel, "Channel %d spawned process %d.", priv->id, priv->pid);
 	}
 
