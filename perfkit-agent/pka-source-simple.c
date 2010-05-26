@@ -99,20 +99,20 @@ pka_source_simple_new (void)
  * Side effects: None.
  */
 PkaSource*
-pka_source_simple_new_full (PkaSourceSimpleFunc  callback,
-                            PkaSourceSimpleSpawn spawn_callback,
-                            gpointer             user_data,
-                            GDestroyNotify       notify)
+pka_source_simple_new_full (PkaSourceSimpleFunc  callback,       /* IN */
+                            PkaSourceSimpleSpawn spawn_callback, /* IN */
+                            gpointer             user_data,      /* IN */
+                            GDestroyNotify       notify)         /* IN */
 {
 	PkaSource *source;
 
+	ENTRY;
 	source = g_object_new(PKA_TYPE_SOURCE_SIMPLE, NULL);
 	pka_source_simple_set_sample_callback(PKA_SOURCE_SIMPLE(source),
 	                                      callback, user_data, notify);
 	pka_source_simple_set_spawn_callback(PKA_SOURCE_SIMPLE(source),
 	                                     spawn_callback, user_data, NULL);
-
-	return source;
+	RETURN(source);
 }
 
 /**
@@ -125,14 +125,16 @@ pka_source_simple_new_full (PkaSourceSimpleFunc  callback,
  * Side effects: None.
  */
 void
-pka_source_simple_set_sample_closure (PkaSourceSimple *source,
-                                      GClosure        *closure)
+pka_source_simple_set_sample_closure (PkaSourceSimple *source,  /* IN */
+                                      GClosure        *closure) /* IN */
 {
 	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 	g_return_if_fail(source->priv->sample == NULL);
 
+	ENTRY;
 	source->priv->sample = g_closure_ref(closure);
 	g_closure_sink(closure);
+	EXIT;
 }
 
 /**
@@ -148,10 +150,10 @@ pka_source_simple_set_sample_closure (PkaSourceSimple *source,
  * Side effects: None.
  */
 void
-pka_source_simple_set_sample_callback (PkaSourceSimple     *source,
-                                       PkaSourceSimpleFunc  callback,
-                                       gpointer             user_data,
-                                       GDestroyNotify       notify)
+pka_source_simple_set_sample_callback (PkaSourceSimple     *source,    /* IN */
+                                       PkaSourceSimpleFunc  callback,  /* IN */
+                                       gpointer             user_data, /* IN */
+                                       GDestroyNotify       notify)    /* IN */
 {
 	GClosure *closure;
 
@@ -159,28 +161,50 @@ pka_source_simple_set_sample_callback (PkaSourceSimple     *source,
 	g_return_if_fail(callback != NULL);
 	g_return_if_fail(source->priv->sample == NULL);
 
+	ENTRY;
 	closure = g_cclosure_new(G_CALLBACK(callback), user_data,
 	                         (GClosureNotify)notify);
 	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__VOID);
 	pka_source_simple_set_sample_closure(source, closure);
+	EXIT;
 }
 
+/**
+ * pka_source_simple_set_spawn_closure:
+ * @source: A #PkaSourceSimple.
+ *
+ * Sets the closure to be executed when the target is spawned.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
-pka_source_simple_set_spawn_closure (PkaSourceSimple *source,
-                                     GClosure        *closure)
+pka_source_simple_set_spawn_closure (PkaSourceSimple *source,  /* IN */
+                                     GClosure        *closure) /* IN */
 {
 	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 	g_return_if_fail(source->priv->spawn == NULL);
 
+	ENTRY;
 	source->priv->spawn = g_closure_ref(closure);
 	g_closure_sink(closure);
+	EXIT;
 }
 
+/**
+ * pka_source_simple_set_spawn_callback:
+ * @source: A #PkaSourceSimple.
+ *
+ * Sets the spawn callback which is executed when the target is spawned.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
-pka_source_simple_set_spawn_callback (PkaSourceSimple      *source,
-                                      PkaSourceSimpleSpawn  spawn,
-                                      gpointer              user_data,
-                                      GDestroyNotify        notify)
+pka_source_simple_set_spawn_callback (PkaSourceSimple      *source,    /* IN */
+                                      PkaSourceSimpleSpawn  spawn,     /* IN */
+                                      gpointer              user_data, /* IN */
+                                      GDestroyNotify        notify)    /* IN */
 {
 	GClosure *closure;
 
@@ -188,10 +212,12 @@ pka_source_simple_set_spawn_callback (PkaSourceSimple      *source,
 	g_return_if_fail(spawn != NULL);
 	g_return_if_fail(source->priv->spawn == NULL);
 
+	ENTRY;
 	closure = g_cclosure_new(G_CALLBACK(spawn), user_data,
 	                         (GClosureNotify)notify);
 	g_closure_set_marshal(closure, g_cclosure_marshal_VOID__POINTER);
 	pka_source_simple_set_spawn_closure(source, closure);
+	EXIT;
 }
 
 /**
@@ -205,14 +231,16 @@ pka_source_simple_set_spawn_callback (PkaSourceSimple      *source,
  * Side effects: None.
  */
 void
-pka_source_simple_set_use_thread (PkaSourceSimple *source,
-                                  gboolean         use_thread)
+pka_source_simple_set_use_thread (PkaSourceSimple *source,     /* IN */
+                                  gboolean         use_thread) /* IN */
 {
 	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 	g_return_if_fail(source->priv->thread == NULL);
 	g_return_if_fail(source->priv->running == FALSE);
 
+	ENTRY;
 	source->priv->dedicated = use_thread;
+	EXIT;
 }
 
 /**
@@ -225,10 +253,12 @@ pka_source_simple_set_use_thread (PkaSourceSimple *source,
  * Side effects: None.
  */
 gboolean
-pka_source_simple_get_use_thread (PkaSourceSimple *source)
+pka_source_simple_get_use_thread (PkaSourceSimple *source) /* IN */
 {
 	g_return_val_if_fail(PKA_IS_SOURCE_SIMPLE(source), FALSE);
-	return source->priv->dedicated;
+
+	ENTRY;
+	RETURN(source->priv->dedicated);
 }
 
 /**
@@ -241,38 +271,43 @@ pka_source_simple_get_use_thread (PkaSourceSimple *source)
  * Side effects: None.
  */
 static inline void
-pka_source_simple_update (PkaSourceSimple *source)
+pka_source_simple_update (PkaSourceSimple *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv = source->priv;
 	struct timespec ts, *freq = &priv->freq;
 
+	ENTRY;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts.tv_nsec += freq->tv_nsec;
 	ts.tv_sec += ts.tv_nsec / G_NSEC_PER_SEC;
 	ts.tv_nsec %= G_NSEC_PER_SEC;
 	ts.tv_sec += freq->tv_sec;
 	priv->timeout = ts;
+	EXIT;
 }
 
+/**
+ * pka_source_simple_invoke:
+ * @source: A #PkaSourceSimple.
+ *
+ * Invokes the callback to generate a new sample.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static inline void
-pka_source_simple_invoke (PkaSourceSimple *source)
+pka_source_simple_invoke (PkaSourceSimple *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv = source->priv;
 	GValue params = { 0 };
 
-	/*
-	 * Update when our next timeout should be. This is done before invoking
-	 * the closure to reduce drift.
-	 */
+	ENTRY;
 	pka_source_simple_update(source);
-
-	/*
-	 * Invoke the routine closure.
-	 */
 	g_value_init(&params, PKA_TYPE_SOURCE_SIMPLE);
 	g_value_set_object(&params, source);
 	g_closure_invoke(priv->sample, NULL, 1, &params, NULL);
 	g_value_unset(&params);
+	EXIT;
 }
 
 /**
@@ -286,33 +321,56 @@ pka_source_simple_invoke (PkaSourceSimple *source)
  * Side effects: None.
  */
 static inline gboolean
-pka_source_simple_wait (PkaSourceSimple *source,
-                        pthread_cond_t  *wait_cond,
-                        pthread_mutex_t *wait_mutex)
+pka_source_simple_wait (PkaSourceSimple *source,     /* IN */
+                        pthread_cond_t  *wait_cond,  /* IN */
+                        pthread_mutex_t *wait_mutex) /* IN */
 {
 	PkaSourceSimplePrivate *priv = source->priv;
 
+	ENTRY;
 	pthread_cond_timedwait(wait_cond, wait_mutex, &priv->timeout);
-	return (wait_cond == &priv->cond) ? priv->running : running;
+	RETURN((wait_cond == &priv->cond) ? priv->running : running);
 }
 
+/**
+ * timespec_compare:
+ * @ts1: A timespec.
+ * @ts2: A timespec.
+ *
+ * A qsort style compare function.
+ *
+ * Returns: greater than zero if @ts1 is greater than @ts2. less than one
+ *   if @ts2 is greater than @ts1. otherwise, zero.
+ * Side effects: None.
+ */
 static inline gint
-timespec_compare (const struct timespec *ts1,
-                  const struct timespec *ts2)
+timespec_compare (const struct timespec *ts1, /* IN */
+                  const struct timespec *ts2) /* IN */
 {
-	if ((ts1->tv_sec == ts2->tv_sec) && (ts1->tv_nsec == ts2->tv_nsec))
+	if ((ts1->tv_sec == ts2->tv_sec) && (ts1->tv_nsec == ts2->tv_nsec)) {
 		return 0;
-	else if ((ts1->tv_sec > ts2->tv_sec) ||
+	} else if ((ts1->tv_sec > ts2->tv_sec) ||
 	         ((ts1->tv_sec == ts2->tv_sec) &&
-	          (ts1->tv_nsec > ts2->tv_nsec)))
+	          (ts1->tv_nsec > ts2->tv_nsec))) {
 		return 1;
-	else
+	} else {
 		return -1;
+	}
 }
 
+/**
+ * pka_source_simple_compare_func:
+ * @a: A pointer to a #PkaSourceSimple.
+ * @b: A pointer to a #PkaSourceSimple.
+ *
+ * A qsort style compare function suitable for sorting a GPtrArray.
+ *
+ * Returns: Same as qsort.
+ * Side effects: None.
+ */
 static gint
-pka_source_simple_compare_func (gconstpointer a,
-                                gconstpointer b)
+pka_source_simple_compare_func (gconstpointer a, /* IN */
+                                gconstpointer b) /* IN */
 {
 	PkaSourceSimple **sa = (PkaSourceSimple **)a;
 	PkaSourceSimple **sb = (PkaSourceSimple **)b;
@@ -322,25 +380,46 @@ pka_source_simple_compare_func (gconstpointer a,
 	return timespec_compare(&pa->timeout, &pb->timeout);
 }
 
+/**
+ * pka_source_simple_is_ready:
+ * @source: A #PkaSourceSimple.
+ *
+ * Checks to see if the #PkaSourceSimple has timed out and is ready to be
+ * executed.
+ *
+ * Returns: %TRUE if @source is ready; otherwise %FALSE.
+ * Side effects: None.
+ */
 static inline gboolean
-pka_source_simple_is_ready (PkaSourceSimple *source)
+pka_source_simple_is_ready (PkaSourceSimple *source) /* IN */
 {
 	struct timespec ts;
 
+	ENTRY;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (timespec_compare(&ts, &source->priv->timeout) >= 0);
+	RETURN((timespec_compare(&ts, &source->priv->timeout) >= 0));
 }
 
+/**
+ * pka_source_simple_shared_worker:
+ * @user_data: None.
+ *
+ * A threaded worker that can dispatch the callbacks when their
+ * timeout occurs.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static gpointer
-pka_source_simple_shared_worker (gpointer user_data)
+pka_source_simple_shared_worker (gpointer user_data) /* IN */
 {
 	PkaSourceSimple *source;
 	gboolean dirty;
 	gint i;
 
+	ENTRY;
 	pthread_mutex_lock(&mutex);
-
-next:
+  next:
 	if (!sources->len) {
 		pthread_cond_wait(&cond, &mutex);
 		goto next;
@@ -350,9 +429,7 @@ next:
 			goto unlock_and_finish;
 		}
 	}
-
 	dirty = FALSE;
-
 	for (i = 0; i < sources->len; i++) {
 		source = g_ptr_array_index(sources, i);
 		if (pka_source_simple_is_ready(source)) {
@@ -360,62 +437,82 @@ next:
 			dirty = TRUE;
 		} else break;
 	}
-
 	if (dirty) {
 		g_ptr_array_sort(sources, pka_source_simple_compare_func);
 	}
-
 	goto next;
-
-unlock_and_finish:
+  unlock_and_finish:
 	pthread_mutex_unlock(&mutex);
-
-	return NULL;
+	RETURN(NULL);
 }
 
+/**
+ * pka_source_simple_worker:
+ * @user_data: A #PkaSourceSimple.
+ *
+ * Dedicated worker thread to invoke the source.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static gpointer
-pka_source_simple_worker (gpointer user_data)
+pka_source_simple_worker (gpointer user_data) /* IN */
 {
 	PkaSourceSimple *source = user_data;
 	PkaSourceSimplePrivate *priv = source->priv;
 
+	ENTRY;
 	pthread_mutex_lock(&priv->mutex);
 	while (pka_source_simple_wait(source, &priv->cond, &priv->mutex)) {
 		pka_source_simple_invoke(source);
 	}
 	pthread_mutex_unlock(&priv->mutex);
-
-	return NULL;
+	RETURN(NULL);
 }
 
+/**
+ * pka_source_simple_init_pthreads:
+ *
+ * Initializes pthread mutex and condition.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static inline void
-pka_source_simple_init_pthreads (pthread_mutex_t *init_mutex,
-                                 pthread_cond_t  *init_cond)
+pka_source_simple_init_pthreads (pthread_mutex_t *init_mutex, /* IN */
+                                 pthread_cond_t  *init_cond)  /* IN */
 {
 	pthread_condattr_t attr;
 
-	/*
-	 * Initialize threading synchronization.
-	 */
+	ENTRY;
 	pthread_mutex_init(init_mutex, NULL);
 	pthread_condattr_init(&attr);
 	if (pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) != 0) {
-		g_error("Failed to initialize monotonic clock!");
+		ERROR(Threads, "Failed to initialize monotonic clock!");
 	}
 	pthread_cond_init(init_cond, &attr);
+	EXIT;
 }
 
+/**
+ * pka_source_simple_notify_started:
+ * @source: A #PkaSourceSimple.
+ *
+ * Notification callback that a channel has been spawned.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_source_simple_notify_started (PkaSource    *source,
-                                  PkaSpawnInfo *spawn_info)
+pka_source_simple_notify_started (PkaSource    *source,     /* IN */
+                                  PkaSpawnInfo *spawn_info) /* IN */
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
 	GError *error = NULL;
+	GValue params[2] = { { 0 } };
 
 	ENTRY;
 	if (priv->spawn) {
-		GValue params[2] = {{0}};
-
 		g_value_init(&params[0], PKA_TYPE_SOURCE);
 		g_value_init(&params[1], G_TYPE_POINTER);
 		g_value_set_object(&params[0], source);
@@ -430,9 +527,10 @@ pka_source_simple_notify_started (PkaSource    *source,
 		priv->thread = g_thread_create(pka_source_simple_worker,
 		                               source, FALSE, &error);
 		if (!priv->thread) {
-			g_critical("Error creating sampling thread: %s."
-			           "Attempting best effort with shared worker.",
-			           error->message);
+			ERROR(Threads,
+			      "Error creating sampling thread: %s."
+			      "Attempting best effort with shared worker.",
+			      error->message);
 			g_error_free(error);
 			GOTO(attach_shared);
 		}
@@ -451,8 +549,17 @@ pka_source_simple_notify_started (PkaSource    *source,
 	EXIT;
 }
 
+/**
+ * pka_source_simple_notify_stopped:
+ * @source: A #PkaSourceSimple.
+ *
+ * Notification callback for when a channel has been stopped.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_source_simple_notify_stopped (PkaSource *source)
+pka_source_simple_notify_stopped (PkaSource *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
 
@@ -463,7 +570,7 @@ pka_source_simple_notify_stopped (PkaSource *source)
 		g_signal_emit(source, signals[CLEANUP], 0);
 		pthread_cond_signal(&priv->cond);
 		pthread_mutex_unlock(&priv->mutex);
-		return;
+		EXIT;
 	}
 	pthread_mutex_lock(&mutex);
 	g_ptr_array_remove(sources, source);
@@ -486,8 +593,8 @@ pka_source_simple_notify_stopped (PkaSource *source)
  * Side effects: None.
  */
 void
-pka_source_simple_set_frequency (PkaSourceSimple *source,
-                                 const GTimeVal  *frequency)
+pka_source_simple_set_frequency (PkaSourceSimple *source,    /* IN */
+                                 const GTimeVal  *frequency) /* IN */
 {
 	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 
@@ -498,7 +605,7 @@ pka_source_simple_set_frequency (PkaSourceSimple *source,
 }
 
 static void
-pka_source_simple_finalize (GObject *object)
+pka_source_simple_finalize (GObject *object) /* IN */
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(object)->priv;
 
@@ -513,10 +620,10 @@ pka_source_simple_finalize (GObject *object)
 }
 
 static void
-pka_source_simple_get_property (GObject    *object,
-                                guint       prop_id,
-                                GValue     *value,
-                                GParamSpec *pspec)
+pka_source_simple_get_property (GObject    *object,  /* IN */
+                                guint       prop_id, /* IN */
+                                GValue     *value,   /* IN */
+                                GParamSpec *pspec)   /* IN */
 {
 	switch (prop_id) {
 	case PROP_FREQ:
@@ -528,10 +635,10 @@ pka_source_simple_get_property (GObject    *object,
 }
 
 static void
-pka_source_simple_set_property (GObject      *object,
-                                guint         prop_id,
-                                const GValue *value,
-                                GParamSpec   *pspec)
+pka_source_simple_set_property (GObject      *object,  /* IN */
+                                guint         prop_id, /* IN */
+                                const GValue *value,   /* IN */
+                                GParamSpec   *pspec)   /* IN */
 {
 	switch (prop_id) {
 	case PROP_USE_THREAD:
@@ -548,7 +655,7 @@ pka_source_simple_set_property (GObject      *object,
 }
 
 static void
-pka_source_simple_class_init (PkaSourceSimpleClass *klass)
+pka_source_simple_class_init (PkaSourceSimpleClass *klass) /* IN */
 {
 	GObjectClass *object_class;
 	PkaSourceClass *source_class;
@@ -629,7 +736,7 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass)
 }
 
 static void
-pka_source_simple_init (PkaSourceSimple *source)
+pka_source_simple_init (PkaSourceSimple *source) /* IN */
 {
 	ENTRY;
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
