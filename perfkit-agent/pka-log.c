@@ -38,6 +38,15 @@ static GLogFunc   last_handler = NULL;
 
 G_LOCK_DEFINE(channels_lock);
 
+/**
+ * pka_log_get_thread:
+ *
+ * Retrieves task id for the current thread.  This is only supported on Linux.
+ * On other platforms, the current process id is returned.
+ *
+ * Returns: The task id.
+ * Side effects: None.
+ */
 static inline gint
 pka_log_get_thread (void)
 {
@@ -48,8 +57,17 @@ pka_log_get_thread (void)
 #endif /* __linux__ */
 }
 
+/**
+ * pka_log_level_str:
+ * @log_level: A #GLogLevelFlags.
+ *
+ * Retrieves the log level as a string.
+ *
+ * Returns: A string which shouldn't be modified or freed.
+ * Side effects: None.
+ */
 static inline const gchar *
-pka_log_level_str (GLogLevelFlags log_level)
+pka_log_level_str (GLogLevelFlags log_level) /* IN */
 {
 	#define CASE_LEVEL_STR(_l) case G_LOG_LEVEL_##_l: return #_l
 	switch ((long)log_level) {
