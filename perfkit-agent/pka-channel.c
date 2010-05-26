@@ -845,8 +845,8 @@ pka_channel_stop (PkaChannel  *channel, /* IN */
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	switch (priv->state) {
-	case PKA_CHANNEL_RUNNING:
-	case PKA_CHANNEL_MUTED:
+	CASE(PKA_CHANNEL_RUNNING);
+	CASE(PKA_CHANNEL_MUTED);
 		INFO(Channel, "Stopping channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_STOPPED;
@@ -868,13 +868,13 @@ pka_channel_stop (PkaChannel  *channel, /* IN */
 			kill(priv->pid, SIGKILL);
 		}
 		BREAK;
-	case PKA_CHANNEL_READY:
+	CASE(PKA_CHANNEL_READY);
 		ret = FALSE;
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            "Cannot stop a channel that has not yet been started.");
 		BREAK;
-	case PKA_CHANNEL_STOPPED:
-	case PKA_CHANNEL_FAILED:
+	CASE(PKA_CHANNEL_STOPPED);
+	CASE(PKA_CHANNEL_FAILED);
 		BREAK;
 	default:
 		g_warn_if_reached();
@@ -913,22 +913,22 @@ pka_channel_mute (PkaChannel  *channel, /* IN */
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	switch (priv->state) {
-	case PKA_CHANNEL_READY:
+	CASE(PKA_CHANNEL_READY);
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot mute channel; not yet started."));
 		BREAK;
-	case PKA_CHANNEL_STOPPED:
+	CASE(PKA_CHANNEL_STOPPED);
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot mute channel; channel stopped."));
 		BREAK;
-	case PKA_CHANNEL_FAILED:
+	CASE(PKA_CHANNEL_FAILED);
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            _("Cannot mute channel; channel failed to start."));
 		BREAK;
-	case PKA_CHANNEL_MUTED:
+	CASE(PKA_CHANNEL_MUTED);
 		ret = TRUE;
 		BREAK;
-	case PKA_CHANNEL_RUNNING:
+	CASE(PKA_CHANNEL_RUNNING);
 		priv->state = PKA_CHANNEL_MUTED;
 		INFO(Channel, "Muting channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
@@ -1000,7 +1000,7 @@ pka_channel_unmute (PkaChannel  *channel, /* IN */
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 	switch (priv->state) {
-	case PKA_CHANNEL_MUTED:
+	CASE(PKA_CHANNEL_MUTED);
 		INFO(Channel, "Unpausing channel %d on behalf of context %d.",
 		     priv->id, pka_context_get_id(context));
 		priv->state = PKA_CHANNEL_RUNNING;
@@ -1021,10 +1021,10 @@ pka_channel_unmute (PkaChannel  *channel, /* IN */
 
 		ret = TRUE;
 		BREAK;
-	case PKA_CHANNEL_READY:
-	case PKA_CHANNEL_RUNNING:
-	case PKA_CHANNEL_STOPPED:
-	case PKA_CHANNEL_FAILED:
+	CASE(PKA_CHANNEL_READY);
+	CASE(PKA_CHANNEL_RUNNING);
+	CASE(PKA_CHANNEL_STOPPED);
+	CASE(PKA_CHANNEL_FAILED);
 		g_set_error(error, PKA_CHANNEL_ERROR, PKA_CHANNEL_ERROR_STATE,
 		            "Channel %d is not muted.", priv->id);
 		BREAK;

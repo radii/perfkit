@@ -54,9 +54,13 @@
               " GOTO: %s:%d", #_l, __LINE__);                       \
         goto _l;                                                    \
     } G_STMT_END
+#define CASE(_l)                                                    \
+    case _l:                                                        \
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE, " CASE: %s:%d",      \
+              #_l, __LINE__)
 #define BREAK                                                       \
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
-          "BREAK: %s:%d", G_STRFUNC, __LINE__);                     \
+          "BREAK: %s():%d", G_STRFUNC, __LINE__);                   \
     break
 #else
 #define TRACE(_d, _f, ...)
@@ -64,6 +68,7 @@
 #define EXIT       return
 #define RETURN(_r) return _r
 #define GOTO(_l)   goto _l
+#define CASE(_l)   case _l:
 #define BREAK      break
 #endif
 
