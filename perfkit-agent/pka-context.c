@@ -42,6 +42,8 @@ struct _PkaContext
 static void
 pka_context_destroy (PkaContext *context)
 {
+	ENTRY;
+	EXIT;
 }
 
 /**
@@ -102,8 +104,9 @@ pka_context_ref (PkaContext *context)
 	g_return_val_if_fail(context != NULL, NULL);
 	g_return_val_if_fail(context->ref_count > 0, NULL);
 
+	ENTRY;
 	g_atomic_int_inc(&context->ref_count);
-	return context;
+	RETURN(context);
 }
 
 /**
@@ -124,10 +127,12 @@ pka_context_unref (PkaContext *context)
 	g_return_if_fail(context != NULL);
 	g_return_if_fail(context->ref_count > 0);
 
+	ENTRY;
 	if (g_atomic_int_dec_and_test(&context->ref_count)) {
 		pka_context_destroy(context);
 		g_slice_free(PkaContext, context);
 	}
+	EXIT;
 }
 
 /**
