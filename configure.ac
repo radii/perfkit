@@ -31,6 +31,7 @@ AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
+AS_AM_REALLY_SILENT
 
 
 dnl ************************************************************************
