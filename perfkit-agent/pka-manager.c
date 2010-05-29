@@ -536,7 +536,12 @@ pka_manager_find_channel (PkaContext  *context,    /* IN */
 		}
 	}
 	G_UNLOCK(channels);
-	RETURN(TRUE);
+	if (!*channel) {
+		g_set_error(error, PKA_CONTEXT_ERROR,
+		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
+		            "Not authorized or invalid channel.");
+	}
+	RETURN(*channel != NULL);
 }
 
 /**
@@ -581,7 +586,12 @@ pka_manager_find_encoder (PkaContext  *context,    /* IN */
 		}
 	}
 	G_UNLOCK(encoders);
-	RETURN(TRUE);
+	if (!*encoder) {
+		g_set_error(error, PKA_CONTEXT_ERROR,
+		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
+		            "Not authorized or invalid encoder.");
+	}
+	RETURN(*encoder != NULL);
 }
 
 /**
@@ -679,7 +689,12 @@ pka_manager_find_source (PkaContext  *context,   /* IN */
 		}
 	}
 	G_UNLOCK(sources);
-	RETURN(TRUE);
+	if (!*source) {
+		g_set_error(error, PKA_CONTEXT_ERROR,
+		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
+		            "Not authorized or invalid source.");
+	}
+	RETURN(*source != NULL);
 }
 
 /**
@@ -725,7 +740,12 @@ pka_manager_find_subscription (PkaContext       *context,         /* IN */
 		}
 	}
 	G_UNLOCK(subscriptions);
-	RETURN(TRUE);
+	if (!*subscription) {
+		g_set_error(error, PKA_CONTEXT_ERROR,
+		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
+		            "Not authorized or invalid subscription.");
+	}
+	RETURN(*subscription != NULL);
 }
 
 /**
