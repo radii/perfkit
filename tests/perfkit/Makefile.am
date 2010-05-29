@@ -13,7 +13,7 @@ AM_CPPFLAGS =								\
 	-I$(top_srcdir)							\
 	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
-	-DPK_CONNECTIONS_DIR="\"$(top_builddir)/perfkit/connections/.libs\"" \
+	-DPERFKIT_CONNECTIONS_DIR="\"$(top_builddir)/perfkit/connections/.libs\"" \
 	$(NULL)
 
 AM_LDFLAGS =								\
