@@ -1,8 +1,6 @@
 include $(top_srcdir)/Makefile.decl
 
 noinst_PROGRAMS =							\
-	test-pka-log							\
-	test-pka-plugins						\
 	test-pka-sample							\
 	test-pka-manifest						\
 	test-pka-encoder						\
@@ -10,8 +8,6 @@ noinst_PROGRAMS =							\
 	$(NULL)
 
 TEST_PROGS +=								\
-	test-pka-log							\
-	test-pka-plugins						\
 	test-pka-sample							\
 	test-pka-manifest						\
 	test-pka-encoder						\
