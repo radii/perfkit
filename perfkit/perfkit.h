@@ -23,8 +23,13 @@
 
 #include "pk-connection.h"
 #include "pk-connection-lowlevel.h"
+#include "pk-channel.h"
+#include "pk-encoder.h"
 #include "pk-manifest.h"
+#include "pk-plugin.h"
 #include "pk-sample.h"
+#include "pk-source.h"
+#include "pk-subscription.h"
 #include "pk-util.h"
 #include "pk-version.h"
 

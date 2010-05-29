@@ -36,11 +36,17 @@ INST_H_FILES =								\
 	perfkit.h							\
 	pk-connection.h							\
 	pk-connection-lowlevel.h					\
+	pk-channel.h							\
+	pk-encoder.h							\
 	pk-manifest.h							\
+	pk-plugin.h							\
 	pk-sample.h							\
+	pk-source.h							\
+	pk-subscription.h						\
 	$(NULL)
 
 NOINST_H_FILES =							\
+	pk-log.h							\
 	pk-util.h							\
 	$(NULL)
 
@@ -48,8 +54,13 @@ libperfkit_1_0_la_SOURCES =						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	pk-connection.c							\
+	pk-channel.c							\
+	pk-encoder.c							\
 	pk-manifest.c							\
+	pk-plugin.c							\
 	pk-sample.c							\
+	pk-source.c							\
+	pk-subscription.c						\
 	$(top_srcdir)/cut-n-paste/egg-buffer.c				\
 	$(NULL)
 
