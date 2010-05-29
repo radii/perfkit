@@ -3338,7 +3338,6 @@ gboolean
 pk_connection_manager_add_subscription (PkConnection  *connection,   /* IN */
                                         gsize          buffer_size,  /* IN */
                                         gsize          timeout,      /* IN */
-                                        gint           encoder,      /* IN */
                                         gint          *subscription, /* OUT */
                                         GError       **error)        /* OUT */
 {
@@ -3354,7 +3353,6 @@ pk_connection_manager_add_subscription (PkConnection  *connection,   /* IN */
 	pk_connection_manager_add_subscription_async(connection,
 	                                             buffer_size,
 	                                             timeout,
-	                                             encoder,
 	                                             NULL,
 	                                             pk_connection_manager_add_subscription_cb,
 	                                             &sync);
@@ -3386,7 +3384,6 @@ void
 pk_connection_manager_add_subscription_async (PkConnection        *connection,  /* IN */
                                               gsize                buffer_size, /* IN */
                                               gsize                timeout,     /* IN */
-                                              gint                 encoder,     /* IN */
                                               GCancellable        *cancellable, /* IN */
                                               GAsyncReadyCallback  callback,    /* IN */
                                               gpointer             user_data)   /* IN */
@@ -3398,7 +3395,6 @@ pk_connection_manager_add_subscription_async (PkConnection        *connection,  
 	RPC_ASYNC(manager_add_subscription)(connection,
 	                                    buffer_size,
 	                                    timeout,
-	                                    encoder,
 	                                    cancellable,
 	                                    callback,
 	                                    user_data);
@@ -6002,6 +5998,135 @@ pk_connection_subscription_set_buffer_finish (PkConnection  *connection, /* IN *
 	RPC_FINISH(ret, subscription_set_buffer)(connection,
 	                                         result,
 	                                         error);
+	RETURN(ret);
+}
+
+/**
+ * pk_connection_subscription_set_encoder_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_set_encoder" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_set_encoder_cb (GObject      *source,    /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_set_encoder_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_encoder:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_set_encoder" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Sets the encoder to use on the output buffers.  Data will be encoded
+ * using this encoder before sending to the client.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_encoder (PkConnection  *connection,   /* IN */
+                                        gint           subscription, /* IN */
+                                        gint           encoder,      /* IN */
+                                        GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_set_encoder);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_set_encoder_async(connection,
+	                                             subscription,
+	                                             encoder,
+	                                             NULL,
+	                                             pk_connection_subscription_set_encoder_cb,
+	                                             &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_set_encoder_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_set_encoder_async" RPC.
+ *
+ * Sets the encoder to use on the output buffers.  Data will be encoded
+ * using this encoder before sending to the client.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_set_encoder_async (PkConnection        *connection,   /* IN */
+                                              gint                 subscription, /* IN */
+                                              gint                 encoder,      /* IN */
+                                              GCancellable        *cancellable,  /* IN */
+                                              GAsyncReadyCallback  callback,     /* IN */
+                                              gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_set_encoder)(connection,
+	                                    subscription,
+	                                    encoder,
+	                                    cancellable,
+	                                    callback,
+	                                    user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_encoder_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_set_encoder_finish" RPC.
+ *
+ * Sets the encoder to use on the output buffers.  Data will be encoded
+ * using this encoder before sending to the client.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_encoder_finish (PkConnection  *connection, /* IN */
+                                               GAsyncResult  *result,     /* IN */
+                                               GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_set_encoder)(connection,
+	                                          result,
+	                                          error);
 	RETURN(ret);
 }
 

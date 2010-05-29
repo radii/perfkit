@@ -302,7 +302,6 @@ struct _PkConnectionClass
 	void          (*manager_add_subscription_async)     (PkConnection          *connection,
 	                                                     gsize                  buffer_size,
 	                                                     gsize                  timeout,
-	                                                     gint                   encoder,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
@@ -486,6 +485,15 @@ struct _PkConnectionClass
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
 	gboolean      (*subscription_set_buffer_finish)     (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*subscription_set_encoder_async)     (PkConnection          *connection,
+	                                                     gint                   subscription,
+	                                                     gint                   encoder,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*subscription_set_encoder_finish)    (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
 	void          (*subscription_unmute_async)          (PkConnection          *connection,

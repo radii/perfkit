@@ -745,7 +745,6 @@ static const gchar * ManagerIntrospection =
 	"  <method name=\"AddSubscription\">"
     "   <arg name=\"buffer_size\" direction=\"in\" type=\"u\"/>"
     "   <arg name=\"timeout\" direction=\"in\" type=\"u\"/>"
-    "   <arg name=\"encoder\" direction=\"in\" type=\"i\"/>"
     "   <arg name=\"subscription\" direction=\"out\" type=\"o\"/>"
 	"  </method>"
 	"  <method name=\"GetChannels\">"
@@ -1389,16 +1388,13 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		else if (IS_MEMBER(message, "AddSubscription")) {
 			gsize buffer_size = 0;
 			gsize timeout = 0;
-			gint encoder = 0;
 			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_INT32, &encoder,
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
 			}
 			pka_listener_manager_add_subscription_async(PKA_LISTENER(listener),
 			                                            buffer_size,
 			                                            timeout,
-			                                            encoder,
 			                                            NULL,
 			                                            pka_listener_dbus_manager_add_subscription_cb,
 			                                            dbus_message_ref(message));
@@ -3012,6 +3008,9 @@ static const gchar * SubscriptionIntrospection =
     "   <arg name=\"timeout\" direction=\"in\" type=\"i\"/>"
     "   <arg name=\"size\" direction=\"in\" type=\"i\"/>"
 	"  </method>"
+	"  <method name=\"SetEncoder\">"
+    "   <arg name=\"encoder\" direction=\"in\" type=\"i\"/>"
+	"  </method>"
 	"  <method name=\"Unmute\">"
 	"  </method>"
 	" </interface>"
@@ -3275,6 +3274,48 @@ pka_listener_dbus_subscription_set_buffer_cb (GObject      *listener,  /* IN */
 }
 
 /**
+ * pka_listener_dbus_subscription_set_encoder_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "subscription_set_encoder" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_subscription_set_encoder_cb (GObject      *listener,  /* IN */
+                                               GAsyncResult *result,    /* IN */
+                                               gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_subscription_set_encoder_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
  * pka_listener_dbus_subscription_unmute_cb:
  * @listener: A #PkaListenerDBus.
  * @result: A #GAsyncResult.
@@ -3492,6 +3533,28 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                           NULL,
 			                                           pka_listener_dbus_subscription_set_buffer_cb,
 			                                           dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetEncoder")) {
+			gint subscription = 0;
+			gint encoder = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
+				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INT32, &encoder,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_subscription_set_encoder_async(PKA_LISTENER(listener),
+			                                            subscription,
+			                                            encoder,
+			                                            NULL,
+			                                            pka_listener_dbus_subscription_set_encoder_cb,
+			                                            dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "Unmute")) {

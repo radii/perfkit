@@ -4064,7 +4064,6 @@ static void
 pk_connection_dbus_manager_add_subscription_async (PkConnection        *connection,  /* IN */
                                                    gsize                buffer_size, /* IN */
                                                    gsize                timeout,     /* IN */
-                                                   gint                 encoder,     /* IN */
                                                    GCancellable        *cancellable, /* IN */
                                                    GAsyncReadyCallback  callback,    /* IN */
                                                    gpointer             user_data)   /* IN */
@@ -4116,7 +4115,6 @@ pk_connection_dbus_manager_add_subscription_async (PkConnection        *connecti
 	dbus_message_iter_init_append(msg, &iter);
 	APPEND_LONG_PARAM(buffer_size);
 	APPEND_LONG_PARAM(timeout);
-	APPEND_INT_PARAM(encoder);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
@@ -7199,6 +7197,144 @@ finish:
 
 
 static void
+pk_connection_dbus_subscription_set_encoder_async (PkConnection        *connection,   /* IN */
+                                                   gint                 subscription, /* IN */
+                                                   gint                 encoder,      /* IN */
+                                                   GCancellable        *cancellable,  /* IN */
+                                                   GAsyncReadyCallback  callback,     /* IN */
+                                                   gpointer             user_data)    /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusPendingCall *call = NULL;
+	GSimpleAsyncResult *result;
+	DBusMessageIter iter;
+	DBusMessage *msg;
+	gchar *dbus_path;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+
+	/*
+	 * Allocate DBus message.
+	 */
+	msg = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+	g_assert(msg);
+
+	/*
+	 * Create asynchronous connection handle.
+	 */
+	result = g_simple_async_result_new(
+			G_OBJECT(connection), callback, user_data,
+			pk_connection_dbus_subscription_set_encoder_async);
+
+	/*
+	 * Wire cancellable if needed.
+	 */
+	if (cancellable) {
+		g_cancellable_connect(cancellable,
+		                      G_CALLBACK(pk_connection_dbus_cancel),
+		                      g_object_ref(result), g_object_unref);
+	}
+
+	/*
+	 * Build the DBus message.
+	 */
+	dbus_message_set_destination(msg, "org.perfkit.Agent");
+	dbus_message_set_interface(msg, "org.perfkit.Agent.Subscription");
+	dbus_message_set_member(msg, "SetEncoder");
+	dbus_path = g_strdup_printf("/org/perfkit/Agent/Subscription/%d",
+	                            subscription);
+	dbus_message_set_path(msg, dbus_path);
+	g_free(dbus_path);
+
+	/*
+	 * Add message parameters.
+	 */
+	dbus_message_iter_init_append(msg, &iter);
+	APPEND_INT_PARAM(encoder);
+
+	/*
+	 * Send message to agent and schedule to be notified of the result.
+	 */
+	if (!dbus_connection_send_with_reply(priv->dbus, msg, &call, -1)) {
+		g_warning("Error dispatching message to %s/%s",
+		          dbus_message_get_path(msg),
+		          dbus_message_get_member(msg));
+		dbus_message_unref(msg);
+		EXIT;
+	}
+
+	/*
+	 * Get notified when the reply is received or timeout expires.
+	 */
+	dbus_pending_call_set_notify(call, pk_connection_dbus_notify,
+	                             result, g_object_unref);
+
+	/*
+	 * Release resources.
+	 */
+	dbus_message_unref(msg);
+	EXIT;
+}
+
+
+static gboolean
+pk_connection_dbus_subscription_set_encoder_finish (PkConnection  *connection, /* IN */
+                                                    GAsyncResult  *result,     /* IN */
+                                                    GError       **error)      /* OUT */
+{
+	DBusPendingCall *call;
+	DBusMessage *msg;
+	gboolean ret = FALSE;
+	gchar *error_str = NULL;
+
+	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_set_encoder), FALSE);
+	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
+	                     FALSE);
+
+	/*
+	 * Clear out params.
+	 */
+
+	/*
+	 * Check if call was cancelled.
+	 */
+	if (!(msg = dbus_pending_call_steal_reply(call))) {
+		g_simple_async_result_propagate_error(
+				G_SIMPLE_ASYNC_RESULT(result),
+				error);
+		goto finish;
+	}
+
+	/*
+	 * Check if response is an error.
+	 */
+	if (dbus_message_get_type(msg) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_get_args(msg, NULL,
+		                      DBUS_TYPE_STRING, &error_str,
+		                      DBUS_TYPE_INVALID);
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s",
+		            dbus_message_get_error_name(msg),
+		            error_str);
+		goto finish;
+	}
+
+
+	ret = TRUE;
+
+finish:
+	dbus_message_unref(msg);
+	g_object_unref(result);
+	RETURN(ret);
+}
+
+
+static void
 pk_connection_dbus_subscription_unmute_async (PkConnection        *connection,   /* IN */
                                               gint                 subscription, /* IN */
                                               GCancellable        *cancellable,  /* IN */
@@ -7430,6 +7566,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	OVERRIDE_VTABLE(subscription_remove_channel);
 	OVERRIDE_VTABLE(subscription_remove_source);
 	OVERRIDE_VTABLE(subscription_set_buffer);
+	OVERRIDE_VTABLE(subscription_set_encoder);
 	OVERRIDE_VTABLE(subscription_unmute);
 
 	#undef ADD_RPC

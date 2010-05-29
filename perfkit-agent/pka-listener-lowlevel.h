@@ -238,7 +238,6 @@ gboolean      pka_listener_manager_add_source_finish          (PkaListener      
 void          pka_listener_manager_add_subscription_async     (PkaListener           *listener,
                                                                gsize                  buffer_size,
                                                                gsize                  timeout,
-                                                               gint                   encoder,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
@@ -422,6 +421,15 @@ void          pka_listener_subscription_set_buffer_async      (PkaListener      
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
 gboolean      pka_listener_subscription_set_buffer_finish     (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+void          pka_listener_subscription_set_encoder_async     (PkaListener           *listener,
+                                                               gint                   subscription,
+                                                               gint                   encoder,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_subscription_set_encoder_finish    (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
 void          pka_listener_subscription_unmute_async          (PkaListener           *listener,

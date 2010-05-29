@@ -216,8 +216,8 @@ pk_shell_channel_add_source (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	gint source;
+	gint channel = 0;
+	gint source = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -291,7 +291,7 @@ pk_shell_channel_get_args (EggLine  *line,   /* IN */
                            GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gchar** args;
 	gchar *args_str;
 	gint i = 0;
@@ -372,7 +372,7 @@ pk_shell_channel_get_env (EggLine  *line,   /* IN */
                           GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gchar** env;
 	gchar *env_str;
 	gint i = 0;
@@ -453,7 +453,7 @@ pk_shell_channel_get_exit_status (EggLine  *line,   /* IN */
                                   GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint exit_status;
 	gint i = 0;
 	gchar *tmp;
@@ -530,7 +530,7 @@ pk_shell_channel_get_kill_pid (EggLine  *line,   /* IN */
                                GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gboolean kill_pid;
 	gint i = 0;
 
@@ -604,7 +604,7 @@ pk_shell_channel_get_pid (EggLine  *line,   /* IN */
                           GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint pid;
 	gint i = 0;
 	gchar *tmp;
@@ -681,7 +681,7 @@ pk_shell_channel_get_pid_set (EggLine  *line,   /* IN */
                               GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gboolean pid_set;
 	gint i = 0;
 
@@ -756,7 +756,7 @@ pk_shell_channel_get_sources (EggLine  *line,   /* IN */
                               GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint* sources;
 	gsize sources_len;
 	gint i = 0;
@@ -843,7 +843,7 @@ pk_shell_channel_get_state (EggLine  *line,   /* IN */
                             GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint state;
 	gint i = 0;
 	gchar *tmp;
@@ -921,7 +921,7 @@ pk_shell_channel_get_target (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gchar* target;
 	gint i = 0;
 
@@ -995,7 +995,7 @@ pk_shell_channel_get_working_dir (EggLine  *line,   /* IN */
                                   GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gchar* working_dir;
 	gint i = 0;
 
@@ -1068,7 +1068,7 @@ pk_shell_channel_mute (EggLine  *line,   /* IN */
                        GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1137,8 +1137,8 @@ pk_shell_channel_set_args (EggLine  *line,   /* IN */
                            GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	gchar** args;
+	gint channel = 0;
+	gchar** args = NULL;
 	gint i = 0;
 
 	ENTRY;
@@ -1211,8 +1211,8 @@ pk_shell_channel_set_env (EggLine  *line,   /* IN */
                           GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	gchar** env;
+	gint channel = 0;
+	gchar** env = NULL;
 	gint i = 0;
 
 	ENTRY;
@@ -1285,8 +1285,8 @@ pk_shell_channel_set_kill_pid (EggLine  *line,   /* IN */
                                GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	gboolean kill_pid;
+	gint channel = 0;
+	gboolean kill_pid = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1359,8 +1359,8 @@ pk_shell_channel_set_pid (EggLine  *line,   /* IN */
                           GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	gint pid;
+	gint channel = 0;
+	gint pid = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1433,8 +1433,8 @@ pk_shell_channel_set_target (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	const gchar* target;
+	gint channel = 0;
+	const gchar* target = NULL;
 	gint i = 0;
 
 	ENTRY;
@@ -1505,8 +1505,8 @@ pk_shell_channel_set_working_dir (EggLine  *line,   /* IN */
                                   GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
-	const gchar* working_dir;
+	gint channel = 0;
+	const gchar* working_dir = NULL;
 	gint i = 0;
 
 	ENTRY;
@@ -1577,7 +1577,7 @@ pk_shell_channel_start (EggLine  *line,   /* IN */
                         GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1646,7 +1646,7 @@ pk_shell_channel_stop (EggLine  *line,   /* IN */
                        GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1715,7 +1715,7 @@ pk_shell_channel_unmute (EggLine  *line,   /* IN */
                          GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -1785,7 +1785,7 @@ pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint encoder;
+	gint encoder = 0;
 	gchar* plugin;
 	gint i = 0;
 
@@ -1930,7 +1930,7 @@ pk_shell_manager_add_source (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gint source;
 	gint i = 0;
 	gchar *tmp;
@@ -2005,17 +2005,16 @@ pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
                                    GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gsize buffer_size;
+	gsize buffer_size = 0;
 	gint buffer_size_int;
-	gsize timeout;
+	gsize timeout = 0;
 	gint timeout_int;
-	gint encoder;
 	gint subscription;
 	gint i = 0;
 	gchar *tmp;
 
 	ENTRY;
-	if (argc != 3) {
+	if (argc != 2) {
 		RETURN(EGG_LINE_STATUS_BAD_ARGS);
 	}
 	if (!pk_shell_parse_int(argv[i++], &buffer_size_int)) {
@@ -2026,15 +2025,11 @@ pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
 		RETURN(EGG_LINE_STATUS_BAD_ARGS);
 	}
 	timeout = timeout_int;
-	if (!pk_shell_parse_int(argv[i++], &encoder)) {
-		RETURN(EGG_LINE_STATUS_BAD_ARGS);
-	}
 	async_task_init(&task);
 	task.params[0] = &subscription;
 	pk_connection_manager_add_subscription_async(conn,
 	                             buffer_size,
 	                             timeout,
-	                             encoder,
 	                             NULL,
 	                             pk_shell_manager_add_subscription_cb,
 	                             &task);
@@ -2476,7 +2471,7 @@ pk_shell_manager_remove_channel (EggLine  *line,   /* IN */
                                  GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint channel;
+	gint channel = 0;
 	gboolean removed;
 	gint i = 0;
 
@@ -2549,7 +2544,7 @@ pk_shell_manager_remove_source (EggLine  *line,   /* IN */
                                 GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint source;
+	gint source = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -2619,7 +2614,7 @@ pk_shell_manager_remove_subscription (EggLine  *line,   /* IN */
                                       GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
+	gint subscription = 0;
 	gboolean removed;
 	gint i = 0;
 
@@ -2693,7 +2688,7 @@ pk_shell_plugin_get_copyright (EggLine  *line,   /* IN */
                                GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gchar* copyright;
 	gint i = 0;
 
@@ -2765,7 +2760,7 @@ pk_shell_plugin_get_description (EggLine  *line,   /* IN */
                                  GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gchar* description;
 	gint i = 0;
 
@@ -2837,7 +2832,7 @@ pk_shell_plugin_get_name (EggLine  *line,   /* IN */
                           GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gchar* name;
 	gint i = 0;
 
@@ -2909,7 +2904,7 @@ pk_shell_plugin_get_plugin_type (EggLine  *line,   /* IN */
                                  GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gint type;
 	gint i = 0;
 	gchar *tmp;
@@ -2984,7 +2979,7 @@ pk_shell_plugin_get_version (EggLine  *line,   /* IN */
                              GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	const gchar* plugin;
+	const gchar* plugin = NULL;
 	gchar* version;
 	gint i = 0;
 
@@ -3056,7 +3051,7 @@ pk_shell_source_get_plugin (EggLine  *line,   /* IN */
                             GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint source;
+	gint source = 0;
 	gchar* plugin;
 	gint i = 0;
 
@@ -3129,9 +3124,9 @@ pk_shell_subscription_add_channel (EggLine  *line,   /* IN */
                                    GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gint channel;
-	gboolean monitor;
+	gint subscription = 0;
+	gint channel = 0;
+	gboolean monitor = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3208,8 +3203,8 @@ pk_shell_subscription_add_source (EggLine  *line,   /* IN */
                                   GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gint source;
+	gint subscription = 0;
+	gint source = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3282,8 +3277,8 @@ pk_shell_subscription_mute (EggLine  *line,   /* IN */
                             GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gboolean drain;
+	gint subscription = 0;
+	gboolean drain = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3356,8 +3351,8 @@ pk_shell_subscription_remove_channel (EggLine  *line,   /* IN */
                                       GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gint channel;
+	gint subscription = 0;
+	gint channel = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3430,8 +3425,8 @@ pk_shell_subscription_remove_source (EggLine  *line,   /* IN */
                                      GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gint source;
+	gint subscription = 0;
+	gint source = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3504,9 +3499,9 @@ pk_shell_subscription_set_buffer (EggLine  *line,   /* IN */
                                   GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
-	gint timeout;
-	gint size;
+	gint subscription = 0;
+	gint timeout = 0;
+	gint size = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3529,6 +3524,80 @@ pk_shell_subscription_set_buffer (EggLine  *line,   /* IN */
 	                             size,
 	                             NULL,
 	                             pk_shell_subscription_set_buffer_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
+ * pk_shell_subscription_set_encoder_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_set_encoder_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_set_encoder_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_set_encoder_finish(
+			PK_CONNECTION(object),
+			result,
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_set_encoder:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_set_encoder (EggLine  *line,   /* IN */
+                                   gint      argc,   /* IN */
+                                   gchar    *argv[], /* IN */
+                                   GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription = 0;
+	gint encoder = 0;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 2) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &encoder)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	pk_connection_subscription_set_encoder_async(conn,
+	                             subscription,
+	                             encoder,
+	                             NULL,
+	                             pk_shell_subscription_set_encoder_cb,
 	                             &task);
 	if (!async_task_wait(&task)) {
 		g_propagate_error(error, task.error);
@@ -3583,7 +3652,7 @@ pk_shell_subscription_unmute (EggLine  *line,   /* IN */
                               GError  **error)  /* OUT */
 {
 	AsyncTask task;
-	gint subscription;
+	gint subscription = 0;
 	gint i = 0;
 
 	ENTRY;
@@ -3879,7 +3948,7 @@ static EggLineCommand manager_commands[] = {
 		.name      = "add-subscription",
 		.help      = "Adds a new subscription to the agent. @buffer_size is the size of the\ninternal buffer in bytes to queue before flushing data to the subscriber.\n@timeout is the maximum number of milliseconds that should pass before\nflushing data to the subscriber.\n\nIf @buffer_size and @timeout are 0, then no buffering will occur.\n\n@encoder is an optional encoder that can be used to encode the data\ninto a particular format the subscriber is expecting.",
 		.callback  = pk_shell_manager_add_subscription,
-		.usage     = "manager add-subscription BUFFER_SIZE TIMEOUT ENCODER",
+		.usage     = "manager add-subscription BUFFER_SIZE TIMEOUT",
 	},
 	{
 		.name      = "get-channels",
@@ -4223,6 +4292,17 @@ static EggLineCommand subscription_commands[] = {
 		.usage     = "subscription set-buffer SUBSCRIPTION TIMEOUT SIZE",
 	},
 	{
+		.name      = "set-encoder",
+		.help      = "Sets the encoder to use on the output buffers.  Data will be encoded\nusing this encoder before sending to the client.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "  ENCODER:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_set_encoder,
+		.usage     = "subscription set-encoder SUBSCRIPTION ENCODER",
+	},
+	{
 		.name      = "unmute",
 		.help      = "Enables the subscription for manifest and sample delivery.\n"
 		             "\n"
@@ -4436,7 +4516,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Subscription commands.",
 		.callback  = NULL,
 		.generator = pk_shell_subscription_generator,
-		.usage     = "subscription [add-channel | add-source | mute | remove-channel | remove-source | set-buffer | unmute]",
+		.usage     = "subscription [add-channel | add-source | mute | remove-channel | remove-source | set-buffer | set-encoder | unmute]",
 	},
 	{
 		.name      = "shell",

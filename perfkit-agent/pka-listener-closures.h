@@ -156,7 +156,6 @@ typedef struct
 {
 	gsize buffer_size;
 	gsize timeout;
-	gint encoder;
 } ManagerAddSubscriptionCall;
 
 typedef struct
@@ -261,6 +260,12 @@ typedef struct
 	gint timeout;
 	gint size;
 } SubscriptionSetBufferCall;
+
+typedef struct
+{
+	gint subscription;
+	gint encoder;
+} SubscriptionSetEncoderCall;
 
 typedef struct
 {
@@ -646,6 +651,14 @@ SubscriptionSetBufferCall_Free (SubscriptionSetBufferCall *call) /* IN */
 }
 
 void
+SubscriptionSetEncoderCall_Free (SubscriptionSetEncoderCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(SubscriptionSetEncoderCall, call);
+	EXIT;
+}
+
+void
 SubscriptionUnmuteCall_Free (SubscriptionUnmuteCall *call) /* IN */
 {
 	ENTRY;
@@ -973,6 +986,13 @@ SubscriptionSetBufferCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(SubscriptionSetBufferCall));
+}
+
+SubscriptionSetEncoderCall*
+SubscriptionSetEncoderCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(SubscriptionSetEncoderCall));
 }
 
 SubscriptionUnmuteCall*

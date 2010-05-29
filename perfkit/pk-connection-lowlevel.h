@@ -330,13 +330,11 @@ gboolean      pk_connection_manager_add_source_finish         (PkConnection     
 gboolean      pk_connection_manager_add_subscription          (PkConnection          *connection,
                                                                gsize                  buffer_size,
                                                                gsize                  timeout,
-                                                               gint                   encoder,
                                                                gint                  *subscription,
                                                                GError               **error);
 void          pk_connection_manager_add_subscription_async    (PkConnection          *connection,
                                                                gsize                  buffer_size,
                                                                gsize                  timeout,
-                                                               gint                   encoder,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
@@ -598,6 +596,19 @@ void          pk_connection_subscription_set_buffer_async     (PkConnection     
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
 gboolean      pk_connection_subscription_set_buffer_finish    (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
+gboolean      pk_connection_subscription_set_encoder          (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               gint                   encoder,
+                                                               GError               **error);
+void          pk_connection_subscription_set_encoder_async    (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               gint                   encoder,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_subscription_set_encoder_finish   (PkConnection          *connection,
                                                                GAsyncResult          *result,
                                                                GError               **error);
 gboolean      pk_connection_subscription_unmute               (PkConnection          *connection,

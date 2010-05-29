@@ -2110,7 +2110,6 @@ pka_listener_manager_add_subscription_cb (GObject      *listener,    /* IN */
  * @connection: A #PkConnection.
  * @buffer_size: A #gsize.
  * @timeout: A #gsize.
- * @encoder: A #gint.
  * @cancellable: A #GCancellable.
  * @callback: A #GAsyncReadyCallback.
  * @user_data: A #gpointer.
@@ -2135,7 +2134,6 @@ void
 pka_listener_manager_add_subscription_async (PkaListener           *listener,    /* IN */
                                              gsize                  buffer_size, /* IN */
                                              gsize                  timeout,     /* IN */
-                                             gint                   encoder,     /* IN */
                                              GCancellable          *cancellable, /* IN */
                                              GAsyncReadyCallback    callback,    /* IN */
                                              gpointer               user_data)   /* IN */
