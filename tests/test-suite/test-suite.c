@@ -227,20 +227,16 @@ test_TestSuite_subscription (void)
 	g_assert(conn);
 
 	proxy = get_manager_proxy();
-	if (!dbus_g_proxy_call(proxy, "CreateSubscription", &error,
-	                       G_TYPE_STRING, g_strdup(addr),
-	                       G_TYPE_STRING, g_strdup(SUB_PATH),
-	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(CHANNEL_PATH),
+	if (!dbus_g_proxy_call(proxy, "AddSubscription", &error,
 	                       G_TYPE_UINT, 0,
 	                       G_TYPE_ULONG, 2000, /* 2 Seconds */
-	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup("/"),
 	                       G_TYPE_INVALID,
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
 		g_error("%s", error->message);
-	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Subscriptions/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Subscription/0");
 	subproxy = get_sub_proxy(path);
-	if (!dbus_g_proxy_call(subproxy, "Enable", &error,
+	if (!dbus_g_proxy_call(subproxy, "Unmute", &error,
 	                       G_TYPE_INVALID, G_TYPE_INVALID))
 	    g_error("%s", error->message);
 	g_free(path);
