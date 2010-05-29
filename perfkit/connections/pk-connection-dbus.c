@@ -102,6 +102,13 @@
         APPEND_BASIC_PARAM(DBUS_TYPE_STRING, _s);                   \
     } G_STMT_END
 
+#define APPEND_OBJECT_PARAM(_f, _v)                                 \
+    G_STMT_START {                                                  \
+        gchar *_p = g_strdup_printf(_f, _v);                        \
+        APPEND_BASIC_PARAM(DBUS_TYPE_OBJECT_PATH, _p);              \
+        g_free(_p);                                                 \
+	} G_STMT_END
+
 #define APPEND_STRV_PARAM(_n)                                       \
     G_STMT_START {                                                  \
         gint _i;                                                    \
@@ -3959,7 +3966,7 @@ pk_connection_dbus_manager_add_source_async (PkConnection        *connection,  /
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	APPEND_STRING_PARAM(plugin);
+	APPEND_OBJECT_PARAM("/org/perfkit/Agent/Plugin/%s", plugin);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
