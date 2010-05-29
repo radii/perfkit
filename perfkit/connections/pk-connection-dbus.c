@@ -3681,7 +3681,7 @@ pk_connection_dbus_encoder_get_plugin_async (PkConnection        *connection,  /
 static gboolean
 pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN */
                                               GAsyncResult  *result,     /* IN */
-                                              gchar        **pluign,     /* OUT */
+                                              gchar        **plugin,     /* OUT */
                                               GError       **error)      /* OUT */
 {
 	DBusPendingCall *call;
@@ -3689,8 +3689,9 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	gboolean ret = FALSE;
 	gchar *error_str = NULL;
 	DBusError dbus_error = { 0 };
+	gchar *plugin_path = NULL;
 
-	g_return_val_if_fail(pluign != NULL, FALSE);
+	g_return_val_if_fail(plugin != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(encoder_get_plugin), FALSE);
 	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
@@ -3699,7 +3700,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	/*
 	 * Clear out params.
 	 */
-	*pluign = NULL;
+	*plugin = NULL;
 
 	/*
 	 * Check if call was cancelled.
@@ -3732,7 +3733,7 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	if (!dbus_message_get_args(msg,
 	                           &dbus_error,
 
-	                           DBUS_TYPE_STRING, pluign,
+	                           DBUS_TYPE_OBJECT_PATH, &plugin_path,
 	                           DBUS_TYPE_INVALID)) {
 		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
 		            PK_CONNECTION_DBUS_ERROR_DBUS,
@@ -3741,7 +3742,11 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 		GOTO(finish);
 	}
 
-	*pluign = g_strdup(*pluign);
+	if (plugin_path) {
+		sscanf(plugin_path,
+		       "/org/perfkit/Agent/Plugin/%as",
+		       plugin);
+	}
 
 	ret = TRUE;
 

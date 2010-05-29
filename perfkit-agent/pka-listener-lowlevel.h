@@ -216,7 +216,7 @@ void          pka_listener_encoder_get_plugin_async           (PkaListener      
                                                                gpointer               user_data);
 gboolean      pka_listener_encoder_get_plugin_finish          (PkaListener           *listener,
                                                                GAsyncResult          *result,
-                                                               gchar                **pluign,
+                                                               gchar                **plugin,
                                                                GError               **error);
 void          pka_listener_manager_add_channel_async          (PkaListener           *listener,
                                                                GCancellable          *cancellable,

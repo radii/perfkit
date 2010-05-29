@@ -280,7 +280,7 @@ struct _PkConnectionClass
 	                                                     gpointer               user_data);
 	gboolean      (*encoder_get_plugin_finish)          (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
-	                                                     gchar                **pluign,
+	                                                     gchar                **plugin,
 	                                                     GError               **error);
 	void          (*manager_add_channel_async)          (PkConnection          *connection,
 	                                                     GCancellable          *cancellable,

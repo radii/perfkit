@@ -292,7 +292,7 @@ gboolean      pk_connection_channel_unmute_finish             (PkConnection     
                                                                GError               **error);
 gboolean      pk_connection_encoder_get_plugin                (PkConnection          *connection,
                                                                gint                   encoder,
-                                                               gchar                **pluign,
+                                                               gchar                **plugin,
                                                                GError               **error);
 void          pk_connection_encoder_get_plugin_async          (PkConnection          *connection,
                                                                gint                   encoder,
@@ -301,7 +301,7 @@ void          pk_connection_encoder_get_plugin_async          (PkConnection     
                                                                gpointer               user_data);
 gboolean      pk_connection_encoder_get_plugin_finish         (PkConnection          *connection,
                                                                GAsyncResult          *result,
-                                                               gchar                **pluign,
+                                                               gchar                **plugin,
                                                                GError               **error);
 gboolean      pk_connection_manager_add_channel               (PkConnection          *connection,
                                                                gint                  *channel,

@@ -468,7 +468,7 @@ static const gchar * EncoderIntrospection =
 	"<node>"
 	" <interface name=\"org.perfkit.Agent.Encoder\">"
 	"  <method name=\"GetPlugin\">"
-    "   <arg name=\"pluign\" direction=\"out\" type=\"s\"/>"
+    "   <arg name=\"plugin\" direction=\"out\" type=\"o\"/>"
 	"  </method>"
 	" </interface>"
 	" <interface name=\"org.freedesktop.DBus.Introspectable\">"
@@ -499,26 +499,26 @@ pka_listener_dbus_encoder_get_plugin_cb (GObject      *listener,  /* IN */
 	DBusMessage *message = user_data;
 	DBusMessage *reply = NULL;
 	GError *error = NULL;
-	gchar* pluign = NULL;
+	gchar* plugin = NULL;
+	gchar *plugin_path = NULL;
 
 	ENTRY;
 	priv = PKA_LISTENER_DBUS(listener)->priv;
 	if (!pka_listener_encoder_get_plugin_finish(
 			PKA_LISTENER(listener),
 			result, 
-			&pluign,
+			&plugin,
 			&error)) {
 		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
 		                               error->message);
 		g_error_free(error);
 	} else {
-		if (!pluign) {
-			pluign = g_strdup("");
-		}
+		plugin_path = g_strdup_printf("/org/perfkit/Agent/Plugin/%s", plugin);
 		reply = dbus_message_new_method_return(message);
 		dbus_message_append_args(reply,
-		                         DBUS_TYPE_STRING, &pluign,
+		                         DBUS_TYPE_OBJECT_PATH, &plugin_path,
 		                         DBUS_TYPE_INVALID);
+		g_free(plugin_path);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
 	dbus_message_unref(reply);
@@ -1373,16 +1373,21 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 		}
 		else if (IS_MEMBER(message, "AddSource")) {
 			gchar* plugin = NULL;
+			gchar* plugin_path = NULL;
 			if (!dbus_message_get_args(message, NULL,
-			                           DBUS_TYPE_STRING, &plugin,
+			                           DBUS_TYPE_OBJECT_PATH, &plugin_path,
 			                           DBUS_TYPE_INVALID)) {
 				GOTO(oom);
+			}
+			if (sscanf(plugin_path, "/org/perfkit/Agent/Plugin/%as", &plugin) != 1) {
+				goto oom;
 			}
 			pka_listener_manager_add_source_async(PKA_LISTENER(listener),
 			                                      plugin,
 			                                      NULL,
 			                                      pka_listener_dbus_manager_add_source_cb,
 			                                      dbus_message_ref(message));
+			g_free(plugin);
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "AddSubscription")) {

@@ -2952,7 +2952,7 @@ pk_connection_encoder_get_plugin_cb (GObject      *source,    /* IN */
 gboolean
 pk_connection_encoder_get_plugin (PkConnection  *connection, /* IN */
                                   gint           encoder,    /* IN */
-                                  gchar        **pluign,     /* OUT */
+                                  gchar        **plugin,     /* OUT */
                                   GError       **error)      /* OUT */
 {
 	PkConnectionSync sync;
@@ -2963,7 +2963,7 @@ pk_connection_encoder_get_plugin (PkConnection  *connection, /* IN */
 	CHECK_FOR_RPC(encoder_get_plugin);
 	pk_connection_sync_init(&sync);
 	sync.error = error;
-	sync.params[0] = pluign;
+	sync.params[0] = plugin;
 	pk_connection_encoder_get_plugin_async(connection,
 	                                       encoder,
 	                                       NULL,
@@ -3018,7 +3018,7 @@ pk_connection_encoder_get_plugin_async (PkConnection        *connection,  /* IN 
 gboolean
 pk_connection_encoder_get_plugin_finish (PkConnection  *connection, /* IN */
                                          GAsyncResult  *result,     /* IN */
-                                         gchar        **pluign,     /* OUT */
+                                         gchar        **plugin,     /* OUT */
                                          GError       **error)      /* OUT */
 {
 	gboolean ret;
@@ -3028,7 +3028,7 @@ pk_connection_encoder_get_plugin_finish (PkConnection  *connection, /* IN */
 	ENTRY;
 	RPC_FINISH(ret, encoder_get_plugin)(connection,
 	                                    result,
-	                                    pluign,
+	                                    plugin,
 	                                    error);
 	RETURN(ret);
 }
