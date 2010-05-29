@@ -78,18 +78,13 @@ test_TestSuite_create_channel (void)
 	proxy = get_manager_proxy();
 	g_assert(proxy);
 
-	if (!dbus_g_proxy_call(proxy, "CreateChannel", &error,
-	                       G_TYPE_UINT, 0,
-	                       G_TYPE_STRING, g_strdup("/bin/nc"),
-	                       G_TYPE_STRV, g_strdupv(nc_args),
-	                       G_TYPE_STRV, NULL,
-	                       G_TYPE_STRING, g_strdup("/"),
+	if (!dbus_g_proxy_call(proxy, "AddChannel", &error,
 	                       G_TYPE_INVALID,
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
 		g_error("%s", error->message);
 
-	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Channels/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Channel/0");
 	g_free(path);
 	g_object_unref(proxy);
 }
@@ -101,17 +96,17 @@ test_TestSuite_add_source (void)
 	gchar *path = NULL;
 	GError *error = NULL;
 
-	#define MEM_INFO "/org/perfkit/Agent/Plugins/Sources/Memory"
+	#define MEM_INFO "Memory"
 
-	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
+	proxy = get_manager_proxy();
 	if (!dbus_g_proxy_call(proxy, "AddSource", &error,
-	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(MEM_INFO),
+	                       G_TYPE_STRING, g_strdup(MEM_INFO),
 	                       G_TYPE_INVALID,
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
 	    g_error("%s", error->message);
 
-	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Sources/0");
+	g_assert_cmpstr(path, ==, "/org/perfkit/Agent/Source/0");
 	g_free(path);
 	g_object_unref(proxy);
 }
@@ -122,7 +117,7 @@ test_TestSuite_start (void)
 	DBusGProxy *proxy;
 	GError *error = NULL;
 
-	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
+	proxy = get_channel_proxy("/org/perfkit/Agent/Channel/0");
 	if (!dbus_g_proxy_call(proxy, "Start", &error,
 	                       G_TYPE_INVALID,
 	                       G_TYPE_INVALID))
@@ -136,7 +131,7 @@ test_TestSuite_stop (void)
 	DBusGProxy *proxy;
 	GError *error = NULL;
 
-	proxy = get_channel_proxy("/org/perfkit/Agent/Channels/0");
+	proxy = get_channel_proxy("/org/perfkit/Agent/Channel/0");
 	if (!dbus_g_proxy_call(proxy, "Stop", &error,
 	                       G_TYPE_BOOLEAN, TRUE,
 	                       G_TYPE_INVALID,
@@ -221,7 +216,7 @@ test_TestSuite_subscription (void)
 	GMainContext *context;
 
 	#define SUB_PATH "/Subscriptions/0"
-	#define CHANNEL_PATH "/org/perfkit/Agent/Channels/0"
+	#define CHANNEL_PATH "/org/perfkit/Agent/Channel/0"
 
 	loop = g_main_loop_new(NULL, FALSE);
 	addr = g_strdup_printf("unix:path=%s" G_DIR_SEPARATOR_S "subscription.socket", tmpdir);
@@ -269,14 +264,11 @@ main (gint   argc,
 	static GPid pid = 0;
 	static gchar *args[] = {
 		"./perfkit-agent",
-		"--stdout",
 		"-c", "agent.conf",
 		"-l", "/tmp/test-suite.log",
 		NULL };
 	static gchar *env[] = {
-		"PERFKIT_SOURCES_DIR=./sources/.libs",
-		"PERFKIT_ENCODERS_DIR=./encoders/.libs",
-		"PERFKIT_LISTENERS_DIR=./listeners/.libs",
+		"PERFKIT_PLUGINS_PATH=./sources/.libs:./encoders/.libs:./listeners/.libs",
 		NULL,
 		NULL
 	};
@@ -290,7 +282,7 @@ main (gint   argc,
 
 	str = g_strdup("/tmp/test-suite-XXXXXX");
 	tmpdir = mkdtemp(str);
-	env[3] = g_strdup_printf("DBUS_SESSION_BUS_ADDRESS=%s",
+	env[1] = g_strdup_printf("DBUS_SESSION_BUS_ADDRESS=%s",
 	                         g_getenv("DBUS_SESSION_BUS_ADDRESS"));
 
 	/* Start the agent */
