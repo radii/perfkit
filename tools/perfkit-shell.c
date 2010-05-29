@@ -3762,6 +3762,24 @@ pk_shell_echo (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+static EggLineStatus
+pk_shell_help (EggLine  *line,   /* IN */
+               gint      argc,   /* IN */
+               gchar    *argv[], /* IN */
+               GError  **error)  /* OUT */
+{
+	EggLineCommand *command;
+	gchar *text;
+
+	ENTRY;
+	text = g_strjoinv(" ", argv);
+	if ((command = egg_line_resolve(line, text, NULL, NULL))) {
+		g_print("usage: %s\n\n%s\n", command->usage, command->help);
+	}
+	g_free(text);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
 static EggLineCommand plugin_commands[] = {
 	{
 		.name      = "get-copyright",
@@ -4454,6 +4472,13 @@ static EggLineCommand root_commands[] = {
 		.usage     = "echo ...",
 		.generator = NULL,
 		.callback  = pk_shell_echo,
+	},
+	{
+		.name      = "help",
+		.help      = "Show help usage for a command.",
+		.usage     = "help [COMMAND..]",
+		.generator = NULL,
+		.callback = pk_shell_help,
 	},
 	{ NULL }
 };
