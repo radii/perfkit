@@ -739,7 +739,7 @@ static const gchar * ManagerIntrospection =
     "   <arg name=\"channel\" direction=\"out\" type=\"o\"/>"
 	"  </method>"
 	"  <method name=\"AddSource\">"
-    "   <arg name=\"plugin\" direction=\"in\" type=\"s\"/>"
+    "   <arg name=\"plugin\" direction=\"in\" type=\"o\"/>"
     "   <arg name=\"source\" direction=\"out\" type=\"o\"/>"
 	"  </method>"
 	"  <method name=\"AddSubscription\">"

@@ -96,11 +96,11 @@ test_TestSuite_add_source (void)
 	gchar *path = NULL;
 	GError *error = NULL;
 
-	#define MEM_INFO "Memory"
+	#define MEM_INFO "/org/perfkit/Agent/Plugin/Memory"
 
 	proxy = get_manager_proxy();
 	if (!dbus_g_proxy_call(proxy, "AddSource", &error,
-	                       G_TYPE_STRING, g_strdup(MEM_INFO),
+	                       DBUS_TYPE_G_OBJECT_PATH, g_strdup(MEM_INFO),
 	                       G_TYPE_INVALID,
 	                       DBUS_TYPE_G_OBJECT_PATH, &path,
 	                       G_TYPE_INVALID))
