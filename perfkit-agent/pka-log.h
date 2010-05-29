@@ -51,13 +51,13 @@
 #define GOTO(_l)                                                    \
     G_STMT_START {                                                  \
         g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
-              " GOTO: %s:%d", #_l, __LINE__);                       \
+              " GOTO: %s():%d %s", G_STRFUNC, __LINE__, #_l);       \
         goto _l;                                                    \
     } G_STMT_END
 #define CASE(_l)                                                    \
     case _l:                                                        \
-        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE, " CASE: %s:%d",      \
-              #_l, __LINE__)
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+              " CASE: %s():%d %s", G_STRFUNC, __LINE__, #_l)
 #define BREAK                                                       \
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "BREAK: %s():%d", G_STRFUNC, __LINE__);                   \
