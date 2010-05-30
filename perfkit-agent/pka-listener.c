@@ -2086,25 +2086,6 @@ pka_listener_manager_add_source_finish (PkaListener    *listener, /* IN */
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_manager_add_subscription_cb (GObject      *listener,    /* IN */
-                                          GAsyncResult *result,      /* IN */
-                                          gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(manager_add_subscription));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_manager_add_subscription_async:
  * @connection: A #PkConnection.
@@ -2138,6 +2119,7 @@ pka_listener_manager_add_subscription_async (PkaListener           *listener,   
                                              GAsyncReadyCallback    callback,    /* IN */
                                              gpointer               user_data)   /* IN */
 {
+	ManagerAddSubscriptionCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -2147,15 +2129,13 @@ pka_listener_manager_add_subscription_async (PkaListener           *listener,   
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_manager_add_subscription_async);
-// TEMP TO TEST RPC RESULTS
+	call = ManagerAddSubscriptionCall_Create();
+	call->buffer_size = buffer_size;
+	call->timeout = timeout;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ManagerAddSubscriptionCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_manager_add_subscription_async(instance,
-	                                   NULL,
-	                                   pka_listener_manager_add_subscription_cb,
-	                                   result);
-#endif
 	EXIT;
 }
 
@@ -2187,23 +2167,23 @@ pka_listener_manager_add_subscription_finish (PkaListener    *listener,     /* I
                                               gint           *subscription, /* OUT */
                                               GError        **error)        /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	ManagerAddSubscriptionCall *call;
+	PkaSubscription *real_subscription = NULL;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_add_subscription), FALSE);
+	g_return_val_if_fail(subscription != NULL, FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_manager_add_subscription_finish(instance,
-	                                          real_result,
-	                                          subscription,
-	                                          error);
+	call = GET_RESULT_POINTER(ManagerAddSubscriptionCall, result);
+	if ((ret = pka_manager_add_subscription(DEFAULT_CONTEXT,
+	                                        &real_subscription,
+	                                        error))) {
+	    *subscription = pka_subscription_get_id(real_subscription);
+	    pka_subscription_unref(real_subscription);
+	}
 	RETURN(ret);
-#endif
 }
 
 /**
