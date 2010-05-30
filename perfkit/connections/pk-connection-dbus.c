@@ -18,6 +18,7 @@
 
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -172,10 +173,20 @@ enum
 
 struct _PkConnectionDBusPrivate
 {
-	DBusConnection *dbus;
 	GMutex *mutex;
 	gint state;
+	DBusConnection *dbus;
+	DBusServer *server;
 };
+
+static inline gint
+pk_connection_dbus_next_id (void)
+{
+	static gint id_seq = 0;
+
+	ENTRY;
+	RETURN(g_atomic_int_exchange_and_add(&id_seq, 1));
+}
 
 /**
  * pk_connection_dbus_state_to_str:
@@ -454,16 +465,34 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	/*
 	 * Notify the agent where it should deliver private messages.
 	 */
-	path = g_strdup_printf("unix:path=%s/perfkit-%u-%p.socket",
-	                       g_get_tmp_dir(), getpid(), connection);
+	path = g_strdup_printf("%s/perfkit-%s", g_get_tmp_dir(), g_get_user_name());
+	if (!g_file_test(path, G_FILE_TEST_IS_DIR)) {
+		if (g_mkdir(path, 0700) != 0) {
+			g_free(path);
+			goto unlock;
+		}
+	}
+	g_free(path);
+	path = g_strdup_printf("unix:path=%s/perfkit-%s/dbus-%u-%d.socket",
+	                       g_get_tmp_dir(), g_get_user_name(), getpid(),
+	                       pk_connection_dbus_next_id());
+	if (!(priv->server = dbus_server_listen(path, &db_error))) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
+		            "%s: %s", db_error.name, db_error.message);
+		g_free(path);
+		goto unlock;
+	}
 	if (!(msg = dbus_message_new_method_call("org.perfkit.Agent",
 	                                         "/org/perfkit/Agent/Manager",
 	                                         "org.perfkit.Agent.Manager",
 	                                         "SetDeliveryPath"))) {
+	    g_free(path);
 		goto unlock;
 	}
 	dbus_message_append_args(msg, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
 	dbus_connection_send(priv->dbus, msg, NULL);
+	g_free(path);
 
 	ret = TRUE;
 
