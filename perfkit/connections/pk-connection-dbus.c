@@ -20,6 +20,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "pk-connection-dbus.h"
 
@@ -409,7 +410,9 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 {
 	PkConnectionDBusPrivate *priv;
 	DBusError db_error = { NULL };
+	DBusMessage *msg;
 	gboolean ret = FALSE;
+	gchar *path;
 
 	g_return_val_if_fail(PK_IS_CONNECTION_DBUS(connection), FALSE);
 
@@ -447,6 +450,21 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	 */
 	dbus_connection_setup_with_g_main(priv->dbus, NULL);
 	priv->state = STATE_CONNECTED;
+
+	/*
+	 * Notify the agent where it should deliver private messages.
+	 */
+	path = g_strdup_printf("unix:path=%s/perfkit-%u-%p.socket",
+	                       g_get_tmp_dir(), getpid(), connection);
+	if (!(msg = dbus_message_new_method_call("org.perfkit.Agent",
+	                                         "/org/perfkit/Agent/Manager",
+	                                         "org.perfkit.Agent.Manager",
+	                                         "SetDeliveryPath"))) {
+		goto unlock;
+	}
+	dbus_message_append_args(msg, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
+	dbus_connection_send(priv->dbus, msg, NULL);
+
 	ret = TRUE;
 
 unlock:
