@@ -45,7 +45,25 @@ G_DEFINE_TYPE(PkaListenerDBus, pka_listener_dbus, PKA_TYPE_LISTENER)
 struct _PkaListenerDBusPrivate
 {
 	DBusConnection *dbus;
+	GMutex *mutex;
+	GHashTable *dests;
 };
+
+typedef struct
+{
+	gchar *sender;
+	gchar *path;
+	DBusConnection *connection;
+} Destination;
+
+static void
+destination_free (Destination *destination)
+{
+	g_free(destination->sender);
+	g_free(destination->path);
+	dbus_connection_unref(destination->connection);
+	g_slice_free(Destination, destination);
+}
 
 static const gchar * PluginIntrospection =
 	DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE
@@ -773,6 +791,9 @@ static const gchar * ManagerIntrospection =
     "   <arg name=\"subscription\" direction=\"in\" type=\"i\"/>"
     "   <arg name=\"removed\" direction=\"out\" type=\"b\"/>"
 	"  </method>"
+	"  <method name=\"SetDeliveryPath\">"
+	"   <arg name=\"path\" direction=\"in\" type=\"s\"/>"
+	"  </method>"
 	" </interface>"
 	" <interface name=\"org.freedesktop.DBus.Introspectable\">"
 	"  <method name=\"Introspect\">"
@@ -1321,6 +1342,53 @@ pka_listener_dbus_manager_remove_subscription_cb (GObject      *listener,  /* IN
 }
 
 /**
+ * pka_listener_dbus_set_delivery_path:
+ * @listener: A #PkaListenerDBus.
+ * @sender: The senders identifier on the bus.
+ * @path: The DBus connection path.
+ * @error: A location for a #GError, or %NULL.
+ *
+ * Sets the destination DBus connection to deliver samples and out of band
+ * data to a client.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: A DBus connection may be opened.
+ */
+static gboolean
+pka_listener_dbus_set_delivery_path (PkaListenerDBus  *listener, /* IN */
+                                     const gchar      *sender,   /* IN */
+                                     const gchar      *path,     /* IN */
+                                     GError          **error)    /* OUT */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusConnection *connection;
+	DBusError dbus_error = { 0 };
+	Destination *dest;
+
+	g_return_val_if_fail(PKA_IS_LISTENER_DBUS(listener), FALSE);
+	g_return_val_if_fail(sender != NULL, FALSE);
+	g_return_val_if_fail(path != NULL, FALSE);
+
+	ENTRY;
+	priv = listener->priv;
+	if (!(connection = dbus_connection_open(path, &dbus_error))) {
+		g_set_error(error, PKA_LISTENER_DBUS_ERROR,
+		            PKA_LISTENER_DBUS_ERROR_NOT_AVAILABLE,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		RETURN(FALSE);
+	}
+	dest = g_slice_new0(Destination);
+	dest->sender = g_strdup(sender);
+	dest->path = g_strdup(path);
+	dest->connection = connection;
+	g_mutex_lock(priv->mutex);
+	g_hash_table_insert(priv->dests, g_strdup(sender), dest);
+	g_mutex_unlock(priv->mutex);
+	RETURN(TRUE);
+}
+
+/**
  * pka_listener_dbus_handle_manager_message:
  * @connection: A #DBusConnection.
  * @message: A #DBusMessage.
@@ -1497,6 +1565,31 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			                                               NULL,
 			                                               pka_listener_dbus_manager_remove_subscription_cb,
 			                                               dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetDeliveryPath")) {
+			gchar *path = NULL;
+			GError *error = NULL;
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_STRING, &path,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			if (!pka_listener_dbus_set_delivery_path(listener,
+			                                         dbus_message_get_sender(message),
+			                                         path,
+			                                         &error)) {
+				reply = dbus_message_new_error(message,
+				                               DBUS_ERROR_FAILED,
+				                               error->message);
+				dbus_connection_send(connection, reply, NULL);
+				g_error_free(error);
+				GOTO(oom);
+			}
+			if (!(reply = dbus_message_new_method_return(message))) {
+				GOTO(oom);
+			}
+			dbus_connection_send(connection, reply, NULL);
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 	}
@@ -4034,6 +4127,10 @@ pka_listener_dbus_init (PkaListenerDBus *listener)
 	listener->priv = G_TYPE_INSTANCE_GET_PRIVATE(listener,
 	                                             PKA_TYPE_LISTENER_DBUS,
 	                                             PkaListenerDBusPrivate);
+	listener->priv->mutex = g_mutex_new();
+	listener->priv->dests = g_hash_table_new_full(
+			g_str_hash, g_str_equal, g_free,
+			(GDestroyNotify)destination_free);
 }
 
 const PkaPluginInfo pka_plugin_info = {
