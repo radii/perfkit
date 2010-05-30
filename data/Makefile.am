@@ -1,1 +1,1 @@
-SUBDIRS = ui dbus
+SUBDIRS = ui
