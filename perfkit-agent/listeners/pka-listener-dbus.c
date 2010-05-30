@@ -46,7 +46,7 @@ struct _PkaListenerDBusPrivate
 {
 	DBusConnection *dbus;
 	GMutex *mutex;
-	GHashTable *dests;
+	GHashTable *peers;
 };
 
 typedef struct
@@ -54,15 +54,15 @@ typedef struct
 	gchar *sender;
 	gchar *path;
 	DBusConnection *connection;
-} Destination;
+} Peer;
 
 static void
-destination_free (Destination *destination)
+peer_free (Peer *peer)
 {
-	g_free(destination->sender);
-	g_free(destination->path);
-	dbus_connection_unref(destination->connection);
-	g_slice_free(Destination, destination);
+	g_free(peer->sender);
+	g_free(peer->path);
+	dbus_connection_unref(peer->connection);
+	g_slice_free(Peer, peer);
 }
 
 static const gchar * PluginIntrospection =
@@ -1363,7 +1363,7 @@ pka_listener_dbus_set_delivery_path (PkaListenerDBus  *listener, /* IN */
 	PkaListenerDBusPrivate *priv;
 	DBusConnection *connection;
 	DBusError dbus_error = { 0 };
-	Destination *dest;
+	Peer *peer;
 
 	g_return_val_if_fail(PKA_IS_LISTENER_DBUS(listener), FALSE);
 	g_return_val_if_fail(sender != NULL, FALSE);
@@ -1378,12 +1378,12 @@ pka_listener_dbus_set_delivery_path (PkaListenerDBus  *listener, /* IN */
 		dbus_error_free(&dbus_error);
 		RETURN(FALSE);
 	}
-	dest = g_slice_new0(Destination);
-	dest->sender = g_strdup(sender);
-	dest->path = g_strdup(path);
-	dest->connection = connection;
+	peer = g_slice_new0(Peer);
+	peer->sender = g_strdup(sender);
+	peer->path = g_strdup(path);
+	peer->connection = connection;
 	g_mutex_lock(priv->mutex);
-	g_hash_table_insert(priv->dests, g_strdup(sender), dest);
+	g_hash_table_insert(priv->peers, g_strdup(sender), peer);
 	g_mutex_unlock(priv->mutex);
 	RETURN(TRUE);
 }
@@ -4128,9 +4128,9 @@ pka_listener_dbus_init (PkaListenerDBus *listener)
 	                                             PKA_TYPE_LISTENER_DBUS,
 	                                             PkaListenerDBusPrivate);
 	listener->priv->mutex = g_mutex_new();
-	listener->priv->dests = g_hash_table_new_full(
+	listener->priv->peers = g_hash_table_new_full(
 			g_str_hash, g_str_equal, g_free,
-			(GDestroyNotify)destination_free);
+			(GDestroyNotify)peer_free);
 }
 
 const PkaPluginInfo pka_plugin_info = {
