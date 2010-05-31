@@ -173,14 +173,185 @@ enum
 
 struct _PkConnectionDBusPrivate
 {
-	GMutex *mutex;
-	gint state;
-	DBusConnection *dbus;
-	DBusServer *server;
+	GMutex         *mutex;         /* General purpose lock */
+	gint            state;         /* Current connection state */
+	DBusConnection *dbus;          /* Handle to shared DBus */
+	DBusServer     *server;        /* Handle to private DBus socket */
+	DBusConnection *client;        /* Handle to client on private DBus */
+	GStaticRWLock   handlers_lock; /* RWLock for subscription handlers */
+	GHashTable     *handlers;      /* Hash of subscription handlers */
 };
 
+typedef struct
+{
+	gint        id;                /* Monotonic id for handler */
+	gint        subscription;      /* Subscription id in agent */
+	GClosure   *manifest;          /* Manifest callback closure */
+	GClosure   *sample;            /* Sample callback closure */
+	PkManifest *current;           /* Current subscription manifest */
+} Handler;
+
+static void
+handler_free (Handler *handler) /* IN */
+{
+	g_closure_unref(handler->manifest);
+	g_closure_unref(handler->sample);
+	g_slice_free(Handler, handler);
+}
+
+static inline gboolean
+pk_connection_dbus_dispatch_manifest (PkConnectionDBus  *connection,   /* IN */
+                                      gint               subscription, /* IN */
+                                      DBusMessage       *message,      /* IN */
+                                      GError           **error)        /* OUT */
+{
+	PkConnectionDBusPrivate *priv;
+	PkManifest *manifest;
+	Handler *handler;
+	const guint8 *data = NULL;
+	gsize data_len = 0;
+	DBusError dbus_error = { 0 };
+	GValue manifest_value = { 0 };
+	gboolean ret = FALSE;
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+	g_static_rw_lock_reader_lock(&priv->handlers_lock);
+	if (!(handler = g_hash_table_lookup(priv->handlers, &subscription))) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
+		            "No handler for the manifest was registered.");
+		GOTO(handler_not_found);
+	}
+	if (!dbus_message_get_args(message, &dbus_error,
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, &data_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(invalid_data);
+	}
+	if (!(manifest = pk_manifest_new_from_data(data, data_len))) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "The buffer was not a valid manifest.");
+		GOTO(invalid_data);
+	}
+	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
+	g_static_rw_lock_writer_lock(&priv->handlers_lock);
+	if (handler->current) {
+		pk_manifest_unref(handler->current);
+	}
+	handler->current = pk_manifest_ref(manifest);
+	g_static_rw_lock_writer_unlock(&priv->handlers_lock);
+	g_static_rw_lock_reader_lock(&priv->handlers_lock);
+	g_value_init(&manifest_value, PK_TYPE_MANIFEST);
+	g_value_take_boxed(&manifest_value, manifest);
+	g_closure_invoke(handler->manifest, NULL, 1, &manifest_value, NULL);
+	g_value_unset(&manifest_value);
+	ret = TRUE;
+  handler_not_found:
+  invalid_data:
+	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
+	RETURN(ret);
+}
+
+
+static inline gboolean
+pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
+                                    gint               subscription, /* IN */
+                                    DBusMessage       *message,      /* IN */
+                                    GError           **error)        /* OUT */
+{
+	PkConnectionDBusPrivate *priv;
+	PkSample *sample;
+	Handler *handler;
+	const guint8 *data = NULL;
+	gsize data_len = 0;
+	gsize n_read = 0;
+	DBusError dbus_error = { 0 };
+	GValue sample_value = { 0 };
+	gboolean ret = FALSE;
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+	g_static_rw_lock_reader_lock(&priv->handlers_lock);
+	if (!(handler = g_hash_table_lookup(priv->handlers, &subscription))) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
+		            "No handler for the sample was registered.");
+		GOTO(handler_not_found);
+	}
+	if (!handler->current) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_STATE,
+		            "Sample delivered before current manifest.");
+		GOTO(no_manifest);
+	}
+	if (!dbus_message_get_args(message, &dbus_error,
+	                           DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, &data_len,
+	                           DBUS_TYPE_INVALID)) {
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_DBUS,
+		            "%s: %s", dbus_error.name, dbus_error.message);
+		dbus_error_free(&dbus_error);
+		GOTO(invalid_data);
+	}
+	while (data_len > 0) {
+		if (!(sample = pk_sample_new_from_data(handler->current,
+		                                       data, data_len,
+		                                       &n_read))) {
+			g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+			            PK_CONNECTION_DBUS_ERROR_DBUS,
+			            "The buffer was not a valid sample.");
+			GOTO(invalid_data);
+		}
+		data_len -= n_read;
+		data += n_read;
+		g_value_init(&sample_value, PK_TYPE_SAMPLE);
+		g_value_take_boxed(&sample_value, sample);
+		g_closure_invoke(handler->sample, NULL, 1, &sample_value, NULL);
+		g_value_unset(&sample_value);
+	}
+	ret = TRUE;
+  handler_not_found:
+  no_manifest:
+  invalid_data:
+	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
+	RETURN(ret);
+}
+
+
+/**
+ * pk_connection_dbus_next_id:
+ *
+ * Retrieves the next id in the connection count sequence.  This is used
+ * to uniquely define the DBus connection socket for private delivery.
+ *
+ * Returns: A monotonic id for the connection.
+ * Side effects: Id sequence is incremented.
+ */
 static inline gint
 pk_connection_dbus_next_id (void)
+{
+	static gint id_seq = 0;
+
+	ENTRY;
+	RETURN(g_atomic_int_exchange_and_add(&id_seq, 1));
+}
+
+/**
+ * pk_connection_dbus_next_handler_id:
+ *
+ * Retrieves the next id in the handler count sequence.  This is used
+ * to uniquely identify a handler for the connection.
+ *
+ * Returns: A monotonic id for the handler.
+ * Side effects: Id sequence is incremented.
+ */
+static inline gint
+pk_connection_dbus_next_handler_id (void)
 {
 	static gint id_seq = 0;
 
@@ -208,6 +379,58 @@ pk_connection_dbus_state_to_str (gint state)
 		return "UNKNOWN";
 	}
 }
+
+static DBusHandlerResult
+pk_connection_dbus_handle_handler_message (DBusConnection *connection, /* IN */
+                                           DBusMessage    *message,    /* IN */
+                                           gpointer        user_data)  /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	DBusMessage *reply = NULL;
+	gint subscription = 0;
+	GError *error = NULL;
+
+	g_return_val_if_fail(PK_IS_CONNECTION_DBUS(user_data), ret);
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(user_data)->priv;
+	if (!dbus_message_has_interface(message, "org.perfkit.Agent.Handler")) {
+	    GOTO(not_handler_msg);
+	}
+	if (sscanf(dbus_message_get_path(message), "/Handler/%d", &subscription) != 1) {
+		GOTO(not_handler_msg);
+	}
+	if (dbus_message_has_member(message, "SendManifest")) {
+		if (!pk_connection_dbus_dispatch_manifest(user_data, subscription,
+		                                          message, &error)) {
+		    reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
+		    dbus_connection_send(connection, reply, NULL);
+  			dbus_message_unref(reply);
+		    g_error_free(error);
+		    GOTO(failed);
+		}
+		ret = DBUS_HANDLER_RESULT_HANDLED;
+	} else if (dbus_message_has_member(message, "SendSample")) {
+		if (!pk_connection_dbus_dispatch_sample(user_data, subscription,
+		                                        message, &error)) {
+		    reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
+		    dbus_connection_send(connection, reply, NULL);
+  			dbus_message_unref(reply);
+		    g_error_free(error);
+		    GOTO(failed);
+		}
+		ret = DBUS_HANDLER_RESULT_HANDLED;
+	}
+  failed:
+  not_handler_msg:
+	RETURN(ret);
+}
+
+static const DBusObjectPathVTable handler_vtable = {
+	.message_function = pk_connection_dbus_handle_handler_message,
+	.unregister_function = NULL, /* TODO: Handle unrefs */
+};
 
 /**
  * pk_connection_dbus_notify:
@@ -403,6 +626,50 @@ pk_connection_dbus_connect_async (PkConnection        *connection,  /* IN */
 }
 
 /**
+ * pk_connection_dbus_handle_connection:
+ * @server: A #DBusServer.
+ * @connection: An incoming #DBusConnection.
+ * @user_data: A #PkConnectionDBus.
+ *
+ * Handles an incoming connection from the listening #DBusServer.  The
+ * connection is referenced so that it is not closed by DBus.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_dbus_handle_connection (DBusServer     *server,     /* IN */
+                                      DBusConnection *connection, /* IN */
+                                      gpointer        user_data)  /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	Handler *handler = NULL;
+	GHashTableIter iter;
+	gchar *path;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(user_data));
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(user_data)->priv;
+	g_mutex_lock(priv->mutex);
+	if (priv->client) {
+		GOTO(already_connected);
+	}
+	priv->client = dbus_connection_ref(connection);
+	dbus_connection_setup_with_g_main(connection, NULL);
+	g_hash_table_iter_init(&iter, priv->handlers);
+	while (g_hash_table_iter_next(&iter, NULL, (gpointer *)&handler)) {
+		path = g_strdup_printf("/Handler/%d", handler->subscription);
+		dbus_connection_register_object_path(priv->client, path,
+		                                     &handler_vtable, user_data);
+		g_free(path);
+	}
+  already_connected:
+	g_mutex_unlock(priv->mutex);
+	EXIT;
+}
+
+/**
  * pk_connection_dbus_connect_finish:
  * @connection: A #PkConnection
  * @result: A #GAsyncResult
@@ -483,12 +750,17 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 		g_free(path);
 		goto unlock;
 	}
+	dbus_server_setup_with_g_main(priv->server, NULL);
+	dbus_server_set_new_connection_function(priv->server,
+	                                        pk_connection_dbus_handle_connection,
+	                                        g_object_ref(connection),
+	                                        g_object_unref);
 	if (!(msg = dbus_message_new_method_call("org.perfkit.Agent",
 	                                         "/org/perfkit/Agent/Manager",
 	                                         "org.perfkit.Agent.Manager",
 	                                         "SetDeliveryPath"))) {
-	    g_free(path);
-		goto unlock;
+		g_free(path);
+		GOTO(unlock);
 	}
 	dbus_message_append_args(msg, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
 	dbus_connection_send(priv->dbus, msg, NULL);
@@ -7394,6 +7666,84 @@ finish:
 
 
 static void
+pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connection,       /* IN */
+                                                    gint                 subscription,     /* IN */
+                                                    PkManifestFunc       manifest_func,    /* IN */
+                                                    gpointer             manifest_data,    /* IN */
+                                                    GDestroyNotify       manifest_destroy, /* IN */
+                                                    PkSampleFunc         sample_func,      /* IN */
+                                                    gpointer             sample_data,      /* IN */
+                                                    GDestroyNotify       sample_destroy,   /* IN */
+                                                    GCancellable        *cancellable,      /* IN */
+                                                    GAsyncReadyCallback  callback,         /* IN */
+                                                    gpointer             user_data)        /* IN */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusMessage *message;
+	Handler *handler;
+	gchar *sub_path;
+	gchar *path;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+	g_return_if_fail(subscription >= 0);
+	g_return_if_fail(manifest_func != NULL);
+	g_return_if_fail(sample_func != NULL);
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+	handler = g_slice_new0(Handler);
+	handler->id = pk_connection_dbus_next_handler_id();
+	handler->manifest = g_cclosure_new(G_CALLBACK(manifest_func),
+	                                   manifest_data,
+	                                   (GClosureNotify)manifest_destroy);
+	handler->sample = g_cclosure_new(G_CALLBACK(sample_func),
+	                                 sample_data,
+	                                 (GClosureNotify)sample_destroy);
+	g_closure_set_marshal(handler->manifest, g_cclosure_marshal_VOID__BOXED);
+	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__BOXED);
+	g_static_rw_lock_writer_lock(&priv->handlers_lock);
+	g_hash_table_insert(priv->handlers, &handler->subscription, handler);
+	g_static_rw_lock_writer_unlock(&priv->handlers_lock);
+	g_mutex_lock(priv->mutex);
+	if (priv->client) {
+		path = g_strdup_printf("/Handler/%d", handler->subscription);
+		dbus_connection_register_object_path(priv->client, path,
+		                                     &handler_vtable, connection);
+		sub_path = g_strdup_printf("/org/perfkit/Agent/Subscription/%d", subscription);
+		message = dbus_message_new_method_call("org.perfkit.Agent",
+		                                       sub_path,
+		                                       "org.perfkit.Agent.Subscription",
+		                                       "SetHandler");
+		if (!dbus_message_append_args(message,
+		                              DBUS_TYPE_OBJECT_PATH, &path,
+		                              DBUS_TYPE_INVALID)) {
+		    g_free(sub_path);
+		    g_free(path);
+		    GOTO(oom);
+		}
+		dbus_connection_send(priv->dbus, message, NULL);
+		dbus_message_unref(message);
+		g_free(sub_path);
+		g_free(path);
+	}
+  oom:
+	g_mutex_unlock(priv->mutex);
+	EXIT;
+}
+
+
+static gboolean
+pk_connection_dbus_subscription_set_handlers_finish (PkConnection  *connection, /* IN */
+                                                     GAsyncResult  *result,     /* IN */
+                                                     GError       **error)      /* OUT */
+{
+	ENTRY;
+	RETURN(FALSE);
+}
+
+
+static void
 pk_connection_dbus_subscription_unmute_async (PkConnection        *connection,   /* IN */
                                               gint                 subscription, /* IN */
                                               GCancellable        *cancellable,  /* IN */
@@ -7626,6 +7976,7 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	OVERRIDE_VTABLE(subscription_remove_source);
 	OVERRIDE_VTABLE(subscription_set_buffer);
 	OVERRIDE_VTABLE(subscription_set_encoder);
+	OVERRIDE_VTABLE(subscription_set_handlers);
 	OVERRIDE_VTABLE(subscription_unmute);
 
 	#undef ADD_RPC
@@ -7647,6 +7998,9 @@ pk_connection_dbus_init (PkConnectionDBus *dbus)
 	                                         PK_TYPE_CONNECTION_DBUS,
 	                                         PkConnectionDBusPrivate);
 	dbus->priv->mutex = g_mutex_new();
+	g_static_rw_lock_init(&dbus->priv->handlers_lock);
+	dbus->priv->handlers = g_hash_table_new_full(g_int_hash, g_int_equal, NULL,
+	                                             (GDestroyNotify)handler_free);
 }
 
 /**

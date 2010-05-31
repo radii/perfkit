@@ -474,23 +474,20 @@ pka_manager_add_subscription (PkaContext       *context,      /* IN */
                               PkaSubscription **subscription, /* OUT */
                               GError          **error)        /* OUT */
 {
-	gint subscription_id;
-
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(subscription != NULL, FALSE);
 
 	ENTRY;
 	AUTHORIZE_IOCTL(context, ADD_SUBSCRIPTION);
-	*subscription = NULL;
-	subscription_id = 0;
-	g_warn_if_reached();
+	*subscription = pka_subscription_new();
 	INFO(Subscription, "Added subscription %d on behalf of context %d.",
-	     subscription_id, pka_context_get_id(context));
+	     pka_subscription_get_id(*subscription),
+	     pka_context_get_id(context));
 	G_LOCK(subscriptions);
 	g_ptr_array_add(manager.subscriptions,
 	                pka_subscription_ref(*subscription));
 	G_UNLOCK(subscriptions);
-	NOTIFY_LISTENERS(subscription_added, subscription_id);
+	NOTIFY_LISTENERS(subscription_added, pka_subscription_get_id(*subscription));
 	RETURN(TRUE);
 }
 
@@ -735,7 +732,7 @@ pka_manager_find_subscription (PkaContext       *context,         /* IN */
 			/*
 			 * TODO: Verify permissions.
 			 */
-			*subscription = g_object_ref(iter);
+			*subscription = pka_subscription_ref(iter);
 			BREAK;
 		}
 	}

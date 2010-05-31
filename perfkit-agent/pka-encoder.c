@@ -67,7 +67,7 @@ static gboolean
 pka_encoder_real_encode_samples (PkaManifest *manifest,
                                  PkaSample  **samples,
                                  gint         n_samples,
-                                 gchar      **data,
+                                 guint8     **data,
                                  gsize       *data_len)
 {
 	EggBuffer *buf;
@@ -138,7 +138,7 @@ pka_encoder_encode_samples  (PkaEncoder   *encoder,
                              PkaManifest  *manifest,
                              PkaSample   **samples,
                              gint          n_samples,
-                             gchar       **data,
+                             guint8      **data,
                              gsize        *data_len)
 {
 	ENTRY;
@@ -153,7 +153,7 @@ pka_encoder_encode_samples  (PkaEncoder   *encoder,
 
 static gboolean
 pka_encoder_real_encode_manifest (PkaManifest  *manifest,
-                                  gchar       **data,
+                                  guint8      **data,
                                   gsize        *data_len)
 {
 	EggBuffer *buf, *mbuf, *ebuf;
@@ -266,7 +266,7 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest,
 gboolean
 pka_encoder_encode_manifest (PkaEncoder   *encoder,
                              PkaManifest  *manifest,
-                             gchar       **data,
+                             guint8      **data,
                              gsize        *data_len)
 {
 	ENTRY;

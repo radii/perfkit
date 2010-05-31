@@ -16,10 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if !defined (__PERFKIT_INSIDE__) && !defined (PERFKIT_COMPILATION)
+#error "Only <perfkit/perfkit.h> can be included directly."
+#endif
+
 #ifndef __PK_CONNECTION_H__
 #define __PK_CONNECTION_H__
 
 #include <gio/gio.h>
+
+#include "pk-manifest.h"
+#include "pk-sample.h"
 
 G_BEGIN_DECLS
 
@@ -494,6 +501,20 @@ struct _PkConnectionClass
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
 	gboolean      (*subscription_set_encoder_finish)    (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GError               **error);
+	void          (*subscription_set_handlers_async)    (PkConnection          *connection,
+	                                                     gint                   subscription,
+	                                                     PkManifestFunc         manifest_func,
+	                                                     gpointer               manifest_data,
+	                                                     GDestroyNotify         manifest_destroy,
+	                                                     PkSampleFunc           sample_func,
+	                                                     gpointer               sample_data,
+	                                                     GDestroyNotify         sample_destroy,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*subscription_set_handlers_finish)   (PkConnection          *connection,
 	                                                     GAsyncResult          *result,
 	                                                     GError               **error);
 	void          (*subscription_unmute_async)          (PkConnection          *connection,

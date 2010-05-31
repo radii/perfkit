@@ -46,11 +46,11 @@ struct _PkaEncoderIface
 	                             PkaManifest   *manifest,
 	                             PkaSample    **sample,
 	                             gint           n_samples,
-	                             gchar        **data,
+	                             guint8       **data,
 	                             gsize         *dapka_len);
 	gboolean (*encode_manifest) (PkaEncoder    *encoder,
 	                             PkaManifest   *manifest,
-	                             gchar        **data,
+	                             guint8       **data,
 	                             gsize         *dapka_len);
 };
 
@@ -60,11 +60,11 @@ gboolean pka_encoder_encode_samples  (PkaEncoder     *encoder,
                                       PkaManifest    *manifest,
                                       PkaSample     **samples,
                                       gint            n_samples,
-                                      gchar         **data,
+                                      guint8        **data,
                                       gsize          *dapka_len);
 gboolean pka_encoder_encode_manifest (PkaEncoder     *encoder,
                                       PkaManifest    *manifest,
-                                      gchar         **data,
+                                      guint8        **data,
                                       gsize          *dapka_len);
 
 G_END_DECLS

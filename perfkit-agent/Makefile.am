@@ -77,7 +77,13 @@ NOINST_H_FILES =							\
 	pka-listener-closures.h						\
 	$(NULL)
 
+BUILT_SOURCES =								\
+	pka-marshal.h							\
+	pka-marshal.c							\
+	$(NULL)
+
 libperfkit_agent_la_SOURCES =						\
+	$(BUILT_SOURCES)						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	pka-channel.c							\
@@ -108,6 +114,10 @@ perfkit_agent_LDFLAGS =							\
 	-export-dynamic							\
 	-export-symbols-regex "^pka_.*"					\
 	$(NULL)
+
+pka-marshal.c pka-marshal.h: pka-marshal.list
+	$(GLIB_GENMARSHAL) --header --prefix=pka_marshal $(srcdir)/pka-marshal.list > $(builddir)/pka-marshal.h
+	$(GLIB_GENMARSHAL) --body --prefix=pka_marshal $(srcdir)/pka-marshal.list > $(builddir)/pka-marshal.c
 
 run: perfkit-agent
 	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \

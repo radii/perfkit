@@ -31,6 +31,8 @@ G_BEGIN_DECLS
 
 typedef struct _PkManifest PkManifest;
 
+typedef void (*PkManifestFunc) (PkManifest *manifest, gpointer user_data);
+
 typedef enum
 {
 	PK_RESOLUTION_PRECISE,

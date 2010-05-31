@@ -19,7 +19,7 @@
 #ifndef __PK_CONNECTION_DBUS_H__
 #define __PK_CONNECTION_DBUS_H__
 
-#include "pk-connection.h"
+#include <perfkit/perfkit.h>
 
 G_BEGIN_DECLS
 

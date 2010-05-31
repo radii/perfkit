@@ -6131,6 +6131,146 @@ pk_connection_subscription_set_encoder_finish (PkConnection  *connection, /* IN 
 }
 
 /**
+ * pk_connection_subscription_set_handlers_cb:
+ * @source: A #PkConnection.
+ *
+ * Callback for the synchronous implementation of the
+ * "subscription_set_handlers" RPC.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_set_handlers_cb (GObject      *source,    /* IN */
+                                            GAsyncResult *result,    /* IN */
+                                            gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_set_handlers_finish(PK_CONNECTION(source),
+	                                                              result,
+	                                                              sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_handlers:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous call to set the handler callbacks for a subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_handlers (PkConnection    *connection,       /* IN */
+                                         gint             subscription,     /* IN */
+                                         PkManifestFunc   manifest_func,    /* IN */
+                                         gpointer         manifest_data,    /* IN */
+                                         GDestroyNotify   manifest_destroy, /* IN */
+                                         PkSampleFunc     sample_func,      /* IN */
+                                         gpointer         sample_data,      /* IN */
+                                         GDestroyNotify   sample_destroy,   /* IN */
+                                         GError         **error)            /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_set_handlers);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	pk_connection_subscription_set_handlers_async(connection,
+	                                              subscription,
+	                                              manifest_func,
+	                                              manifest_data,
+	                                              manifest_destroy,
+	                                              sample_func,
+	                                              sample_data,
+	                                              sample_destroy,
+	                                              NULL,
+	                                              pk_connection_subscription_set_handlers_cb,
+	                                              &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_set_handlers_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronously requests the "subscription_set_handlers" RPC.
+ *
+ * Sets the callback functions for handling incoming data from for a
+ * subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_set_handlers_async (PkConnection        *connection,       /* IN */
+                                               gint                 subscription,     /* IN */
+                                               PkManifestFunc       manifest_func,    /* IN */
+                                               gpointer             manifest_data,    /* IN */
+                                               GDestroyNotify       manifest_destroy, /* IN */
+                                               PkSampleFunc         sample_func,      /* IN */
+                                               gpointer             sample_data,      /* IN */
+                                               GDestroyNotify       sample_destroy,   /* IN */
+                                               GCancellable        *cancellable,      /* IN */
+                                               GAsyncReadyCallback  callback,         /* IN */
+                                               gpointer             user_data)        /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+	g_return_if_fail(manifest_func != NULL);
+	g_return_if_fail(sample_func != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_set_handlers)(connection,
+	                                     subscription,
+	                                     manifest_func,
+	                                     manifest_data,
+	                                     manifest_destroy,
+	                                     sample_func,
+	                                     sample_data,
+	                                     sample_destroy,
+	                                     cancellable,
+	                                     callback,
+	                                     user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_set_handlers_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completes an asynchronous request to the "subscription_set_handlers" RPC.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_set_handlers_finish (PkConnection  *connection, /* IN */
+                                                GAsyncResult  *result,     /* IN */
+                                                GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_set_handlers)(connection, result, error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_subscription_unmute_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

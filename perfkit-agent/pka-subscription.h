@@ -32,6 +32,8 @@
 
 G_BEGIN_DECLS
 
+#define PKA_TYPE_SUBSCRIPTION (pka_subscription_get_type())
+
 /**
  * PkaManifestFunc:
  * @buf: A buffer containing the encoded manifest
@@ -40,7 +42,7 @@ G_BEGIN_DECLS
  *
  * Callback to receive an encoded manifest when it is ready.
  */
-typedef void (*PkaManifestFunc) (gchar *buf, gsize buflen, gpointer user_data);
+typedef void (*PkaManifestFunc) (const guint8 *buf, gsize buflen, gpointer user_data);
 
 /**
  * PkaSampleFunc:
@@ -50,7 +52,7 @@ typedef void (*PkaManifestFunc) (gchar *buf, gsize buflen, gpointer user_data);
  *
  * Callback to receive an encoded stream of samples when they are ready.
  */
-typedef void (*PkaSampleFunc) (gchar *buf, gsize buflen, gpointer user_data);
+typedef void (*PkaSampleFunc) (const guint8 *buf, gsize buflen, gpointer user_data);
 
 /**
  * PkaSubscription:
@@ -73,13 +75,22 @@ PkaSubscription* pka_subscription_new         (PkaChannel      *channel,
                                                PkaSampleFunc    sample_func,
                                                gpointer         sample_data);
 #endif
-PkaSubscription* pka_subscription_ref         (PkaSubscription *subscription);
-void             pka_subscription_unref       (PkaSubscription *subscription);
-guint            pka_subscription_get_id      (PkaSubscription *subscription);
-void             pka_subscription_disable     (PkaSubscription *subscription,
-                                               gboolean         drain);
-void             pka_subscription_enable      (PkaSubscription *subscription);
-PkaEncoder*      pka_subscription_get_encoder (PkaSubscription *subscription);
+GType            pka_subscription_get_type     (void) G_GNUC_CONST;
+PkaSubscription* pka_subscription_new          (void);
+PkaSubscription* pka_subscription_ref          (PkaSubscription *subscription);
+void             pka_subscription_unref        (PkaSubscription *subscription);
+guint            pka_subscription_get_id       (PkaSubscription *subscription);
+void             pka_subscription_disable      (PkaSubscription *subscription,
+                                                gboolean         drain);
+void             pka_subscription_enable       (PkaSubscription *subscription);
+PkaEncoder*      pka_subscription_get_encoder  (PkaSubscription *subscription);
+void             pka_subscription_set_handlers (PkaSubscription *subscription,
+                                                PkaManifestFunc  manifest_func,
+                                                gpointer         manifest_data,
+                                                GDestroyNotify   manifest_destroy,
+                                                PkaSampleFunc    sample_func,
+                                                gpointer         sample_data,
+                                                GDestroyNotify   sample_destroy);
 
 G_END_DECLS
 

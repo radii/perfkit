@@ -611,6 +611,20 @@ void          pk_connection_subscription_set_encoder_async    (PkConnection     
 gboolean      pk_connection_subscription_set_encoder_finish   (PkConnection          *connection,
                                                                GAsyncResult          *result,
                                                                GError               **error);
+void          pk_connection_subscription_set_handlers_async   (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               PkManifestFunc         manifest_func,
+                                                               gpointer               manifest_data,
+                                                               GDestroyNotify         manifest_destroy,
+                                                               PkSampleFunc           sample_func,
+                                                               gpointer               sample_data,
+                                                               GDestroyNotify         sample_destroy,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_subscription_set_handlers_finish  (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               GError               **error);
 gboolean      pk_connection_subscription_unmute               (PkConnection          *connection,
                                                                gint                   subscription,
                                                                GError               **error);

@@ -41,6 +41,7 @@
 #endif
 
 #include <perfkit/perfkit.h>
+#include "pk-util.h"
 #include "egg-fmt.h"
 #include "egg-line.h"
 
@@ -1958,6 +1959,33 @@ pk_shell_manager_add_source (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+static void
+manifest_cb (PkManifest *manifest,  /* IN */
+             gpointer    user_data) /* IN */
+{
+	ENTRY;
+	EXIT;
+}
+
+static void
+sample_cb (PkSample *sample,    /* IN */
+           gpointer  user_data) /* IN */
+{
+	ENTRY;
+	EXIT;
+}
+
+static void
+set_handlers_cb (GObject      *source,    /* IN */
+                 GAsyncResult *result,    /* IN */
+                 gpointer      user_data) /* IN */
+{
+	ENTRY;
+	pk_connection_subscription_set_handlers_finish(PK_CONNECTION(source),
+	                                               result, NULL);
+	EXIT;
+}
+
 /**
  * pk_shell_manager_add_subscription_cb:
  * @object: A #PkConnection.
@@ -1977,11 +2005,23 @@ pk_shell_manager_add_subscription_cb (GObject       *object,    /* IN */
 	AsyncTask *task = user_data;
 
 	ENTRY;
-	task->result = pk_connection_manager_add_subscription_finish(
-			PK_CONNECTION(object),
-			result,
-			task->params[0], /* subscription */
-			&task->error);
+	task->result = pk_connection_manager_add_subscription_finish(PK_CONNECTION(object),
+	                                                             result,
+	                                                             task->params[0], /* subscription */
+	                                                             &task->error);
+	if (task->result) {
+		pk_connection_subscription_set_handlers_async(PK_CONNECTION(object),
+		                                              *((gint *)task->params[0]),
+		                                              manifest_cb,
+		                                              NULL,
+		                                              NULL,
+		                                              sample_cb,
+		                                              NULL,
+		                                              NULL,
+		                                              NULL,
+		                                              set_handlers_cb,
+		                                              NULL);
+	}
 	async_task_signal(task);
 	EXIT;
 }
@@ -2028,11 +2068,11 @@ pk_shell_manager_add_subscription (EggLine  *line,   /* IN */
 	async_task_init(&task);
 	task.params[0] = &subscription;
 	pk_connection_manager_add_subscription_async(conn,
-	                             buffer_size,
-	                             timeout,
-	                             NULL,
-	                             pk_shell_manager_add_subscription_cb,
-	                             &task);
+	                                             buffer_size,
+	                                             timeout,
+	                                             NULL,
+	                                             pk_shell_manager_add_subscription_cb,
+	                                             &task);
 	if (!async_task_wait(&task)) {
 		g_propagate_error(error, task.error);
 		RETURN(EGG_LINE_STATUS_FAILURE);

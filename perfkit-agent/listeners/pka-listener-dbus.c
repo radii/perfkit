@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "pka-context.h"
 #include "pka-listener-dbus.h"
 #include "pka-log.h"
 
@@ -45,16 +46,25 @@ G_DEFINE_TYPE(PkaListenerDBus, pka_listener_dbus, PKA_TYPE_LISTENER)
 struct _PkaListenerDBusPrivate
 {
 	DBusConnection *dbus;
-	GMutex *mutex;
-	GHashTable *peers;
+	GMutex         *mutex;
+	GHashTable     *peers;
+	GStaticRWLock   handlers_lock;
+	GHashTable     *handlers;
 };
 
 typedef struct
 {
-	gchar *sender;
-	gchar *path;
+	gchar          *sender;
+	gchar          *path;
 	DBusConnection *connection;
 } Peer;
+
+typedef struct
+{
+	gint            subscription;
+	DBusConnection *client;
+	gchar          *path;
+} Handler;
 
 static void
 peer_free (Peer *peer)
@@ -63,6 +73,14 @@ peer_free (Peer *peer)
 	g_free(peer->path);
 	dbus_connection_unref(peer->connection);
 	g_slice_free(Peer, peer);
+}
+
+static void
+handler_free (Handler *handler)
+{
+	g_free(handler->path);
+	dbus_connection_unref(handler->client);
+	g_slice_free(Handler, handler);
 }
 
 static const gchar * PluginIntrospection =
@@ -3455,6 +3473,24 @@ pka_listener_dbus_subscription_unmute_cb (GObject      *listener,  /* IN */
 	EXIT;
 }
 
+static void
+pka_listener_dbus_dispatch_manifest (const guint8 *data,      /* IN */
+                                     gsize         data_len,  /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	ENTRY;
+	EXIT;
+}
+
+static void
+pka_listener_dbus_dispatch_sample (const guint8 *data,      /* IN */
+                                   gsize         data_len,  /* IN */
+                                   gpointer      user_data) /* IN */
+{
+	ENTRY;
+	EXIT;
+}
+
 /**
  * pka_listener_dbus_handle_subscription_message:
  * @connection: A #DBusConnection.
@@ -3471,6 +3507,7 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
                                                DBusMessage    *message,    /* IN */
                                                gpointer        user_data)  /* IN */
 {
+	PkaListenerDBusPrivate *priv;
 	PkaListenerDBus *listener = user_data;
 	DBusHandlerResult ret = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 	DBusMessage *reply = NULL;
@@ -3478,6 +3515,7 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 	g_return_val_if_fail(listener != NULL, ret);
 
 	ENTRY;
+	priv = listener->priv;
 	if (dbus_message_is_method_call(message,
 	                                "org.freedesktop.DBus.Introspectable",
 	                                "Introspect")) {
@@ -3653,6 +3691,54 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                            NULL,
 			                                            pka_listener_dbus_subscription_set_encoder_cb,
 			                                            dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "SetHandler")) {
+			gint subscription = 0;
+			const gchar *handler_path = NULL;
+			const gchar *dbus_path;
+			Handler *handler = NULL;
+			PkaSubscription *sub = NULL;
+			GError *error = NULL;
+
+			INFO(Subscription, "Received SetHandler request.");
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
+				GOTO(oom);
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_OBJECT_PATH, &handler_path,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			if (!pka_manager_find_subscription(pka_context_default(),
+			                                   subscription, &sub, &error)) {
+				reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
+				dbus_connection_send(connection, reply, NULL);
+				g_error_free(error);
+				GOTO(oom);
+			}
+			g_static_rw_lock_writer_lock(&priv->handlers_lock);
+			handler = g_slice_new0(Handler);
+			handler->subscription = subscription;
+			handler->path = g_strdup(handler_path);
+			g_hash_table_insert(priv->handlers, &handler->subscription, handler);
+			pka_subscription_set_handlers(sub,
+			                              pka_listener_dbus_dispatch_manifest,
+			                              g_object_ref(listener),
+			                              g_object_unref,
+			                              pka_listener_dbus_dispatch_sample,
+			                              g_object_ref(listener),
+			                              g_object_unref);
+			g_static_rw_lock_writer_unlock(&priv->handlers_lock);
+			pka_subscription_unref(sub);
+			if (!(reply = dbus_message_new_method_return(message))) {
+				GOTO(oom);
+			}
+			INFO(Subscription, "Registered subscription handler at %s by %s",
+			     handler_path, dbus_message_get_sender(message));
+			dbus_connection_send(connection, reply, NULL);
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "Unmute")) {
@@ -4131,6 +4217,10 @@ pka_listener_dbus_init (PkaListenerDBus *listener)
 	listener->priv->peers = g_hash_table_new_full(
 			g_str_hash, g_str_equal, g_free,
 			(GDestroyNotify)peer_free);
+	g_static_rw_lock_init(&listener->priv->handlers_lock);
+	listener->priv->handlers = g_hash_table_new_full(
+			g_int_hash, g_int_equal, NULL,
+			(GDestroyNotify)handler_free);
 }
 
 const PkaPluginInfo pka_plugin_info = {

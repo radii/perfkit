@@ -1,6 +1,6 @@
 /* pka-subscription.c
  *
- * Copyright (C) 2009 Christian Hergert
+ * Copyright (C) 2009-2010 Christian Hergert <chris@dronelabs.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,9 @@
 
 #include <string.h>
 
+#include "pka-marshal.h"
 #include "pka-subscription.h"
+#include "pka-log.h"
 
 #define G_MSEC_PER_SEC (1000)
 
@@ -62,15 +64,17 @@ static void pka_subscription_flush_locked   (PkaSubscription *sub);
 
 struct _PkaSubscription
 {
-	guint            sub_id;
+	guint            id;
 	volatile gint    ref_count;
 
 	PkaChannel      *channel;        /* Our producing channel */
 	PkaEncoder      *encoder;        /* Sample/Manifest encoder */
-	PkaManifestFunc  manifest_func;  /* Manifest callback */
-	gpointer         manifest_data;  /* Manifest calback data */
-	PkaSampleFunc    sample_func;    /* Sample callback */
-	gpointer         sample_data;    /* Sample callback data */
+	GClosure        *manifest_cb;    /* Manifest callback */
+	GClosure        *sample_cb;      /* Sample callback */
+	//PkaManifestFunc  manifest_func;  /* Manifest callback */
+	//gpointer         manifest_data;  /* Manifest calback data */
+	//PkaSampleFunc    sample_func;    /* Sample callback */
+	//gpointer         sample_data;    /* Sample callback data */
 	gsize            bufsize;        /* Total buffer size */
 	glong            timeout;        /* Buffering timeout in Milliseconds */
 
@@ -175,7 +179,7 @@ pka_subscription_new (PkaChannel      *channel,
 	 */
 	sub = g_slice_new0(PkaSubscription);
 	sub->ref_count = 1;
-	sub->sub_id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
+	sub->id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
 	sub->mutex = g_mutex_new();
 	sub->queue = g_queue_new();
 	sub->disabled = TRUE;
@@ -213,6 +217,21 @@ pka_subscription_new (PkaChannel      *channel,
 	return sub;
 }
 #endif
+
+PkaSubscription*
+pka_subscription_new (void)
+{
+	static gint id_seq = 0;
+	PkaSubscription *sub;
+
+	ENTRY;
+	sub = g_slice_new0(PkaSubscription);
+	sub->id = g_atomic_int_exchange_and_add(&id_seq, 1);
+	sub->disabled = TRUE;
+	sub->mutex = g_mutex_new();
+	sub->ref_count = 1;
+	RETURN(sub);
+}
 
 /**
  * pka_subscription_ref:
@@ -271,7 +290,7 @@ guint
 pka_subscription_get_id (PkaSubscription *subscription)
 {
 	g_return_val_if_fail(subscription != NULL, 0);
-	return subscription->sub_id;
+	return subscription->id;
 }
 
 /**
@@ -325,10 +344,14 @@ static void
 pka_subscription_flush_locked (PkaSubscription *sub)
 {
 	PkaEncoder *encoder = sub->encoder;
-	gchar *buf = NULL;
-	gsize len = 0, n_samples = 0;
+	GValue params[2] = { { 0 } };
+	guint8 *buf = NULL;
+	gsize len = 0;
+	gsize n_samples = 0;
 	PkaSample **samples;
 	gint i;
+
+	ENTRY;
 
 	/*
 	 * Get the samples from the queue.
@@ -338,29 +361,33 @@ pka_subscription_flush_locked (PkaSubscription *sub)
 	for (i = 0; i < n_samples; i++) {
 		samples[i] = g_queue_pop_head(sub->queue);
 	}
+	sub->buflen = 0;
 
 	/*
-	 * Encode the sample buffer.
+	 * Encode the buffer.
 	 */
 	if (!pka_encoder_encode_samples(encoder, sub->manifest, samples,
-	                                n_samples, &buf, &len))
-	{
-	    g_error("%s: An error has occurred while encoding a buffer.  The "
-	            "encoder type is: %s.",
-	            G_STRLOC,
-	            encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
+	                                n_samples, &buf, &len)) {
+		ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
+	                   "encoder type is: %s.",
+		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
 	}
 
 	/*
-	 * Ship the buffer off to the listener.
+	 * Notify the handler via their configured callback.
 	 */
-	sub->sample_func(buf, len, sub->sample_data);
+	if (G_LIKELY(sub->sample_cb)) {
+		g_value_init(&params[0], G_TYPE_POINTER);
+		g_value_init(&params[1], G_TYPE_ULONG);
+		g_value_set_pointer(&params[0], buf);
+		g_value_set_ulong(&params[0], len);
+		g_closure_invoke(sub->sample_cb, NULL, 2, &params[0], NULL);
+		g_value_unset(&params[0]);
+		g_value_unset(&params[1]);
+	}
 
-	/*
-	 * We are done with the buffer.
-	 */
 	g_free(buf);
-	sub->buflen = 0;
+	EXIT;
 }
 
 /**
@@ -442,8 +469,11 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
                                           PkaManifest     *manifest)
 {
 	PkaEncoder *encoder;
-	gchar *buf = NULL;
+	GValue params[2] = { { 0 } };
+	guint8 *buf = NULL;
 	gsize buflen = 0;
+
+	ENTRY;
 
 	/*
 	 * NOTES:
@@ -498,21 +528,24 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 		 *   This should simply kill the subscription in case of failure.
 		 *
 		 */
-	    g_error("%s: An error has occurred while encoding a buffer.  The "
-	            "encoder type is: %s.",
-	            G_STRLOC,
-	            encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
+	    ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
+		               "encoder type is: %s.",
+		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
 	}
 
 	/*
-	 * Call the listener back via their configured callback.
+	 * Call the handler via their configured callback.
 	 */
-	subscription->manifest_func(buf, buflen, subscription->manifest_data);
+	if (G_LIKELY(subscription->manifest_cb)) {
+		g_value_init(&params[0], G_TYPE_POINTER);
+		g_value_init(&params[1], G_TYPE_ULONG);
+		g_closure_invoke(subscription->manifest_cb, NULL, 2, &params[0], NULL);
+		g_value_unset(&params[0]);
+		g_value_unset(&params[1]);
+	}
 
-	/*
-	 * We are finished with the buffer.
-	 */
 	g_free(buf);
+	EXIT;
 }
 
 /**
@@ -589,18 +622,53 @@ pka_subscription_disable (PkaSubscription *subscription,
 	g_return_if_fail(subscription != NULL);
 
 	g_mutex_lock(subscription->mutex);
-
-	/*
-	 * Mark the subscription as disabled.
-	 */
 	subscription->disabled = TRUE;
-
-	/*
-	 * Drain buffered samples if needed.
-	 */
 	if (drain) {
 		pka_subscription_flush_locked(subscription);
 	}
-
 	g_mutex_unlock(subscription->mutex);
+}
+
+/**
+ * pka_subscription_set_handlers:
+ * @subscription: A #PkaSubscription.
+ *
+ * Sets the manifest and sample callback functions for the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_subscription_set_handlers (PkaSubscription *subscription,     /* IN */
+                               PkaManifestFunc  manifest_func,    /* IN */
+                               gpointer         manifest_data,    /* IN */
+                               GDestroyNotify   manifest_destroy, /* IN */
+                               PkaSampleFunc    sample_func,      /* IN */
+                               gpointer         sample_data,      /* IN */
+                               GDestroyNotify   sample_destroy)   /* IN */
+{
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(manifest_func != NULL);
+	g_return_if_fail(sample_func != NULL);
+
+	ENTRY;
+	g_mutex_lock(subscription->mutex);
+	if (subscription->manifest_cb) {
+		g_closure_unref(subscription->manifest_cb);
+	}
+	if (subscription->sample_cb) {
+		g_closure_unref(subscription->sample_cb);
+	}
+	subscription->manifest_cb = g_cclosure_new(G_CALLBACK(manifest_func),
+	                                           manifest_data,
+	                                           (GClosureNotify)manifest_destroy);
+	subscription->sample_cb = g_cclosure_new(G_CALLBACK(sample_func),
+	                                         sample_data,
+	                                         (GClosureNotify)sample_destroy);
+	g_closure_set_marshal(subscription->manifest_cb,
+	                      pka_marshal_VOID__POINTER_ULONG);
+	g_closure_set_marshal(subscription->sample_cb,
+	                      pka_marshal_VOID__POINTER_ULONG);
+	g_mutex_unlock(subscription->mutex);
+	EXIT;
 }
