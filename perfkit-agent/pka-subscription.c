@@ -71,10 +71,6 @@ struct _PkaSubscription
 	PkaEncoder      *encoder;        /* Sample/Manifest encoder */
 	GClosure        *manifest_cb;    /* Manifest callback */
 	GClosure        *sample_cb;      /* Sample callback */
-	//PkaManifestFunc  manifest_func;  /* Manifest callback */
-	//gpointer         manifest_data;  /* Manifest calback data */
-	//PkaSampleFunc    sample_func;    /* Sample callback */
-	//gpointer         sample_data;    /* Sample callback data */
 	gsize            bufsize;        /* Total buffer size */
 	glong            timeout;        /* Buffering timeout in Milliseconds */
 
@@ -93,14 +89,15 @@ static guint subscription_seq = 0;
 static void
 pka_subscription_destroy (PkaSubscription *sub)
 {
-	pka_channel_remove_subscription(sub->channel, sub);
-
-	g_mutex_free(sub->mutex);
-	g_queue_free(sub->queue);
-	g_object_unref(sub->channel);
+	if (sub->channel) {
+		pka_channel_remove_subscription(sub->channel, sub);
+		g_object_unref(sub->channel);
+	}
 	if (sub->encoder) {
 		g_object_unref(sub->encoder);
 	}
+	g_queue_free(sub->queue);
+	g_mutex_free(sub->mutex);
 
 	memset(sub, 0, sizeof(*sub));
 }
@@ -228,6 +225,7 @@ pka_subscription_new (void)
 	sub = g_slice_new0(PkaSubscription);
 	sub->id = g_atomic_int_exchange_and_add(&id_seq, 1);
 	sub->disabled = TRUE;
+	sub->queue = g_queue_new();
 	sub->mutex = g_mutex_new();
 	sub->ref_count = 1;
 	RETURN(sub);
