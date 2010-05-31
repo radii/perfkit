@@ -3480,8 +3480,6 @@ pka_listener_dbus_dispatch_manifest (PkaSubscription *subscription, /* IN */
                                      gpointer         user_data)    /* IN */
 {
 	ENTRY;
-	INFO(Subscription, "Deliver manifest to subscription %d",
-	     pka_subscription_get_id(subscription));
 	EXIT;
 }
 
@@ -3492,8 +3490,6 @@ pka_listener_dbus_dispatch_sample (PkaSubscription *subscription, /* IN */
                                    gpointer         user_data)    /* IN */
 {
 	ENTRY;
-	INFO(Subscription, "Deliver sample to subscription %d",
-	     pka_subscription_get_id(subscription));
 	EXIT;
 }
 

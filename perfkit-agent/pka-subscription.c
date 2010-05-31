@@ -26,6 +26,11 @@
 #include "pka-subscription.h"
 #include "pka-log.h"
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Subscription"
+
 #define G_MSEC_PER_SEC (1000)
 
 /**
@@ -387,6 +392,8 @@ pka_subscription_flush_locked (PkaSubscription *sub)
 		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
 	}
 
+	DUMP_BYTES(Sample, buf, len);
+
 	/*
 	 * Notify the handler via their configured callback.
 	 */
@@ -549,6 +556,8 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 		               "encoder type is: %s.",
 		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
 	}
+
+	DUMP_BYTES(Manifest, buf, buflen);
 
 	/*
 	 * Call the handler via their configured callback.

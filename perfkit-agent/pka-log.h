@@ -62,6 +62,32 @@
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "BREAK: %s():%d", G_STRFUNC, __LINE__);                   \
     break
+#define DUMP_BYTES(_n, _b, _l)                                      \
+    G_STMT_START {                                                  \
+        GString *str;                                               \
+        gint _i;                                                    \
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+              "        %s = %p [%d]", #_n, _b, (gint)_l);           \
+        str = g_string_sized_new(80);                               \
+        for (_i = 0; _i < _l; _i++) {                               \
+            if ((_i % 16) == 0) {                                   \
+                g_string_append_printf(str, "%06x ", _i);           \
+            }                                                       \
+            g_string_append_printf(str, " %02x", _b[_i]);           \
+            if ((_i % 16) == 15) {                                  \
+                g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,              \
+                      "%s", str->str);                              \
+                g_string_truncate(str, 0);                          \
+            } else if ((_i % 16) == 7) {                            \
+                g_string_append(str, " ");                          \
+            }                                                       \
+        }                                                           \
+        if (_i != 16) {                                             \
+            g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                  \
+                  "%s", str->str);                                  \
+        }                                                           \
+        g_string_free(str, TRUE);                                   \
+    } G_STMT_END
 #else
 #define TRACE(_d, _f, ...)
 #define ENTRY
@@ -70,6 +96,7 @@
 #define GOTO(_l)   goto _l
 #define CASE(_l)   case _l:
 #define BREAK      break
+#define DUMP_BYTES(_n, _b, _l)
 #endif
 
 #define CASE_RETURN_STR(_l) case _l: return #_l
