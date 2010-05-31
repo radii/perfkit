@@ -102,6 +102,22 @@ pka_subscription_destroy (PkaSubscription *sub)
 	memset(sub, 0, sizeof(*sub));
 }
 
+GType
+pka_subscription_get_type (void)
+{
+	static gsize initialized = FALSE;
+	static GType type_id = 0;
+
+	if (g_once_init_enter(&initialized)) {
+		type_id = g_boxed_type_register_static("PkaSubscription",
+		                                       (GBoxedCopyFunc)pka_subscription_ref,
+		                                       (GBoxedFreeFunc)pka_subscription_unref);
+		g_once_init_leave(&initialized, TRUE);
+	}
+
+	return type_id;
+}
+
 #if 0
 static gboolean
 pka_subscription_timeout_cb (PkaSubscription *sub)
@@ -342,7 +358,7 @@ static void
 pka_subscription_flush_locked (PkaSubscription *sub)
 {
 	PkaEncoder *encoder = sub->encoder;
-	GValue params[2] = { { 0 } };
+	GValue params[3] = { { 0 } };
 	guint8 *buf = NULL;
 	gsize len = 0;
 	gsize n_samples = 0;
@@ -375,13 +391,16 @@ pka_subscription_flush_locked (PkaSubscription *sub)
 	 * Notify the handler via their configured callback.
 	 */
 	if (G_LIKELY(sub->sample_cb)) {
-		g_value_init(&params[0], G_TYPE_POINTER);
-		g_value_init(&params[1], G_TYPE_ULONG);
-		g_value_set_pointer(&params[0], buf);
-		g_value_set_ulong(&params[0], len);
-		g_closure_invoke(sub->sample_cb, NULL, 2, &params[0], NULL);
+		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
+		g_value_init(&params[1], G_TYPE_POINTER);
+		g_value_init(&params[2], G_TYPE_ULONG);
+		g_value_set_boxed(&params[0], sub);
+		g_value_set_pointer(&params[1], buf);
+		g_value_set_ulong(&params[2], len);
+		g_closure_invoke(sub->sample_cb, NULL, 3, &params[0], NULL);
 		g_value_unset(&params[0]);
 		g_value_unset(&params[1]);
+		g_value_unset(&params[2]);
 	}
 
 	g_free(buf);
@@ -467,7 +486,7 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
                                           PkaManifest     *manifest)
 {
 	PkaEncoder *encoder;
-	GValue params[2] = { { 0 } };
+	GValue params[3] = { { 0 } };
 	guint8 *buf = NULL;
 	gsize buflen = 0;
 
@@ -501,7 +520,7 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 		 */
 		g_assert_cmpint(g_queue_get_length(subscription->queue), ==, 0);
 		SWAP_MANIFEST(subscription, manifest);
-		return;
+		EXIT;
 	}
 
 	/*
@@ -535,11 +554,16 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 	 * Call the handler via their configured callback.
 	 */
 	if (G_LIKELY(subscription->manifest_cb)) {
-		g_value_init(&params[0], G_TYPE_POINTER);
-		g_value_init(&params[1], G_TYPE_ULONG);
-		g_closure_invoke(subscription->manifest_cb, NULL, 2, &params[0], NULL);
+		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
+		g_value_init(&params[1], G_TYPE_POINTER);
+		g_value_init(&params[2], G_TYPE_ULONG);
+		g_value_set_boxed(&params[0], subscription);
+		g_value_set_pointer(&params[1], buf);
+		g_value_set_ulong(&params[2], buflen);
+		g_closure_invoke(subscription->manifest_cb, NULL, 3, &params[0], NULL);
 		g_value_unset(&params[0]);
 		g_value_unset(&params[1]);
+		g_value_unset(&params[2]);
 	}
 
 	g_free(buf);
