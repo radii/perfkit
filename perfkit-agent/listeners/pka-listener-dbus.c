@@ -3474,20 +3474,26 @@ pka_listener_dbus_subscription_unmute_cb (GObject      *listener,  /* IN */
 }
 
 static void
-pka_listener_dbus_dispatch_manifest (const guint8 *data,      /* IN */
-                                     gsize         data_len,  /* IN */
-                                     gpointer      user_data) /* IN */
+pka_listener_dbus_dispatch_manifest (PkaSubscription *subscription, /* IN */
+                                     const guint8    *data,         /* IN */
+                                     gsize            data_len,     /* IN */
+                                     gpointer         user_data)    /* IN */
 {
 	ENTRY;
+	INFO(Subscription, "Deliver manifest to subscription %d",
+	     pka_subscription_get_id(subscription));
 	EXIT;
 }
 
 static void
-pka_listener_dbus_dispatch_sample (const guint8 *data,      /* IN */
-                                   gsize         data_len,  /* IN */
-                                   gpointer      user_data) /* IN */
+pka_listener_dbus_dispatch_sample (PkaSubscription *subscription, /* IN */
+                                   const guint8    *data,         /* IN */
+                                   gsize            data_len,     /* IN */
+                                   gpointer         user_data)    /* IN */
 {
 	ENTRY;
+	INFO(Subscription, "Deliver sample to subscription %d",
+	     pka_subscription_get_id(subscription));
 	EXIT;
 }
 

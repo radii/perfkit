@@ -35,26 +35,6 @@ G_BEGIN_DECLS
 #define PKA_TYPE_SUBSCRIPTION (pka_subscription_get_type())
 
 /**
- * PkaManifestFunc:
- * @buf: A buffer containing the encoded manifest
- * @buflen: The length of @buf in bytes
- * @user_data: user data provided to pka_subscription_new().
- *
- * Callback to receive an encoded manifest when it is ready.
- */
-typedef void (*PkaManifestFunc) (const guint8 *buf, gsize buflen, gpointer user_data);
-
-/**
- * PkaSampleFunc:
- * @buf: A buffer containing the encoded sample
- * @buflen: The length of @buf in bytes
- * @user_data: user data provided to pka_subscription_new().
- *
- * Callback to receive an encoded stream of samples when they are ready.
- */
-typedef void (*PkaSampleFunc) (const guint8 *buf, gsize buflen, gpointer user_data);
-
-/**
  * PkaSubscription:
  *
  * #PkaSubscription is an opaque type representing a particular set of data
@@ -64,6 +44,32 @@ typedef void (*PkaSampleFunc) (const guint8 *buf, gsize buflen, gpointer user_da
  * to simply ship the bytes off to the client.
  */
 typedef struct _PkaSubscription PkaSubscription;
+
+/**
+ * PkaManifestFunc:
+ * @buf: A buffer containing the encoded manifest
+ * @buflen: The length of @buf in bytes
+ * @user_data: user data provided to pka_subscription_new().
+ *
+ * Callback to receive an encoded manifest when it is ready.
+ */
+typedef void (*PkaManifestFunc) (PkaSubscription *subscription,
+                                 const guint8    *buf,
+                                 gsize            buflen,
+                                 gpointer         user_data);
+
+/**
+ * PkaSampleFunc:
+ * @buf: A buffer containing the encoded sample
+ * @buflen: The length of @buf in bytes
+ * @user_data: user data provided to pka_subscription_new().
+ *
+ * Callback to receive an encoded stream of samples when they are ready.
+ */
+typedef void (*PkaSampleFunc) (PkaSubscription *subscription,
+                               const guint8    *buf,
+                               gsize            buflen,
+                               gpointer         user_data);
 
 #if 0
 PkaSubscription* pka_subscription_new         (PkaChannel      *channel,
