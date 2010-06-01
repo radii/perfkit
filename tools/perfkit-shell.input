@@ -19,3 +19,8 @@ channel set-env $channel 'KEY1=VALUE1 KEY2=VALUE2'
 # Start the channel (spawns process)
 channel start $channel
 
+# Create a subscription and start the flood gates for testing
+manager add-subscription 0 0
+subscription=$1
+subscription add-channel $subscription $channel False
+subscription unmute $subscription
