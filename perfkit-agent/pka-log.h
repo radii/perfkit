@@ -64,29 +64,38 @@
     break
 #define DUMP_BYTES(_n, _b, _l)                                      \
     G_STMT_START {                                                  \
-        GString *str;                                               \
+        GString *str, *astr;                                        \
         gint _i;                                                    \
         g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
               "        %s = %p [%d]", #_n, _b, (gint)_l);           \
         str = g_string_sized_new(80);                               \
+        astr = g_string_sized_new(16);                              \
         for (_i = 0; _i < _l; _i++) {                               \
             if ((_i % 16) == 0) {                                   \
                 g_string_append_printf(str, "%06x ", _i);           \
             }                                                       \
             g_string_append_printf(str, " %02x", _b[_i]);           \
+            if (g_ascii_isprint(_b[_i])) {                          \
+                g_string_append_printf(astr, " %c", _b[_i]);        \
+            } else {                                                \
+                g_string_append(astr, " .");                        \
+            }                                                       \
             if ((_i % 16) == 15) {                                  \
                 g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,              \
-                      "%s", str->str);                              \
+                      "%s  %s", str->str, astr->str);               \
                 g_string_truncate(str, 0);                          \
+                g_string_truncate(astr, 0);                         \
             } else if ((_i % 16) == 7) {                            \
                 g_string_append(str, " ");                          \
+                g_string_append(astr, " ");                         \
             }                                                       \
         }                                                           \
         if (_i != 16) {                                             \
             g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                  \
-                  "%s", str->str);                                  \
+                  "%-56s  %s", str->str, astr->str);                \
         }                                                           \
         g_string_free(str, TRUE);                                   \
+        g_string_free(astr, TRUE);                                  \
     } G_STMT_END
 #else
 #define TRACE(_d, _f, ...)
