@@ -526,6 +526,9 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 		 * store the new one for when we are enabled and flushing occurs.
 		 */
 		g_assert_cmpint(g_queue_get_length(subscription->queue), ==, 0);
+		/*
+		 * TODO: This needs to handle multiple sources.
+		 */
 		SWAP_MANIFEST(subscription, manifest);
 		EXIT;
 	}
