@@ -3479,7 +3479,41 @@ pka_listener_dbus_dispatch_manifest (PkaSubscription *subscription, /* IN */
                                      gsize            data_len,     /* IN */
                                      gpointer         user_data)    /* IN */
 {
+	PkaListenerDBusPrivate *priv;
+	Handler *handler;
+	gint subscription_id;
+	DBusMessage *message;
+
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(data != NULL);
+	g_return_if_fail(data_len > 0);
+	g_return_if_fail(PKA_IS_LISTENER_DBUS(user_data));
+
 	ENTRY;
+	priv = PKA_LISTENER_DBUS(user_data)->priv;
+	subscription_id = pka_subscription_get_id(subscription);
+	if (!(handler = g_hash_table_lookup(priv->handlers, &subscription_id))) {
+		WARNING(DBus, "Received manifest with no active handler for "
+		              "subscription %d.", subscription_id);
+		EXIT;
+	}
+	if (!(message = dbus_message_new_method_call(NULL, handler->path,
+	                                             "org.perfkit.Agent.Handler",
+	                                             "SendManifest"))) {
+		GOTO(oom);
+	}
+	if (!dbus_message_append_args(message,
+	                              DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, data_len,
+	                              DBUS_TYPE_INVALID)) {
+	    dbus_message_unref(message);
+	    GOTO(oom);
+	}
+	/*
+	 * TODO: Handle failure notification and detach subscription.
+	 */
+	dbus_connection_send(handler->client, message, NULL);
+	dbus_message_unref(message);
+  oom:
 	EXIT;
 }
 
@@ -3702,6 +3736,8 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			Handler *handler = NULL;
 			PkaSubscription *sub = NULL;
 			GError *error = NULL;
+			DBusConnection *client = NULL;
+			Peer *peer = NULL;
 
 			INFO(Subscription, "Received SetHandler request.");
 
@@ -3721,10 +3757,24 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 				g_error_free(error);
 				GOTO(oom);
 			}
+			g_mutex_lock(priv->mutex);
+			peer = g_hash_table_lookup(priv->peers, dbus_message_get_sender(message));
+			if (peer && peer->connection) {
+				client = dbus_connection_ref(peer->connection);
+			}
+			g_mutex_unlock(priv->mutex);
+			if (!peer || !peer->connection) {
+				reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+				                               "Must call Manager::SetDeliveryPath before "
+				                               "setting subscription handlers.");
+				dbus_connection_send(connection, reply, NULL);
+				GOTO(oom);
+			}
 			g_static_rw_lock_writer_lock(&priv->handlers_lock);
 			handler = g_slice_new0(Handler);
 			handler->subscription = subscription;
 			handler->path = g_strdup(handler_path);
+			handler->client = client;
 			g_hash_table_insert(priv->handlers, &handler->subscription, handler);
 			pka_subscription_set_handlers(sub,
 			                              pka_listener_dbus_dispatch_manifest,
