@@ -1057,6 +1057,11 @@ pka_channel_deliver_sample (PkaChannel *channel,
 	g_return_if_fail(source != NULL);
 	g_return_if_fail(sample != NULL);
 
+	ENTRY;
+	TRACE(Channel, "Channel %d (%p) received sample from source %d (%p).",
+	      pka_channel_get_id(channel), channel,
+	      pka_source_get_id(source), source);
+
 	/*
 	 * NOTES:
 	 *
@@ -1076,7 +1081,7 @@ pka_channel_deliver_sample (PkaChannel *channel,
 	 * Drop the sample if we are not currently recording samples.
 	 */
 	if (priv->state != PKA_CHANNEL_RUNNING) {
-		goto unlock;
+		GOTO(unlock);
 	}
 
 	/*
@@ -1091,6 +1096,7 @@ pka_channel_deliver_sample (PkaChannel *channel,
 
 unlock:
 	g_mutex_unlock(priv->mutex);
+	EXIT;
 }
 
 /**
@@ -1118,6 +1124,10 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	g_return_if_fail(manifest != NULL);
 
 	ENTRY;
+	TRACE(Channel, "Channel %d (%p) received manifest from source %d (%p).",
+	      pka_channel_get_id(channel), channel,
+	      pka_source_get_id(source), source);
+
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
 
@@ -1133,6 +1143,7 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 * Look up source index and store in manifest.
 	 */
 	idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+	TRACE(Channel, "Setting manifest source id to %d.", idx);
 	pka_manifest_set_source_id(manifest, idx);
 
 	/*
@@ -1200,6 +1211,9 @@ pka_channel_add_subscription (PkaChannel      *channel,      /* IN */
 	ENTRY;
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
+	TRACE(Channel, "Notifying subscription %d of %d manifests.",
+	      pka_subscription_get_id(subscription),
+	      g_tree_nnodes(priv->manifests));
 	g_ptr_array_add(priv->subs, pka_subscription_ref(subscription));
 	if ((priv->state & (PKA_CHANNEL_RUNNING | PKA_CHANNEL_MUTED)) != 0) {
 		g_tree_foreach(priv->manifests,
