@@ -2,5 +2,6 @@ libperfkit-agent.la
 perfkit-agent
 pka-version.h
 perfkit-agent.valgrind
+perfkit-agent.log
 pka-marshal.h
 pka-marshal.c

@@ -120,8 +120,9 @@ pka-marshal.c pka-marshal.h: pka-marshal.list
 	$(GLIB_GENMARSHAL) --body --prefix=pka_marshal $(srcdir)/pka-marshal.list > $(builddir)/pka-marshal.c
 
 run: perfkit-agent
+	@rm -f $(builddir)/perfkit-agent.log
 	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
-	$(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf
+	$(builddir)/perfkit-agent --stdout -c $(srcdir)/agent.conf --log=$(builddir)/perfkit-agent.log
 
 debug:
 	@PERFKIT_PLUGINS_PATH=$(builddir)/sources/.libs:$(builddir)/listeners/.libs:$(builddir)/encoders/.libs \
