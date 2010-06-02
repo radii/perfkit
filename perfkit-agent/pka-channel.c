@@ -1082,16 +1082,22 @@ pka_channel_deliver_sample (PkaChannel *channel,
 	}
 
 	/*
+	 * Set the source index in the sample.  We may do something fancy here to
+	 * make the source id numbers smaller in the future.  I suggest we hold off
+	 * for now on that.
+	 */
+	//idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+	idx = pka_source_get_id(source);
+	pka_sample_set_source_id(sample, idx);
+
+	/*
 	 * Pass the sample to all of the observing subscriptions.
 	 */
 	for (i = 0; i < priv->subs->len; i++) {
-		idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
-		pka_sample_set_source_id(sample, idx);
-		pka_subscription_deliver_sample(priv->subs->pdata[i],
-		                                sample);
+		pka_subscription_deliver_sample(priv->subs->pdata[i], sample);
 	}
 
-unlock:
+  unlock:
 	g_mutex_unlock(priv->mutex);
 	EXIT;
 }
@@ -1137,9 +1143,10 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 */
 
 	/*
-	 * Look up source index and store in manifest.
+	 * Look up relative source index and store in manifest. (NOT YET)
 	 */
-	idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+	//idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
+	idx = pka_source_get_id(source);
 	TRACE(Channel, "Setting manifest source id to %d.", idx);
 	pka_manifest_set_source_id(manifest, idx);
 
