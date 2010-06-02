@@ -393,6 +393,30 @@ pka_manifest_set_source_id (PkaManifest *manifest,
 }
 
 /**
+ * pka_manifest_compare:
+ * @a: A #PkaManifest.
+ * @b: A #PkaManifest.
+ *
+ * Standard qsort() style compare function.
+ *
+ * Returns: Less than zero if @a precedes @b. Greater than zero if @b
+ *   precedes @a. Otherwise, zero.
+ * Side effects: None.
+ */
+gint
+pka_manifest_compare (gconstpointer a, /* IN */
+                      gconstpointer b) /* IN */
+{
+	gint aid;
+	gint bid;
+
+	aid = pka_manifest_get_source_id((PkaManifest *)a);
+	bid = pka_manifest_get_source_id((PkaManifest *)b);
+
+	return aid - bid;
+}
+
+/**
  * pka_manifest_get_type:
  *
  * Returns: the #PkaManifest #GType.

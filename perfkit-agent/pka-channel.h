@@ -93,6 +93,8 @@ struct _PkaChannelClass
 
 GType           pka_channel_get_type        (void) G_GNUC_CONST;
 GQuark          pka_channel_error_quark     (void) G_GNUC_CONST;
+gint            pka_channel_compare         (gconstpointer a,
+                                             gconstpointer b);
 PkaChannel*     pka_channel_new             (void);
 guint           pka_channel_get_id          (PkaChannel   *channel);
 PkaChannelState pka_channel_get_state       (PkaChannel   *channel);

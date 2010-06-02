@@ -56,6 +56,8 @@ typedef enum
 } PkaResolution;
 
 GType            pka_manifest_get_type       (void) G_GNUC_CONST;
+gint             pka_manifest_compare        (gconstpointer  a,
+                                              gconstpointer  b);
 PkaManifest*     pka_manifest_new            (void);
 PkaManifest*     pka_manifest_sized_new      (gint           size);
 PkaManifest*     pka_manifest_ref            (PkaManifest   *manifest);

@@ -1344,20 +1344,21 @@ pka_channel_class_init (PkaChannelClass *klass)
 }
 
 /**
- * pka_channel_compare_manifest:
- * @a: A #PkaManifest.
- * @b: A #PkaManifest.
+ * pka_channel_compare:
+ * @a: A #PkaChannel.
+ * @b: A #PkaChannel.
  *
- * Sort compare function to sort manifests.
+ * Standard qsort() style compare function.
  *
- * Returns: the sort order.
+ * Returns: Less than zero if a precedes b. Greater than zero if b precedes a.
+ *   Otherwise, zero.
  * Side effects: None.
  */
-static gint
-pka_channel_compare_manifest (gconstpointer a, /* IN */
-                              gconstpointer b) /* IN */
+gint
+pka_channel_compare (gconstpointer a, /* IN */
+                     gconstpointer b) /* IN */
 {
-	return (a == b) ? 0 : (a - b);
+	return ((PkaChannel *)a)->priv->id - ((PkaChannel *)b)->priv->id;
 }
 
 /**
@@ -1379,9 +1380,9 @@ pka_channel_init (PkaChannel *channel) /* IN */
 	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
-	channel->priv->indexed = g_tree_new(pka_channel_compare_manifest);
+	channel->priv->indexed = g_tree_new(pka_manifest_compare);
 	channel->priv->manifests = g_tree_new_full(
-		(GCompareDataFunc)pka_channel_compare_manifest,
+		(GCompareDataFunc)pka_manifest_compare,
 		NULL, NULL,
 		(GDestroyNotify)pka_manifest_unref);
 	channel->priv->id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
