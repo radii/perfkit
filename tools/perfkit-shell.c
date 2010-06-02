@@ -184,8 +184,8 @@ pk_shell_parse_boolean (const gchar *str,    /* IN */
  */
 static void
 pk_shell_channel_add_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -258,8 +258,8 @@ pk_shell_channel_add_source (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_args_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                              GAsyncResult  *result,    /* IN */
+                              gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -339,8 +339,8 @@ pk_shell_channel_get_args (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_env_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                             GAsyncResult  *result,    /* IN */
+                             gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -420,8 +420,8 @@ pk_shell_channel_get_env (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_exit_status_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                     GAsyncResult  *result,    /* IN */
+                                     gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -497,8 +497,8 @@ pk_shell_channel_get_exit_status (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_kill_pid_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                  GAsyncResult  *result,    /* IN */
+                                  gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -571,8 +571,8 @@ pk_shell_channel_get_kill_pid (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_pid_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                             GAsyncResult  *result,    /* IN */
+                             gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -648,8 +648,8 @@ pk_shell_channel_get_pid (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_pid_set_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -722,8 +722,8 @@ pk_shell_channel_get_pid_set (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_sources_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -810,8 +810,8 @@ pk_shell_channel_get_sources (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_state_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                               GAsyncResult  *result,    /* IN */
+                               gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -888,8 +888,8 @@ pk_shell_channel_get_state (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_target_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -962,8 +962,8 @@ pk_shell_channel_get_target (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_get_working_dir_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                     GAsyncResult  *result,    /* IN */
+                                     gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1036,8 +1036,8 @@ pk_shell_channel_get_working_dir (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_mute_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                          GAsyncResult  *result,    /* IN */
+                          gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1105,8 +1105,8 @@ pk_shell_channel_mute (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_args_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                              GAsyncResult  *result,    /* IN */
+                              gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1179,8 +1179,8 @@ pk_shell_channel_set_args (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_env_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                             GAsyncResult  *result,    /* IN */
+                             gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1253,8 +1253,8 @@ pk_shell_channel_set_env (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_kill_pid_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                  GAsyncResult  *result,    /* IN */
+                                  gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1327,8 +1327,8 @@ pk_shell_channel_set_kill_pid (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_pid_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                             GAsyncResult  *result,    /* IN */
+                             gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1401,8 +1401,8 @@ pk_shell_channel_set_pid (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_target_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1473,8 +1473,8 @@ pk_shell_channel_set_target (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_set_working_dir_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                     GAsyncResult  *result,    /* IN */
+                                     gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1545,8 +1545,8 @@ pk_shell_channel_set_working_dir (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_start_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                           GAsyncResult  *result,    /* IN */
+                           gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1614,8 +1614,8 @@ pk_shell_channel_start (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_stop_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                          GAsyncResult  *result,    /* IN */
+                          gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1683,8 +1683,8 @@ pk_shell_channel_stop (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_channel_unmute_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                            GAsyncResult  *result,    /* IN */
+                            gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1752,8 +1752,8 @@ pk_shell_channel_unmute (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_encoder_get_plugin_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1826,8 +1826,8 @@ pk_shell_encoder_get_plugin (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_add_channel_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1897,8 +1897,8 @@ pk_shell_manager_add_channel (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_add_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -1999,8 +1999,8 @@ set_handlers_cb (GObject      *source,    /* IN */
  */
 static void
 pk_shell_manager_add_subscription_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                      GAsyncResult  *result,    /* IN */
+                                      gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2180,8 +2180,8 @@ pk_shell_manager_get_channels (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_get_plugins_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2255,8 +2255,8 @@ pk_shell_manager_get_plugins (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_get_sources_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2338,8 +2338,8 @@ pk_shell_manager_get_sources (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_get_version_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2406,8 +2406,8 @@ pk_shell_manager_get_version (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_ping_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                          GAsyncResult  *result,    /* IN */
+                          gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2477,8 +2477,8 @@ pk_shell_manager_ping (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_remove_channel_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                    GAsyncResult  *result,    /* IN */
+                                    gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2551,8 +2551,8 @@ pk_shell_manager_remove_channel (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_remove_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                   GAsyncResult  *result,    /* IN */
+                                   gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2620,8 +2620,8 @@ pk_shell_manager_remove_source (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_manager_remove_subscription_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                         GAsyncResult  *result,    /* IN */
+                                         gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2694,8 +2694,8 @@ pk_shell_manager_remove_subscription (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_plugin_get_copyright_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                  GAsyncResult  *result,    /* IN */
+                                  gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2766,8 +2766,8 @@ pk_shell_plugin_get_copyright (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_plugin_get_description_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                    GAsyncResult  *result,    /* IN */
+                                    gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2838,8 +2838,8 @@ pk_shell_plugin_get_description (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_plugin_get_name_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                             GAsyncResult  *result,    /* IN */
+                             gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2910,8 +2910,8 @@ pk_shell_plugin_get_name (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_plugin_get_plugin_type_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                    GAsyncResult  *result,    /* IN */
+                                    gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -2985,8 +2985,8 @@ pk_shell_plugin_get_plugin_type (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_plugin_get_version_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                GAsyncResult  *result,    /* IN */
+                                gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3057,8 +3057,8 @@ pk_shell_plugin_get_version (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_source_get_plugin_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                               GAsyncResult  *result,    /* IN */
+                               gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3131,8 +3131,8 @@ pk_shell_source_get_plugin (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_add_channel_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                      GAsyncResult  *result,    /* IN */
+                                      gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3210,8 +3210,8 @@ pk_shell_subscription_add_channel (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_add_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                     GAsyncResult  *result,    /* IN */
+                                     gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3284,8 +3284,8 @@ pk_shell_subscription_add_source (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_mute_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                               GAsyncResult  *result,    /* IN */
+                               gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3358,8 +3358,8 @@ pk_shell_subscription_mute (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_remove_channel_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                         GAsyncResult  *result,    /* IN */
+                                         gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3432,8 +3432,8 @@ pk_shell_subscription_remove_channel (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_remove_source_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                        GAsyncResult  *result,    /* IN */
+                                        gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3506,8 +3506,8 @@ pk_shell_subscription_remove_source (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_set_buffer_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                     GAsyncResult  *result,    /* IN */
+                                     gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3585,8 +3585,8 @@ pk_shell_subscription_set_buffer (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_set_encoder_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                      GAsyncResult  *result,    /* IN */
+                                      gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
@@ -3659,8 +3659,8 @@ pk_shell_subscription_set_encoder (EggLine  *line,   /* IN */
  */
 static void
 pk_shell_subscription_unmute_cb (GObject       *object,    /* IN */
-            GAsyncResult  *result,    /* IN */
-            gpointer       user_data) /* IN */
+                                 GAsyncResult  *result,    /* IN */
+                                 gpointer       user_data) /* IN */
 {
 	AsyncTask *task = user_data;
 
