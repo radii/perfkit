@@ -20,6 +20,12 @@
 #include "config.h"
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Manifest"
+
+#include "pka-log.h"
 #include "pka-manifest.h"
 
 /**
@@ -66,18 +72,13 @@ pka_manifest_destroy (PkaManifest *manifest)
 	PkaManifestRow *row;
 	gint i;
 
-	/*
-	 * Free strings in rows.  We copy the entire structure, which is okay.
-	 */
+	ENTRY;
 	for (i = 0; i < manifest->rows->len; i++) {
 		row = &g_array_index(manifest->rows, PkaManifestRow, i);
 		g_free(row->name);
 	}
-
-	/*
-	 * Free row array.
-	 */
 	g_array_unref(manifest->rows);
+	EXIT;
 }
 
 /**

@@ -31,7 +31,53 @@
 #endif
 #define G_LOG_DOMAIN "Subscription"
 
+#define G_OBJECT_UNREF(o) (o ? (g_object_unref(o), NULL) : NULL)
+#define G_CLOSURE_UNREF(o) (o ? (g_closure_unref(o), NULL) : NULL)
+
 #define G_MSEC_PER_SEC (1000)
+
+#define STORE_MANIFEST(s, m)                                                \
+    G_STMT_START {                                                          \
+        gint *_k;                                                           \
+        _k = g_new(gint, 1);                                                \
+        *_k = pka_manifest_get_source_id((m));                              \
+        TRACE(Subscription, "Storing manifest for source %d.", *_k);        \
+        g_tree_insert((s)->manifests, _k, pka_manifest_ref((m)));           \
+    } G_STMT_END
+
+#define NOTIFY_MANIFEST_HANDLER(s, m)                                       \
+    G_STMT_START {                                                          \
+        GValue params[3] = { { 0 } };                                       \
+        if (G_LIKELY((s)->manifest_cb)) {                                   \
+            g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);                \
+            g_value_init(&params[1], G_TYPE_POINTER);                       \
+            g_value_init(&params[2], G_TYPE_ULONG);                         \
+            g_value_set_boxed(&params[0], subscription);                    \
+            g_value_set_pointer(&params[1], buf);                           \
+            g_value_set_ulong(&params[2], buflen);                          \
+            g_closure_invoke(subscription->manifest_cb, NULL,               \
+                             3, &params[0], NULL);                          \
+            g_value_unset(&params[0]);                                      \
+            g_value_unset(&params[1]);                                      \
+            g_value_unset(&params[2]);                                      \
+        }                                                                   \
+    } G_STMT_END
+
+#define NOTIFY_SAMPLE_HANDLER(s, b, l)                                      \
+    G_STMT_START {                                                          \
+        if (G_LIKELY(sub->sample_cb)) {                                     \
+            g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);                \
+            g_value_init(&params[1], G_TYPE_POINTER);                       \
+            g_value_init(&params[2], G_TYPE_ULONG);                         \
+            g_value_set_boxed(&params[0], sub);                             \
+            g_value_set_pointer(&params[1], buf);                           \
+            g_value_set_ulong(&params[2], buflen);                          \
+            g_closure_invoke(sub->sample_cb, NULL, 3, &params[0], NULL);    \
+            g_value_unset(&params[0]);                                      \
+            g_value_unset(&params[1]);                                      \
+            g_value_unset(&params[2]);                                      \
+        }                                                                   \
+    } G_STMT_END
 
 /**
  * SECTION:pka-subscription
@@ -40,7 +86,8 @@
  *
  * #PkaSubscription encapsulates the work required to transfer data
  * streams between the agent and clients.  A subscription consists
- * of a #PkaChannel to be observed and various buffering settings.
+ * of channels, sources.  In the future, this may support fields within
+ * sources directly.
  *
  * The subscription receives events about data format changes and
  * the data itself from the #PkaChannel it is subscribed to.  Information
@@ -55,12 +102,6 @@
  * encryption, or similar.
  */
 
-#define SWAP_MANIFEST(s,m) G_STMT_START {  \
-    if ((s)->manifest)                     \
-        pka_manifest_unref((s)->manifest); \
-    (s)->manifest = pka_manifest_ref((m)); \
-} G_STMT_END
-
 extern void pka_channel_add_subscription    (PkaChannel      *channel,
                                              PkaSubscription *sub);
 extern void pka_channel_remove_subscription (PkaChannel      *channel,
@@ -69,44 +110,61 @@ static void pka_subscription_flush_locked   (PkaSubscription *sub);
 
 struct _PkaSubscription
 {
-	guint            id;
 	volatile gint    ref_count;
-
-	PkaChannel      *channel;        /* Our producing channel */
-	PkaEncoder      *encoder;        /* Sample/Manifest encoder */
-	GClosure        *manifest_cb;    /* Manifest callback */
-	GClosure        *sample_cb;      /* Sample callback */
-	gsize            bufsize;        /* Total buffer size */
-	glong            timeout;        /* Buffering timeout in Milliseconds */
-
+	guint            id;             /* Monotonic subscription id */
 	GMutex          *mutex;          /* Synchronization mutex */
-	GQueue          *queue;          /* Queue for delivering samples */
+	PkaEncoder      *encoder;        /* Sample/Manifest encoder */
+	GClosure        *manifest_cb;    /* Manifest callback closure */
+	GClosure        *sample_cb;      /* Sample callback closure */
+	gsize            maxbuf;         /* Maxiumum buffer size */
+	glong            timeout;        /* Buffering timeout in milliseconds */
 	gboolean         muted;          /* Subscription is muted (default) */
+	GTree           *channels;       /* Subscriptions channels */
+	GTree           *manifests;      /* Manifests by source id */
+	GQueue          *queue;          /* Queue of pending samples */
 	gsize            buflen;         /* Current buffer length */
-	PkaManifest     *manifest;       /* Our current manifest */
-	gboolean         finished;       /* Subscription has completed */
+
+	//PkaChannel      *channel;        /* Our producing channel */
+	//PkaManifest     *manifest;       /* Our current manifest */
+	//gboolean         finished;       /* Subscription has completed */
 };
 
-#if 0
-static guint subscription_seq = 0;
-#endif
-
+/**
+ * pka_subscription_destroy:
+ * @subscription: A #PkaSubscription.
+ *
+ * Destroy calback when the subscriptions reference count has reached zero.
+ * The subscriptions resources are released.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-pka_subscription_destroy (PkaSubscription *sub)
+pka_subscription_destroy (PkaSubscription *subscription) /* IN */
 {
-	if (sub->channel) {
-		pka_channel_remove_subscription(sub->channel, sub);
-		g_object_unref(sub->channel);
-	}
-	if (sub->encoder) {
-		g_object_unref(sub->encoder);
-	}
-	g_queue_free(sub->queue);
-	g_mutex_free(sub->mutex);
+	PkaSample *sample;
 
-	memset(sub, 0, sizeof(*sub));
+	while (!g_queue_is_empty(subscription->queue)) {
+		sample = g_queue_pop_head(subscription->queue);
+		pka_sample_unref(sample);
+	}
+
+	g_mutex_free(subscription->mutex);
+	G_OBJECT_UNREF(subscription->encoder);
+	G_CLOSURE_UNREF(subscription->manifest_cb);
+	G_CLOSURE_UNREF(subscription->sample_cb);
+	g_tree_destroy(subscription->channels);
+	g_queue_free(subscription->queue);
 }
 
+/**
+ * pka_subscription_get_type:
+ *
+ * Retrieves the #GType of the subscription.
+ *
+ * Returns: A #GType.
+ * Side effects: None.
+ */
 GType
 pka_subscription_get_type (void)
 {
@@ -119,123 +177,26 @@ pka_subscription_get_type (void)
 		                                       (GBoxedFreeFunc)pka_subscription_unref);
 		g_once_init_leave(&initialized, TRUE);
 	}
-
 	return type_id;
 }
 
-#if 0
-static gboolean
-pka_subscription_timeout_cb (PkaSubscription *sub)
+static gint
+g_int_compare (gint *a, /* IN */
+               gint *b) /* IN */
 {
-	/*
-	 * If we finished, stop the func and drop our reference.
-	 */
-	if (sub->finished) {
-		pka_subscription_unref(sub);
-		return FALSE;
-	}
-
-	/*
-	 * Flush the subscriptions buffers.
-	 */
-	g_mutex_lock(sub->mutex);
-	pka_subscription_flush_locked(sub);
-	g_mutex_unlock(sub->mutex);
-
-	return TRUE;
+	return (*a) - (*b);
 }
-#endif
 
 /**
  * pka_subscription_new:
- * @encoder: A #PkaEncoder or %NULL.
- * @buffer_max: The max buffer size before data is flushed, or 0 for
- *    no size based buffer.
- * @buffer_timeout: The number of milliseconds to buffer before the data
- *    is flushed.  0 for no time based buffer.
- * @manifest_func: Callback when source manifests change.
- * @manifest_data: Data for @manifest_func.
- * @sample_func: Callback for incoming samples.
- * @sample_data: Data for @sample_func.
  *
- * Creates a new instance of #PkaSubscription.
+ * Creates a new instance of #PkaSubscription.  Subscriptions are used to
+ * deliver manifests and samples to a client.
  *
- * Returns: The newly created #PkaSubscription.  The structure should be freed
- *   with pka_subscription_unref().
- *
+ * Returns: The newly created #PkaSubscription.  The subscription should be
+ *   freed using pka_subscription_unref().
  * Side effects: None.
  */
-#if 0
-PkaSubscription*
-pka_subscription_new (PkaChannel      *channel,
-                      PkaEncoderInfo  *encoder_info,
-                      gsize            buffer_max,
-                      gulong           buffer_timeout,
-                      PkaManifestFunc  manifest_func,
-                      gpointer         manifest_data,
-                      PkaSampleFunc    sample_func,
-                      gpointer         sample_data)
-{
-	PkaSubscription *sub;
-	PkaEncoder *encoder = NULL;
-
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), NULL);
-	g_return_val_if_fail(!encoder_info||PKA_IS_ENCODER_INFO(encoder_info), NULL);
-	g_return_val_if_fail(sample_func != NULL, NULL);
-	g_return_val_if_fail(manifest_func != NULL, NULL);
-
-	/*
-	 * Create an instance of the desired encoder if necessary.
-	 */
-	if (encoder_info) {
-		encoder = pka_encoder_info_create(encoder_info);
-		//pka_pipeline_add_encoder(encoder);
-	}
-
-	/*
-	 * Setup the subscription values.
-	 */
-	sub = g_slice_new0(PkaSubscription);
-	sub->ref_count = 1;
-	sub->id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
-	sub->mutex = g_mutex_new();
-	sub->queue = g_queue_new();
-	sub->muted = TRUE;
-	sub->channel = g_object_ref(channel);
-	sub->encoder = encoder;
-	sub->bufsize = buffer_max;
-	sub->buflen = 0;
-	sub->timeout = buffer_timeout;
-	sub->manifest_func = manifest_func;
-	sub->manifest_data = manifest_data;
-	sub->sample_func = sample_func;
-	sub->sample_data = sample_data;
-
-	/*
-	 * Notify the channel of the subscription.
-	 */
-	pka_channel_add_subscription(channel, sub);
-
-	/*
-	 * Setup flush timeout if needed.  We try to reduce the CPU wake-up
-	 * overhead if the timeout is requested on a whole second.
-	 */
-	if (buffer_timeout > 0) {
-		if ((buffer_timeout % G_MSEC_PER_SEC) == 0) {
-			g_timeout_add_seconds(buffer_timeout / G_MSEC_PER_SEC,
-			                      (GSourceFunc)pka_subscription_timeout_cb,
-			                      pka_subscription_ref(sub));
-		} else {
-			g_timeout_add(buffer_timeout,
-			              (GSourceFunc)pka_subscription_timeout_cb,
-			              pka_subscription_ref(sub));
-		}
-	}
-
-	return sub;
-}
-#endif
-
 PkaSubscription*
 pka_subscription_new (void)
 {
@@ -244,11 +205,19 @@ pka_subscription_new (void)
 
 	ENTRY;
 	sub = g_slice_new0(PkaSubscription);
-	sub->id = g_atomic_int_exchange_and_add(&id_seq, 1);
-	sub->muted = TRUE;
-	sub->queue = g_queue_new();
-	sub->mutex = g_mutex_new();
 	sub->ref_count = 1;
+	sub->id = g_atomic_int_exchange_and_add(&id_seq, 1);
+	sub->mutex = g_mutex_new();
+	sub->muted = TRUE;
+#if 0
+	sub->channels = g_tree_new_full((GCompareDataFunc)g_int_compare,
+	                                NULL, g_free,
+	                                (GDestroyNotify)g_object_unref);
+#endif
+	sub->manifests = g_tree_new_full((GCompareDataFunc)g_int_compare,
+	                                 NULL, g_free,
+	                                 (GDestroyNotify)pka_manifest_unref);
+	sub->queue = g_queue_new();
 	RETURN(sub);
 }
 
@@ -263,13 +232,12 @@ pka_subscription_new (void)
  * Side effects: None.
  */
 PkaSubscription*
-pka_subscription_ref (PkaSubscription *subscription)
+pka_subscription_ref (PkaSubscription *subscription) /* IN */
 {
 	g_return_val_if_fail(subscription != NULL, NULL);
 	g_return_val_if_fail(subscription->ref_count > 0, NULL);
 
 	g_atomic_int_inc(&subscription->ref_count);
-
 	return subscription;
 }
 
@@ -285,7 +253,7 @@ pka_subscription_ref (PkaSubscription *subscription)
  *   reaches zero.
  */
 void
-pka_subscription_unref (PkaSubscription *subscription)
+pka_subscription_unref (PkaSubscription *subscription) /* IN */
 {
 	g_return_if_fail(subscription != NULL);
 	g_return_if_fail(subscription->ref_count > 0);
@@ -306,7 +274,7 @@ pka_subscription_unref (PkaSubscription *subscription)
  * Side effects: None.
  */
 guint
-pka_subscription_get_id (PkaSubscription *subscription)
+pka_subscription_get_id (PkaSubscription *subscription) /* IN */
 {
 	g_return_val_if_fail(subscription != NULL, 0);
 	return subscription->id;
@@ -314,40 +282,49 @@ pka_subscription_get_id (PkaSubscription *subscription)
 
 /**
  * pka_subscription_needs_flush_locked:
- * @sub: A #PkaSubscription.
+ * @subscription: A #PkaSubscription.
  *
  * Determines if the subscrtipion needs to be flushed immediately.
  *
  * Returns: %TRUE if the subscription needs to be flushed.
- *
  * Side effects: None.
  */
 static inline gboolean
-pka_subscription_needs_flush_locked (PkaSubscription *sub)
+pka_subscription_needs_flush_locked (PkaSubscription *subscription) /* IN */
 {
-	/*
-	 * We don't need to flush if we have a time-based buffer and no size
-	 * based buffer.
-	 */
-	if (sub->timeout && !sub->bufsize) {
-		return FALSE;
-	}
+    ENTRY;
 
 	/*
-	 * If there is nothing in the queue, prevent costly flush path.
+	 * If only a buffer timeout is specified, then we always return FALSE.
 	 */
-	if (!g_queue_get_length(sub->queue)) {
-		return FALSE;
+	if (subscription->timeout && !subscription->maxbuf) {
+		RETURN(FALSE);
 	}
 
 	/*
 	 * If we are not buffering, we need to flush immediately.
 	 */
-	if (!sub->bufsize) {
-		return TRUE;
+	if (!subscription->maxbuf) {
+		RETURN(TRUE);
 	}
 
-	return (sub->buflen >= sub->bufsize);
+	/*
+	 * If there is nothing in the queue, prevent costly flush path.
+	 */
+	if (!g_queue_get_length(subscription->queue)) {
+		RETURN(FALSE);
+	}
+
+	RETURN(subscription->buflen >= subscription->maxbuf);
+}
+
+static gint
+sort_samples_by_source (gconstpointer a,    /* IN */
+                        gconstpointer b,    /* IN */
+                        gpointer      data) /* IN */
+{
+	return pka_sample_get_source_id((PkaSample *)a) - 
+	       pka_sample_get_source_id((PkaSample *)b);
 }
 
 /**
@@ -360,57 +337,110 @@ pka_subscription_needs_flush_locked (PkaSubscription *sub)
  * The caller should own the subscription lock.
  */
 static void
-pka_subscription_flush_locked (PkaSubscription *sub)
+pka_subscription_flush_locked (PkaSubscription *sub) /* IN */
 {
-	PkaEncoder *encoder = sub->encoder;
 	GValue params[3] = { { 0 } };
-	guint8 *buf = NULL;
-	gsize len = 0;
-	gsize n_samples = 0;
+	PkaManifest *manifest = NULL;
 	PkaSample **samples;
+	PkaEncoder *encoder;
+	guint8 *buf = NULL;
+	gsize buflen = 0;
+	gsize n_samples = 0;
+	gint source_id = 0;
+	gint begin = 0;
 	gint i;
+
+	g_return_if_fail(sub != NULL);
+
+	/*
+	 * We have a queue of samples that are waiting to be shipped off to the
+	 * client.  The encoder needs the manifest to know how to intelligently
+	 * encode the run of samples.
+	 *
+	 * To make this easier, we first sort the queue by source id so that
+	 * every time we reach a sample with a new source id, we can encode
+	 * the run up to that item.
+	 *
+	 * After encoding the run, we notify the handler with the encoded bytes.
+	 */
 
 	ENTRY;
 
-	/*
-	 * Get the samples from the queue.
-	 */
-	n_samples = g_queue_get_length(sub->queue);
-	samples = g_malloc(sizeof(PkaSample*) * n_samples);
-	for (i = 0; i < n_samples; i++) {
-		samples[i] = g_queue_pop_head(sub->queue);
+	if (G_UNLIKELY(!sub->sample_cb || g_queue_is_empty(sub->queue))) {
+		sub->buflen = 0;
+		while (!g_queue_is_empty(sub->queue)) {
+			pka_sample_unref(g_queue_pop_head(sub->queue));
+		}
+		EXIT;
 	}
+
+	encoder = sub->encoder;
 	sub->buflen = 0;
 
 	/*
-	 * Encode the buffer.
+	 * Sort the samples by source id so we can encode the runs.
 	 */
-	if (!pka_encoder_encode_samples(encoder, sub->manifest, samples,
-	                                n_samples, &buf, &len)) {
-		ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
-	                   "encoder type is: %s.",
-		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
-	}
-
-	DUMP_BYTES(Sample, buf, len);
+	g_queue_sort(sub->queue, sort_samples_by_source, NULL);
+	n_samples = g_queue_get_length(sub->queue);
+	g_assert_cmpint(n_samples, >, 0);
+	samples = g_new(PkaSample*, n_samples);
 
 	/*
-	 * Notify the handler via their configured callback.
+	 * Add samples to the run and encode them.  Notify the subscriber after
+	 * they have been encoded.
 	 */
-	if (G_LIKELY(sub->sample_cb)) {
-		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
-		g_value_init(&params[1], G_TYPE_POINTER);
-		g_value_init(&params[2], G_TYPE_ULONG);
-		g_value_set_boxed(&params[0], sub);
-		g_value_set_pointer(&params[1], buf);
-		g_value_set_ulong(&params[2], len);
-		g_closure_invoke(sub->sample_cb, NULL, 3, &params[0], NULL);
-		g_value_unset(&params[0]);
-		g_value_unset(&params[1]);
-		g_value_unset(&params[2]);
+	for (i = 0; i < n_samples; i++) {
+		samples[i] = g_queue_pop_head(sub->queue);
+		source_id = pka_sample_get_source_id(samples[i]);
+		if (!manifest) {
+			TRACE(Subscription, "Looking up manifest for source %d.", source_id);
+			manifest = g_tree_lookup(sub->manifests, &source_id);
+			if (!manifest) {
+				/*
+				 * We won a race and there is no manifest for the sample yet.
+				 * We will simply jump over it and continue.
+				 */
+				TRACE(Subscription, "Dropping sample due to missing manifest "
+				                    "from source %d.", source_id);
+				begin = i;
+				continue;
+			}
+		}
+
+		/*
+		 * Encode the run of samples if we are at the end of array or the
+		 * next sample is not from the same source.
+		 */
+		if (((i + 1) == n_samples) ||
+		    (source_id != pka_sample_get_source_id(g_queue_peek_head(sub->queue))))
+		{
+			TRACE(Subscription, "Encoding run of samples[%d:%d]", begin, i);
+			if (!pka_encoder_encode_samples(encoder, manifest, &samples[begin],
+			                                i - begin + 1, &buf, &buflen)) {
+				/*
+				 * XXX: This is currently a fatal scenario.  We should find a way to
+				 *  handle this intelligently at some point.
+				 */
+				ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
+				               "encoder type is: %s.",
+				      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
+			}
+			DUMP_BYTES(Samples, buf, buflen);
+			NOTIFY_SAMPLE_HANDLER(sub, buf, buflen);
+			begin = i + 1;
+			g_free(buf);
+			buf = NULL;
+			buflen = 0;
+		}
 	}
 
-	g_free(buf);
+	/*
+	 * Cleanup after ourselves.
+	 */
+	for (i = 0; i < n_samples; i++) {
+		pka_sample_unref(samples[i]);
+	}
+	g_free(samples);
 	EXIT;
 }
 
@@ -432,6 +462,8 @@ pka_subscription_deliver_sample (PkaSubscription *subscription,
 	g_return_if_fail(subscription != NULL);
 	g_return_if_fail(sample != NULL);
 
+	ENTRY;
+
 	/*
 	 * NOTES:
 	 *
@@ -449,33 +481,26 @@ pka_subscription_deliver_sample (PkaSubscription *subscription,
 	 */
 
 	g_mutex_lock(subscription->mutex);
-
-	if (subscription->muted) {
-		/*
-		 * We are muted so we can silently drop the sample.
-		 */
-		goto unlock;
+	if (!subscription->sample_cb) {
+		GOTO(drop_no_handler);
 	}
-
+	if (subscription->muted) {
+		GOTO(drop_while_muted);
+	}
 	pka_sample_get_data(sample, &buf, &buflen);
-	g_assert(buflen);
-
-	/*
-	 * We are unmuted.
-	 *
-	 *   1) Push the item onto the queue.
-	 *   2) Update the new buffered size.
-	 *   2) Flush the buffer if needed.
-	 *
-	 */
+	if (!buflen) {
+		GOTO(drop_no_data);
+	}
 	g_queue_push_tail(subscription->queue, pka_sample_ref(sample));
 	subscription->buflen += buflen;
 	if (pka_subscription_needs_flush_locked(subscription)) {
 		pka_subscription_flush_locked(subscription);
 	}
-
-unlock:
+  drop_no_handler:
+  drop_while_muted:
+  drop_no_data:
 	g_mutex_unlock(subscription->mutex);
+	EXIT;
 }
 
 /**
@@ -493,31 +518,25 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
                                           PkaManifest     *manifest)
 {
 	PkaEncoder *encoder;
-	GValue params[3] = { { 0 } };
 	guint8 *buf = NULL;
 	gsize buflen = 0;
 
-	ENTRY;
-
 	/*
-	 * NOTES:
+	 * Whenever a new manifest comes in we flush the current buffer.  This
+	 * may not be necessary, as we should be assigning a monotonic id to
+	 * both the manifest and the sample.  Also, as we support multiple
+	 * manifests (for each source, etc), we should consider only flushing
+	 * the relevant samples.
 	 *
-	 *   Whenever a new manifest comes in we flush the current buffer.  This
-	 *   may not be necessary, as we should be assigning a monotonic id to
-	 *   both the manifest and the sample.
-	 *
-	 */
-
-	/*
 	 * We can enter this in either one of two states:
 	 *
 	 * 1) We are muted.  No samples in queue.  No flushing required.  Simply
 	 *    store the manifest for when we are unmuted and it will get flushed.
 	 * 2) We are unmuted.  Samples may be in queue.  Samples must be flushed
-	 *    first.  Then we can store, then send our manifest.
-	 *
+	 *    first.  Then we can store, send our manifest.
 	 */
 
+	ENTRY;
 	if (subscription->muted) {
 		/*
 		 * State 1:
@@ -526,58 +545,36 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 		 * store the new one for when we are unmuted and flushing occurs.
 		 */
 		g_assert_cmpint(g_queue_get_length(subscription->queue), ==, 0);
-		/*
-		 * TODO: This needs to handle multiple sources.
-		 */
-		SWAP_MANIFEST(subscription, manifest);
+		STORE_MANIFEST(subscription, manifest);
 		EXIT;
 	}
 
 	/*
 	 * State 2:
 	 *
-	 * Flush queue if neccesary.  Store, then send manifest.
+	 * Store the manifest, flush the queue if necessary.
 	 */
 	if (g_queue_get_length(subscription->queue)) {
 		pka_subscription_flush_locked(subscription);
 	}
-
-	SWAP_MANIFEST(subscription, manifest);
-
-	/*
-	 * Encode the manifest stream into a buffer for delivery to a listener.
-	 */
+	STORE_MANIFEST(subscription, manifest);
 	encoder = subscription->encoder;
 	if (!pka_encoder_encode_manifest(encoder, manifest, &buf, &buflen)) {
 		/*
-		 * XXX: Fatal error: cannot encode the data stream.
-		 *
+		 * XXX: Currently a fatal error: cannot encode the data stream.
 		 *   This should simply kill the subscription in case of failure.
-		 *
 		 */
-	    ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
+		ERROR(Encoder, "An error has occurred while encoding a buffer.  The "
 		               "encoder type is: %s.",
 		      encoder ? g_type_name(G_TYPE_FROM_INSTANCE(encoder)) : "NONE");
 	}
-
-	DUMP_BYTES(Manifest, buf, buflen);
-
-	/*
-	 * Call the handler via their configured callback.
-	 */
-	if (G_LIKELY(subscription->manifest_cb)) {
-		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
-		g_value_init(&params[1], G_TYPE_POINTER);
-		g_value_init(&params[2], G_TYPE_ULONG);
-		g_value_set_boxed(&params[0], subscription);
-		g_value_set_pointer(&params[1], buf);
-		g_value_set_ulong(&params[2], buflen);
-		g_closure_invoke(subscription->manifest_cb, NULL, 3, &params[0], NULL);
-		g_value_unset(&params[0]);
-		g_value_unset(&params[1]);
-		g_value_unset(&params[2]);
+	if (!buflen) {
+		GOTO(no_manifest_data);
 	}
+	DUMP_BYTES(Manifest, buf, buflen);
+	NOTIFY_MANIFEST_HANDLER(subscription, manifest);
 
+  no_manifest_data:
 	g_free(buf);
 	EXIT;
 }
@@ -591,15 +588,41 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
  * to buffer, the data will be stored until the condition is reached.
  */
 void
-pka_subscription_deliver_manifest (PkaSubscription *subscription,
-                                   PkaManifest     *manifest)
+pka_subscription_deliver_manifest (PkaSubscription *subscription, /* IN */
+                                   PkaManifest     *manifest)     /* IN */
 {
 	g_return_if_fail(subscription != NULL);
 	g_return_if_fail(manifest != NULL);
 
+	ENTRY;
 	g_mutex_lock(subscription->mutex);
 	pka_subscription_deliver_manifest_locked(subscription, manifest);
 	g_mutex_unlock(subscription->mutex);
+	EXIT;
+}
+
+/**
+ * pka_subscription_deliver_manifest_foreach:
+ * @key: A pointer to the key which is a #gint.
+ * @manifest: The manifest instance.
+ * @subscription: The #PkaSubscription.
+ *
+ * A foreach traversal function for a #GTree to deliver the manifests to the
+ * subscriber.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_subscription_deliver_manifest_foreach (gint            *key,          /* IN */
+                                           PkaManifest     *manifest,     /* IN */
+                                           PkaSubscription *subscription) /* IN */
+{
+	ENTRY;
+	TRACE(Subscription, "Found manifest for source %d.",
+	      pka_manifest_get_source_id((manifest)));
+	pka_subscription_deliver_manifest_locked(subscription, manifest);
+	RETURN(FALSE);
 }
 
 /**
@@ -615,26 +638,18 @@ pka_subscription_deliver_manifest (PkaSubscription *subscription,
  *   Samples are allowed to be delivered.
  */
 void
-pka_subscription_unmute (PkaSubscription *subscription)
+pka_subscription_unmute (PkaSubscription *subscription) /* IN */
 {
 	g_return_if_fail(subscription != NULL);
 
+	ENTRY;
 	g_mutex_lock(subscription->mutex);
-
-	/*
-	 * Mark the subscription as unmuted.
-	 */
 	subscription->muted = FALSE;
-
-	/*
-	 * Send our current manifest to the client.
-	 */
-	if (subscription->manifest) {
-		pka_subscription_deliver_manifest_locked(subscription,
-		                                         subscription->manifest);
-	}
-
+	g_tree_foreach(subscription->manifests,
+	               (GTraverseFunc)pka_subscription_deliver_manifest_foreach,
+	               subscription);
 	g_mutex_unlock(subscription->mutex);
+	EXIT;
 }
 
 /**
@@ -650,8 +665,8 @@ pka_subscription_unmute (PkaSubscription *subscription)
  *   Future samples and manifest updates will be dropped.
  */
 void
-pka_subscription_mute (PkaSubscription *subscription,
-                       gboolean         drain)
+pka_subscription_mute (PkaSubscription *subscription, /* IN */
+                       gboolean         drain)        /* IN */
 {
 	g_return_if_fail(subscription != NULL);
 

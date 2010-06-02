@@ -1159,7 +1159,7 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 * We are finished for now unless we are active.
 	 */
 	if (priv->state != PKA_CHANNEL_RUNNING) {
-		GOTO(unlock);
+		GOTO(not_running);
 	}
 
 	/*
@@ -1168,7 +1168,8 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	for (i = 0; i < priv->subs->len; i++) {
 		pka_subscription_deliver_manifest(priv->subs->pdata[i], manifest);
 	}
-  unlock:
+
+  not_running:
 	g_mutex_unlock(priv->mutex);
 	EXIT;
 }
@@ -1185,12 +1186,15 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
  * Side effects: None.
  */
 static gboolean
-pka_channel_deliver_manifest_to_subscription (gpointer key,   /* IN */
-                                              gpointer value, /* IN */
-                                              gpointer data)  /* IN */
+pka_channel_deliver_manifest_to_subscription (PkaSource       *source,       /* IN */
+                                              PkaManifest     *manifest,     /* IN */
+                                              PkaSubscription *subscription) /* IN */
 {
 	ENTRY;
-	pka_subscription_deliver_manifest(data, value);
+	TRACE(Channel, "Delivering manifest for source %d to subscription %d.",
+	      pka_source_get_id(source), pka_subscription_get_id(subscription));
+	pka_manifest_set_source_id(manifest, pka_source_get_id(source));
+	pka_subscription_deliver_manifest(subscription, manifest);
 	RETURN(FALSE);
 }
 
@@ -1215,15 +1219,12 @@ pka_channel_add_subscription (PkaChannel      *channel,      /* IN */
 	ENTRY;
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
-	TRACE(Channel, "Notifying subscription %d of %d manifests.",
-	      pka_subscription_get_id(subscription),
-	      g_tree_nnodes(priv->manifests));
+	TRACE(Channel, "Notifying subscription %d of manifests.",
+	      pka_subscription_get_id(subscription));
 	g_ptr_array_add(priv->subs, pka_subscription_ref(subscription));
-	if ((priv->state & (PKA_CHANNEL_RUNNING | PKA_CHANNEL_MUTED)) != 0) {
-		g_tree_foreach(priv->manifests,
-		               pka_channel_deliver_manifest_to_subscription,
-		               subscription);
-	}
+	g_tree_foreach(priv->manifests,
+	               (GTraverseFunc)pka_channel_deliver_manifest_to_subscription,
+	               subscription);
 	g_mutex_unlock(priv->mutex);
 	EXIT;
 }

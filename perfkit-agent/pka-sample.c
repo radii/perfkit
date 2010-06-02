@@ -20,10 +20,16 @@
 #include "config.h"
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Manifest"
+
 #include <egg-buffer.h>
 #include <egg-time.h>
 #include <string.h>
 
+#include "pka-log.h"
 #include "pka-sample.h"
 
 /**
@@ -49,7 +55,9 @@ struct _PkaSample
 static void
 pka_sample_destroy(PkaSample *sample)
 {
+	ENTRY;
 	egg_buffer_unref(sample->buf);
+	EXIT;
 }
 
 /**
