@@ -81,7 +81,7 @@ struct _PkaSubscription
 
 	GMutex          *mutex;          /* Synchronization mutex */
 	GQueue          *queue;          /* Queue for delivering samples */
-	gboolean         disabled;       /* Subscription is disabled (default) */
+	gboolean         muted;          /* Subscription is muted (default) */
 	gsize            buflen;         /* Current buffer length */
 	PkaManifest     *manifest;       /* Our current manifest */
 	gboolean         finished;       /* Subscription has completed */
@@ -200,7 +200,7 @@ pka_subscription_new (PkaChannel      *channel,
 	sub->id = g_atomic_int_exchange_and_add((gint *)&subscription_seq, 1);
 	sub->mutex = g_mutex_new();
 	sub->queue = g_queue_new();
-	sub->disabled = TRUE;
+	sub->muted = TRUE;
 	sub->channel = g_object_ref(channel);
 	sub->encoder = encoder;
 	sub->bufsize = buffer_max;
@@ -245,7 +245,7 @@ pka_subscription_new (void)
 	ENTRY;
 	sub = g_slice_new0(PkaSubscription);
 	sub->id = g_atomic_int_exchange_and_add(&id_seq, 1);
-	sub->disabled = TRUE;
+	sub->muted = TRUE;
 	sub->queue = g_queue_new();
 	sub->mutex = g_mutex_new();
 	sub->ref_count = 1;
@@ -450,9 +450,9 @@ pka_subscription_deliver_sample (PkaSubscription *subscription,
 
 	g_mutex_lock(subscription->mutex);
 
-	if (subscription->disabled) {
+	if (subscription->muted) {
 		/*
-		 * We are disabled so we can silently drop the sample.
+		 * We are muted so we can silently drop the sample.
 		 */
 		goto unlock;
 	}
@@ -461,7 +461,7 @@ pka_subscription_deliver_sample (PkaSubscription *subscription,
 	g_assert(buflen);
 
 	/*
-	 * We are enabled.
+	 * We are unmuted.
 	 *
 	 *   1) Push the item onto the queue.
 	 *   2) Update the new buffered size.
@@ -511,19 +511,19 @@ pka_subscription_deliver_manifest_locked (PkaSubscription *subscription,
 	/*
 	 * We can enter this in either one of two states:
 	 *
-	 * 1) We are disabled.  No samples in queue.  No flushing required.  Simply
-	 *    store the manifest for when we are enabled and it will get flushed.
-	 * 2) We are enabled.  Samples may be in queue.  Samples must be flushed
+	 * 1) We are muted.  No samples in queue.  No flushing required.  Simply
+	 *    store the manifest for when we are unmuted and it will get flushed.
+	 * 2) We are unmuted.  Samples may be in queue.  Samples must be flushed
 	 *    first.  Then we can store, then send our manifest.
 	 *
 	 */
 
-	if (subscription->disabled) {
+	if (subscription->muted) {
 		/*
 		 * State 1:
 		 *
 		 * The queue should be empty.  Release the previous manifest and
-		 * store the new one for when we are enabled and flushing occurs.
+		 * store the new one for when we are unmuted and flushing occurs.
 		 */
 		g_assert_cmpint(g_queue_get_length(subscription->queue), ==, 0);
 		/*
@@ -603,11 +603,11 @@ pka_subscription_deliver_manifest (PkaSubscription *subscription,
 }
 
 /**
- * pka_subscription_enable:
+ * pka_subscription_unmute:
  * @subscription: A #PkaSubscription
  *
  * Enables a subscription to begin delivering manifest updates and samples.
- * Subscriptions are started in a disabled state so this should be called
+ * Subscriptions are started in a muted state so this should be called
  * when the client is ready to receive the information stream.
  *
  * Side effects:
@@ -615,16 +615,16 @@ pka_subscription_deliver_manifest (PkaSubscription *subscription,
  *   Samples are allowed to be delivered.
  */
 void
-pka_subscription_enable (PkaSubscription *subscription)
+pka_subscription_unmute (PkaSubscription *subscription)
 {
 	g_return_if_fail(subscription != NULL);
 
 	g_mutex_lock(subscription->mutex);
 
 	/*
-	 * Mark the subscription as enabled.
+	 * Mark the subscription as unmuted.
 	 */
-	subscription->disabled = FALSE;
+	subscription->muted = FALSE;
 
 	/*
 	 * Send our current manifest to the client.
@@ -638,25 +638,25 @@ pka_subscription_enable (PkaSubscription *subscription)
 }
 
 /**
- * pka_subscription_disable:
+ * pka_subscription_mute:
  * @subscription: A #PkaSubscription.
  * @drain: If the current buffer should be drained before disabling.
  *
  * Disables the client receiving the subscription stream from receiving future
- * manifest and sample events until pka_subscription_enable() is called.  If
+ * manifest and sample events until pka_subscription_unmute() is called.  If
  * drain is set, the current buffer will be flushed to the client.
  *
  * Side effects:
  *   Future samples and manifest updates will be dropped.
  */
 void
-pka_subscription_disable (PkaSubscription *subscription,
-                          gboolean         drain)
+pka_subscription_mute (PkaSubscription *subscription,
+                       gboolean         drain)
 {
 	g_return_if_fail(subscription != NULL);
 
 	g_mutex_lock(subscription->mutex);
-	subscription->disabled = TRUE;
+	subscription->muted = TRUE;
 	if (drain) {
 		pka_subscription_flush_locked(subscription);
 	}

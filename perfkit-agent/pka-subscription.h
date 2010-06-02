@@ -86,9 +86,9 @@ PkaSubscription* pka_subscription_new          (void);
 PkaSubscription* pka_subscription_ref          (PkaSubscription *subscription);
 void             pka_subscription_unref        (PkaSubscription *subscription);
 guint            pka_subscription_get_id       (PkaSubscription *subscription);
-void             pka_subscription_disable      (PkaSubscription *subscription,
+void             pka_subscription_mute         (PkaSubscription *subscription,
                                                 gboolean         drain);
-void             pka_subscription_enable       (PkaSubscription *subscription);
+void             pka_subscription_unmute       (PkaSubscription *subscription);
 PkaEncoder*      pka_subscription_get_encoder  (PkaSubscription *subscription);
 void             pka_subscription_set_handlers (PkaSubscription *subscription,
                                                 PkaManifestFunc  manifest_func,

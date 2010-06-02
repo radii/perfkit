@@ -4007,7 +4007,7 @@ pka_listener_subscription_unmute_finish (PkaListener    *listener, /* IN */
 	                                   &subscription, error)) {
 		GOTO(failed);
 	}
-	pka_subscription_enable(subscription);
+	pka_subscription_unmute(subscription);
 	pka_subscription_unref(subscription);
 	ret = TRUE;
   failed:
