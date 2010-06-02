@@ -140,9 +140,11 @@ pka_source_deliver_manifest (PkaSource   *source,
 {
 	g_return_if_fail(source != NULL);
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail(source->priv->channel);
+	g_return_if_fail(source->priv->channel != NULL);
 
+	ENTRY;
 	pka_channel_deliver_manifest(source->priv->channel, source, manifest);
+	EXIT;
 }
 
 /**
