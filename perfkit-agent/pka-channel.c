@@ -1063,14 +1063,11 @@ pka_channel_deliver_sample (PkaChannel *channel,
 	      pka_source_get_id(source), source);
 
 	/*
-	 * NOTES:
-	 *
-	 *   Can we look into dropping this into a Multi-Producer, Single Consumer
-	 *   Queue that ships the samples over to the subscription every so often?
-	 *   It would be nice not to screw with the sample thread by introducing
-	 *   our mutexes.  It could cause collateral damage between sources during
-	 *   contention.
-	 *
+	 * Can we look into dropping this into a Multi-Producer, Single Consumer
+	 * Queue that ships the samples over to the subscription every so often?
+	 * It would be nice not to screw with the sample thread by introducing
+	 * our mutexes.  It could cause collateral damage between sources during
+	 * contention.
 	 */
 
 	priv = channel->priv;
