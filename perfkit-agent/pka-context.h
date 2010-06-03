@@ -46,6 +46,7 @@ typedef enum
 	PKA_IOCTL_REMOVE_SOURCE,
 	PKA_IOCTL_REMOVE_SUBSCRIPTION,
 	PKA_IOCTL_MODIFY_CHANNEL,
+	PKA_IOCTL_MODIFY_SUBSCRIPTION,
 } PkaIOControl;
 
 GQuark      pka_context_error_quark      (void) G_GNUC_CONST;

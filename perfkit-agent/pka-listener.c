@@ -3402,10 +3402,10 @@ pka_listener_subscription_add_channel_finish (PkaListener    *listener, /* IN */
 	    pka_subscription_unref(subscription);
 		GOTO(failed);
 	}
-	pka_channel_add_subscription(channel, subscription);
+	ret = pka_subscription_add_channel(subscription, DEFAULT_CONTEXT,
+	                                   channel, error);
 	pka_subscription_unref(subscription);
 	g_object_unref(channel);
-	ret = TRUE;
   failed:
 	RETURN(ret);
 }
@@ -4007,9 +4007,8 @@ pka_listener_subscription_unmute_finish (PkaListener    *listener, /* IN */
 	                                   &subscription, error)) {
 		GOTO(failed);
 	}
-	pka_subscription_unmute(subscription);
+	ret = pka_subscription_unmute(subscription, DEFAULT_CONTEXT, error);
 	pka_subscription_unref(subscription);
-	ret = TRUE;
   failed:
 	RETURN(ret);
 }

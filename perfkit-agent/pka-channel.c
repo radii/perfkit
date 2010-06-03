@@ -119,10 +119,6 @@ G_DEFINE_TYPE (PkaChannel, pka_channel, G_TYPE_OBJECT)
 /*
  * Internal methods used for management of samples and manifests.
  */
-extern void     pka_subscription_deliver_sample   (PkaSubscription *subscription,
-                                                   PkaSample       *sample);
-extern void     pka_subscription_deliver_manifest (PkaSubscription *subscription,
-                                                   PkaManifest     *manifest);
 extern void     pka_sample_set_source_id          (PkaSample       *sample,
                                                    gint             source_id);
 extern void     pka_manifest_set_source_id        (PkaManifest     *manifest,
@@ -1094,7 +1090,8 @@ pka_channel_deliver_sample (PkaChannel *channel,
 	 * Pass the sample to all of the observing subscriptions.
 	 */
 	for (i = 0; i < priv->subs->len; i++) {
-		pka_subscription_deliver_sample(priv->subs->pdata[i], sample);
+		// XXX: DEPRECATED
+		pka_subscription_deliver_sample(priv->subs->pdata[i], source, NULL, sample);
 	}
 
   unlock:
@@ -1166,7 +1163,7 @@ pka_channel_deliver_manifest (PkaChannel  *channel,
 	 * Notify subscriptions of the manifest update.
 	 */
 	for (i = 0; i < priv->subs->len; i++) {
-		pka_subscription_deliver_manifest(priv->subs->pdata[i], manifest);
+		pka_subscription_deliver_manifest(priv->subs->pdata[i], source, manifest);
 	}
 
   not_running:
@@ -1194,7 +1191,7 @@ pka_channel_deliver_manifest_to_subscription (PkaSource       *source,       /* 
 	TRACE(Channel, "Delivering manifest for source %d to subscription %d.",
 	      pka_source_get_id(source), pka_subscription_get_id(subscription));
 	pka_manifest_set_source_id(manifest, pka_source_get_id(source));
-	pka_subscription_deliver_manifest(subscription, manifest);
+	pka_subscription_deliver_manifest(subscription, source, manifest);
 	RETURN(FALSE);
 }
 

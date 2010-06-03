@@ -297,7 +297,7 @@ pka_manager_shutdown (void)
 	G_LOCK(subscriptions);
 	for (i = manager.subscriptions->len - 1; i >= 0; --i) {
 		subscription = g_ptr_array_index(manager.subscriptions, i);
-		pka_subscription_mute(subscription, FALSE);
+		pka_subscription_mute(subscription, pka_context_default(), FALSE, NULL);
 		pka_subscription_unref(subscription);
 		g_ptr_array_remove_index(manager.subscriptions, i);
 	}

@@ -27,6 +27,7 @@
 #include "pka-channel.h"
 #include "pka-log.h"
 #include "pka-source.h"
+#include "pka-subscription.h"
 
 /**
  * SECTION:pka-source
@@ -50,13 +51,17 @@ extern void pka_channel_deliver_manifest (PkaChannel  *channel,
 
 struct _PkaSourcePrivate
 {
-	guint       id;
-	GMutex     *mutex;
-	PkaChannel *channel;
-	PkaPlugin  *plugin;
-};
+	GStaticRWLock  rw_lock;
 
-static guint source_seq = 0;
+	guint          id;
+	PkaPlugin     *plugin;
+	PkaManifest   *manifest;
+	GPtrArray     *subscriptions;
+
+	// XXX: DECPRECATED
+	GMutex        *mutex;
+	PkaChannel    *channel;
+};
 
 /**
  * pka_source_set_channel:
@@ -110,14 +115,30 @@ pka_source_set_channel (PkaSource  *source,
  * Side effects: None.
  */
 void
-pka_source_deliver_sample (PkaSource *source,
-                           PkaSample *sample)
+pka_source_deliver_sample (PkaSource *source, /* IN */
+                           PkaSample *sample) /* IN */
 {
-	g_return_if_fail(source != NULL);
-	g_return_if_fail(sample != NULL);
-	g_return_if_fail(source->priv->channel);
+	PkaSourcePrivate *priv;
+	PkaSubscription *subscription;
+	gint i;
 
-	pka_channel_deliver_sample(source->priv->channel, source, sample);
+	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(sample != NULL);
+
+	ENTRY;
+	priv = source->priv;
+	/*
+	 * Notify subscribers of the incoming sample.
+	 * Reader lock required.
+	 */
+	g_static_rw_lock_reader_lock(&priv->rw_lock);
+	for (i = 0; i < priv->subscriptions->len; i++) {
+		subscription = g_ptr_array_index(priv->subscriptions, i);
+		pka_subscription_deliver_sample(subscription, source,
+		                                priv->manifest, sample);
+	}
+	g_static_rw_lock_reader_unlock(&priv->rw_lock);
+	EXIT;
 }
 
 /**
@@ -138,12 +159,35 @@ void
 pka_source_deliver_manifest (PkaSource   *source,
                              PkaManifest *manifest)
 {
-	g_return_if_fail(source != NULL);
+	PkaSourcePrivate *priv;
+	PkaSubscription *subscription;
+	gint i;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail(source->priv->channel != NULL);
 
 	ENTRY;
-	pka_channel_deliver_manifest(source->priv->channel, source, manifest);
+	priv = source->priv;
+	/*
+	 * Update our cached copy of the manifest.
+	 * Requires write lock.
+	 */
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	if (priv->manifest) {
+		pka_manifest_unref(priv->manifest);
+	}
+	priv->manifest = pka_manifest_ref(manifest);
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	/*
+	 * Notify all of our subscribers of the new manifest.
+	 * Requires read lock.
+	 */
+	g_static_rw_lock_reader_lock(&priv->rw_lock);
+	for (i = 0; i < priv->subscriptions->len; i++) {
+		subscription = g_ptr_array_index(priv->subscriptions, i);
+		pka_subscription_deliver_manifest(subscription, source, manifest);
+	}
+	g_static_rw_lock_reader_unlock(&priv->rw_lock);
 	EXIT;
 }
 
@@ -164,6 +208,52 @@ pka_source_get_id (PkaSource *source)
 {
 	g_return_val_if_fail(PKA_IS_SOURCE(source), 0);
 	return source->priv->id;
+}
+
+void
+pka_source_add_subscription (PkaSource       *source,       /* IN */
+                             PkaSubscription *subscription) /* IN */
+{
+	PkaSourcePrivate *priv;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(subscription != NULL);
+
+	ENTRY;
+	priv = source->priv;
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	g_ptr_array_add(priv->subscriptions, pka_subscription_ref(subscription));
+	/*
+	 * TODO: Ensure the current manifest is delivered.  Be careful not to
+	 *   race with the source delivering a potential new manifest.
+	 */
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	EXIT;
+}
+
+void
+pka_source_remove_subscription (PkaSource       *source,       /* IN */
+                                PkaSubscription *subscription) /* IN */
+{
+	PkaSourcePrivate *priv;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(subscription != NULL);
+
+	/*
+	 * TODO: It would be a good idea if we can stop the source from doing
+	 *   any significant work when it knows that nobody is listening and the
+	 *   data would simply be dropped.
+	 */
+
+	ENTRY;
+	priv = source->priv;
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	if (g_ptr_array_remove_fast(priv->subscriptions, subscription)) {
+		g_object_unref(subscription);
+	}
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	EXIT;
 }
 
 void
@@ -253,14 +343,18 @@ pka_source_class_init (PkaSourceClass *klass)
 static void
 pka_source_init (PkaSource *source)
 {
-	gint id;
+	static gint id_seq = 0;
 
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKA_TYPE_SOURCE,
 	                                           PkaSourcePrivate);
-	id = g_atomic_int_exchange_and_add((gint *)&source_seq, 1);
-	source->priv->id = id;
+	source->priv->id = g_atomic_int_exchange_and_add(&id_seq, 1);
 	source->priv->mutex = g_mutex_new();
+	g_static_rw_lock_init(&source->priv->rw_lock);
+	/*
+	 * TODO: Good place for a bit array.
+	 */
+	source->priv->subscriptions = g_ptr_array_new();
 }
 
 gboolean

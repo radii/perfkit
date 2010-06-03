@@ -3777,12 +3777,14 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			handler->client = client;
 			g_hash_table_insert(priv->handlers, &handler->subscription, handler);
 			pka_subscription_set_handlers(sub,
+			                              pka_context_default(),
 			                              pka_listener_dbus_dispatch_manifest,
 			                              g_object_ref(listener),
 			                              g_object_unref,
 			                              pka_listener_dbus_dispatch_sample,
 			                              g_object_ref(listener),
-			                              g_object_unref);
+			                              g_object_unref,
+			                              NULL);
 			g_static_rw_lock_writer_unlock(&priv->handlers_lock);
 			pka_subscription_unref(sub);
 			if (!(reply = dbus_message_new_method_return(message))) {
