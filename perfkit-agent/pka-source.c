@@ -215,6 +215,7 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
                              PkaSubscription *subscription) /* IN */
 {
 	PkaSourcePrivate *priv;
+	PkaManifest *manifest = NULL;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(subscription != NULL);
@@ -222,12 +223,25 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 	ENTRY;
 	priv = source->priv;
 	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	if (priv->manifest) {
+		manifest = pka_manifest_ref(priv->manifest);
+	}
 	g_ptr_array_add(priv->subscriptions, pka_subscription_ref(subscription));
-	/*
-	 * TODO: Ensure the current manifest is delivered.  Be careful not to
-	 *   race with the source delivering a potential new manifest.
-	 */
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	/*
+	 * Ensure the current manifest is delivered.  We do this outside of the
+	 * write lock to make sure that other work can happen concurrently.  It
+	 * also guarantees that a new manifest cannot be delivered while we are
+	 * notifying the subscription of this one (the current).
+	 */
+	if (manifest) {
+		g_static_rw_lock_reader_lock(&priv->rw_lock);
+		if (priv->manifest == manifest) {
+			pka_subscription_deliver_manifest(subscription, source, manifest);
+		}
+		pka_manifest_unref(manifest);
+		g_static_rw_lock_reader_unlock(&priv->rw_lock);
+	}
 	EXIT;
 }
 
