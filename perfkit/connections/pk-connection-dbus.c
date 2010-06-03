@@ -7700,8 +7700,8 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 	handler->sample = g_cclosure_new(G_CALLBACK(sample_func),
 	                                 sample_data,
 	                                 (GClosureNotify)sample_destroy);
-	g_closure_set_marshal(handler->manifest, g_cclosure_marshal_VOID__BOXED);
-	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__BOXED);
+	g_closure_set_marshal(handler->manifest, g_cclosure_marshal_VOID__VOID);
+	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__VOID);
 	g_static_rw_lock_writer_lock(&priv->handlers_lock);
 	g_hash_table_insert(priv->handlers, &handler->subscription, handler);
 	g_static_rw_lock_writer_unlock(&priv->handlers_lock);
