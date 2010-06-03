@@ -354,8 +354,8 @@ pka_subscription_add_source (PkaSubscription  *subscription, /* IN */
 	key = g_new(gint, 1);
 	*key = pka_source_get_id(source);
 	g_tree_insert(subscription->sources, key, g_object_ref(source));
-	pka_source_add_subscription(source, subscription);
 	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
+	pka_source_add_subscription(source, subscription);
 	ret = TRUE;
   failed:
 	RETURN(ret);
