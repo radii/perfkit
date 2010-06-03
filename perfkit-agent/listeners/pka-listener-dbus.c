@@ -3495,7 +3495,7 @@ pka_listener_dbus_dispatch_manifest (PkaSubscription *subscription, /* IN */
 	if (!(handler = g_hash_table_lookup(priv->handlers, &subscription_id))) {
 		WARNING(DBus, "Received manifest with no active handler for "
 		              "subscription %d.", subscription_id);
-		EXIT;
+		GOTO(oom);
 	}
 	if (!(message = dbus_message_new_method_call(NULL, handler->path,
 	                                             "org.perfkit.Agent.Handler",
@@ -3506,7 +3506,7 @@ pka_listener_dbus_dispatch_manifest (PkaSubscription *subscription, /* IN */
 	                              DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, data_len,
 	                              DBUS_TYPE_INVALID)) {
 	    dbus_message_unref(message);
-	    GOTO(oom);
+		GOTO(oom);
 	}
 	/*
 	 * TODO: Handle failure notification and detach subscription.
@@ -3523,7 +3523,41 @@ pka_listener_dbus_dispatch_sample (PkaSubscription *subscription, /* IN */
                                    gsize            data_len,     /* IN */
                                    gpointer         user_data)    /* IN */
 {
+	PkaListenerDBusPrivate *priv;
+	Handler *handler;
+	gint subscription_id;
+	DBusMessage *message;
+
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(data != NULL);
+	g_return_if_fail(data_len > 0);
+	g_return_if_fail(PKA_IS_LISTENER_DBUS(user_data));
+
 	ENTRY;
+	priv = PKA_LISTENER_DBUS(user_data)->priv;
+	subscription_id = pka_subscription_get_id(subscription);
+	if (!(handler = g_hash_table_lookup(priv->handlers, &subscription_id))) {
+		WARNING(DBus, "Received sample with no active handler for "
+		              "subscription %d.", subscription_id);
+		GOTO(oom);
+	}
+	if (!(message = dbus_message_new_method_call(NULL, handler->path,
+	                                             "org.perfkit.Agent.Handler",
+	                                             "SendSample"))) {
+		GOTO(oom);
+	}
+	if (!dbus_message_append_args(message,
+	                              DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, data_len,
+	                              DBUS_TYPE_INVALID)) {
+		dbus_message_unref(message);
+		GOTO(oom);
+	}
+	/*
+	 * TODO: Handle failure notification and detach subscription.
+	 */
+	dbus_connection_send(handler->client, message, NULL);
+	dbus_message_unref(message);
+  oom:
 	EXIT;
 }
 
