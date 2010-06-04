@@ -108,9 +108,10 @@
  * attaching to an existing one.  #PkaSource<!-- -->'s are added to the
  * channel to provide instrumentation into the inferior.
  *
- * #PkaSource implementations will deliver data samples to the channel
- * directly.  The channel will in turn pass them on to any subscriptions that
- * are observing the channel.  This also occurs for #PkaManifest updates.
+ * #PkaChannel is designed to be thread-safe.  Therefore, accessor methods
+ * such as pka_channel_get_target() return a copy of their current value as
+ * opposed to the private copy which could be freed before the caller receives
+ * the value.
  */
 
 G_DEFINE_TYPE (PkaChannel, pka_channel, G_TYPE_OBJECT)
