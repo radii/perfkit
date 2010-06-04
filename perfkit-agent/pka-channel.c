@@ -32,7 +32,6 @@
 #include "pka-channel.h"
 #include "pka-log.h"
 #include "pka-source.h"
-#include "pka-subscription.h"
 
 #define ENSURE_STATE(_c, _s, _l)                                            \
     G_STMT_START {                                                          \
@@ -119,10 +118,6 @@ G_DEFINE_TYPE (PkaChannel, pka_channel, G_TYPE_OBJECT)
 /*
  * Internal methods used for management of samples and manifests.
  */
-extern void     pka_sample_set_source_id          (PkaSample       *sample,
-                                                   gint             source_id);
-extern void     pka_manifest_set_source_id        (PkaManifest     *manifest,
-                                                   gint             source_id);
 extern void     pka_source_notify_started         (PkaSource       *source,
                                                    PkaSpawnInfo    *spawn_info);
 extern void     pka_source_notify_stopped         (PkaSource       *source);
@@ -137,10 +132,7 @@ struct _PkaChannelPrivate
 
 	GMutex       *mutex;
 	guint         state;      /* Current channel state. */
-	GPtrArray    *subs;       /* Array of subscriptions. */
 	GPtrArray    *sources;    /* Array of data sources. */
-	GTree        *indexed;    /* Pointer-to-index data source map. */
-	GTree        *manifests;  /* Pointer-to-manifest map. */
 
 	GPid          pid;         /* Inferior pid */
 	gboolean      pid_set;     /* Pid was attached, not spawned */
@@ -152,7 +144,14 @@ struct _PkaChannelPrivate
 	gint          exit_status; /* The inferiors exit status */
 };
 
-static guint channel_seq = 0;
+enum
+{
+	SOURCE_ADDED,
+	SOURCE_REMOVED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 /**
  * pka_channel_new:
@@ -541,7 +540,6 @@ pka_channel_add_source (PkaChannel  *channel, /* IN */
                         GError     **error)   /* OUT */
 {
 	PkaChannelPrivate *priv;
-	guint idx;
 	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_CHANNEL(channel), FALSE);
@@ -561,11 +559,12 @@ pka_channel_add_source (PkaChannel  *channel, /* IN */
 	 * TODO: Figure out how to handle circular reference count.
 	 */
 	g_ptr_array_add(priv->sources, g_object_ref(source));
-	idx = priv->sources->len;
-	g_tree_insert(priv->indexed, source, GINT_TO_POINTER(idx));
 	ret = TRUE;
   failed:
 	g_mutex_unlock(priv->mutex);
+	if (ret) {
+		g_signal_emit(channel, signals[SOURCE_ADDED], 0, source);
+	}
   unauthorized:
 	RETURN(ret);
 }
@@ -945,29 +944,6 @@ pka_channel_mute (PkaChannel  *channel, /* IN */
 }
 
 /**
- * pka_channel_traverse_manifests_cb:
- * @source: A #PkaSource
- * @manifest: A #PkaManifest
- * @channel: A #PkaChannel
- *
- * Internal method for use within a GTree foreach to notify all subscriptions
- * of the current manifest.
- *
- * Returns: %FALSE indicating we want to continue tree traversal.
- * Side effects: The manifest is broadcasted to subscriptions.
- */
-static gboolean
-pka_channel_traverse_manifests_cb (PkaSource   *source,   /* IN */
-                                   PkaManifest *manifest, /* IN */
-                                   PkaChannel  *channel)  /* IN */
-{
-	g_ptr_array_foreach(channel->priv->subs,
-	                    (GFunc)pka_subscription_deliver_manifest,
-	                    manifest);
-	return FALSE;
-}
-
-/**
  * pka_channel_unmute:
  * @channel: A #PkaChannel.
  * @error: A location for a #GError or %NULL.
@@ -1002,13 +978,6 @@ pka_channel_unmute (PkaChannel  *channel, /* IN */
 		priv->state = PKA_CHANNEL_RUNNING;
 
 		/*
-		 * Send subscriptions current manifest.
-		 */
-		g_tree_foreach(priv->manifests,
-		               (GTraverseFunc)pka_channel_traverse_manifests_cb,
-		               channel);
-
-		/*
 		 * Enable sources.
 		 */
 		g_ptr_array_foreach(priv->sources,
@@ -1029,230 +998,6 @@ pka_channel_unmute (PkaChannel  *channel, /* IN */
 	}
 	g_mutex_unlock(priv->mutex);
 	RETURN(ret);
-}
-
-/**
- * pka_channel_deliver_sample:
- * @channel: A #PkaChannel
- * @source: A #PkaSource
- * @sample: A #PkaSample
- *
- * Internal method used by #PkaSource to deliver its samples to our channel.
- *
- * Side effects: None.
- */
-void
-pka_channel_deliver_sample (PkaChannel *channel,
-                            PkaSource  *source,
-                            PkaSample  *sample)
-{
-	PkaChannelPrivate *priv;
-	gint i, idx;
-
-	g_return_if_fail(channel != NULL);
-	g_return_if_fail(source != NULL);
-	g_return_if_fail(sample != NULL);
-
-	ENTRY;
-	TRACE(Channel, "Channel %d (%p) received sample from source %d (%p).",
-	      pka_channel_get_id(channel), channel,
-	      pka_source_get_id(source), source);
-
-	/*
-	 * Can we look into dropping this into a Multi-Producer, Single Consumer
-	 * Queue that ships the samples over to the subscription every so often?
-	 * It would be nice not to screw with the sample thread by introducing
-	 * our mutexes.  It could cause collateral damage between sources during
-	 * contention.
-	 */
-
-	priv = channel->priv;
-
-	g_mutex_lock(priv->mutex);
-
-	/*
-	 * Drop the sample if we are not currently recording samples.
-	 */
-	if (priv->state != PKA_CHANNEL_RUNNING) {
-		GOTO(unlock);
-	}
-
-	/*
-	 * Set the source index in the sample.  We may do something fancy here to
-	 * make the source id numbers smaller in the future.  I suggest we hold off
-	 * for now on that.
-	 */
-	//idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
-	idx = pka_source_get_id(source);
-	pka_sample_set_source_id(sample, idx);
-
-	/*
-	 * Pass the sample to all of the observing subscriptions.
-	 */
-	for (i = 0; i < priv->subs->len; i++) {
-		// XXX: DEPRECATED
-		pka_subscription_deliver_sample(priv->subs->pdata[i], source, NULL, sample);
-	}
-
-  unlock:
-	g_mutex_unlock(priv->mutex);
-	EXIT;
-}
-
-/**
- * pka_channel_deliver_manifest:
- * @channel: A #PkaChannel
- * @source: A #PkaSource
- * @manifest: A #PkaManifest
- *
- * Internal method used by #PkaSource to deliver its manifest updates to our
- * channel.
- *
- * Side effects: None.
- */
-void
-pka_channel_deliver_manifest (PkaChannel  *channel,
-                              PkaSource   *source,
-                              PkaManifest *manifest)
-{
-	PkaChannelPrivate *priv;
-	gint idx;
-	gint i;
-
-	g_return_if_fail(channel != NULL);
-	g_return_if_fail(source != NULL);
-	g_return_if_fail(manifest != NULL);
-
-	ENTRY;
-	TRACE(Channel, "Channel %d (%p) received manifest from source %d (%p).",
-	      pka_channel_get_id(channel), channel,
-	      pka_source_get_id(source), source);
-
-	priv = channel->priv;
-	g_mutex_lock(priv->mutex);
-
-	/*
-	 * NOTES:
-	 *
-	 *   We always store the most recent copy of the manifest for when
-	 *   subscriptions are added.  That way we can notify them of the
-	 *   current data manifest before we pass samples.
-	 */
-
-	/*
-	 * Look up relative source index and store in manifest. (NOT YET)
-	 */
-	//idx = GPOINTER_TO_INT(g_tree_lookup(priv->indexed, source));
-	idx = pka_source_get_id(source);
-	TRACE(Channel, "Setting manifest source id to %d.", idx);
-	pka_manifest_set_source_id(manifest, idx);
-
-	/*
-	 * Store the manifest for future lookup.
-	 */
-	g_tree_insert(priv->manifests, source, pka_manifest_ref(manifest));
-
-	/*
-	 * We are finished for now unless we are active.
-	 */
-	if (priv->state != PKA_CHANNEL_RUNNING) {
-		GOTO(not_running);
-	}
-
-	/*
-	 * Notify subscriptions of the manifest update.
-	 */
-	for (i = 0; i < priv->subs->len; i++) {
-		pka_subscription_deliver_manifest(priv->subs->pdata[i], source, manifest);
-	}
-
-  not_running:
-	g_mutex_unlock(priv->mutex);
-	EXIT;
-}
-
-/**
- * pka_channel_deliver_manifest_to_subscription:
- * @key: The #GTree key.
- * @value: A #PkaManifest.
- * @data: A #PkaSubscription.
- *
- * Delivers a #PkaManifest to a subscription.
- *
- * Returns: %FALSE to indicate further #GTree traversal.
- * Side effects: None.
- */
-static gboolean
-pka_channel_deliver_manifest_to_subscription (PkaSource       *source,       /* IN */
-                                              PkaManifest     *manifest,     /* IN */
-                                              PkaSubscription *subscription) /* IN */
-{
-	ENTRY;
-	TRACE(Channel, "Delivering manifest for source %d to subscription %d.",
-	      pka_source_get_id(source), pka_subscription_get_id(subscription));
-	pka_manifest_set_source_id(manifest, pka_source_get_id(source));
-	pka_subscription_deliver_manifest(subscription, source, manifest);
-	RETURN(FALSE);
-}
-
-/**
- * pka_channel_add_subscription:
- * @channel: A #PkaChannel
- * @subscription: A #PkaSubscription
- *
- * Internal method for registering a subscription to a channel.
- *
- * Side effects: None.
- */
-void
-pka_channel_add_subscription (PkaChannel      *channel,      /* IN */
-                              PkaSubscription *subscription) /* IN */
-{
-	PkaChannelPrivate *priv;
-
-	g_return_if_fail(PKA_IS_CHANNEL(channel));
-	g_return_if_fail(subscription != NULL);
-
-	ENTRY;
-	priv = channel->priv;
-	g_mutex_lock(priv->mutex);
-	TRACE(Channel, "Notifying subscription %d of manifests.",
-	      pka_subscription_get_id(subscription));
-	g_ptr_array_add(priv->subs, pka_subscription_ref(subscription));
-	g_tree_foreach(priv->manifests,
-	               (GTraverseFunc)pka_channel_deliver_manifest_to_subscription,
-	               subscription);
-	g_mutex_unlock(priv->mutex);
-	EXIT;
-}
-
-/**
- * pka_channel_remove_subscription:
- * @channel: A #PkaChannel
- * @subscription: A #PkaSubscription
- *
- * Internal method for unregistering a subscription from a channel.
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-pka_channel_remove_subscription (PkaChannel      *channel,      /* IN */
-                                 PkaSubscription *subscription) /* IN */
-{
-	PkaChannelPrivate *priv;
-
-	g_return_if_fail(PKA_IS_CHANNEL(channel));
-	g_return_if_fail(subscription != NULL);
-
-	ENTRY;
-	priv = channel->priv;
-	g_mutex_lock(priv->mutex);
-	if (g_ptr_array_remove(priv->subs, subscription)) {
-		pka_subscription_unref(subscription);
-	}
-	g_mutex_unlock(priv->mutex);
-	EXIT;
 }
 
 /**
@@ -1313,6 +1058,24 @@ pka_channel_get_sources (PkaChannel *channel) /* IN */
 }
 
 /**
+ * pka_channel_compare:
+ * @a: A #PkaChannel.
+ * @b: A #PkaChannel.
+ *
+ * Standard qsort() style compare function.
+ *
+ * Returns: Less than zero if a precedes b. Greater than zero if b precedes a.
+ *   Otherwise, zero.
+ * Side effects: None.
+ */
+gint
+pka_channel_compare (gconstpointer a, /* IN */
+                     gconstpointer b) /* IN */
+{
+	return ((PkaChannel *)a)->priv->id - ((PkaChannel *)b)->priv->id;
+}
+
+/**
  * pka_channel_finalize:
  * @object: A #PkaChannel.
  *
@@ -1332,9 +1095,7 @@ pka_channel_finalize (GObject *object)
 	g_strfreev(priv->args);
 	g_strfreev(priv->env);
 	g_ptr_array_foreach(priv->sources, (GFunc)g_object_unref, NULL);
-	g_ptr_array_foreach(priv->subs, (GFunc)pka_subscription_unref, NULL);
 	g_ptr_array_free(priv->sources, TRUE);
-	g_ptr_array_free(priv->subs, TRUE);
 	g_mutex_free(priv->mutex);
 	G_OBJECT_CLASS(pka_channel_parent_class)->finalize(object);
 	EXIT;
@@ -1357,24 +1118,20 @@ pka_channel_class_init (PkaChannelClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = pka_channel_finalize;
 	g_type_class_add_private(object_class, sizeof(PkaChannelPrivate));
-}
 
-/**
- * pka_channel_compare:
- * @a: A #PkaChannel.
- * @b: A #PkaChannel.
- *
- * Standard qsort() style compare function.
- *
- * Returns: Less than zero if a precedes b. Greater than zero if b precedes a.
- *   Otherwise, zero.
- * Side effects: None.
- */
-gint
-pka_channel_compare (gconstpointer a, /* IN */
-                     gconstpointer b) /* IN */
-{
-	return ((PkaChannel *)a)->priv->id - ((PkaChannel *)b)->priv->id;
+	signals[SOURCE_ADDED] = g_signal_new("source-added",
+	                                     PKA_TYPE_CHANNEL,
+	                                     G_SIGNAL_RUN_FIRST,
+	                                     0, NULL, NULL,
+	                                     g_cclosure_marshal_VOID__OBJECT,
+	                                     G_TYPE_NONE, 1, PKA_TYPE_SOURCE);
+
+	signals[SOURCE_REMOVED] = g_signal_new("source-removed",
+	                                       PKA_TYPE_CHANNEL,
+	                                       G_SIGNAL_RUN_FIRST,
+	                                       0, NULL, NULL,
+	                                       g_cclosure_marshal_VOID__OBJECT,
+	                                       G_TYPE_NONE, 1, PKA_TYPE_SOURCE);
 }
 
 /**
@@ -1389,19 +1146,15 @@ pka_channel_compare (gconstpointer a, /* IN */
 static void
 pka_channel_init (PkaChannel *channel) /* IN */
 {
+	static gint id_seq = 0;
+
 	ENTRY;
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE(channel,
 	                                            PKA_TYPE_CHANNEL,
 	                                            PkaChannelPrivate);
-	channel->priv->subs = g_ptr_array_new();
 	channel->priv->sources = g_ptr_array_new();
 	channel->priv->mutex = g_mutex_new();
-	channel->priv->indexed = g_tree_new(pka_manifest_compare);
-	channel->priv->manifests = g_tree_new_full(
-		(GCompareDataFunc)pka_manifest_compare,
-		NULL, NULL,
-		(GDestroyNotify)pka_manifest_unref);
-	channel->priv->id = g_atomic_int_exchange_and_add((gint *)&channel_seq, 1);
+	channel->priv->id = g_atomic_int_exchange_and_add(&id_seq, 1);
 	channel->priv->state = PKA_CHANNEL_READY;
 	channel->priv->kill_pid = TRUE;
 	channel->priv->working_dir = g_strdup(g_get_tmp_dir());
