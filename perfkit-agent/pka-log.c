@@ -32,7 +32,7 @@
 
 #include "pka-log.h"
 
-static GPtrArray *channels = NULL;
+static GPtrArray *channels     = NULL;
 static gchar      hostname[64] = "";
 static GLogFunc   last_handler = NULL;
 
