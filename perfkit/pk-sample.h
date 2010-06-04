@@ -31,8 +31,30 @@ G_BEGIN_DECLS
 
 typedef struct _PkSample PkSample;
 
-typedef void     (*PkSampleFunc)       (PkSample    *sample,
-                                        gpointer     user_data);
+/**
+ * PkSampleFunc:
+ * @manifest: A #PkManifest.
+ * @sample: A #PkSample.
+ *
+ * 
+ *
+ * Returns: None.
+ */
+typedef void (*PkSampleFunc) (PkManifest  *manifest,
+                              PkSample    *sample,
+                              gpointer     user_data);
+
+/**
+ * PkManifestResolver:
+ * @source_id: The source identifier for which to retrieve the manifest.
+ * @manifest: A location for a #PkManifest.
+ * @user_data: user data supplied to pk_sample_new_from_data().
+ *
+ * 
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE.
+ * Side effects: None.
+ */
 typedef gboolean (*PkManifestResolver) (gint         source_id,
                                         PkManifest **manifest,
                                         gpointer     user_data);
@@ -49,6 +71,8 @@ gboolean      pk_sample_get_value     (PkSample           *sample,
                                        guint               row_id,
                                        GValue             *value);
 gint          pk_sample_get_source_id (PkSample           *sample);
+void          pk_sample_get_time_val  (PkSample           *sample,
+                                       GTimeVal           *tv);
 
 G_END_DECLS
 

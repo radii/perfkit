@@ -1970,12 +1970,58 @@ manifest_cb (PkManifest *manifest,  /* IN */
 }
 
 static void
-sample_cb (PkSample *sample,    /* IN */
-           gpointer  user_data) /* IN */
+sample_cb (PkManifest *manifest,  /* IN */
+           PkSample   *sample,    /* IN */
+           gpointer    user_data) /* IN */
 {
+	gint n;
+	gint i;
+	GValue value = { 0 };
+	GTimeVal tv = { 0 };
+	gchar *tv_str;
+
 	ENTRY;
-	g_message("Received sample from %d",
-	          pk_sample_get_source_id(sample));
+	pk_sample_get_time_val(sample, &tv);
+	tv_str = g_time_val_to_iso8601(&tv);
+	g_print("  Source %d @ %s\n",
+	        pk_sample_get_source_id(sample),
+	        tv_str);
+	g_free(tv_str);
+	n = pk_manifest_get_n_rows(manifest);
+	for (i = 1; i <= n; i++) {
+		if (pk_sample_get_value(sample, i, &value)) {
+			g_print("  %32s = ", pk_manifest_get_row_name(manifest, i));
+			switch (G_VALUE_TYPE(&value)) {
+			case G_TYPE_STRING:
+				g_print("%s", g_value_get_string(&value));
+				break;
+			case G_TYPE_INT64:
+				g_print("%" G_GINT64_FORMAT, g_value_get_int64(&value));
+				break;
+			case G_TYPE_UINT64:
+				g_print("%" G_GUINT64_FORMAT, g_value_get_uint64(&value));
+				break;
+			case G_TYPE_INT:
+				g_print("%d", g_value_get_int(&value));
+				break;
+			case G_TYPE_UINT:
+				g_print("%u", g_value_get_uint(&value));
+				break;
+			case G_TYPE_FLOAT:
+				g_print("%f", g_value_get_float(&value));
+				break;
+			case G_TYPE_DOUBLE:
+				g_print("%f", g_value_get_double(&value));
+				break;
+			default:
+				g_print("UNKNOWN");
+				break;
+			}
+			g_print("\n");
+			g_value_unset(&value);
+		}
+	}
+	g_print("\n");
 	EXIT;
 }
 

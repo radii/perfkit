@@ -485,6 +485,18 @@ pk_sample_get_source_id (PkSample *sample) /* IN */
 	return sample->source_id;
 }
 
+void
+pk_sample_get_time_val (PkSample *sample, /* IN */
+                        GTimeVal *tv)     /* OUT */
+{
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(tv != NULL);
+
+	ENTRY;
+	*tv = sample->tv;
+	EXIT;
+}
+
 /**
  * pk_sample_get_type:
  *

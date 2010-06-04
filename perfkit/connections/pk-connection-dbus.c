@@ -269,8 +269,10 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 	gsize data_len = 0;
 	gsize n_read = 0;
 	DBusError dbus_error = { 0 };
-	GValue sample_value = { 0 };
+	GValue params[2] = { { 0 } };
 	gboolean ret = FALSE;
+	PkManifest *manifest;
+	gint key;
 
 	ENTRY;
 	priv = PK_CONNECTION_DBUS(connection)->priv;
@@ -307,10 +309,15 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 		}
 		data_len -= n_read;
 		data += n_read;
-		g_value_init(&sample_value, PK_TYPE_SAMPLE);
-		g_value_take_boxed(&sample_value, sample);
-		g_closure_invoke(handler->sample, NULL, 1, &sample_value, NULL);
-		g_value_unset(&sample_value);
+		key = pk_sample_get_source_id(sample);
+		manifest = g_tree_lookup(handler->manifests, &key);
+		g_value_init(&params[0], PK_TYPE_MANIFEST);
+		g_value_init(&params[1], PK_TYPE_SAMPLE);
+		g_value_set_boxed(&params[0], manifest);
+		g_value_take_boxed(&params[1], sample);
+		g_closure_invoke(handler->sample, NULL, 2, &params[0], NULL);
+		g_value_unset(&params[0]);
+		g_value_unset(&params[1]);
 	}
 	ret = TRUE;
   handler_not_found:
@@ -7701,7 +7708,7 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 	                                     NULL, g_free,
 	                                     (GDestroyNotify)pk_manifest_unref);
 	g_closure_set_marshal(handler->manifest, g_cclosure_marshal_VOID__VOID);
-	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__VOID);
+	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__BOXED);
 	g_static_rw_lock_writer_lock(&priv->handlers_lock);
 	g_hash_table_insert(priv->handlers, &handler->subscription, handler);
 	g_static_rw_lock_writer_unlock(&priv->handlers_lock);
