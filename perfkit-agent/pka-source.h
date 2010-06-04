@@ -72,7 +72,7 @@ struct _PkaSourceClass
 };
 
 GType      pka_source_get_type          (void) G_GNUC_CONST;
-guint      pka_source_get_id            (PkaSource      *source);
+gint       pka_source_get_id            (PkaSource      *source);
 gboolean   pka_source_conflicts         (PkaSource      *source,
                                          PkaSource      *other,
                                          GError        **error);
