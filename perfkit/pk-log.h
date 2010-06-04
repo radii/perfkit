@@ -62,6 +62,28 @@
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
           "BREAK: %s():%d", G_STRFUNC, __LINE__);                   \
     break
+#define DUMP_MANIFEST(m)                                            \
+    G_STMT_START {                                                  \
+        GTimeVal _tv = { 0 };                                       \
+        gint _i, _n;                                                \
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+              "  %30s = %d", "Resolution",                          \
+              pk_manifest_get_resolution(m));                       \
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+              "  %30s = %d", "Row Count",                           \
+              pk_manifest_get_n_rows(m));                           \
+        pk_manifest_get_timeval(m, &_tv);                           \
+        g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+              "  %30s = %lu.%lu", "Timeval",                        \
+              _tv.tv_sec, _tv.tv_usec);                             \
+        _n = pk_manifest_get_n_rows(m);                             \
+        for (_i = 1; _i <= _n; _i++) {                              \
+            g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                  \
+                  "  %30s = %s",                                    \
+                  pk_manifest_get_row_name(m, _i),                  \
+                  g_type_name(pk_manifest_get_row_type(m, _i)));    \
+        }                                                           \
+    } G_STMT_END
 #else
 #define TRACE(_d, _f, ...)
 #define ENTRY
@@ -70,6 +92,7 @@
 #define GOTO(_l)   goto _l
 #define CASE(_l)   case _l:
 #define BREAK      break
+#define DUMP_MANIFEST(m)
 #endif
 
 #define CASE_RETURN_STR(_l) case _l: return #_l
