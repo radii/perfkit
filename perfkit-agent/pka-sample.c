@@ -23,7 +23,7 @@
 #ifdef G_LOG_DOMAIN
 #undef G_LOG_DOMAIN
 #endif
-#define G_LOG_DOMAIN "Manifest"
+#define G_LOG_DOMAIN "Sample"
 
 #include <egg-buffer.h>
 #include <egg-time.h>
