@@ -38,6 +38,7 @@ struct _PkaSubscription
 	GTree                *channels;
 	GTree                *sources;
 	GTree                *manifests;
+	PkaEncoder           *encoder;
 	GClosure             *manifest_closure;
 	GClosure             *sample_closure;
 };
@@ -65,6 +66,15 @@ pka_subscription_destroy (PkaSubscription *subscription) /* IN */
 	g_tree_unref(subscription->channels);
 	g_tree_unref(subscription->sources);
 	g_tree_unref(subscription->manifests);
+	if (subscription->manifest_closure) {
+		g_closure_unref(subscription->manifest_closure);
+	}
+	if (subscription->sample_closure) {
+		g_closure_unref(subscription->sample_closure);
+	}
+	if (subscription->encoder) {
+		g_object_unref(subscription->encoder);
+	}
 	EXIT;
 }
 
@@ -117,6 +127,41 @@ pka_subscription_new (void)
 	INITIALIZE_TREE(sources, g_object_unref);
 	INITIALIZE_TREE(manifests, pka_manifest_unref);
 	RETURN(subscription);
+}
+
+/**
+ * pka_subscription_set_encoder:
+ * @subscription: A #PkaSubscription.
+ *
+ * Sets the encoder to be used for @subscription.  The manifest and sample
+ * buffers will be encoded using this before notifying the handlers.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_subscription_set_encoder (PkaSubscription  *subscription, /* IN */
+                              PkaContext       *context,      /* IN */
+                              PkaEncoder       *encoder,      /* IN */
+                              GError          **error)        /* OUT */
+{
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(subscription != NULL, FALSE);
+	g_return_val_if_fail(context != NULL, FALSE);
+	g_return_val_if_fail(!encoder || PKA_IS_ENCODER(encoder), FALSE);
+
+	ENTRY;
+	g_static_rw_lock_writer_lock(&subscription->rw_lock);
+	if (subscription->encoder) {
+		g_object_unref(subscription->encoder);
+		subscription->encoder = NULL;
+	}
+	if (encoder) {
+		subscription->encoder = g_object_ref(encoder);
+	}
+	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
+	RETURN(ret);
 }
 
 /**
