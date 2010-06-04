@@ -39,16 +39,6 @@
 
 G_DEFINE_ABSTRACT_TYPE (PkaSource, pka_source, G_TYPE_OBJECT)
 
-/*
- * Internal callbacks for channel delivery.
- */
-extern void pka_channel_deliver_sample   (PkaChannel  *channel,
-                                          PkaSource   *source,
-                                          PkaSample   *sample);
-extern void pka_channel_deliver_manifest (PkaChannel  *channel,
-                                          PkaSource   *source,
-                                          PkaManifest *manifest);
-
 struct _PkaSourcePrivate
 {
 	GStaticRWLock  rw_lock;
