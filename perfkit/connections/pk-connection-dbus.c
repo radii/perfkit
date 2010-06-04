@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include "pk-connection-dbus.h"
+#include "pk-log.h"
 
 /**
  * SECTION:pk-connection-dbus:
@@ -32,38 +33,6 @@
  *
  * 
  */
-
-#ifndef DISABLE_TRACE
-#define TRACE(_m,...)                                               \
-    G_STMT_START {                                                  \
-        g_log(G_LOG_DOMAIN, (1 << G_LOG_LEVEL_USER_SHIFT),          \
-              _m, __VA_ARGS__);                                     \
-    } G_STMT_END
-#else
-#define TRACE(_m,...)
-#endif
-
-#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
-
-#define EXIT                                                        \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return;                                                     \
-    } G_STMT_END
-
-#define RETURN(_r)                                                  \
-    G_STMT_START {                                                  \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__);               \
-        return _r;                                                  \
-    } G_STMT_END
-
-#define GOTO(_l)                                                    \
-    G_STMT_START {                                                  \
-        TRACE(" GOTO: %s:%d", #_l, __LINE__);                       \
-        goto _l;                                                    \
-    } G_STMT_END
-
-#define CASE_RETURN_STR(_l) case _l: return #_l
 
 #define RESULT_IS_VALID(_t)                                         \
     g_simple_async_result_is_valid(                                 \
@@ -238,6 +207,7 @@ pk_connection_dbus_dispatch_manifest (PkConnectionDBus  *connection,   /* IN */
 		            "The buffer was not a valid manifest.");
 		GOTO(invalid_data);
 	}
+	DUMP_MANIFEST(manifest);
 	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
 	g_static_rw_lock_writer_lock(&priv->handlers_lock);
 	if (handler->current) {
@@ -404,21 +374,21 @@ pk_connection_dbus_handle_handler_message (DBusConnection *connection, /* IN */
 	if (dbus_message_has_member(message, "SendManifest")) {
 		if (!pk_connection_dbus_dispatch_manifest(user_data, subscription,
 		                                          message, &error)) {
-		    reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
-		    dbus_connection_send(connection, reply, NULL);
-  			dbus_message_unref(reply);
-		    g_error_free(error);
-		    GOTO(failed);
+			reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
+			dbus_connection_send(connection, reply, NULL);
+			dbus_message_unref(reply);
+			g_error_free(error);
+			GOTO(failed);
 		}
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	} else if (dbus_message_has_member(message, "SendSample")) {
 		if (!pk_connection_dbus_dispatch_sample(user_data, subscription,
 		                                        message, &error)) {
-		    reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
-		    dbus_connection_send(connection, reply, NULL);
-  			dbus_message_unref(reply);
-		    g_error_free(error);
-		    GOTO(failed);
+			reply = dbus_message_new_error(message, DBUS_ERROR_FAILED, error->message);
+			dbus_connection_send(connection, reply, NULL);
+			dbus_message_unref(reply);
+			g_error_free(error);
+			GOTO(failed);
 		}
 		ret = DBUS_HANDLER_RESULT_HANDLED;
 	}
