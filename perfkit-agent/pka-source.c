@@ -424,6 +424,34 @@ pka_source_set_plugin (PkaSource *source, /* IN */
 }
 
 /**
+ * pka_source_modify_spawn_info:
+ * @source: A #PkaSource.
+ *
+ * Allows a source to modify the spawn information before the process is
+ * spawned.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_source_modify_spawn_info (PkaSource     *source,     /* IN */
+                              PkaSpawnInfo  *spawn_info, /* IN */
+                              GError       **error)      /* OUT */
+{
+	gboolean ret = TRUE;
+
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+	g_return_val_if_fail(spawn_info != NULL, FALSE);
+
+	ENTRY;
+	if (PKA_SOURCE_GET_CLASS(source)->modify_spawn_info) {
+		ret = PKA_SOURCE_GET_CLASS(source)->
+			modify_spawn_info(source, spawn_info, error);
+	}
+	RETURN(ret);
+}
+
+/**
  * pka_source_finalize:
  * @source: A #PkaSource.
  *
@@ -515,13 +543,4 @@ pka_source_init (PkaSource *source) /* IN */
 	 *   to the subscribers whose bit-field is set in a 64-bit bitmap.
 	 */
 	source->priv->subscriptions = g_ptr_array_new();
-}
-
-gboolean
-pka_source_modify_spawn_info (PkaSource     *source,     /* IN */
-                              PkaSpawnInfo  *spawn_info, /* IN */
-                              GError       **error)      /* OUT */
-{
-	ENTRY;
-	RETURN(TRUE);
 }
