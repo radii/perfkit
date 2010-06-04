@@ -3773,8 +3773,6 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			DBusConnection *client = NULL;
 			Peer *peer = NULL;
 
-			INFO(Subscription, "Received SetHandler request.");
-
 			dbus_path = dbus_message_get_path(message);
 			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
 				GOTO(oom);
@@ -3824,8 +3822,8 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			if (!(reply = dbus_message_new_method_return(message))) {
 				GOTO(oom);
 			}
-			INFO(Subscription, "Registered subscription handler at %s by %s",
-			     handler_path, dbus_message_get_sender(message));
+			INFO(DBus, "Registered handler for subscription %d at %s%s.",
+			     subscription, dbus_message_get_sender(message), handler_path);
 			dbus_connection_send(connection, reply, NULL);
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
