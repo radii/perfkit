@@ -25,6 +25,7 @@
 
 #include "pk-manifest.h"
 #include "pk-sample.h"
+#include "pk-util.h"
 
 /**
  * SECTION:pk-sample
@@ -40,6 +41,7 @@ struct _PkSample
 {
 	volatile gint ref_count;
 
+	gint      source_id;
 	GTimeVal  tv;
 	GArray   *ar;
 };
@@ -103,7 +105,7 @@ pk_sample_decode_timeval (PkSample   *sample,
 		return FALSE;
 	}
 
-	if (field != 1 || tag != EGG_BUFFER_UINT64) {
+	if (field != 2 || tag != EGG_BUFFER_UINT64) {
 		return FALSE;
 	}
 
@@ -179,7 +181,7 @@ pk_sample_decode_data (PkSample   *sample,
 		return FALSE;
 	}
 
-	if (field != 2 || tag != EGG_BUFFER_DATA) {
+	if (field != 3 || tag != EGG_BUFFER_DATA) {
 		return FALSE;
 	}
 
@@ -304,8 +306,7 @@ pk_sample_decode_data (PkSample   *sample,
  *
  * Decodes the sample data within the buffer.
  *
- * Retruns: %TRUE if successful; otherwise %FALSE.
- *
+ * Returns: %TRUE if successful; otherwise %FALSE.
  * Side effects: None.
  */
 static gboolean
@@ -341,21 +342,47 @@ pk_sample_decode (PkSample   *sample,
  * Side effects: None.
  */
 PkSample*
-pk_sample_new_from_data (PkManifest   *manifest,
-                         const guint8 *data,
-                         gsize         length,
-                         gsize        *n_read)
+pk_sample_new_from_data (PkManifestResolver  resolver,  /* IN */
+                         gpointer            user_data, /* IN */
+                         const guint8       *data,      /* IN */
+                         gsize               length,    /* IN */
+                         gsize              *n_read)    /* IN */
 {
+	PkManifest *manifest = NULL;
 	PkSample *sample;
 	EggBuffer *buffer;
+	guint field = 0;
+	guint tag = 0;
+	gint source_id = 0;
 
-	g_return_val_if_fail(manifest != NULL, NULL);
+	g_return_val_if_fail(resolver != NULL, NULL);
 	g_return_val_if_fail(data != NULL, NULL);
 	g_return_val_if_fail(n_read != NULL, NULL);
 
+	ENTRY;
 	sample = pk_sample_new();
 	buffer = egg_buffer_new_from_data(data, length);
 
+	/*
+	 * Resolve the manifest by the source id.
+	 */
+	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
+		GOTO(failed);
+	}
+	if (field != 1 || tag != EGG_BUFFER_UINT) {
+		GOTO(failed);
+	}
+	if (!egg_buffer_read_uint(buffer, (guint *)&source_id)) {
+		GOTO(failed);
+	}
+	if (!resolver(source_id, &manifest, user_data)) {
+		GOTO(failed);
+	}
+	sample->source_id = source_id;
+
+	/*
+	 * Decode the rest of the sample.
+	 */
 	if (!pk_sample_decode(sample, buffer, manifest)) {
 		pk_sample_unref(sample);
 		sample = NULL;
@@ -363,8 +390,13 @@ pk_sample_new_from_data (PkManifest   *manifest,
 
 	*n_read = egg_buffer_get_pos(buffer);
 	egg_buffer_unref(buffer);
+	RETURN(sample);
 
-	return sample;
+  failed:
+  	egg_buffer_unref(buffer);
+  	pk_sample_unref(sample);
+  	*n_read = 0;
+  	RETURN(NULL);
 }
 
 /**
@@ -444,6 +476,13 @@ pk_sample_get_value (PkSample *sample,  // IN
 	}
 
 	return FALSE;
+}
+
+gint
+pk_sample_get_source_id (PkSample *sample) /* IN */
+{
+	g_return_val_if_fail(sample != NULL, -1);
+	return sample->source_id;
 }
 
 /**

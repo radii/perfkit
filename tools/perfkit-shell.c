@@ -1964,6 +1964,8 @@ manifest_cb (PkManifest *manifest,  /* IN */
              gpointer    user_data) /* IN */
 {
 	ENTRY;
+	g_message("Received manifest from %d.",
+	          pk_manifest_get_source_id(manifest));
 	EXIT;
 }
 
@@ -1972,6 +1974,8 @@ sample_cb (PkSample *sample,    /* IN */
            gpointer  user_data) /* IN */
 {
 	ENTRY;
+	g_message("Received sample from %d",
+	          pk_sample_get_source_id(sample));
 	EXIT;
 }
 

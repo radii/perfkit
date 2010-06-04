@@ -56,6 +56,7 @@ const gchar*    pk_manifest_get_row_name   (PkManifest *manifest,
                                             gint        row);
 void            pk_manifest_get_timeval    (PkManifest *manifest,
                                             GTimeVal   *tv);
+gint            pk_manifest_get_source_id  (PkManifest *manifest);
 
 G_END_DECLS
 

@@ -86,13 +86,19 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 
 	for (i = 0; i < n_samples; i++) {
 		/*
+		 * Add the source identifier.
+		 */
+		egg_buffer_write_tag(buf, 1, EGG_BUFFER_UINT);
+		egg_buffer_write_uint(buf, pka_sample_get_source_id(samples[i]));
+
+		/*
 		 * Add the relative time since the manifest loosing un-needed
 		 * precision for the variable integer width compression.
 		 */
 		pka_sample_get_timeval(samples[i], &tv);
 		g_time_val_diff(&tv, &mtv, &rel);
 		rel = pka_resolution_apply(pka_manifest_get_resolution(manifest), rel);
-		egg_buffer_write_tag(buf, 1, EGG_BUFFER_UINT64);
+		egg_buffer_write_tag(buf, 2, EGG_BUFFER_UINT64);
 		egg_buffer_write_uint64(buf, rel);
 
 		/*
@@ -106,7 +112,7 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 		 * other side to unwrap.
 		 */
 		pka_sample_get_data(samples[i], &tbuf, &tlen);
-		egg_buffer_write_tag(buf, 2, EGG_BUFFER_DATA);
+		egg_buffer_write_tag(buf, 3, EGG_BUFFER_DATA);
 		egg_buffer_write_data(buf, tbuf, tlen);
 	}
 
@@ -152,9 +158,9 @@ pka_encoder_encode_samples  (PkaEncoder   *encoder,
 }
 
 static gboolean
-pka_encoder_real_encode_manifest (PkaManifest  *manifest,
-                                  guint8      **data,
-                                  gsize        *data_len)
+pka_encoder_real_encode_manifest (PkaManifest  *manifest, /* IN */
+                                  guint8      **data,     /* IN */
+                                  gsize        *data_len) /* IN */
 {
 	EggBuffer *buf, *mbuf, *ebuf;
 	GTimeVal tv;
@@ -264,17 +270,26 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest,
  * Returns: %TRUE if successful; otherwise %FALSE.
  */
 gboolean
-pka_encoder_encode_manifest (PkaEncoder   *encoder,
-                             PkaManifest  *manifest,
-                             guint8      **data,
-                             gsize        *data_len)
+pka_encoder_encode_manifest (PkaEncoder   *encoder,  /* IN */
+                             PkaManifest  *manifest, /* IN */
+                             guint8      **data,     /* IN */
+                             gsize        *data_len) /* IN */
 {
+	gboolean ret;
+
+	g_return_val_if_fail(!encoder || PKA_IS_ENCODER(encoder), FALSE);
+	g_return_val_if_fail(manifest != NULL, FALSE);
+	g_return_val_if_fail(data != NULL, FALSE);
+	g_return_val_if_fail(data_len != NULL, FALSE);
+
 	ENTRY;
 	if (encoder) {
-		RETURN(PKA_ENCODER_GET_INTERFACE(encoder)->
-				encode_manifest(encoder, manifest, data, data_len));
+		ret = PKA_ENCODER_GET_INTERFACE(encoder)->
+			encode_manifest(encoder, manifest, data, data_len);
+	} else {
+		ret = pka_encoder_real_encode_manifest(manifest, data, data_len);
 	}
-	RETURN(pka_encoder_real_encode_manifest(manifest, data, data_len));
+	RETURN(ret);
 }
 
 /**

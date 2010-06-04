@@ -153,11 +153,16 @@ struct _PkConnectionDBusPrivate
 
 typedef struct
 {
+	/* XXX: No locks should be neccessary for
+	 *   handlers  since they should only be
+	 *   accessed directly from the DBus main
+	 *   loop.
+	 */
 	gint        id;                /* Monotonic id for handler */
 	gint        subscription;      /* Subscription id in agent */
 	GClosure   *manifest;          /* Manifest callback closure */
 	GClosure   *sample;            /* Sample callback closure */
-	PkManifest *current;           /* Current subscription manifest */
+	GTree      *manifests;         /* Source manifests indexed by source id */
 } Handler;
 
 static void
@@ -165,6 +170,7 @@ handler_free (Handler *handler) /* IN */
 {
 	g_closure_unref(handler->manifest);
 	g_closure_unref(handler->sample);
+	g_tree_unref(handler->manifests);
 	g_slice_free(Handler, handler);
 }
 
@@ -182,6 +188,7 @@ pk_connection_dbus_dispatch_manifest (PkConnectionDBus  *connection,   /* IN */
 	DBusError dbus_error = { 0 };
 	GValue manifest_value = { 0 };
 	gboolean ret = FALSE;
+	gint *key;
 
 	ENTRY;
 	priv = PK_CONNECTION_DBUS(connection)->priv;
@@ -209,12 +216,13 @@ pk_connection_dbus_dispatch_manifest (PkConnectionDBus  *connection,   /* IN */
 	}
 	DUMP_MANIFEST(manifest);
 	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
+
+	key = g_new(gint, 1);
+	*key = pk_manifest_get_source_id(manifest);
 	g_static_rw_lock_writer_lock(&priv->handlers_lock);
-	if (handler->current) {
-		pk_manifest_unref(handler->current);
-	}
-	handler->current = pk_manifest_ref(manifest);
+	g_tree_insert(handler->manifests, key, pk_manifest_ref(manifest));
 	g_static_rw_lock_writer_unlock(&priv->handlers_lock);
+
 	g_static_rw_lock_reader_lock(&priv->handlers_lock);
 	g_value_init(&manifest_value, PK_TYPE_MANIFEST);
 	g_value_take_boxed(&manifest_value, manifest);
@@ -227,6 +235,26 @@ pk_connection_dbus_dispatch_manifest (PkConnectionDBus  *connection,   /* IN */
 	RETURN(ret);
 }
 
+static gboolean
+handler_manifest_lookup (gint         source_id, /* IN */
+                         PkManifest **manifest,  /* OUT */
+                         gpointer     user_data) /* IN */
+{
+	Handler *handler = user_data;
+
+	g_return_val_if_fail(handler != NULL, FALSE);
+
+	ENTRY;
+	*manifest = g_tree_lookup(handler->manifests, &source_id);
+	RETURN(*manifest != NULL);
+}
+
+static gint
+g_int_compare (gint *a, /* IN */
+               gint *b) /* IN */
+{
+	return (*a - *b);
+}
 
 static inline gboolean
 pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
@@ -253,12 +281,6 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 		            "No handler for the sample was registered.");
 		GOTO(handler_not_found);
 	}
-	if (!handler->current) {
-		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
-		            PK_CONNECTION_DBUS_ERROR_STATE,
-		            "Sample delivered before current manifest.");
-		GOTO(no_manifest);
-	}
 	if (!dbus_message_get_args(message, &dbus_error,
 	                           DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &data, &data_len,
 	                           DBUS_TYPE_INVALID)) {
@@ -268,8 +290,14 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 		dbus_error_free(&dbus_error);
 		GOTO(invalid_data);
 	}
+	/*
+	 * TODO: This should be using a matching "decoder" for the subscription
+	 *  rather than being hard coded to the default encoder/decoder.  However,
+	 *  since that wont really be supported for a while, this seems easier.
+	 */
 	while (data_len > 0) {
-		if (!(sample = pk_sample_new_from_data(handler->current,
+		if (!(sample = pk_sample_new_from_data(handler_manifest_lookup,
+		                                       handler,
 		                                       data, data_len,
 		                                       &n_read))) {
 			g_set_error(error, PK_CONNECTION_DBUS_ERROR,
@@ -286,7 +314,6 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 	}
 	ret = TRUE;
   handler_not_found:
-  no_manifest:
   invalid_data:
 	g_static_rw_lock_reader_unlock(&priv->handlers_lock);
 	RETURN(ret);
@@ -7670,6 +7697,9 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 	handler->sample = g_cclosure_new(G_CALLBACK(sample_func),
 	                                 sample_data,
 	                                 (GClosureNotify)sample_destroy);
+	handler->manifests = g_tree_new_full((GCompareDataFunc)g_int_compare,
+	                                     NULL, g_free,
+	                                     (GDestroyNotify)pk_manifest_unref);
 	g_closure_set_marshal(handler->manifest, g_cclosure_marshal_VOID__VOID);
 	g_closure_set_marshal(handler->sample, g_cclosure_marshal_VOID__VOID);
 	g_static_rw_lock_writer_lock(&priv->handlers_lock);

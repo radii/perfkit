@@ -24,6 +24,7 @@
 #include <egg-time.h>
 
 #include "pk-manifest.h"
+#include "pk-util.h"
 
 /**
  * SECTION:pk-manifest
@@ -67,6 +68,10 @@ pk_manifest_destroy (PkManifest *manifest)
 
 	/* free row array */
 	g_array_unref(manifest->rows);
+
+	/* mark fields as canaries */
+	manifest->rows = NULL;
+	manifest->source_id = -1;
 }
 
 static PkManifest*
@@ -80,6 +85,14 @@ pk_manifest_new (void)
 
 	return manifest;
 }
+
+gint
+pk_manifest_get_source_id (PkManifest *manifest) /* IN */
+{
+	g_return_val_if_fail(manifest != NULL, -1);
+	return manifest->source_id;
+}
+
 
 /**
  * pk_manifest_new_from_data:
@@ -194,7 +207,6 @@ gint
 pk_manifest_get_n_rows (PkManifest *manifest)
 {
 	g_return_val_if_fail(manifest != NULL, 0);
-
 	return manifest->n_rows;
 }
 
@@ -210,13 +222,15 @@ pk_manifest_get_n_rows (PkManifest *manifest)
  * Side effects: None.
  */
 GType
-pk_manifest_get_row_type (PkManifest *manifest,
-                          gint        row)
+pk_manifest_get_row_type (PkManifest *manifest, /* IN */
+                          gint        row)      /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, G_TYPE_INVALID);
+	g_return_val_if_fail(manifest->rows != NULL, G_TYPE_INVALID);
 	g_return_val_if_fail(row > 0 && row <= manifest->n_rows, G_TYPE_INVALID);
 
-	return g_array_index(manifest->rows, PkManifestRow, row - 1).type;
+	ENTRY;
+	RETURN(g_array_index(manifest->rows, PkManifestRow, --row).type);
 }
 
 /**

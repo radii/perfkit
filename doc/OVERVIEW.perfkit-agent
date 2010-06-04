@@ -83,8 +83,9 @@ This is somewhat what the protocol buffer looks like.
   }
 
   message Sample {
-    optional int64 reltime = 1;
-    optional data buffer = 2;
+    optional uint32 source = 1;
+    optional int64 reltime = 2;
+    optional data buffer = 3;
   }
 
 =========

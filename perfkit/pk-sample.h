@@ -31,18 +31,24 @@ G_BEGIN_DECLS
 
 typedef struct _PkSample PkSample;
 
-typedef void (*PkSampleFunc) (PkSample *sample, gpointer user_data);
+typedef void     (*PkSampleFunc)       (PkSample    *sample,
+                                        gpointer     user_data);
+typedef gboolean (*PkManifestResolver) (gint         source_id,
+                                        PkManifest **manifest,
+                                        gpointer     user_data);
 
 GType         pk_sample_get_type      (void) G_GNUC_CONST;
-PkSample*     pk_sample_new_from_data (PkManifest   *manifest,
-                                       const guint8 *data,
-                                       gsize         length,
-                                       gsize        *n_read);
-PkSample*     pk_sample_ref           (PkSample     *sample);
-void          pk_sample_unref         (PkSample     *sample);
-gboolean      pk_sample_get_value     (PkSample     *sample,
-                                       guint         row_id,
-                                       GValue       *value);
+PkSample*     pk_sample_new_from_data (PkManifestResolver  resolver,
+                                       gpointer            user_data,
+                                       const guint8       *data,
+                                       gsize               length,
+                                       gsize              *n_read);
+PkSample*     pk_sample_ref           (PkSample           *sample);
+void          pk_sample_unref         (PkSample           *sample);
+gboolean      pk_sample_get_value     (PkSample           *sample,
+                                       guint               row_id,
+                                       GValue             *value);
+gint          pk_sample_get_source_id (PkSample           *sample);
 
 G_END_DECLS
 

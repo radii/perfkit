@@ -36,8 +36,14 @@ G_BEGIN_DECLS
 
 #define RETURN(_r)                                                          \
     G_STMT_START {                                                          \
-        g_debug("EXIT:  %s():%d", G_STRFUNC, __LINE__);                     \
+        g_debug(" EXIT: %s():%d", G_STRFUNC, __LINE__);                     \
         return (_r);                                                        \
+    } G_STMT_END
+
+#define GOTO(_l)                                                            \
+    G_STMT_START {                                                          \
+        g_debug(" GOTO: %s():%d %s", G_STRFUNC, __LINE__, #_l);             \
+        goto _l;                                                            \
     } G_STMT_END
 
 #define CASE_RETURN_STR(_s) case _s: return #_s

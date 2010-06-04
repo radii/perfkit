@@ -95,12 +95,11 @@ pka_sample_new (void)
 
 /**
  * pka_sample_ref:
- * @sample: A #PkaSample
+ * @sample: A #PkaSample.
  *
- * Atomically increases the reference count of @sample.
+ * Atomically increases the reference count of @sample by one.
  *
- * Returns: The @sample pointer.
- *
+ * Returns: @sample.
  * Side effects: None.
  */
 PkaSample*
@@ -116,12 +115,13 @@ pka_sample_ref (PkaSample *sample) /* IN */
 
 /**
  * pka_sample_unref:
- * @sample: A #PkaSample
+ * @sample: A #PkaSample.
  *
- * Atomically decrements the reference count of @sample.  When the reference
- * count reaches zero, the structure and its resources are freed.
+ * Atomically decrements the reference count of @sample by one.  When the
+ * reference count reaches zero, the structure and its resources are freed.
  *
- * Side effects: The structure is freed if reference count reaches zero.
+ * Returns: None.
+ * Side effects: None.
  */
 void
 pka_sample_unref (PkaSample *sample) /* IN */
@@ -139,9 +139,9 @@ pka_sample_unref (PkaSample *sample) /* IN */
 
 /**
  * pka_sample_get_data:
- * @sample: A #PkaSample
- * @data: A location for a buffer
- * @data_len: A location for the buffer length
+ * @sample: A #PkaSample.
+ * @data: A location for a buffer.
+ * @data_len: A location for the buffer length.
  *
  * Retrieves the internal buffer for the sample.  The buffer should not be
  * modified or freed.
@@ -166,7 +166,7 @@ pka_sample_get_data (PkaSample     *sample,   /* IN */
  * pka_sample_get_source_id:
  * @sample: A #PkaSample.
  *
- * Retrieves the owning #PkaSource<!-- -->'s identifier.
+ * Retrieves the id of the #PkaSource which created the sample.
  *
  * Returns: the source id.
  * Side effects: None.
@@ -206,6 +206,9 @@ pka_sample_set_source_id (PkaSample *sample,    /* IN */
  * @tv: A #GTimeVal
  *
  * Retrieves the #GTimeVal for when the sample occurred.
+ *
+ * Returns: None.
+ * Side effects: None.
  */
 void
 pka_sample_get_timeval (PkaSample *sample, /* IN */
