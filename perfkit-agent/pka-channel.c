@@ -70,7 +70,7 @@
 
 #define AUTHORIZE_IOCTL(_c, _i, _t, _l)                                     \
     G_STMT_START {                                                          \
-    	/* TODO: handle target (_t) */                                      \
+        /* TODO: handle target (_t) */                                      \
         if (!pka_context_is_authorized(_c, PKA_IOCTL_##_i)) {               \
         	g_set_error(error, PKA_CONTEXT_ERROR,                           \
                         PKA_CONTEXT_ERROR_NOT_AUTHORIZED,                   \
@@ -128,12 +128,10 @@ extern gboolean pka_source_set_channel            (PkaSource       *source,
 
 struct _PkaChannelPrivate
 {
-	guint         id;         /* Monotonic id for the channel. */
-
+	gint          id;         /* Monotonic id for the channel. */
 	GMutex       *mutex;
 	guint         state;      /* Current channel state. */
 	GPtrArray    *sources;    /* Array of data sources. */
-
 	GPid          pid;         /* Inferior pid */
 	gboolean      pid_set;     /* Pid was attached, not spawned */
 	gchar        *working_dir; /* Inferior working directory */
@@ -177,10 +175,10 @@ pka_channel_new (void)
  * Returns: A guint.
  * Side effects: None.
  */
-guint
+gint
 pka_channel_get_id (PkaChannel *channel) /* IN */
 {
-	g_return_val_if_fail(PKA_IS_CHANNEL(channel), G_MAXUINT);
+	g_return_val_if_fail(PKA_IS_CHANNEL(channel), G_MININT);
 	return channel->priv->id;
 }
 
