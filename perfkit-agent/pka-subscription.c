@@ -278,9 +278,9 @@ pka_subscription_add_channel (PkaSubscription  *subscription, /* IN */
 	                 subscription);
 	sources = pka_channel_get_sources(channel);
 	for (iter = sources; iter; iter = iter->next) {
-		if (pka_subscription_add_source(subscription, context,
-		                                iter->data, NULL)) {
-		    WARNING(Subscription,
+		if (!pka_subscription_add_source(subscription, context,
+		                                 iter->data, NULL)) {
+			WARNING(Subscription,
 			        "Failed to add source %d to subscription %d.",
 			        pka_source_get_id(iter->data),
 			        subscription->id);
@@ -381,12 +381,6 @@ pka_subscription_add_source (PkaSubscription  *subscription, /* IN */
 	g_return_val_if_fail(context != NULL, FALSE);
 	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
 
-	/*
-	 * TODO: We need to make sure we send the manifest to the subscriber.  It
-	 *  is probably safe to wait until the first sample is sent and prefix it
-	 *  there.
-	 */
-
 	ENTRY;
 	if (!IS_AUTHORIZED(context, MODIFY_SUBSCRIPTION, subscription)) {
 		g_set_error(error, PKA_CONTEXT_ERROR,
@@ -400,6 +394,13 @@ pka_subscription_add_source (PkaSubscription  *subscription, /* IN */
 	*key = pka_source_get_id(source);
 	g_tree_insert(subscription->sources, key, g_object_ref(source));
 	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
+	/*
+	 * The source will notify us of the current manifest if necessary.  Such
+	 * an example would be if a source is already running and the source is
+	 * added to the subscription.
+	 *
+	 * Therefore, this should be done outside of any subscription locks.
+	 */
 	pka_source_add_subscription(source, subscription);
 	ret = TRUE;
   failed:
@@ -449,6 +450,15 @@ pka_subscription_remove_source (PkaSubscription  *subscription, /* IN */
 	RETURN(ret);
 }
 
+/**
+ * pka_subscription_set_state:
+ * @subscription: A #PkaSubscription.
+ *
+ * Sets the current #PkaSubscriptionState of the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 gboolean
 pka_subscription_set_state (PkaSubscription       *subscription, /* IN */
                             PkaContext            *context,      /* IN */
@@ -461,20 +471,53 @@ pka_subscription_set_state (PkaSubscription       *subscription, /* IN */
 	g_return_val_if_fail(context != NULL, FALSE);
 
 	ENTRY;
+	if ((state != PKA_SUBSCRIPTION_MUTED) &&
+	    (state != PKA_SUBSCRIPTION_UNMUTED)) {
+		g_set_error(error, PKA_CONTEXT_ERROR,
+		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
+		            "Invalid state [0x%08x].", state);
+		GOTO(failed);
+	}
 	if (!IS_AUTHORIZED(context, MODIFY_SUBSCRIPTION, subscription)) {
 		g_set_error(error, PKA_CONTEXT_ERROR,
 		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
-		            "Cannot set state to %d.", (gint)state);
+		            "Cannot set state to 0x%08x.", (gint)state);
 		GOTO(failed);
 	}
 	g_static_rw_lock_writer_lock(&subscription->rw_lock);
+	if (subscription->state == state) {
+		GOTO(finished);
+	}
 	subscription->state = state;
+	switch (state) {
+	CASE(PKA_SUBSCRIPTION_UNMUTED);
+		/*
+		 * TODO: Send the current manifests to the handler.
+		 */
+		BREAK;
+	CASE(PKA_SUBSCRIPTION_MUTED);
+		BREAK;
+	default:
+		g_warn_if_reached();
+		BREAK;
+	}
+  finished:
 	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
 	ret = TRUE;
   failed:
   	RETURN(ret);
 }
 
+/**
+ * pka_subscription_mute:
+ * @subscription: A #PkaSubscriptionState.
+ *
+ * Mutes the subscription, preventing future manifest and sample delivery
+ * to the configured handlers.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
 gboolean
 pka_subscription_mute (PkaSubscription  *subscription, /* IN */
                        PkaContext       *context,      /* IN */
@@ -484,13 +527,23 @@ pka_subscription_mute (PkaSubscription  *subscription, /* IN */
 	gboolean ret;
 
 	ENTRY;
+	/* FIXME: Add support for draining the buffer. */
 	ret = pka_subscription_set_state(subscription, context,
 	                                 PKA_SUBSCRIPTION_MUTED,
 	                                 error);
-	/* FIXME: Add support for draining the buffer. */
 	RETURN(ret);
 }
 
+/**
+ * pka_subscription_unmute:
+ * @subscription: A #PkaSubscription.
+ *
+ * Unmutes a muted subscription, allowing future manifest and sample
+ * delivery to the configured handlers.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
 gboolean
 pka_subscription_unmute (PkaSubscription  *subscription, /* IN */
                          PkaContext       *context,      /* IN */
@@ -505,6 +558,17 @@ pka_subscription_unmute (PkaSubscription  *subscription, /* IN */
 	RETURN(ret);
 }
 
+/**
+ * pka_subscription_deliver_manifest:
+ * @subscription: A #PkaSubscription.
+ * @source: A #PkaSource.
+ * @manifest: A #PkaManifest.
+ *
+ * Delivers @manifest from @souce to the subscriptions handlers.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pka_subscription_deliver_manifest (PkaSubscription *subscription, /* IN */
                                    PkaSource       *source,       /* IN */
@@ -528,8 +592,9 @@ pka_subscription_deliver_manifest (PkaSubscription *subscription, /* IN */
 		}
 		DUMP_BYTES(Manifest, buffer, buffer_len);
 		/*
-		 * XXX: It should be obvious that this marshalling isn't very smart.
-		 *   But I've certainly done worse.
+		 * XXX: It should be obvious that this marshalling isn't very fast.
+		 *   But I've certainly done worse.  At least it handles things cleanly
+		 *   with regard to using libffi.
 		 */
 		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
 		g_value_init(&params[1], G_TYPE_POINTER);
@@ -549,6 +614,17 @@ pka_subscription_deliver_manifest (PkaSubscription *subscription, /* IN */
 	EXIT;
 }
 
+/**
+ * pka_subscription_deliver_sample:
+ * @subscription: A #PkaSubscription.
+ *
+ * Delivers @sample from @source to the @subscription.  @manifest should
+ * be the current manifest for the source that has already been sent
+ * to pka_subscription_deliver_manifest().
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pka_subscription_deliver_sample (PkaSubscription *subscription, /* IN */
                                  PkaSource       *source,       /* IN */
@@ -575,7 +651,7 @@ pka_subscription_deliver_sample (PkaSubscription *subscription, /* IN */
 		}
 		DUMP_BYTES(Sample, buffer, buffer_len);
 		/*
-		 * XXX: It should be obvious that this marshalling isn't very smart.
+		 * XXX: It should be obvious that this marshalling isn't very fast.
 		 *   But I've certainly done worse.
 		 */
 		g_value_init(&params[0], PKA_TYPE_SUBSCRIPTION);
@@ -596,6 +672,27 @@ pka_subscription_deliver_sample (PkaSubscription *subscription, /* IN */
 	EXIT;
 }
 
+/**
+ * pka_subscription_set_handlers:
+ * @subscription: A #PkaSubscription.
+ * @context: A #PkaContext.
+ * @manifest_func: A manifest callback function.
+ * @manifest_data: Data for @manifest_func.
+ * @manifest_destroy: A #GDestroyNotify to call when @manifest_func is no
+ *    longer needed.
+ * @sample_func: A sample callback function.
+ * @sample_data: Data for @sample_func.
+ * @sample_destroy: A #GDestroyNotify to call when @sample_func is no
+ *    longer needed.
+ *
+ * Sets the manifest and sample callback methods for the subscription.
+ * @manifest_func will be called when a manifest is received from a source
+ * on the subscription.  @sample_func will be called when a sample is received
+ * from the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 void
 pka_subscription_set_handlers (PkaSubscription  *subscription,     /* IN */
                                PkaContext       *context,          /* IN */
@@ -615,7 +712,7 @@ pka_subscription_set_handlers (PkaSubscription  *subscription,     /* IN */
 
 	ENTRY;
 	/*
-	 * Prepare closures.  GClosure, thankfully, uses libffi.
+	 * Create the closures and set the marshaller.
 	 */
 	manifest = g_cclosure_new(G_CALLBACK(manifest_func),
 	                          manifest_data,
@@ -626,7 +723,7 @@ pka_subscription_set_handlers (PkaSubscription  *subscription,     /* IN */
 	g_closure_set_marshal(manifest, pka_marshal_VOID__POINTER_ULONG);
 	g_closure_set_marshal(sample, pka_marshal_VOID__POINTER_ULONG);
 	/*
-	 * Set the closures. Requires writer lock.
+	 * Store the closures. Requires writer lock.
 	 */
 	g_static_rw_lock_writer_lock(&subscription->rw_lock);
 	if (subscription->manifest_closure) {
@@ -641,6 +738,15 @@ pka_subscription_set_handlers (PkaSubscription  *subscription,     /* IN */
 	EXIT;
 }
 
+/**
+ * pka_subscription_get_id:
+ * @subscription: A #PkaSubscription.
+ *
+ * Retrieves monotonic identifier for @subscription.
+ *
+ * Returns: A #gint.
+ * Side effects: None.
+ */
 gint
 pka_subscription_get_id (PkaSubscription *subscription) /* IN */
 {
@@ -696,6 +802,14 @@ pka_subscription_unref (PkaSubscription *subscription) /* IN */
 	EXIT;
 }
 
+/**
+ * pka_subscription_get_type:
+ *
+ * Retrieves the GType for #PkaSubscription.
+ *
+ * Returns: A #GType.
+ * Side effects: None.
+ */
 GType
 pka_subscription_get_type (void)
 {
