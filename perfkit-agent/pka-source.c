@@ -52,9 +52,6 @@ struct _PkaSourcePrivate
 	PkaPlugin     *plugin;
 	PkaManifest   *manifest;
 	GPtrArray     *subscriptions;
-
-	// XXX: DECPRECATED
-	GMutex        *mutex;
 	PkaChannel    *channel;
 };
 
@@ -81,7 +78,7 @@ pka_source_set_channel (PkaSource  *source,  /* IN */
 
 	ENTRY;
 	priv = source->priv;
-	g_mutex_lock(priv->mutex);
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
 	if (priv->channel) {
 		GOTO(failed);
 	}
@@ -92,7 +89,7 @@ pka_source_set_channel (PkaSource  *source,  /* IN */
 	                          (gpointer *)&priv->channel);
 	ret = TRUE;
   failed:
-	g_mutex_unlock(priv->mutex);
+  	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	RETURN(ret);
 }
 
@@ -534,7 +531,6 @@ pka_source_init (PkaSource *source) /* IN */
 	                                           PKA_TYPE_SOURCE,
 	                                           PkaSourcePrivate);
 	source->priv->id = g_atomic_int_exchange_and_add(&id_seq, 1);
-	source->priv->mutex = g_mutex_new();
 	g_static_rw_lock_init(&source->priv->rw_lock);
 	/*
 	 * TODO:  We should consider doing a bit array for the list of which
