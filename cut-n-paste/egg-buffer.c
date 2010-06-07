@@ -442,7 +442,7 @@ egg_buffer_read_uint (EggBuffer *buffer,
 			return FALSE;
 
 		b = buffer->ar->data[buffer->pos++];
-		u |= ((b & 0x7F) << o);
+		u |= ((guint32)(b & 0x7F) << o);
 		o += 7;
 	} while ((b & 0x80) != 0);
 
@@ -490,7 +490,7 @@ egg_buffer_read_uint64 (EggBuffer *buffer,
 			return FALSE;
 
 		b = buffer->ar->data[buffer->pos++];
-		u |= ((b & 0x7F) << o);
+		u |= ((guint64)(b & 0x7F) << o);
 		o += 7;
 	} while ((b & 0x80) != 0);
 
