@@ -23,31 +23,6 @@
 
 G_BEGIN_DECLS
 
-#define ENTRY                                                               \
-    G_STMT_START {                                                          \
-        g_debug("ENTRY: %s():%d", G_STRFUNC, __LINE__);                     \
-    } G_STMT_END
-
-#define EXIT                                                                \
-    G_STMT_START {                                                          \
-        g_debug("EXIT:  %s():%d", G_STRFUNC, __LINE__);                     \
-        return;                                                             \
-    } G_STMT_END
-
-#define RETURN(_r)                                                          \
-    G_STMT_START {                                                          \
-        g_debug(" EXIT: %s():%d", G_STRFUNC, __LINE__);                     \
-        return (_r);                                                        \
-    } G_STMT_END
-
-#define GOTO(_l)                                                            \
-    G_STMT_START {                                                          \
-        g_debug(" GOTO: %s():%d %s", G_STRFUNC, __LINE__, #_l);             \
-        goto _l;                                                            \
-    } G_STMT_END
-
-#define CASE_RETURN_STR(_s) case _s: return #_s
-
 #define ASYNC_NEW(_o, _c, _d, _f)                                           \
     g_simple_async_result_new(G_OBJECT(_o), _c, _f, _d)
 

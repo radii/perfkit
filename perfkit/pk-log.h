@@ -20,6 +20,7 @@
 #define __PK_LOG_H__
 
 #include <glib.h>
+#include <time.h>
 
 #ifndef G_LOG_LEVEL_TRACE
 #define G_LOG_LEVEL_TRACE (1 << G_LOG_LEVEL_USER_SHIFT)
@@ -64,7 +65,7 @@
     break
 #define DUMP_MANIFEST(m)                                            \
     G_STMT_START {                                                  \
-        GTimeVal _tv = { 0 };                                       \
+    	struct timespec _ts = { 0 };                                \
         gint _i, _n;                                                \
         g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
               "  %30s = %d", "Resolution",                          \
@@ -72,10 +73,10 @@
         g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
               "  %30s = %d", "Row Count",                           \
               pk_manifest_get_n_rows(m));                           \
-        pk_manifest_get_timeval(m, &_tv);                           \
+        pk_manifest_get_timespec(m, &_ts);                          \
         g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
-              "  %30s = %lu.%lu", "Timeval",                        \
-              _tv.tv_sec, _tv.tv_usec);                             \
+              "  %30s = %lu.%09lu", "Timestamp",                    \
+              _ts.tv_sec, _ts.tv_nsec);                             \
         _n = pk_manifest_get_n_rows(m);                             \
         for (_i = 1; _i <= _n; _i++) {                              \
             g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                  \

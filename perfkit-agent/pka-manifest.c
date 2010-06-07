@@ -60,10 +60,10 @@ struct _PkaManifest
 {
 	volatile gint  ref_count;
 
-	GArray        *rows;        /* Array of PkaManifestRow */
-	gint           source_id;   /* Channel assigned Source Id */
-	GTimeVal       tv;          /* Timing of manifest */
-	PkaResolution  resolution;  /* Relative timestamp resolution */
+	GArray          *rows;        /* Array of PkaManifestRow */
+	gint             source_id;   /* Channel assigned Source Id */
+	struct timespec  ts;          /* Time at which manifest is authoritative */
+	PkaResolution    resolution;  /* Relative timestamp resolution */
 };
 
 static void
@@ -93,7 +93,8 @@ pka_manifest_destroy (PkaManifest *manifest)
 PkaManifest*
 pka_manifest_new (void)
 {
-	return pka_manifest_sized_new(4);
+	ENTRY;
+	RETURN(pka_manifest_sized_new(4));
 }
 
 /**
@@ -107,19 +108,21 @@ pka_manifest_new (void)
  * Side effects: None.
  */
 PkaManifest*
-pka_manifest_sized_new (gint size)
+pka_manifest_sized_new (gint size) /* IN */
 {
 	PkaManifest *manifest;
 
+	g_return_val_if_fail(size >= 0, NULL);
+
+	ENTRY;
 	manifest = g_slice_new0(PkaManifest);
 	manifest->ref_count = 1;
 	manifest->rows = g_array_sized_new(FALSE,
 	                                   FALSE,
 	                                   sizeof(PkaManifestRow),
 	                                   size);
-	g_get_current_time(&manifest->tv);
-
-	return manifest;
+	clock_gettime(CLOCK_REALTIME, &manifest->ts);
+	RETURN(manifest);
 }
 
 /**
@@ -138,9 +141,9 @@ pka_manifest_ref (PkaManifest *manifest)
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(manifest->ref_count > 0, NULL);
 
+	ENTRY;
 	g_atomic_int_inc(&manifest->ref_count);
-
-	return manifest;
+	RETURN(manifest);
 }
 
 /**
@@ -161,14 +164,16 @@ pka_manifest_unref (PkaManifest *manifest)
 	g_return_if_fail(manifest != NULL);
 	g_return_if_fail(manifest->ref_count > 0);
 
+	ENTRY;
 	if (g_atomic_int_dec_and_test(&manifest->ref_count)) {
 		pka_manifest_destroy(manifest);
 		g_slice_free(PkaManifest, manifest);
 	}
+	EXIT;
 }
 
 /**
- * pka_manifest_get_timeval:
+ * pka_manifest_get_timespec:
  * @manifest: A #PkaManifest
  * @tv: A #GTimeVal
  *
@@ -177,30 +182,32 @@ pka_manifest_unref (PkaManifest *manifest)
  * Side effects: None.
  */
 void
-pka_manifest_get_timeval (PkaManifest *manifest,
-                          GTimeVal    *tv)
+pka_manifest_get_timespec (PkaManifest     *manifest, /* IN */
+                           struct timespec *ts)       /* OUT */
 {
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail(tv != NULL);
+	g_return_if_fail(ts != NULL);
 
-	*tv = manifest->tv;
+	*ts = manifest->ts;
 }
 
 /**
- * pka_manifest_set_timeval:
+ * pka_manifest_set_timespec:
  * @manifest: A #PkaManifest
  * @tv: A #GTimeVal
  *
  * Sets the time for when @manifest is the authority for the stream.
  */
 void
-pka_manifest_set_timeval (PkaManifest *manifest,
-                          GTimeVal    *tv)
+pka_manifest_set_timespec (PkaManifest     *manifest, /* IN */
+                           struct timespec *ts)       /* IN */
 {
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail(tv != NULL);
+	g_return_if_fail(ts != NULL);
 
-	manifest->tv = *tv;
+	ENTRY;
+	manifest->ts = *ts;
+	EXIT;
 }
 
 /**

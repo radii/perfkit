@@ -20,6 +20,7 @@
 #define __PKA_MANIFEST_H__
 
 #include <glib-object.h>
+#include <time.h>
 
 G_BEGIN_DECLS
 
@@ -29,7 +30,6 @@ typedef struct _PkaManifest PkaManifest;
 
 /**
  * PkaResolution:
- * @PKA_RESOLUTION_PRECISE: Samples include relative timestamp in 100-ns ticks.
  * @PKA_RESOLUTION_USEC: Samples include relative timestamp in microseconds.
  * @PKA_RESOLUTION_MSEC: Samples include relative timestamps in millseconds.
  * @PKA_RESOLUTION_SECOND: Samples include relative timestamps in seconds.
@@ -47,7 +47,6 @@ typedef struct _PkaManifest PkaManifest;
  */
 typedef enum
 {
-	PKA_RESOLUTION_PRECISE,
 	PKA_RESOLUTION_USEC,
 	PKA_RESOLUTION_MSEC,
 	PKA_RESOLUTION_SECOND,
@@ -66,10 +65,10 @@ gint             pka_manifest_get_source_id  (PkaManifest   *manifest);
 PkaResolution    pka_manifest_get_resolution (PkaManifest   *manifest);
 void             pka_manifest_set_resolution (PkaManifest   *manifest,
                                               PkaResolution  resolution);
-void             pka_manifest_get_timeval    (PkaManifest   *manifest,
-                                              GTimeVal      *tv);
-void             pka_manifest_set_timeval    (PkaManifest   *manifest,
-                                              GTimeVal      *tv);
+void             pka_manifest_get_timespec   (PkaManifest     *manifest,
+                                              struct timespec *ts);
+void             pka_manifest_set_timespec   (PkaManifest     *manifest,
+                                              struct timespec *ts);
 guint            pka_manifest_append         (PkaManifest   *manifest,
                                               const gchar   *name,
                                               GType          type);

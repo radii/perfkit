@@ -42,37 +42,51 @@
  */
 
 static inline guint64
-pka_resolution_apply (PkaResolution res,
-                      guint64       u)
+pka_resolution_apply (PkaResolution    res, /* IN */
+                      struct timespec *ts)  /* IN */
 {
+	guint64 usec = 0;
+
+	timespec_to_usec(ts, &usec);
+
 	switch (res) {
-	case PKA_RESOLUTION_PRECISE:
-		return u;
-	case PKA_RESOLUTION_USEC:
-		return u / (G_GINT64_CONSTANT(100));
-	case PKA_RESOLUTION_MSEC:
-		return u / (G_GINT64_CONSTANT(10000));
-	case PKA_RESOLUTION_SECOND:
-		return u / (G_GINT64_CONSTANT(10000000));
-	case PKA_RESOLUTION_MINUTE:
-		return u / (G_GINT64_CONSTANT(600000000));
-	case PKA_RESOLUTION_HOUR:
-		return u / (G_GINT64_CONSTANT(864000000000));
+	CASE(PKA_RESOLUTION_USEC);
+		RETURN(usec);
+	CASE(PKA_RESOLUTION_MSEC);
+		RETURN(usec / G_GUINT64_CONSTANT(1000));
+	CASE(PKA_RESOLUTION_SECOND);
+		RETURN(usec / G_USEC_PER_SEC);
+	CASE(PKA_RESOLUTION_MINUTE);
+		RETURN(usec / ((guint64)(60 * G_USEC_PER_SEC)));
+	CASE(PKA_RESOLUTION_HOUR);
+		RETURN(usec / (((guint64)3600 * G_USEC_PER_SEC)));
 	default:
 		g_assert_not_reached();
 	}
 }
 
+/**
+ * pka_encoder_real_encode_samples:
+ * @manifest: A #PkaManifest.
+ *
+ * Default encoder for samples.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static gboolean
-pka_encoder_real_encode_samples (PkaManifest *manifest,
-                                 PkaSample  **samples,
-                                 gint         n_samples,
-                                 guint8     **data,
-                                 gsize       *data_len)
+pka_encoder_real_encode_samples (PkaManifest *manifest,  /* IN */
+                                 PkaSample  **samples,   /* IN */
+                                 gint         n_samples, /* IN */
+                                 guint8     **data,      /* OUT */
+                                 gsize       *data_len)  /* OUT */
 {
 	EggBuffer *buf;
-	GTimeVal mtv, tv;
-	gint64 rel;
+	struct timespec mts;
+	struct timespec sts;
+	struct timespec rel;
+	guint64 rel_composed;
+	PkaResolution res;
 	const guint8 *tbuf;
 	gsize tlen;
 	gint i;
@@ -82,7 +96,8 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 
 	ENTRY;
 	buf = egg_buffer_new();
-	pka_manifest_get_timeval(manifest, &mtv);
+	pka_manifest_get_timespec(manifest, &mts);
+	res = pka_manifest_get_resolution(manifest);
 
 	for (i = 0; i < n_samples; i++) {
 		/*
@@ -92,14 +107,14 @@ pka_encoder_real_encode_samples (PkaManifest *manifest,
 		egg_buffer_write_uint(buf, pka_sample_get_source_id(samples[i]));
 
 		/*
-		 * Add the relative time since the manifest loosing un-needed
-		 * precision for the variable integer width compression.
+		 * Add the relative time since the manifest; loosing un-needed
+		 * precision to aide varint encoding.
 		 */
-		pka_sample_get_timeval(samples[i], &tv);
-		g_time_val_diff(&tv, &mtv, &rel);
-		rel = pka_resolution_apply(pka_manifest_get_resolution(manifest), rel);
+		pka_sample_get_timespec(samples[i], &sts);
+		timespec_subtract(&sts, &mts, &rel);
+		rel_composed = pka_resolution_apply(res, &rel);
 		egg_buffer_write_tag(buf, 2, EGG_BUFFER_UINT64);
-		egg_buffer_write_uint64(buf, rel);
+		egg_buffer_write_uint64(buf, rel_composed);
 
 		/*
 		 * The sample is a protobuf inspired blob but is not protobuf compat.
@@ -163,11 +178,12 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest, /* IN */
                                   gsize        *data_len) /* IN */
 {
 	EggBuffer *buf, *mbuf, *ebuf;
-	GTimeVal tv;
-	gint64 ticks;
+	struct timespec ts;
+	guint64 t;
 	const guint8 *tbuf;
 	gsize tlen;
-	gint i, rows;
+	gint rows;
+	gint i;
 
 	g_return_val_if_fail(manifest != NULL, FALSE);
 	g_return_val_if_fail(data != NULL, FALSE);
@@ -177,12 +193,13 @@ pka_encoder_real_encode_manifest (PkaManifest  *manifest, /* IN */
 	buf = egg_buffer_new();
 
 	/*
-	 * Field 1: Timestamp. (usec since Jan 1, 01)
+	 * Field 1: Timestamp.  Currently encoded in microseconds.  We should
+	 *   determine what we want to do long-term.
 	 */
-	pka_manifest_get_timeval(manifest, &tv);
-	g_time_val_to_ticks(&tv, &ticks);
+	pka_manifest_get_timespec(manifest, &ts);
+	timespec_to_usec(&ts, &t);
 	egg_buffer_write_tag(buf, 1, EGG_BUFFER_UINT64);
-	egg_buffer_write_int64(buf, ticks);
+	egg_buffer_write_uint64(buf, t);
 
 	/*
 	 * Desired sample resolution.  This allows us to save considerable

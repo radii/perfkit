@@ -24,6 +24,7 @@
 #define __PK_MANIFEST_H__
 
 #include <glib-object.h>
+#include <time.h>
 
 G_BEGIN_DECLS
 
@@ -35,7 +36,6 @@ typedef void (*PkManifestFunc) (PkManifest *manifest, gpointer user_data);
 
 typedef enum
 {
-	PK_RESOLUTION_PRECISE,
 	PK_RESOLUTION_USEC,
 	PK_RESOLUTION_MSEC,
 	PK_RESOLUTION_SECOND,
@@ -54,8 +54,8 @@ GType           pk_manifest_get_row_type   (PkManifest *manifest,
                                             gint        row);
 const gchar*    pk_manifest_get_row_name   (PkManifest *manifest,
                                             gint        row);
-void            pk_manifest_get_timeval    (PkManifest *manifest,
-                                            GTimeVal   *tv);
+void            pk_manifest_get_timespec   (PkManifest      *manifest,
+                                            struct timespec *ts);
 gint            pk_manifest_get_source_id  (PkManifest *manifest);
 
 G_END_DECLS

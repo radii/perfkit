@@ -41,7 +41,7 @@
 #endif
 
 #include <perfkit/perfkit.h>
-#include "pk-util.h"
+#include "pk-log.h"
 #include "egg-fmt.h"
 #include "egg-line.h"
 
@@ -1981,7 +1981,7 @@ sample_cb (PkManifest *manifest,  /* IN */
 	gchar *tv_str;
 
 	ENTRY;
-	pk_sample_get_time_val(sample, &tv);
+	pk_sample_get_timeval(sample, &tv);
 	tv_str = g_time_val_to_iso8601(&tv);
 	g_print("  Source %d @ %s\n",
 	        pk_sample_get_source_id(sample),

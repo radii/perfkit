@@ -24,6 +24,7 @@
 #define __PKA_SAMPLE_H__
 
 #include <glib.h>
+#include <time.h>
 
 #include "pka-manifest.h"
 
@@ -41,10 +42,10 @@ void        pka_sample_get_data       (PkaSample        *sample,
                                        const guint8    **data,
                                        gsize            *dapka_len);
 gint        pka_sample_get_source_id  (PkaSample        *sample) G_GNUC_PURE;
-void        pka_sample_get_timeval    (PkaSample        *sample,
-                                       GTimeVal         *tv);
-void        pka_sample_set_timeval    (PkaSample        *sample,
-                                       GTimeVal         *tv);
+void        pka_sample_get_timespec   (PkaSample        *sample,
+                                       struct timespec  *ts);
+void        pka_sample_set_timespec   (PkaSample        *sample,
+                                       struct timespec  *ts);
 void        pka_sample_append_boolean (PkaSample        *sample,
                                        gint              field,
                                        gboolean          b);

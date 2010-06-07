@@ -24,6 +24,7 @@
 #include <egg-time.h>
 
 #include "pk-manifest.h"
+#include "pk-log.h"
 #include "pk-util.h"
 
 /**
@@ -38,13 +39,12 @@ static gboolean decode (PkManifest *manifest, EggBuffer *buffer);
 
 struct _PkManifest
 {
-	volatile gint ref_count;
-
-	GTimeVal      tv;
-	PkResolution  resolution;
-	gint          source_id;
-	gint          n_rows;
-	GArray       *rows;
+	volatile gint   ref_count;
+	struct timespec ts;
+	PkResolution    resolution;
+	gint            source_id;
+	gint            n_rows;
+	GArray         *rows;
 };
 
 typedef struct
@@ -55,11 +55,13 @@ typedef struct
 } PkManifestRow;
 
 static void
-pk_manifest_destroy (PkManifest *manifest)
+pk_manifest_destroy (PkManifest *manifest) /* IN */
 {
 	gint i;
 
 	g_return_if_fail(manifest != NULL);
+
+	ENTRY;
 
 	/* free row names */
 	for (i = 0; i < manifest->n_rows; i++) {
@@ -72,6 +74,7 @@ pk_manifest_destroy (PkManifest *manifest)
 	/* mark fields as canaries */
 	manifest->rows = NULL;
 	manifest->source_id = -1;
+	EXIT;
 }
 
 static PkManifest*
@@ -79,11 +82,11 @@ pk_manifest_new (void)
 {
 	PkManifest *manifest;
 
+	ENTRY;
 	manifest = g_slice_new0(PkManifest);
 	manifest->ref_count = 1;
 	manifest->rows = g_array_new(FALSE, FALSE, sizeof(PkManifestRow));
-
-	return manifest;
+	RETURN(manifest);
 }
 
 gint
@@ -106,27 +109,25 @@ pk_manifest_get_source_id (PkManifest *manifest) /* IN */
  * Side effects: None.
  */
 PkManifest*
-pk_manifest_new_from_data (const guint8 *data,
-                           gsize         length)
+pk_manifest_new_from_data (const guint8 *data,   /* IN */
+                           gsize         length) /* IN */
 {
 	PkManifest *manifest;
 	EggBuffer *buffer;
 
+	ENTRY;
 	manifest = pk_manifest_new();
 	buffer = egg_buffer_new_from_data(data, length);
-
 	if (!decode(manifest, buffer)) {
-		goto error;
+		GOTO(error);
 	}
-
 	egg_buffer_unref(buffer);
+	RETURN(manifest);
 
-	return manifest;
-
-error:
+  error:
 	egg_buffer_unref(buffer);
 	pk_manifest_unref(manifest);
-	return NULL;
+	RETURN(NULL);
 }
 
 /**
@@ -140,14 +141,14 @@ error:
  * Side effects: None.
  */
 PkManifest*
-pk_manifest_ref (PkManifest *manifest)
+pk_manifest_ref (PkManifest *manifest) /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(manifest->ref_count > 0, NULL);
 
+	ENTRY;
 	g_atomic_int_inc(&manifest->ref_count);
-
-	return manifest;
+	RETURN(manifest);
 }
 
 /**
@@ -168,10 +169,12 @@ pk_manifest_unref (PkManifest *manifest)
 	g_return_if_fail(manifest != NULL);
 	g_return_if_fail(manifest->ref_count > 0);
 
+	ENTRY;
 	if (g_atomic_int_dec_and_test(&manifest->ref_count)) {
 		pk_manifest_destroy(manifest);
 		g_slice_free(PkManifest, manifest);
 	}
+	EXIT;
 }
 
 /**
@@ -186,10 +189,9 @@ pk_manifest_unref (PkManifest *manifest)
  * Side effects: None.
  */
 PkResolution
-pk_manifest_get_resolution (PkManifest *manifest)
+pk_manifest_get_resolution (PkManifest *manifest) /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, 0);
-
 	return manifest->resolution;
 }
 
@@ -204,7 +206,7 @@ pk_manifest_get_resolution (PkManifest *manifest)
  * Side effects: None.
  */
 gint
-pk_manifest_get_n_rows (PkManifest *manifest)
+pk_manifest_get_n_rows (PkManifest *manifest) /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, 0);
 	return manifest->n_rows;
@@ -245,32 +247,34 @@ pk_manifest_get_row_type (PkManifest *manifest, /* IN */
  * Side effects: None.
  */
 const gchar*
-pk_manifest_get_row_name (PkManifest *manifest,
-                          gint        row)
+pk_manifest_get_row_name (PkManifest *manifest, /* IN */
+                          gint        row)      /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, NULL);
 	g_return_val_if_fail(row > 0 && row <= manifest->n_rows, NULL);
 
-	return g_array_index(manifest->rows, PkManifestRow, row - 1).name;
+	ENTRY;
+	RETURN(g_array_index(manifest->rows, PkManifestRow, row - 1).name);
 }
 
 /**
  * pk_manifest_get_timeval:
  * @manifest: A #PkManifest.
- * @row: row number which starts from 1.
+ * @ts: A struct timespec.
  *
- * Retrieves the #GTimeVal for with the manifest is authoritative.
+ * Retrieves the struct timespec for with the manifest is authoritative.
  *
+ * Returns: None.
  * Side effects: None.
  */
 void
-pk_manifest_get_timeval (PkManifest *manifest,
-                         GTimeVal   *tv)
+pk_manifest_get_timespec (PkManifest      *manifest, /* IN */
+                          struct timespec *ts)       /* OUT */
 {
 	g_return_if_fail(manifest != NULL);
-	g_return_if_fail(tv != NULL);
+	g_return_if_fail(ts != NULL);
 
-	*tv = manifest->tv;
+	*ts = manifest->ts;
 }
 
 GType
@@ -321,7 +325,7 @@ decode (PkManifest *manifest,
 	if (!egg_buffer_read_uint64(buffer, &u64)) {
 		return FALSE;
 	}
-	g_time_val_from_ticks(&manifest->tv, (GTimeSpan *)&u64);
+	timespec_from_usec(&manifest->ts, u64);
 
 	/* resolution */
 	if (!egg_buffer_read_tag(buffer, &field, &tag)) {

@@ -45,8 +45,8 @@
 
 struct _PkaSample
 {
-	volatile gint  ref_count;
-	GTimeVal       tv;              /* Time of sample. */
+	volatile gint   ref_count;
+	struct timespec ts;
 	gint           source_id;       /* Source identifier within the channel. */
 	EggBuffer     *buf;             /* Protocol buffer style data blob. */
 };
@@ -89,7 +89,16 @@ pka_sample_new (void)
 	sample->ref_count = 1;
 	sample->source_id = -1;
 	sample->buf = egg_buffer_new();
-	g_get_current_time(&sample->tv);
+	/*
+	 * XXX: Tests have shown on my dual-core x64 system that retrieving the
+	 *  realtime clock vs. monotonic clock are nearly identical.  Therefore,
+	 *  for the time being we will just use the realtime clock.
+	 *
+	 *  When we look at porting to ARM and other architectures, there is a
+	 *  strong change that this will not be the case.  We should once again
+	 *  consider using CLOCK_MONOTONIC at that point.
+	 */
+	clock_gettime(CLOCK_REALTIME, &sample->ts);
 	RETURN(sample);
 }
 
@@ -201,44 +210,45 @@ pka_sample_set_source_id (PkaSample *sample,    /* IN */
 }
 
 /**
- * pka_sample_get_timeval:
+ * pka_sample_get_timespec:
  * @sample: A #PkaSample
- * @tv: A #GTimeVal
+ * @ts: A struct timespec.
  *
- * Retrieves the #GTimeVal for when the sample occurred.
+ * Retrieves the timespec for when the sample was created.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pka_sample_get_timeval (PkaSample *sample, /* IN */
-                        GTimeVal  *tv)     /* IN */
+pka_sample_get_timespec (PkaSample       *sample, /* IN */
+                         struct timespec *ts)     /* OUT */
 {
 	g_return_if_fail(sample != NULL);
-	g_return_if_fail(tv != NULL);
+	g_return_if_fail(ts != NULL);
 
-	*tv = sample->tv;
+	*ts = sample->ts;
 }
 
 /**
  * pka_sample_set_timeval:
- * @sample: A #PkaSample
- * @tv: A #GTimeVal
+ * @sample: A #PkaSample.
+ * @ts: A struct timespec.
  *
- * Sets the timeval for when @sample occurred.
+ * Sets the timespec for when @sample occurred.  @ts should be a value
+ * from the %CLOCK_REALTIME clock.
  *
  * Returns: None.
  * Side effects: None.
  */
 void
-pka_sample_set_timeval (PkaSample *sample, /* IN */
-                        GTimeVal  *tv)     /* IN */
+pka_sample_set_timespec (PkaSample       *sample, /* IN */
+                         struct timespec *ts)     /* IN */
 {
 	g_return_if_fail(sample != NULL);
-	g_return_if_fail(tv != NULL);
+	g_return_if_fail(ts != NULL);
 
 	ENTRY;
-	sample->tv = *tv;
+	sample->ts = *ts;
 	EXIT;
 }
 
@@ -453,14 +463,14 @@ pka_sample_append_timeval (PkaSample *sample, /* IN */
                            gint       field,  /* IN */
                            GTimeVal  *tv)     /* IN */
 {
-	gint64 ticks;
+	guint64 usec;
 
 	g_return_if_fail(sample != NULL);
 
 	ENTRY;
-	g_time_val_to_ticks(tv, &ticks);
+	usec = (tv->tv_sec * G_USEC_PER_SEC) + tv->tv_usec;
 	egg_buffer_write_tag(sample->buf, field, EGG_BUFFER_UINT64);
-	egg_buffer_write_uint64(sample->buf, ticks);
+	egg_buffer_write_uint64(sample->buf, usec);
 	EXIT;
 }
 

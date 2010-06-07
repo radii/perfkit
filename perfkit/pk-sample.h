@@ -24,6 +24,7 @@
 #define __PK_SAMPLE_H__
 
 #include <glib-object.h>
+#include <time.h>
 
 G_BEGIN_DECLS
 
@@ -71,7 +72,9 @@ gboolean      pk_sample_get_value     (PkSample           *sample,
                                        guint               row_id,
                                        GValue             *value);
 gint          pk_sample_get_source_id (PkSample           *sample);
-void          pk_sample_get_time_val  (PkSample           *sample,
+void          pk_sample_get_timespec  (PkSample           *sample,
+                                       struct timespec    *ts);
+void          pk_sample_get_timeval   (PkSample           *sample,
                                        GTimeVal           *tv);
 
 G_END_DECLS

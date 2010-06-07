@@ -22,7 +22,9 @@
 
 #include <egg-buffer.h>
 #include <egg-time.h>
+#include <time.h>
 
+#include "pk-log.h"
 #include "pk-manifest.h"
 #include "pk-sample.h"
 #include "pk-util.h"
@@ -39,11 +41,10 @@ typedef struct _PkSampleField PkSampleField;
 
 struct _PkSample
 {
-	volatile gint ref_count;
-
-	gint      source_id;
-	GTimeVal  tv;
-	GArray   *ar;
+	volatile gint    ref_count;
+	gint             source_id;
+	struct timespec  ts;
+	GArray          *ar;
 };
 
 struct _PkSampleField
@@ -88,65 +89,49 @@ pk_sample_new (void)
 }
 
 static gboolean
-pk_sample_decode_timeval (PkSample   *sample,
-                          EggBuffer  *buffer,
-                          PkManifest *manifest)
+pk_sample_decode_timespec (PkSample   *sample,   /* IN */
+                           EggBuffer  *buffer,   /* IN */
+                           PkManifest *manifest) /* IN */
 {
-	PkResolution res;
 	guint field, tag;
-	GTimeVal tv;
+	struct timespec sts;
+	struct timespec mts;
+	PkResolution res;
 	guint64 u64;
 
-	/*
-	 * Make sure the buffer is at the timestamp field.
-	 */
-
+	ENTRY;
 	if (!egg_buffer_read_tag(buffer, &field, &tag)) {
-		return FALSE;
+		RETURN(FALSE);
 	}
-
 	if (field != 2 || tag != EGG_BUFFER_UINT64) {
-		return FALSE;
+		RETURN(FALSE);
 	}
-
 	if (!egg_buffer_read_uint64(buffer, &u64)) {
-		return FALSE;
+		RETURN(FALSE);
 	}
-
-	/*
-	 * Resolve the relative timestamp.
-	 */
-
-	pk_manifest_get_timeval(manifest, &tv);
 	res = pk_manifest_get_resolution(manifest);
-
 	switch (res) {
-	case PK_RESOLUTION_PRECISE:
-	case PK_RESOLUTION_USEC:
-		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
-		tv.tv_usec += (u64 % G_TIME_SPAN_SECOND) / 10;
-		break;
-	case PK_RESOLUTION_MSEC:
-		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
-		tv.tv_usec += (u64 % G_TIME_SPAN_SECOND) / G_TIME_SPAN_MILLISECOND;
-		break;
-	case PK_RESOLUTION_SECOND:
-		tv.tv_sec += (u64 / G_TIME_SPAN_SECOND);
-		break;
-	case PK_RESOLUTION_MINUTE:
-		tv.tv_sec += (u64 / G_TIME_SPAN_MINUTE) * 60;
-		break;
-	case PK_RESOLUTION_HOUR:
-		tv.tv_sec += (u64 / G_TIME_SPAN_HOUR) * 3600;
-		break;
+	CASE(PK_RESOLUTION_USEC);
+		BREAK;
+	CASE(PK_RESOLUTION_MSEC);
+		u64 *= 1000;
+		BREAK;
+	CASE(PK_RESOLUTION_SECOND);
+		u64 *= G_USEC_PER_SEC;
+		BREAK;
+	CASE(PK_RESOLUTION_MINUTE);
+		u64 *= G_USEC_PER_SEC * 60;
+		BREAK;
+	CASE(PK_RESOLUTION_HOUR);
+		u64 *= G_USEC_PER_SEC * (guint64)3600;
+		BREAK;
 	default:
-		g_warn_if_reached();
-		return FALSE;
+		g_assert_not_reached();
 	}
-
-	sample->tv = tv;
-
-	return TRUE;
+	timespec_from_usec(&sts, u64);
+	pk_manifest_get_timespec(manifest, &mts);
+	timespec_add(&sts, &mts, &sample->ts);
+	RETURN(TRUE);
 }
 
 static inline gboolean
@@ -310,24 +295,21 @@ pk_sample_decode_data (PkSample   *sample,
  * Side effects: None.
  */
 static gboolean
-pk_sample_decode (PkSample   *sample,
-                  EggBuffer  *buffer,
-                  PkManifest *manifest)
+pk_sample_decode (PkSample   *sample,   /* IN */
+                  EggBuffer  *buffer,   /* IN */
+                  PkManifest *manifest) /* IN */
 {
 	g_return_val_if_fail(sample != NULL, FALSE);
 	g_return_val_if_fail(buffer != NULL, FALSE);
 
-	/* Decode field 1, timestamp. */
-	if (!pk_sample_decode_timeval(sample, buffer, manifest)) {
-		return FALSE;
+	ENTRY;
+	if (!pk_sample_decode_timespec(sample, buffer, manifest)) {
+		RETURN(FALSE);
 	}
-
-	/* Decode field 2, data. */
 	if (!pk_sample_decode_data(sample, buffer, manifest)) {
-		return FALSE;
+		RETURN(FALSE);
 	}
-
-	return TRUE;
+	RETURN(TRUE);
 }
 
 /**
@@ -486,14 +468,27 @@ pk_sample_get_source_id (PkSample *sample) /* IN */
 }
 
 void
-pk_sample_get_time_val (PkSample *sample, /* IN */
-                        GTimeVal *tv)     /* OUT */
+pk_sample_get_timespec (PkSample        *sample, /* IN */
+                        struct timespec *ts)     /* OUT */
+{
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(ts != NULL);
+
+	ENTRY;
+	*ts = sample->ts;
+	EXIT;
+}
+
+void
+pk_sample_get_timeval (PkSample *sample, /* IN */
+                       GTimeVal *tv)     /* OUT */
 {
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(tv != NULL);
 
 	ENTRY;
-	*tv = sample->tv;
+	tv->tv_sec = sample->ts.tv_sec;
+	tv->tv_usec = (sample->ts.tv_nsec / 1000);
 	EXIT;
 }
 
