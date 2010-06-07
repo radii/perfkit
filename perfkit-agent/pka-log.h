@@ -97,6 +97,7 @@
         g_string_free(str, TRUE);                                   \
         g_string_free(astr, TRUE);                                  \
     } G_STMT_END
+#define DUMP_UINT64(_n, _v) DUMP_BYTES(_n, ((guint8*)&_v), sizeof(guint64))
 #else
 #define TRACE(_d, _f, ...)
 #define ENTRY
@@ -106,6 +107,7 @@
 #define CASE(_l)   case _l:
 #define BREAK      break
 #define DUMP_BYTES(_n, _b, _l)
+#define DUMP_UINT64(_n, _v)
 #endif
 
 #define CASE_RETURN_STR(_l) case _l: return #_l
