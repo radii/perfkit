@@ -18,7 +18,7 @@ test_PkaEncoder_encode_manifest (void)
 {
 	EggBuffer *b;
 	PkaManifest *m;
-	gchar *buf = NULL;
+	guint8 *buf = NULL;
 	gsize len = 0;
 	gint f;
 	guint t, u2;
@@ -41,7 +41,7 @@ test_PkaEncoder_encode_manifest (void)
 	g_assert_cmpint(f, ==, 2);
 	g_assert_cmpint(t, ==, EGG_BUFFER_UINT);
 	egg_buffer_read_uint(b, &u2);
-	g_assert_cmpint(u2, ==, PKA_RESOLUTION_PRECISE);
+	g_assert_cmpint(u2, ==, PKA_RESOLUTION_USEC);
 
 	/* source */
 	egg_buffer_read_tag(b, &f, &t);
@@ -124,7 +124,7 @@ test_PkaEncoder_encode_samples (void)
 {
 	PkaSample *samples[4];
 	PkaManifest *m;
-	guchar *buf;
+	guint8 *buf;
 	gsize len;
 
 	SETUP_MANIFEST(m);
@@ -137,7 +137,7 @@ test_PkaEncoder_encode_samples (void)
 	samples[3] = pka_sample_new();
 
 	/* empty samples test */
-	g_assert(pka_encoder_encode_samples(NULL, m, samples, 3, (gchar **)&buf, &len));
+	g_assert(pka_encoder_encode_samples(NULL, m, samples, 3, &buf, &len));
 	g_assert_cmpint(len, ==, 12);
 	g_assert_cmpint(buf[0],  ==, 0x8);
 	g_assert_cmpint(buf[1],  ==, 0x0);
@@ -157,7 +157,7 @@ test_PkaEncoder_encode_samples (void)
 	pka_sample_append_uint(samples[1], 1, 321);
 	pka_sample_append_uint(samples[2], 1, 111);
 	pka_sample_append_double(samples[3], 3, 123.45);
-	g_assert(pka_encoder_encode_samples(NULL, m, samples, 4, (gchar **)&buf, &len));
+	g_assert(pka_encoder_encode_samples(NULL, m, samples, 4, &buf, &len));
 	g_assert_cmpint(len, ==, 32);
 	g_assert_cmpint(buf[0],  ==, 0x8);
 	g_assert_cmpint(buf[1],  ==, 0x0);

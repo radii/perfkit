@@ -39,15 +39,15 @@ static void
 test_PkaManifest_timeval (void)
 {
 	PkaManifest *m;
-	GTimeVal tv1, tv2;
+	struct timespec ts1, ts2;
 
 	m = pka_manifest_new();
 	g_usleep(G_USEC_PER_SEC / 10);
-	g_get_current_time(&tv1);
-	pka_manifest_set_timeval(m, &tv1);
-	pka_manifest_get_timeval(m, &tv2);
-	g_assert_cmpint(tv1.tv_sec, ==, tv2.tv_sec);
-	g_assert_cmpint(tv1.tv_usec, ==, tv2.tv_usec);
+	clock_gettime(CLOCK_REALTIME, &ts1);
+	pka_manifest_set_timespec(m, &ts1);
+	pka_manifest_get_timespec(m, &ts2);
+	g_assert_cmpint(ts1.tv_sec, ==, ts2.tv_sec);
+	g_assert_cmpint(ts1.tv_nsec, ==, ts2.tv_nsec);
 
 	pka_manifest_unref(m);
 }
