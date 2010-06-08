@@ -3939,6 +3939,18 @@ pk_shell_help (EggLine  *line,   /* IN */
 	RETURN(EGG_LINE_STATUS_OK);
 }
 
+static EggLineStatus
+pk_shell_quit (EggLine  *line,   /* IN */
+               gint      argc,   /* IN */
+               gchar    *argv[], /* IN */
+               GError  **error)  /* OUT */
+{
+	ENTRY;
+	g_main_loop_quit(main_loop);
+	egg_line_quit(line);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
 static EggLineCommand plugin_commands[] = {
 	{
 		.name      = "get-copyright",
@@ -4648,7 +4660,14 @@ static EggLineCommand root_commands[] = {
 		.help      = "Show help usage for a command.",
 		.usage     = "help [COMMAND..]",
 		.generator = NULL,
-		.callback = pk_shell_help,
+		.callback  = pk_shell_help,
+	},
+	{
+		.name      = "quit",
+		.help      = "Quit perfkit-shell",
+		.usage     = "quit",
+		.generator = NULL,
+		.callback  = pk_shell_quit,
 	},
 	{ NULL }
 };
