@@ -26,8 +26,6 @@ AM_LDFLAGS =								\
 	$(top_builddir)/perfkit-agent/libperfkit-agent.la		\
 	$(NULL)
 
-test_pka_log_SOURCES = test-pka-log.c
-test_pka_plugins_SOURCES = test-pka-plugins.c
 test_pka_sample_SOURCES = test-pka-sample.c $(top_srcdir)/cut-n-paste/egg-buffer.c
 test_pka_manifest_SOURCES = test-pka-manifest.c
 test_pka_encoder_SOURCES = test-pka-encoder.c
