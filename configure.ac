@@ -160,7 +160,6 @@ AC_OUTPUT([
 	Makefile
 
 	data/Makefile
-	data/dbus/Makefile
 	data/ui/Makefile
 
 	doc/Makefile
