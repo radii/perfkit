@@ -20,6 +20,11 @@
 #error "Perfkit has not yet been ported to your platform."
 #endif
 
+#ifdef G_LOG_DOMAIN
+#undef G_LOG_DOMAIN
+#endif
+#define G_LOG_DOMAIN "Simple"
+
 #include <egg-time.h>
 #include <pthread.h>
 #include <perfkit-agent/perfkit-agent.h>
