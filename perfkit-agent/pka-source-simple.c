@@ -22,7 +22,6 @@
 
 #include <egg-time.h>
 #include <pthread.h>
-
 #include <perfkit-agent/perfkit-agent.h>
 
 /**
@@ -273,16 +272,15 @@ pka_source_simple_get_use_thread (PkaSourceSimple *source) /* IN */
 static inline void
 pka_source_simple_update (PkaSourceSimple *source) /* IN */
 {
-	PkaSourceSimplePrivate *priv = source->priv;
-	struct timespec ts, *freq = &priv->freq;
+	PkaSourceSimplePrivate *priv;
+	struct timespec *freq;
+	struct timespec ts;
 
 	ENTRY;
+	priv = source->priv;
+	freq = &priv->freq;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	ts.tv_nsec += freq->tv_nsec;
-	ts.tv_sec += ts.tv_nsec / G_NSEC_PER_SEC;
-	ts.tv_nsec %= G_NSEC_PER_SEC;
-	ts.tv_sec += freq->tv_sec;
-	priv->timeout = ts;
+	timespec_add(&ts, freq, &priv->timeout);
 	EXIT;
 }
 
