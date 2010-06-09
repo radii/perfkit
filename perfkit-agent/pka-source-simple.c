@@ -329,8 +329,17 @@ pka_source_simple_wait (PkaSourceSimple *source,     /* IN */
                         pthread_mutex_t *wait_mutex) /* IN */
 {
 	PkaSourceSimplePrivate *priv = source->priv;
+	struct timespec ts, sub;
 
 	ENTRY;
+#ifdef PERFKIT_TRACE
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	timespec_subtract(&priv->timeout, &ts, &sub);
+	TRACE(Simple, "Blocking until next sample of source %d in "
+	              "%08ld.%08ld seconds.",
+	              pka_source_get_id(PKA_SOURCE(source)),
+	              sub.tv_sec, sub.tv_nsec);
+#endif
 	pthread_cond_timedwait(wait_cond, wait_mutex, &priv->timeout);
 	RETURN((wait_cond == &priv->cond) ? priv->running : running);
 }
