@@ -62,6 +62,7 @@ pka_resolution_apply (PkaResolution    res, /* IN */
 		RETURN(usec / (((guint64)3600 * G_USEC_PER_SEC)));
 	default:
 		g_assert_not_reached();
+		return usec;
 	}
 }
 

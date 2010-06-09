@@ -119,7 +119,7 @@ pk_shell_error_quark (void)
 	return g_quark_from_static_string("pk-shell-error-quark");
 }
 
-static inline gboolean
+static gboolean
 pk_shell_parse_int (const gchar *str,   /* IN */
                     gint        *v_int) /* OUT */
 {
@@ -138,7 +138,7 @@ pk_shell_parse_int (const gchar *str,   /* IN */
 	return TRUE;
 }
 
-static inline gboolean
+static gboolean
 pk_shell_parse_boolean (const gchar *str,    /* IN */
                         gboolean    *v_bool) /* OUT */
 {
