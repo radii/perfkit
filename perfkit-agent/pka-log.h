@@ -31,7 +31,7 @@
 #define INFO(_d, _f, ...)     g_log(#_d, G_LOG_LEVEL_INFO, _f, ##__VA_ARGS__)
 #define CRITICAL(_d, _f, ...) g_log(#_d, G_LOG_LEVEL_CRITICAL, _f, ##__VA_ARGS__)
 
-#ifndef DISABLE_TRACE
+#ifdef PERFKIT_TRACE
 #define TRACE(_d, _f, ...) g_log(#_d, G_LOG_LEVEL_TRACE, "  MSG: " _f, ##__VA_ARGS__)
 #define ENTRY                                                       \
     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                          \
@@ -44,7 +44,7 @@
     } G_STMT_END
 #define RETURN(_r)                                                  \
     G_STMT_START {                                                  \
-    	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                      \
+    	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_TRACE,                        \
               " EXIT: %s():%d", G_STRFUNC, __LINE__);               \
         return _r;                                                  \
     } G_STMT_END
@@ -98,6 +98,7 @@
         g_string_free(astr, TRUE);                                  \
     } G_STMT_END
 #define DUMP_UINT64(_n, _v) DUMP_BYTES(_n, ((guint8*)&_v), sizeof(guint64))
+#define DUMP_UINT(_n, _v) DUMP_BYTES(_n, ((guint8*)&_v), sizeof(guint))
 #else
 #define TRACE(_d, _f, ...)
 #define ENTRY
@@ -108,6 +109,7 @@
 #define BREAK      break
 #define DUMP_BYTES(_n, _b, _l)
 #define DUMP_UINT64(_n, _v)
+#define DUMP_UINT(_n, _v)
 #endif
 
 #define CASE_RETURN_STR(_l) case _l: return #_l

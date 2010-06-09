@@ -34,13 +34,13 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\"				\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
-	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Listener\"					\
 	-I$(top_srcdir)/perfkit-agent					\
 	-D_GNU_SOURCE							\
 	$(WARNINGS)							\
-	$(PERFKIT_AGENT_CFLAGS)						\
 	$(DBUS_CFLAGS)							\
+	$(PERFKIT_AGENT_CFLAGS)						\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
 
 # AM_CPPFLAGS += -DDISABLE_TRACE

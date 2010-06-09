@@ -25,6 +25,7 @@ AM_CPPFLAGS =								\
 	-I$(top_srcdir)/perfkit						\
 	-I$(top_srcdir)							\
 	$(PERFKIT_TOOLS_CFLAGS)						\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(WARNINGS)							\
 	$(NULL)
 

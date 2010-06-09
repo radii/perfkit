@@ -34,11 +34,11 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\"				\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
-	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Source\"					\
 	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
 
 # AM_CPPFLAGS += -DDISABLE_TRACE

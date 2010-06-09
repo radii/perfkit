@@ -70,12 +70,12 @@ libperfkit_1_0_la_CPPFLAGS =						\
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\"				\
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\"				\
 	-DGETTEXT_PACKAGE=\""perfkit"\"					\
-	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Perfkit\"					\
 	-DPERFKIT_COMPILATION						\
 	-I$(top_srcdir)/cut-n-paste					\
 	$(WARNINGS)							\
 	$(PERFKIT_CFLAGS)						\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
 
 INTROSPECTION_GIRS =

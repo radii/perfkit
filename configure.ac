@@ -101,6 +101,33 @@ AM_CONDITIONAL(HAVE_DBUS_0_82, test "x$have_dbus_0_82" = "xyes")
 
 
 dnl ************************************************************************
+dnl Enable extra debugging options
+dnl ************************************************************************
+m4_define([debug_default],
+	  [m4_if(m4_eval(perfkit_minor_version % 2), [1],
+	  [yes], [minimum])])
+AC_ARG_ENABLE([debug],
+	      [AC_HELP_STRING([--enable-debug=@<:@no/minimum/yes@:>@],
+	      		      [turn on debugging @<:@default=debug_default@:>@])],
+	      		      [],
+	      		      [enable_debug=debug_default])
+AS_CASE([$enable_debug],
+	[yes], [
+		test "$cflags_set" = set || CFLAGS="$CFLAGS -g"
+		PERFKIT_DEBUG_CFLAGS="-DPERFKIT_TRACE"
+	],
+	[minimum], [
+		PERFKIT_DEBUG_CFLAGS="-DG_DISABLE_CAST_CHECKS"
+	],
+	[no], [
+		PERFKIT_DEBUG_CFLAGS="-DG_DISABLE_ASSERT -DG_DISABLE_CHECKS -DG_DISABLE_CAST_CHECKS"
+	],
+	[AC_MSG_ERROR([Unknown argument to --enable-debug])]
+)
+AC_SUBST(PERFKIT_DEBUG_CFLAGS)
+
+
+dnl ************************************************************************
 dnl Additional Headers
 dnl ************************************************************************
 AC_CHECK_HEADERS([readline/readline.h readline/history.h],
@@ -173,7 +200,8 @@ echo ""
 echo "Perfkit $VERSION"
 echo ""
 echo "  Prefix.....................: ${prefix}"
-echo "  Cflags ....................: ${CFLAGS}"
+echo "  Debug Level................: ${enable_debug}"
+echo "  Compiler Flags.............: ${CFLAGS}"
 echo "  Enable API Reference.......: ${enable_gtk_doc}"
 echo "  Enable Test Suite..........: ${enable_glibtest}"
 echo ""

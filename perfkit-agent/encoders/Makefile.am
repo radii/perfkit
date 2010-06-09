@@ -34,8 +34,8 @@ AM_CPPFLAGS =								\
 	-DPACKAGE_LIB_DIR=\""$(libdir)"\"				\
 	-DPACKAGE_SYSCONFDIR=\""$(sysconfdir)"\"			\
 	-DGETTEXT_PACKAGE=\""perfkit-agent"\"				\
-	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"Encoder\"					\
 	$(WARNINGS)							\
 	$(PERFKIT_AGENT_CFLAGS)						\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
