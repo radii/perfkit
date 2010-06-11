@@ -37,6 +37,13 @@
  * 
  */
 
+/*
+ * TODO:
+ *   We need to come up with a locking scheme for event delivery to the
+ *   source.  All of the notify_* methods should hold this lock during
+ *   callback to ensure state.  Holding a reader lock might be sufficient.
+ */
+
 G_DEFINE_ABSTRACT_TYPE (PkaSource, pka_source, G_TYPE_OBJECT)
 
 extern void pka_sample_set_source_id   (PkaSample   *sample,
