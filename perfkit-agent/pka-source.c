@@ -49,6 +49,7 @@ struct _PkaSourcePrivate
 	GStaticRWLock  rw_lock;
 
 	gint           id;
+	gboolean       running;
 	PkaPlugin     *plugin;
 	PkaManifest   *manifest;
 	GPtrArray     *subscriptions;
@@ -235,7 +236,16 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 		manifest = pka_manifest_ref(priv->manifest);
 	}
 	g_ptr_array_add(priv->subscriptions, pka_subscription_ref(subscription));
+	/*
+	 * If this is the first subscription and we are running, then the source
+	 * is in a automatic-muted state.  We will notify it to unmute.
+	 */
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	if (priv->running && priv->subscriptions->len == 1) {
+		if (PKA_SOURCE_GET_CLASS(source)->notify_unmuted) {
+			PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
+		}
+	}
 	/*
 	 * Ensure the current manifest is delivered.  We do this outside of the
 	 * write lock to make sure that other work can happen concurrently.  It
@@ -245,7 +255,10 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 	 */
 	if (manifest) {
 		g_static_rw_lock_reader_lock(&priv->rw_lock);
-		if (priv->manifest == manifest) {
+		/*
+		 * Check to see if manifest still matches (with memory barrier).
+		 */
+		if (g_atomic_pointer_get(&priv->manifest) == manifest) {
 			pka_subscription_deliver_manifest(subscription, source, manifest);
 		}
 		pka_manifest_unref(manifest);
@@ -271,15 +284,10 @@ pka_source_remove_subscription (PkaSource       *source,       /* IN */
                                 PkaSubscription *subscription) /* IN */
 {
 	PkaSourcePrivate *priv;
+	gboolean do_notify;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(subscription != NULL);
-
-	/*
-	 * TODO: It would be a good idea if we can stop the source from doing
-	 *   any significant work when it knows that nobody is listening and the
-	 *   data would simply be dropped.
-	 */
 
 	ENTRY;
 	priv = source->priv;
@@ -287,7 +295,17 @@ pka_source_remove_subscription (PkaSource       *source,       /* IN */
 	if (g_ptr_array_remove_fast(priv->subscriptions, subscription)) {
 		g_object_unref(subscription);
 	}
+	/*
+	 * If we are still running and there are no more subscriptions active,
+	 * then we will do our best to reduce system overhead and mute the souce.
+	 */
+	do_notify = priv->running && !priv->subscriptions->len;
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	if (do_notify) {
+		if (PKA_SOURCE_GET_CLASS(source)->notify_muted) {
+			PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
+		}
+	}
 	EXIT;
 }
 
@@ -307,12 +325,31 @@ void
 pka_source_notify_started (PkaSource    *source,     /* IN */
                            PkaSpawnInfo *spawn_info) /* IN */
 {
+	PkaSourcePrivate *priv;
+	gboolean do_notify;
+
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(spawn_info != NULL);
 
+	/*
+	 * To reduce the amount of overhead that the perfkit-agent will cause
+	 * when there are no subscriptions present, we will tell the source to
+	 * mute if there are no active subscriptions.
+	 */
+
 	ENTRY;
+	priv = source->priv;
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	priv->running = TRUE;
+	do_notify = !priv->subscriptions->len;
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	if (PKA_SOURCE_GET_CLASS(source)->notify_started) {
 		PKA_SOURCE_GET_CLASS(source)->notify_started(source, spawn_info);
+	}
+	if (do_notify) {
+		if (PKA_SOURCE_GET_CLASS(source)->notify_muted) {
+			PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
+		}
 	}
 	EXIT;
 }
@@ -329,9 +366,15 @@ pka_source_notify_started (PkaSource    *source,     /* IN */
 void
 pka_source_notify_stopped (PkaSource *source) /* IN */
 {
+	PkaSourcePrivate *priv;
+
 	g_return_if_fail(PKA_IS_SOURCE(source));
 
 	ENTRY;
+	priv = source->priv;
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	priv->running = FALSE;
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	if (PKA_SOURCE_GET_CLASS(source)->notify_stopped) {
 		PKA_SOURCE_GET_CLASS(source)->notify_stopped(source);
 	}
