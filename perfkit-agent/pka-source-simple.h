@@ -38,8 +38,35 @@ G_BEGIN_DECLS
 typedef struct _PkaSourceSimple        PkaSourceSimple;
 typedef struct _PkaSourceSimpleClass   PkaSourceSimpleClass;
 typedef struct _PkaSourceSimplePrivate PkaSourceSimplePrivate;
-typedef void (*PkaSourceSimpleFunc) (PkaSourceSimple *source, gpointer user_data);
-typedef void (*PkaSourceSimpleSpawn) (PkaSourceSimple *source, PkaSpawnInfo *spawn_info, gpointer user_data);
+
+/**
+ * PkaSourceSimpleFunc:
+ * @source: A #PkaSourceSimple.
+ * @user_data: The user data supplied.
+ *
+ * Callback function to be executed when a new sample is requested from the
+ * source.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+typedef void (*PkaSourceSimpleFunc)  (PkaSourceSimple *source,
+                                      gpointer         user_data);
+
+/**
+ * PkaSourceSimpleSpawn:
+ * @source: A #PkaSourceSimple.
+ * @spawn_info: A #PkaSourceSimpleSpawn.
+ * @user_data: The user data supplied.
+ *
+ * Callback function to be executed when the process is spawned.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+typedef void (*PkaSourceSimpleSpawn) (PkaSourceSimple *source,
+                                      PkaSpawnInfo    *spawn_info,
+                                      gpointer         user_data);
 
 struct _PkaSourceSimple
 {
@@ -56,27 +83,27 @@ struct _PkaSourceSimpleClass
 
 GType      pka_source_simple_get_type             (void) G_GNUC_CONST;
 PkaSource* pka_source_simple_new                  (void);
-PkaSource* pka_source_simple_new_full             (PkaSourceSimpleFunc   callback,
-                                                   PkaSourceSimpleSpawn  spawn,
-                                                   gpointer              user_data,
-                                                   GDestroyNotify        notify);
-void       pka_source_simple_set_sample_callback  (PkaSourceSimple     *source,
-                                                   PkaSourceSimpleFunc  callback,
-                                                   gpointer             user_data,
-                                                   GDestroyNotify       notify);
-void       pka_source_simple_set_sample_closure   (PkaSourceSimple *source,
-                                                   GClosure        *closure);
+PkaSource* pka_source_simple_new_full             (PkaSourceSimpleFunc    callback,
+                                                   PkaSourceSimpleSpawn   spawn,
+                                                   gpointer               user_data,
+                                                   GDestroyNotify         notify);
+void       pka_source_simple_set_sample_callback  (PkaSourceSimple       *source,
+                                                   PkaSourceSimpleFunc    callback,
+                                                   gpointer               user_data,
+                                                   GDestroyNotify         notify);
+void       pka_source_simple_set_sample_closure   (PkaSourceSimple       *source,
+                                                   GClosure              *closure);
 void       pka_source_simple_set_spawn_callback   (PkaSourceSimple       *source,
                                                    PkaSourceSimpleSpawn   spawn,
                                                    gpointer               user_data,
                                                    GDestroyNotify         notify);
 void       pka_source_simple_set_spawn_closure    (PkaSourceSimple       *source,
                                                    GClosure              *closure);
-gboolean   pka_source_simple_get_use_thread       (PkaSourceSimple *source);
-void       pka_source_simple_set_use_thread       (PkaSourceSimple *source,
-                                                   gboolean         use_thread);
-void       pka_source_simple_set_frequency        (PkaSourceSimple *source,
-                                                   const GTimeVal  *frequency);
+gboolean   pka_source_simple_get_use_thread       (PkaSourceSimple       *source);
+void       pka_source_simple_set_use_thread       (PkaSourceSimple       *source,
+                                                   gboolean               use_thread);
+void       pka_source_simple_set_frequency        (PkaSourceSimple       *source,
+                                                   const GTimeVal        *frequency);
 
 G_END_DECLS
 
