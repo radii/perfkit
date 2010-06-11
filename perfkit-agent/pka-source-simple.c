@@ -506,6 +506,33 @@ pka_source_simple_init_pthreads (pthread_mutex_t *init_mutex, /* IN */
 	EXIT;
 }
 
+static void
+pka_source_simple_remove_from_shared (PkaSourceSimple *source) /* IN */
+{
+	ENTRY;
+	pthread_mutex_lock(&mutex);
+	g_ptr_array_remove(sources, source);
+	pthread_cond_signal(&cond);
+	pthread_mutex_unlock(&mutex);
+	source->priv->running = FALSE;
+	g_signal_emit(source, signals[CLEANUP], 0);
+	EXIT;
+}
+
+static void
+pka_source_simple_add_to_shared (PkaSourceSimple *source) /* IN */
+{
+	ENTRY;
+	INFO(Source, "Attaching source %d to cooperative thread manager.",
+	     pka_source_get_id(PKA_SOURCE(source)));
+	pthread_mutex_lock(&mutex);
+	g_ptr_array_add(sources, g_object_ref(source));
+	g_ptr_array_sort(sources, pka_source_simple_compare_func);
+	pthread_cond_signal(&cond);
+	pthread_mutex_unlock(&mutex);
+	EXIT;
+}
+
 /**
  * pka_source_simple_notify_started:
  * @source: A #PkaSourceSimple.
@@ -519,11 +546,13 @@ static void
 pka_source_simple_notify_started (PkaSource    *source,     /* IN */
                                   PkaSpawnInfo *spawn_info) /* IN */
 {
-	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
+	PkaSourceSimplePrivate *priv;
 	GError *error = NULL;
 	GValue params[2] = { { 0 } };
 
 	ENTRY;
+	priv = PKA_SOURCE_SIMPLE(source)->priv;
+	pthread_mutex_lock(&priv->mutex);
 	if (priv->spawn) {
 		g_value_init(&params[0], PKA_TYPE_SOURCE);
 		g_value_init(&params[1], G_TYPE_POINTER);
@@ -544,20 +573,14 @@ pka_source_simple_notify_started (PkaSource    *source,     /* IN */
 			      "Attempting best effort with shared worker.",
 			      error->message);
 			g_error_free(error);
+  			priv->dedicated = FALSE;
 			GOTO(attach_shared);
 		}
 		EXIT;
 	}
-
   attach_shared:
-	INFO(Source, "Attaching source %d to cooperative thread manager.",
-	     pka_source_get_id(source));
-	priv->dedicated = FALSE;
-	pthread_mutex_lock(&mutex);
-	g_ptr_array_add(sources, g_object_ref(source));
-	g_ptr_array_sort(sources, pka_source_simple_compare_func);
-	pthread_cond_signal(&cond);
-	pthread_mutex_unlock(&mutex);
+	pka_source_simple_add_to_shared(PKA_SOURCE_SIMPLE(source));
+	pthread_mutex_unlock(&priv->mutex);
 	EXIT;
 }
 
@@ -584,12 +607,41 @@ pka_source_simple_notify_stopped (PkaSource *source) /* IN */
 		pthread_mutex_unlock(&priv->mutex);
 		EXIT;
 	}
-	pthread_mutex_lock(&mutex);
-	g_ptr_array_remove(sources, source);
-	priv->running = FALSE;
-	g_signal_emit(source, signals[CLEANUP], 0);
-	pthread_cond_signal(&cond);
-	pthread_mutex_unlock(&mutex);
+	pka_source_simple_remove_from_shared(PKA_SOURCE_SIMPLE(source));
+	EXIT;
+}
+
+static void
+pka_source_simple_notify_muted (PkaSource *source) /* IN */
+{
+	PkaSourceSimplePrivate *priv;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	priv = PKA_SOURCE_SIMPLE(source)->priv;
+	pthread_mutex_lock(&priv->mutex);
+	if (!priv->dedicated) {
+		pka_source_simple_remove_from_shared(PKA_SOURCE_SIMPLE(source));
+	}
+	pthread_mutex_unlock(&priv->mutex);
+	EXIT;
+}
+
+static void
+pka_source_simple_notify_unmuted (PkaSource *source) /* In */
+{
+	PkaSourceSimplePrivate *priv;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	priv = PKA_SOURCE_SIMPLE(source)->priv;
+	pthread_mutex_lock(&priv->mutex);
+	if (!priv->dedicated) {
+		pka_source_simple_add_to_shared(PKA_SOURCE_SIMPLE(source));
+	}
+	pthread_mutex_unlock(&priv->mutex);
 	EXIT;
 }
 
@@ -679,9 +731,13 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass) /* IN */
 	object_class->get_property = pka_source_simple_get_property;
 	g_type_class_add_private(object_class, sizeof(PkaSourceSimplePrivate));
 
+	#define OVERRIDE(_n) source_class->_n = pka_source_simple_##_n
 	source_class = PKA_SOURCE_CLASS(klass);
-	source_class->notify_started = pka_source_simple_notify_started;
-	source_class->notify_stopped = pka_source_simple_notify_stopped;
+	OVERRIDE(notify_started);
+	OVERRIDE(notify_stopped);
+	OVERRIDE(notify_muted);
+	OVERRIDE(notify_unmuted);
+	#undef OVERRIDE
 
 	/**
 	 * PkaSourceSimple:use-thread
