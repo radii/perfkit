@@ -225,6 +225,7 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 {
 	PkaSourcePrivate *priv;
 	PkaManifest *manifest = NULL;
+	gboolean do_notify;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(subscription != NULL);
@@ -240,8 +241,9 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 	 * If this is the first subscription and we are running, then the source
 	 * is in a automatic-muted state.  We will notify it to unmute.
 	 */
+	do_notify = (priv->running && priv->subscriptions->len == 1);
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
-	if (priv->running && priv->subscriptions->len == 1) {
+	if (do_notify) {
 		if (PKA_SOURCE_GET_CLASS(source)->notify_unmuted) {
 			PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
 		}
