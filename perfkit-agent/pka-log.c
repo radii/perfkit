@@ -133,7 +133,7 @@ pka_log_handler (const gchar    *log_domain, /* IN */
 		clock_gettime(CLOCK_REALTIME, &ts);
 		t = (time_t)ts.tv_sec;
 		tt = *localtime(&t);
-		strftime(ftime, sizeof(ftime), "%Y/%m/%d %X", &tt);
+		strftime(ftime, sizeof(ftime), "%Y/%m/%d %H:%M:%S", &tt);
 		buffer = g_strdup_printf("%s.%04ld  %s: %12s[%d]: %8s: %s\n",
 		                         ftime, ts.tv_nsec / 100000,
 		                         hostname, log_domain,
