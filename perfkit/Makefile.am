@@ -38,6 +38,7 @@ INST_H_FILES =								\
 	pk-connection-lowlevel.h					\
 	pk-channel.h							\
 	pk-encoder.h							\
+	pk-manager.h							\
 	pk-manifest.h							\
 	pk-plugin.h							\
 	pk-sample.h							\
@@ -56,6 +57,7 @@ libperfkit_1_0_la_SOURCES =						\
 	pk-connection.c							\
 	pk-channel.c							\
 	pk-encoder.c							\
+	pk-manager.c							\
 	pk-manifest.c							\
 	pk-plugin.c							\
 	pk-sample.c							\

@@ -25,6 +25,7 @@
 
 #include <gio/gio.h>
 
+#include "pk-manager.h"
 #include "pk-manifest.h"
 #include "pk-sample.h"
 
@@ -553,6 +554,7 @@ const gchar*  pk_connection_get_uri                           (PkConnection     
 guint         pk_connection_hash                              (PkConnection          *connection);
 gboolean      pk_connection_is_connected                      (PkConnection          *connection);
 PkConnection* pk_connection_new_from_uri                      (const gchar           *uri);
+PkManager*    pk_connection_get_manager                       (PkConnection          *connection);
 
 G_END_DECLS
 

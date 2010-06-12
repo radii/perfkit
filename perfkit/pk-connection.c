@@ -22,6 +22,7 @@
 
 #include "pk-connection.h"
 #include "pk-connection-lowlevel.h"
+#include "pk-manager.h"
 
 /**
  * SECTION:pk-connection:
@@ -107,8 +108,10 @@ G_DEFINE_TYPE(PkConnection, pk_connection, G_TYPE_OBJECT)
 
 struct _PkConnectionPrivate
 {
-	gchar *uri;
-	PkConnectionState state;
+	GStaticRWLock      rw_lock; /* Synchronization */
+	gchar             *uri;     /* Connection path/uri */
+	PkConnectionState  state;   /* Current connection state */
+	PkManager         *manager; /* Toplevel of Object Model API */
 };
 
 typedef struct
@@ -6625,6 +6628,35 @@ pk_connection_get_uri (PkConnection *connection) /* IN */
 {
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
 	return connection->priv->uri;
+}
+
+/**
+ * pk_connection_get_manager:
+ * @connection: A #PkConnection.
+ *
+ * Retrieves the "Manager" object for the connection.  This can be used as
+ * a starting point for the Object Model API.
+ *
+ * Returns: A #PkManager instance.
+ * Side effects: None.
+ */
+PkManager*
+pk_connection_get_manager (PkConnection *connection) /* IN */
+{
+	PkConnectionPrivate *priv;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), NULL);
+
+	ENTRY;
+	priv = connection->priv;
+	g_static_rw_lock_writer_lock(&priv->rw_lock);
+	if (!priv->manager) {
+		priv->manager = g_object_new(PK_TYPE_MANAGER,
+		                             "connection", connection,
+		                             NULL);
+	}
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
+	RETURN(priv->manager);
 }
 
 /**
