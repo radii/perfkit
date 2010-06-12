@@ -23,7 +23,7 @@
 #ifndef __PKA_SPAWN_INFO_H__
 #define __PKA_SPAWN_INFO_H__
 
-#include <glib.h>
+#include <glib-object.h>
 
 /**
  * PkaSpawnInfo:
@@ -47,5 +47,9 @@ typedef struct
 	gint    standard_output;
 	gint    standard_error;
 } PkaSpawnInfo;
+
+GType         pka_spawn_info_get_type (void) G_GNUC_CONST;
+PkaSpawnInfo* pka_spawn_info_copy     (PkaSpawnInfo *spawn_info);
+void          pka_spawn_info_free     (PkaSpawnInfo *spawn_info);
 
 #endif /* __PKA_SPAWN_INFO_H__ */
