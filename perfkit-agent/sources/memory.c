@@ -178,7 +178,7 @@ memory_new (GError **error)
 const PkaPluginInfo pka_plugin_info = {
 	.id          = "Memory",
 	.name        = "Memory usage sampling",
-	.description = "This source provides memory usage of a target process.",
+	.description = "System and process Memory usage.",
 	.version     = "0.1.1",
 	.copyright   = "Copyright 2010 Christian Hergert",
 	.factory     = memory_new,
