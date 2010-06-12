@@ -2218,6 +2218,74 @@ pk_shell_manager_get_channels (EggLine  *line,   /* IN */
 }
 
 /**
+ * pk_shell_manager_get_hostname_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_get_hostname_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_get_hostname_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_get_hostname_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* hostname */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_get_hostname:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_get_hostname (EggLine  *line,   /* IN */
+                               gint      argc,   /* IN */
+                               gchar    *argv[], /* IN */
+                               GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gchar* _hostname;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &_hostname;
+	pk_connection_manager_get_hostname_async(conn,
+	                             NULL,
+	                             pk_shell_manager_get_hostname_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %s\n", "hostname", _hostname);
+	egg_line_set_variable(line, "1", _hostname);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_manager_get_plugins_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -4059,6 +4127,12 @@ static EggLineCommand manager_commands[] = {
 		.usage     = "manager get-channels ",
 	},
 	{
+		.name      = "get-hostname",
+		.help      = "Retrieves the hostname of the system on which perfkit runs.",
+		.callback  = pk_shell_manager_get_hostname,
+		.usage     = "manager get-hostname ",
+	},
+	{
 		.name      = "get-plugins",
 		.help      = "Retrieves the list of available plugins within the agent.",
 		.callback  = pk_shell_manager_get_plugins,
@@ -4604,7 +4678,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Manager commands.",
 		.callback  = NULL,
 		.generator = pk_shell_manager_generator,
-		.usage     = "manager [add-channel | add-source | add-subscription | get-channels | get-plugins | get-sources | get-version | ping | remove-channel | remove-source | remove-subscription]",
+		.usage     = "manager [add-channel | add-source | add-subscription | get-channels | get-hostname | get-plugins | get-sources | get-version | ping | remove-channel | remove-source | remove-subscription]",
 	},
 	{
 		.name      = "channel",

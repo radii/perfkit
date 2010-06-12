@@ -164,6 +164,10 @@ typedef struct
 
 typedef struct
 {
+} ManagerGetHostnameCall;
+
+typedef struct
+{
 } ManagerGetPluginsCall;
 
 typedef struct
@@ -490,6 +494,14 @@ ManagerGetChannelsCall_Free (ManagerGetChannelsCall *call) /* IN */
 {
 	ENTRY;
 	g_slice_free(ManagerGetChannelsCall, call);
+	EXIT;
+}
+
+void
+ManagerGetHostnameCall_Free (ManagerGetHostnameCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ManagerGetHostnameCall, call);
 	EXIT;
 }
 
@@ -853,6 +865,13 @@ ManagerGetChannelsCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(ManagerGetChannelsCall));
+}
+
+ManagerGetHostnameCall*
+ManagerGetHostnameCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ManagerGetHostnameCall));
 }
 
 ManagerGetPluginsCall*

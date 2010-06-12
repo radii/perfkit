@@ -2269,6 +2269,69 @@ pka_listener_manager_get_channels_finish (PkaListener    *listener,     /* IN */
 }
 
 /**
+ * pk_connection_manager_get_hostname_async:
+ * @connection: A #PkConnection.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "manager_get_hostname_async" RPC.  @callback
+ * MUST call pka_listener_manager_get_hostname_finish().
+ *
+ * Retrieves the hostname of the system on which perfkit runs.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_manager_get_hostname_async (PkaListener           *listener,    /* IN */
+                                         GCancellable          *cancellable, /* IN */
+                                         GAsyncReadyCallback    callback,    /* IN */
+                                         gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_manager_get_hostname_async);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_hostname_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @hostname: A #gchar.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "manager_get_hostname_finish" RPC.
+ *
+ * Retrieves the hostname of the system on which perfkit runs.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_manager_get_hostname_finish (PkaListener    *listener, /* IN */
+                                          GAsyncResult   *result,   /* IN */
+                                          gchar         **hostname, /* OUT */
+                                          GError        **error)    /* OUT */
+{
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(hostname != NULL, FALSE);
+
+	ENTRY;
+	*hostname = g_strdup(g_get_host_name());
+	RETURN(TRUE);
+}
+
+/**
  * pk_connection_manager_get_plugins_async:
  * @connection: A #PkConnection.
  * @cancellable: A #GCancellable.

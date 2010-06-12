@@ -355,6 +355,17 @@ gboolean      pk_connection_manager_get_channels_finish       (PkConnection     
                                                                gint                 **channels,
                                                                gsize                 *channels_len,
                                                                GError               **error);
+gboolean      pk_connection_manager_get_hostname              (PkConnection          *connection,
+                                                               gchar                **hostname,
+                                                               GError               **error);
+void          pk_connection_manager_get_hostname_async        (PkConnection          *connection,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_manager_get_hostname_finish       (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               gchar                **hostname,
+                                                               GError               **error);
 gboolean      pk_connection_manager_get_plugins               (PkConnection          *connection,
                                                                gchar               ***plugins,
                                                                GError               **error);

@@ -254,6 +254,14 @@ gboolean      pka_listener_manager_get_channels_finish        (PkaListener      
                                                                gint                 **channels,
                                                                gsize                 *channels_len,
                                                                GError               **error);
+void          pka_listener_manager_get_hostname_async         (PkaListener           *listener,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_manager_get_hostname_finish        (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gchar                **hostname,
+                                                               GError               **error);
 void          pka_listener_manager_get_plugins_async          (PkaListener           *listener,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
