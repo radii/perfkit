@@ -62,11 +62,11 @@ struct _PkaSourceClass
 	gboolean (*modify_spawn_info) (PkaSource     *source,
 	                               PkaSpawnInfo  *spawn_info,
 	                               GError       **error);
-	void     (*notify_started)    (PkaSource     *source,
+	void     (*started)           (PkaSource     *source,
 	                               PkaSpawnInfo  *spawn_info);
-	void     (*notify_stopped)    (PkaSource     *source);
-	void     (*notify_muted)      (PkaSource     *source);
-	void     (*notify_unmuted)    (PkaSource     *source);
+	void     (*stopped)           (PkaSource     *source);
+	void     (*muted)             (PkaSource     *source);
+	void     (*unmuted)           (PkaSource     *source);
 
 	gpointer reserved[16];
 };

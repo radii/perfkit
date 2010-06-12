@@ -32,19 +32,29 @@
 /**
  * SECTION:pka-source
  * @title: PkaSource
- * @short_description: 
+ * @short_description: Base class for data source implementations.
  *
- * 
- */
-
-/*
- * TODO:
- *   We need to come up with a locking scheme for event delivery to the
- *   source.  All of the notify_* methods should hold this lock during
- *   callback to ensure state.  Holding a reader lock might be sufficient.
+ * #PkaSource provides the core logic needed for implementing
+ * data sources within the Perfkit Agent.  It handles proper signalling
+ * of events and subscription management.
+ *
+ * #PkaSource is an abstract #GType, implemented by #PkaSourceSimple
+ * for a convenient way to implement data sources.
  */
 
 G_DEFINE_ABSTRACT_TYPE (PkaSource, pka_source, G_TYPE_OBJECT)
+
+/*
+ * Locking Overview:
+ *
+ *   PkaSource must dance upon a tight-rope so that the locking model is
+ *   correct.  This is required since it is generally tough to know exactly
+ *   how a datasource is going to react to our various events.
+ *
+ *   Signalling of Started, Stopped, Muted, and Unmuted signals happens
+ *   from the main loop to simplify locking models.  It also helps give
+ *   some sort of guarantee of thread to the source implementations.
+ */
 
 extern void pka_sample_set_source_id   (PkaSample   *sample,
                                         gint         source_id);
@@ -62,6 +72,194 @@ struct _PkaSourcePrivate
 	GPtrArray     *subscriptions;
 	PkaChannel    *channel;
 };
+
+enum
+{
+	STARTED,
+	MUTED,
+	UNMUTED,
+	STOPPED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
+/**
+ * pka_source_emit_started:
+ * @user_data: A pointer array containing a #PkaSource and #PkaSpawnInfo.
+ *
+ * #GSourceFunc style callback that emits the "started" signal.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_source_emit_started (gpointer user_data) /* IN */
+{
+	PkaSource *source;
+	PkaSpawnInfo *spawn_info;
+	gpointer *state = user_data;
+
+	g_return_val_if_fail(user_data != NULL, FALSE);
+
+	ENTRY;
+	source = state[0];
+	spawn_info = state[1];
+	g_signal_emit(source, signals[STARTED], 0, spawn_info);
+	g_object_unref(source);
+	pka_spawn_info_free(spawn_info);
+	g_free(state);
+	RETURN(FALSE);
+}
+
+/**
+ * pka_source_queue_started:
+ * @source: A #PkaSource.
+ * @spawn_info: A #PkaSpawnInfo.
+ *
+ * Queues the emission of the "started" signal to the main thread.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_queue_started (PkaSource    *source,     /* IN */
+                          PkaSpawnInfo *spawn_info) /* IN */
+{
+	PkaSourcePrivate *priv;
+	gpointer *state;
+
+	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(spawn_info != NULL);
+
+	ENTRY;
+	priv = source->priv;
+	state = g_new0(gpointer, 2);
+	state[0] = g_object_ref(source);
+	state[1] = pka_spawn_info_copy(spawn_info);
+	g_timeout_add(0, pka_source_emit_started, state);
+	EXIT;
+}
+
+/**
+ * pka_source_emit_stopped:
+ * @source: A #PkaSource.
+ *
+ * #GSourceFunc style function that emits the "stopped" signal.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_source_emit_stopped (PkaSource *source) /* IN */
+{
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+
+	ENTRY;
+	g_signal_emit(source, signals[STOPPED], 0);
+	g_object_unref(source);
+	RETURN(FALSE);
+}
+
+/**
+ * pka_source_queue_stopped:
+ * @source: A #PkaSource.
+ *
+ * Queues the emission of the "stopped" signal to the main thread.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_queue_stopped (PkaSource *source) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	g_timeout_add(0, (GSourceFunc)pka_source_emit_stopped,
+	              g_object_ref(source));
+	EXIT;
+}
+
+/**
+ * pka_source_emit_muted:
+ * @source: A #PkaSource.
+ *
+ * #GSourceFunc style function that emits the "muted" signal.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_source_emit_muted (PkaSource *source) /* IN */
+{
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+
+	ENTRY;
+	g_signal_emit(source, signals[MUTED], 0);
+	g_object_unref(source);
+	RETURN(FALSE);
+}
+
+/**
+ * pka_source_queue_muted:
+ * @source: A #PkaSource.
+ *
+ * Queues the emission of the "muted" signal to the main thread.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_queue_muted (PkaSource *source) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	g_timeout_add(0, (GSourceFunc)pka_source_emit_muted,
+	              g_object_ref(source));
+	EXIT;
+}
+
+/**
+ * pka_source_emit_unmuted:
+ * @source: A #PkaSource.
+ *
+ * #GSourceFunc style function that emits the "unmuted" signal.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_source_emit_unmuted (PkaSource *source) /* IN */
+{
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+
+	ENTRY;
+	g_signal_emit(source, signals[UNMUTED], 0);
+	g_object_unref(source);
+	RETURN(FALSE);
+}
+
+/**
+ * pka_source_queue_unmuted:
+ * @source: A #PkaSource.
+ *
+ * Queues the emission of the "unmuted" signal to the main thread.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_queue_unmuted (PkaSource *source) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	g_timeout_add(0, (GSourceFunc)pka_source_emit_unmuted,
+	              g_object_ref(source));
+	EXIT;
+}
 
 /**
  * pka_source_set_channel:
@@ -232,7 +430,6 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 {
 	PkaSourcePrivate *priv;
 	PkaManifest *manifest = NULL;
-	gboolean do_notify;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(subscription != NULL);
@@ -248,13 +445,10 @@ pka_source_add_subscription (PkaSource       *source,       /* IN */
 	 * If this is the first subscription and we are running, then the source
 	 * is in a automatic-muted state.  We will notify it to unmute.
 	 */
-	do_notify = (priv->running && priv->subscriptions->len == 1);
-	g_static_rw_lock_writer_unlock(&priv->rw_lock);
-	if (do_notify) {
-		if (PKA_SOURCE_GET_CLASS(source)->notify_unmuted) {
-			PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
-		}
+	if (priv->running && priv->subscriptions->len == 1) {
+		pka_source_queue_unmuted(source);
 	}
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	/*
 	 * Ensure the current manifest is delivered.  We do this outside of the
 	 * write lock to make sure that other work can happen concurrently.  It
@@ -293,7 +487,6 @@ pka_source_remove_subscription (PkaSource       *source,       /* IN */
                                 PkaSubscription *subscription) /* IN */
 {
 	PkaSourcePrivate *priv;
-	gboolean do_notify;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(subscription != NULL);
@@ -308,13 +501,10 @@ pka_source_remove_subscription (PkaSource       *source,       /* IN */
 	 * If we are still running and there are no more subscriptions active,
 	 * then we will do our best to reduce system overhead and mute the souce.
 	 */
-	do_notify = priv->running && !priv->subscriptions->len;
-	g_static_rw_lock_writer_unlock(&priv->rw_lock);
-	if (do_notify) {
-		if (PKA_SOURCE_GET_CLASS(source)->notify_muted) {
-			PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
-		}
+	if (priv->running && !priv->subscriptions->len) {
+		pka_source_queue_muted(source);
 	}
+	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	EXIT;
 }
 
@@ -335,7 +525,6 @@ pka_source_notify_started (PkaSource    *source,     /* IN */
                            PkaSpawnInfo *spawn_info) /* IN */
 {
 	PkaSourcePrivate *priv;
-	gboolean do_notify;
 
 	g_return_if_fail(PKA_IS_SOURCE(source));
 	g_return_if_fail(spawn_info != NULL);
@@ -350,16 +539,11 @@ pka_source_notify_started (PkaSource    *source,     /* IN */
 	priv = source->priv;
 	g_static_rw_lock_writer_lock(&priv->rw_lock);
 	priv->running = TRUE;
-	do_notify = !priv->subscriptions->len;
+	pka_source_queue_started(source, spawn_info);
+	if (!priv->subscriptions->len) {
+		pka_source_queue_muted(source);
+	}
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
-	if (PKA_SOURCE_GET_CLASS(source)->notify_started) {
-		PKA_SOURCE_GET_CLASS(source)->notify_started(source, spawn_info);
-	}
-	if (do_notify) {
-		if (PKA_SOURCE_GET_CLASS(source)->notify_muted) {
-			PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
-		}
-	}
 	EXIT;
 }
 
@@ -383,10 +567,8 @@ pka_source_notify_stopped (PkaSource *source) /* IN */
 	priv = source->priv;
 	g_static_rw_lock_writer_lock(&priv->rw_lock);
 	priv->running = FALSE;
+	pka_source_queue_stopped(source);
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
-	if (PKA_SOURCE_GET_CLASS(source)->notify_stopped) {
-		PKA_SOURCE_GET_CLASS(source)->notify_stopped(source);
-	}
 	EXIT;
 }
 
@@ -407,9 +589,7 @@ pka_source_notify_muted (PkaSource *source) /* IN */
 	g_return_if_fail(PKA_IS_SOURCE(source));
 
 	ENTRY;
-	if (PKA_SOURCE_GET_CLASS(source)->notify_muted) {
-		PKA_SOURCE_GET_CLASS(source)->notify_muted(source);
-	}
+	pka_source_queue_muted(source);
 	EXIT;
 }
 
@@ -429,9 +609,7 @@ pka_source_notify_unmuted (PkaSource *source) /* IN */
 	g_return_if_fail(PKA_IS_SOURCE(source));
 
 	ENTRY;
-	if (PKA_SOURCE_GET_CLASS(source)->notify_unmuted) {
-		PKA_SOURCE_GET_CLASS(source)->notify_unmuted(source);
-	}
+	pka_source_queue_unmuted(source);
 	EXIT;
 }
 
@@ -563,6 +741,39 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	object_class->finalize = pka_source_finalize;
 	object_class->dispose = pka_source_dispose;
 	g_type_class_add_private(object_class, sizeof(PkaSourcePrivate));
+
+	signals[STARTED] = g_signal_new("started",
+	                                PKA_TYPE_SOURCE,
+	                                G_SIGNAL_RUN_FIRST,
+	                                G_STRUCT_OFFSET(PkaSourceClass, started),
+	                                NULL, NULL,
+	                                g_cclosure_marshal_VOID__BOXED,
+	                                G_TYPE_NONE,
+	                                1, G_TYPE_POINTER);
+
+	signals[STOPPED] = g_signal_new("stopped",
+	                                PKA_TYPE_SOURCE,
+	                                G_SIGNAL_RUN_FIRST,
+	                                G_STRUCT_OFFSET(PkaSourceClass, stopped),
+	                                NULL, NULL,
+	                                g_cclosure_marshal_VOID__VOID,
+	                                G_TYPE_NONE, 0);
+
+	signals[MUTED] = g_signal_new("muted",
+	                              PKA_TYPE_SOURCE,
+	                              G_SIGNAL_RUN_FIRST,
+	                              G_STRUCT_OFFSET(PkaSourceClass, muted),
+	                              NULL, NULL,
+	                              g_cclosure_marshal_VOID__VOID,
+	                              G_TYPE_NONE, 0);
+
+	signals[UNMUTED] = g_signal_new("unmuted",
+	                                PKA_TYPE_SOURCE,
+	                                G_SIGNAL_RUN_FIRST,
+	                                G_STRUCT_OFFSET(PkaSourceClass, unmuted),
+	                                NULL, NULL,
+	                                g_cclosure_marshal_VOID__VOID,
+	                                G_TYPE_NONE, 0);
 }
 
 /**

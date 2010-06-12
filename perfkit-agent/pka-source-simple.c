@@ -534,7 +534,7 @@ pka_source_simple_add_to_shared (PkaSourceSimple *source) /* IN */
 }
 
 /**
- * pka_source_simple_notify_started:
+ * pka_source_simple_started:
  * @source: A #PkaSourceSimple.
  *
  * Notification callback that a channel has been spawned.
@@ -543,8 +543,8 @@ pka_source_simple_add_to_shared (PkaSourceSimple *source) /* IN */
  * Side effects: None.
  */
 static void
-pka_source_simple_notify_started (PkaSource    *source,     /* IN */
-                                  PkaSpawnInfo *spawn_info) /* IN */
+pka_source_simple_started (PkaSource    *source,     /* IN */
+                           PkaSpawnInfo *spawn_info) /* IN */
 {
 	PkaSourceSimplePrivate *priv;
 	GError *error = NULL;
@@ -585,7 +585,7 @@ pka_source_simple_notify_started (PkaSource    *source,     /* IN */
 }
 
 /**
- * pka_source_simple_notify_stopped:
+ * pka_source_simple_stopped:
  * @source: A #PkaSourceSimple.
  *
  * Notification callback for when a channel has been stopped.
@@ -594,7 +594,7 @@ pka_source_simple_notify_started (PkaSource    *source,     /* IN */
  * Side effects: None.
  */
 static void
-pka_source_simple_notify_stopped (PkaSource *source) /* IN */
+pka_source_simple_stopped (PkaSource *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv = PKA_SOURCE_SIMPLE(source)->priv;
 
@@ -612,7 +612,7 @@ pka_source_simple_notify_stopped (PkaSource *source) /* IN */
 }
 
 static void
-pka_source_simple_notify_muted (PkaSource *source) /* IN */
+pka_source_simple_muted (PkaSource *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv;
 
@@ -629,7 +629,7 @@ pka_source_simple_notify_muted (PkaSource *source) /* IN */
 }
 
 static void
-pka_source_simple_notify_unmuted (PkaSource *source) /* In */
+pka_source_simple_unmuted (PkaSource *source) /* In */
 {
 	PkaSourceSimplePrivate *priv;
 
@@ -733,10 +733,10 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass) /* IN */
 
 	#define OVERRIDE(_n) source_class->_n = pka_source_simple_##_n
 	source_class = PKA_SOURCE_CLASS(klass);
-	OVERRIDE(notify_started);
-	OVERRIDE(notify_stopped);
-	OVERRIDE(notify_muted);
-	OVERRIDE(notify_unmuted);
+	OVERRIDE(started);
+	OVERRIDE(stopped);
+	OVERRIDE(muted);
+	OVERRIDE(unmuted);
 	#undef OVERRIDE
 
 	/**
