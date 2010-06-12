@@ -7,6 +7,9 @@ lib_LTLIBRARIES = libperfkit-1.0.la
 headerdir = $(prefix)/include/perfkit-1.0/perfkit
 header_DATA = $(INST_H_FILES)
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = perfkit-1.0.pc
+
 WARNINGS =								\
 	-Wall								\
 	-Werror								\

@@ -176,6 +176,7 @@ AC_OUTPUT([
 	perfkit/Makefile
 	perfkit/connections/Makefile
 	perfkit/pk-version.h
+	perfkit/perfkit-1.0.pc
 
 	perfkit-agent/Makefile
 	perfkit-agent/sources/Makefile
