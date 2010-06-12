@@ -141,6 +141,7 @@ struct _PkaChannelPrivate
 	gchar       **args;        /* Target arguments */
 	gboolean      kill_pid;    /* Should inferior be killed upon stop */
 	gint          exit_status; /* The inferiors exit status */
+	GTimeVal      created_at;  /* When the channel was created */
 };
 
 enum
@@ -1056,6 +1057,20 @@ pka_channel_get_sources (PkaChannel *channel) /* IN */
 	return(sources);
 }
 
+void
+pka_channel_get_created_at (PkaChannel *channel, /* IN */
+                            GTimeVal   *tv)      /* OUT */
+{
+	PkaChannelPrivate *priv;
+
+	g_return_if_fail(PKA_IS_CHANNEL(channel));
+
+	ENTRY;
+	priv = channel->priv;
+	*tv = priv->created_at;
+	EXIT;
+}
+
 /**
  * pka_channel_compare:
  * @a: A #PkaChannel.
@@ -1146,17 +1161,20 @@ static void
 pka_channel_init (PkaChannel *channel) /* IN */
 {
 	static gint id_seq = 0;
+	PkaChannelPrivate *priv;
 
 	ENTRY;
 	channel->priv = G_TYPE_INSTANCE_GET_PRIVATE(channel,
 	                                            PKA_TYPE_CHANNEL,
 	                                            PkaChannelPrivate);
-	channel->priv->sources = g_ptr_array_new();
-	channel->priv->mutex = g_mutex_new();
-	channel->priv->id = g_atomic_int_exchange_and_add(&id_seq, 1);
-	channel->priv->state = PKA_CHANNEL_READY;
-	channel->priv->kill_pid = TRUE;
-	channel->priv->working_dir = g_strdup(g_get_tmp_dir());
+	priv = channel->priv;
+	priv->sources = g_ptr_array_new();
+	priv->mutex = g_mutex_new();
+	priv->id = g_atomic_int_exchange_and_add(&id_seq, 1);
+	priv->state = PKA_CHANNEL_READY;
+	priv->kill_pid = TRUE;
+	priv->working_dir = g_strdup(g_get_tmp_dir());
+	g_get_current_time(&priv->created_at);
 	EXIT;
 }
 

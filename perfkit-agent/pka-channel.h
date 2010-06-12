@@ -149,6 +149,8 @@ gboolean        pka_channel_unmute          (PkaChannel   *channel,
                                              PkaContext   *context,
                                              GError      **error);
 GList*          pka_channel_get_sources     (PkaChannel   *channel);
+void            pka_channel_get_created_at  (PkaChannel   *channel,
+                                             GTimeVal     *tv);
 
 G_END_DECLS
 
