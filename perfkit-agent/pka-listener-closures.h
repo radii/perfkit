@@ -36,6 +36,11 @@ typedef struct
 typedef struct
 {
 	gint channel;
+} ChannelGetCreatedAtCall;
+
+typedef struct
+{
+	gint channel;
 } ChannelGetEnvCall;
 
 typedef struct
@@ -289,6 +294,14 @@ ChannelGetArgsCall_Free (ChannelGetArgsCall *call) /* IN */
 {
 	ENTRY;
 	g_slice_free(ChannelGetArgsCall, call);
+	EXIT;
+}
+
+void
+ChannelGetCreatedAtCall_Free (ChannelGetCreatedAtCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ChannelGetCreatedAtCall, call);
 	EXIT;
 }
 
@@ -690,6 +703,13 @@ ChannelGetArgsCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(ChannelGetArgsCall));
+}
+
+ChannelGetCreatedAtCall*
+ChannelGetCreatedAtCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ChannelGetCreatedAtCall));
 }
 
 ChannelGetEnvCall*

@@ -354,6 +354,75 @@ pka_listener_channel_get_args_finish (PkaListener    *listener, /* IN */
 }
 
 /**
+ * pk_connection_channel_get_created_at_async:
+ * @connection: A #PkConnection.
+ * @channel: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "channel_get_created_at" RPC.  @callback
+ * MUST call pka_listener_channel_get_created_at_finish().
+ *
+ * Retrieves the time at which the channel was created.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_channel_get_created_at_async (PkaListener         *listener,    /* IN */
+                                           gint                 channel,     /* IN */
+                                           GCancellable        *cancellable, /* IN */
+                                           GAsyncReadyCallback  callback,    /* IN */
+                                           gpointer             user_data)   /* IN */
+{
+	ChannelGetCreatedAtCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_channel_get_created_at_async);
+	call = ChannelGetCreatedAtCall_Create();
+	call->channel = channel;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)ChannelGetCreatedAtCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+gboolean
+pka_listener_channel_get_created_at_finish (PkaListener   *listener, /* IN */
+                                            GAsyncResult  *result,   /* IN */
+                                            GTimeVal      *tv,       /* OUT */
+                                            GError       **error)    /* IN */
+{
+	PkaChannel *channel;
+	gboolean ret = FALSE;
+	ChannelGetCreatedAtCall *call;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(channel_get_created_at), FALSE);
+	g_return_val_if_fail(tv != NULL, FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(ChannelGetCreatedAtCall, result);
+	g_assert(call);
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel, &channel, error)) {
+		GOTO(failed);
+	}
+	pka_channel_get_created_at(channel, tv);
+	g_object_unref(channel);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
+/**
  * pk_connection_channel_get_env_async:
  * @connection: A #PkConnection.
  * @channel: A #gint.

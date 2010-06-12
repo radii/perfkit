@@ -99,6 +99,15 @@ struct _PkConnectionClass
 	                                                     GAsyncResult          *result,
 	                                                     gchar               ***args,
 	                                                     GError               **error);
+	void          (*channel_get_created_at_async)       (PkConnection          *connection,
+	                                                     gint                   channel,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*channel_get_created_at_finish)      (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     GTimeVal              *tv,
+	                                                     GError               **error);
 	void          (*channel_get_env_async)              (PkConnection          *connection,
 	                                                     gint                   channel,
 	                                                     GCancellable          *cancellable,

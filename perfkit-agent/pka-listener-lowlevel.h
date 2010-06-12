@@ -41,6 +41,15 @@ gboolean      pka_listener_channel_get_args_finish            (PkaListener      
                                                                GAsyncResult          *result,
                                                                gchar               ***args,
                                                                GError               **error);
+void          pka_listener_channel_get_created_at_async       (PkaListener           *listener,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_channel_get_created_at_finish      (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               GTimeVal              *tv,
+                                                               GError               **error);
 void          pka_listener_channel_get_env_async              (PkaListener           *listener,
                                                                gint                   channel,
                                                                GCancellable          *cancellable,

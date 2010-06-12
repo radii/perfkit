@@ -497,6 +497,133 @@ pk_connection_channel_get_args_finish (PkConnection   *connection, /* IN */
 }
 
 /**
+ * pk_connection_channel_get_created_at_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "channel_get_created_at" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_channel_get_created_at_cb (GObject      *source,    /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_channel_get_created_at_finish(PK_CONNECTION(source),
+	                                                           result,
+	                                                           sync->params[0],
+	                                                           sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_created_at:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "channel_get_created_at" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the time at which the channel was created.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_created_at (PkConnection  *connection, /* IN */
+                                      gint           channel,    /* IN */
+                                      GTimeVal      *tv,         /* OUT */
+                                      GError       **error)      /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(channel_get_created_at);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = tv;
+	pk_connection_channel_get_created_at_async(connection,
+	                                           channel,
+	                                           NULL,
+	                                           pk_connection_channel_get_created_at_cb,
+	                                           &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_channel_get_created_at_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "channel_get_created_at_async" RPC.
+ *
+ * Retrieves the time at which the channel was created.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_channel_get_created_at_async (PkConnection        *connection,  /* IN */
+                                            gint                 channel,     /* IN */
+                                            GCancellable        *cancellable, /* IN */
+                                            GAsyncReadyCallback  callback,    /* IN */
+                                            gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(channel_get_created_at)(connection,
+	                                  channel,
+	                                  cancellable,
+	                                  callback,
+	                                  user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_channel_get_created_at_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "channel_get_created_at_finish" RPC.
+ *
+ * Retrieves the time at which the channel was created.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_channel_get_created_at_finish (PkConnection  *connection, /* IN */
+                                             GAsyncResult  *result,     /* IN */
+                                             GTimeVal      *tv,         /* OUT */
+                                             GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, channel_get_created_at)(connection,
+	                                        result,
+	                                        tv,
+	                                        error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_channel_get_env_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

@@ -327,6 +327,83 @@ pk_shell_channel_get_args (EggLine  *line,   /* IN */
 }
 
 /**
+ * pk_shell_channel_get_created_at_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_channel_get_created_at_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_channel_get_created_at_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_channel_get_created_at_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* tv */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_channel_get_created_at:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_channel_get_created_at (EggLine  *line,   /* IN */
+                                 gint      argc,   /* IN */
+                                 gchar    *argv[], /* IN */
+                                 GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint channel = 0;
+	GTimeVal tv;
+	gchar *tv_str;
+	gint i = 0;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &channel)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &tv;
+	pk_connection_channel_get_created_at_async(conn,
+	                             channel,
+	                             NULL,
+	                             pk_shell_channel_get_created_at_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	tv_str = g_time_val_to_iso8601(&tv);
+	g_print("%16s: %s\n", "tv", tv_str);
+	egg_line_set_variable(line, "1", tv_str);
+	g_free(tv_str);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_channel_get_env_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -4200,6 +4277,16 @@ static EggLineCommand channel_commands[] = {
 		.usage     = "channel get-args CHANNEL",
 	},
 	{
+		.name      = "get-created-at",
+		.help      = "Retrieves the time at which the channel was created.\n"
+		             "\n"
+		             "options:\n"
+		             "  CHANNEL:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_channel_get_created_at,
+		.usage     = "channel get-created-at CHANNEL",
+	},
+	{
 		.name      = "get-env",
 		.help      = "Retrieves the environment for spawning the target process.\n"
 		             "\n"
@@ -4685,7 +4772,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Channel commands.",
 		.callback  = NULL,
 		.generator = pk_shell_channel_generator,
-		.usage     = "channel [add-source | get-args | get-env | get-exit-status | get-kill-pid | get-pid | get-pid-set | get-sources | get-state | get-target | get-working-dir | mute | set-args | set-env | set-kill-pid | set-pid | set-target | set-working-dir | start | stop | unmute]",
+		.usage     = "channel [add-source | get-args | get-created-at | get-env | get-exit-status | get-kill-pid | get-pid | get-pid-set | get-sources | get-state | get-target | get-working-dir | mute | set-args | set-env | set-kill-pid | set-pid | set-target | set-working-dir | start | stop | unmute]",
 	},
 	{
 		.name      = "subscription",

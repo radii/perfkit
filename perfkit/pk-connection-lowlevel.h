@@ -49,6 +49,19 @@ gboolean      pk_connection_channel_get_args_finish           (PkConnection     
                                                                GAsyncResult          *result,
                                                                gchar               ***args,
                                                                GError               **error);
+gboolean      pk_connection_channel_get_created_at            (PkConnection          *connection,
+                                                               gint                   channel,
+                                                               GTimeVal              *tv,
+                                                               GError               **error);
+void          pk_connection_channel_get_created_at_async      (PkConnection          *connection,
+                                                               gint                   channel,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_channel_get_created_at_finish     (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               GTimeVal              *tv,
+                                                               GError               **error);
 gboolean      pk_connection_channel_get_env                   (PkConnection          *connection,
                                                                gint                   channel,
                                                                gchar               ***env,
