@@ -72,7 +72,7 @@
         astr = g_string_sized_new(16);                              \
         for (_i = 0; _i < _l; _i++) {                               \
             if ((_i % 16) == 0) {                                   \
-                g_string_append_printf(str, "%06x ", _i);           \
+                g_string_append_printf(str, "%06x: ", _i);          \
             }                                                       \
             g_string_append_printf(str, " %02x", _b[_i]);           \
             if (g_ascii_isprint(_b[_i])) {                          \
