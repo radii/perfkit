@@ -151,7 +151,7 @@ void
 pkg_window_source_call_free (PkgWindowSourceCall *call) /* IN */
 {
 	ENTRY;
-	g_slice_free(PkgWindowSubscriptionCall, call);
+	g_slice_free(PkgWindowSourceCall, call);
 	EXIT;
 }
 
