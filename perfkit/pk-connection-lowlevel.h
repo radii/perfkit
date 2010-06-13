@@ -581,6 +581,19 @@ void          pk_connection_subscription_add_source_async     (PkConnection     
 gboolean      pk_connection_subscription_add_source_finish    (PkConnection          *connection,
                                                                GAsyncResult          *result,
                                                                GError               **error);
+gboolean      pk_connection_subscription_get_created_at       (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               GTimeVal              *tv,
+                                                               GError               **error);
+void          pk_connection_subscription_get_created_at_async (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_subscription_get_created_at_finish (PkConnection          *connection,
+                                                                GAsyncResult          *result,
+                                                                GTimeVal              *tv,
+                                                                GError               **error);
 gboolean      pk_connection_subscription_mute                 (PkConnection          *connection,
                                                                gint                   subscription,
                                                                gboolean               drain,

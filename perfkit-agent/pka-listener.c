@@ -3728,6 +3728,88 @@ pka_listener_subscription_add_source_finish (PkaListener    *listener, /* IN */
 #endif
 }
 
+/**
+ * pk_connection_subscription_get_created_at_async:
+ * @connection: A #PkConnection.
+ * @subscription: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "subscription_get_created_at_async" RPC.  @callback
+ * MUST call pka_listener_subscription_get_created_at_finish().
+ *
+ * Retrieves the time at which the subscription was created.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_subscription_get_created_at_async (PkaListener           *listener,     /* IN */
+                                                gint                   subscription, /* IN */
+                                                GCancellable          *cancellable,  /* IN */
+                                                GAsyncReadyCallback    callback,     /* IN */
+                                                gpointer               user_data)    /* IN */
+{
+	SubscriptionGetCreatedAtCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_subscription_get_created_at_async);
+	call = SubscriptionGetCreatedAtCall_Create();
+	call->subscription = subscription;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)SubscriptionGetCreatedAtCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_created_at_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @tv: A #GTimeVal.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "subscription_get_created_at_finish" RPC.
+ *
+ * Retrieves the time at which the subscription was created.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_subscription_get_created_at_finish (PkaListener    *listener, /* IN */
+                                                 GAsyncResult   *result,   /* IN */
+                                                 GTimeVal       *tv,       /* OUT */
+                                                 GError        **error)    /* OUT */
+{
+	SubscriptionGetCreatedAtCall *call;
+	PkaSubscription *subscription;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_created_at), FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(SubscriptionGetCreatedAtCall, result);
+	if (!pka_manager_find_subscription(DEFAULT_CONTEXT, call->subscription,
+	                                   &subscription, error)) {
+		GOTO(failed);
+	}
+	pka_subscription_get_created_at(subscription, tv);
+	pka_subscription_unref(subscription);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
 #if 0
 static void
 pka_listener_subscription_mute_cb (GObject      *listener,    /* IN */

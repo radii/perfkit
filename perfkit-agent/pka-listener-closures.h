@@ -252,6 +252,11 @@ typedef struct
 typedef struct
 {
 	gint subscription;
+} SubscriptionGetCreatedAtCall;
+
+typedef struct
+{
+	gint subscription;
 	gboolean drain;
 } SubscriptionMuteCall;
 
@@ -656,6 +661,14 @@ SubscriptionAddSourceCall_Free (SubscriptionAddSourceCall *call) /* IN */
 }
 
 void
+SubscriptionGetCreatedAtCall_Free (SubscriptionGetCreatedAtCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(SubscriptionGetCreatedAtCall, call);
+	EXIT;
+}
+
+void
 SubscriptionMuteCall_Free (SubscriptionMuteCall *call) /* IN */
 {
 	ENTRY;
@@ -1016,6 +1029,13 @@ SubscriptionAddSourceCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(SubscriptionAddSourceCall));
+}
+
+SubscriptionGetCreatedAtCall*
+SubscriptionGetCreatedAtCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(SubscriptionGetCreatedAtCall));
 }
 
 SubscriptionMuteCall*

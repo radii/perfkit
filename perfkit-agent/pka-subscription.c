@@ -35,6 +35,7 @@ struct _PkaSubscription
 
 	gint                  id;
 	PkaSubscriptionState  state;
+	GTimeVal              created_at;
 	GTree                *channels;
 	GTree                *sources;
 	GTree                *manifests;
@@ -123,6 +124,7 @@ pka_subscription_new (void)
 	g_static_rw_lock_init(&subscription->rw_lock);
 	subscription->id = g_atomic_int_exchange_and_add(&id_seq, 1);
 	subscription->state = PKA_SUBSCRIPTION_MUTED;
+	g_get_current_time(&subscription->created_at);
 	INITIALIZE_TREE(channels, g_object_unref);
 	INITIALIZE_TREE(sources, g_object_unref);
 	INITIALIZE_TREE(manifests, pka_manifest_unref);
@@ -735,6 +737,18 @@ pka_subscription_set_handlers (PkaSubscription  *subscription,     /* IN */
 	subscription->manifest_closure = manifest;
 	subscription->sample_closure = sample;
 	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
+	EXIT;
+}
+
+void
+pka_subscription_get_created_at (PkaSubscription *subscription, /* IN */
+                                 GTimeVal        *created_at)   /* OUT */
+{
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(created_at != NULL);
+
+	ENTRY;
+	*created_at = subscription->created_at;
 	EXIT;
 }
 

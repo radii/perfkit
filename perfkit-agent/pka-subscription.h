@@ -107,6 +107,8 @@ void             pka_subscription_deliver_sample   (PkaSubscription *subscriptio
 void             pka_subscription_deliver_manifest (PkaSubscription *subscription,
                                                     PkaSource       *source,
                                                     PkaManifest     *manifest);
+void             pka_subscription_get_created_at   (PkaSubscription *subscription,
+                                                    GTimeVal        *tv);
 
 G_END_DECLS
 
