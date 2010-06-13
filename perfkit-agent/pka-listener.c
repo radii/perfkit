@@ -908,7 +908,7 @@ pka_listener_channel_get_sources_finish (PkaListener    *listener,    /* IN */
 	*sources_len = g_list_length(list);
 	*sources = g_new0(gint, *sources_len);
 	for (i = 0, iter = list; iter; i++, iter = iter->next) {
-		*sources[i] = pka_source_get_id(iter->data);
+		(*sources)[i] = pka_source_get_id(iter->data);
 		g_object_unref(iter->data);
 	}
 	g_list_free(list);
