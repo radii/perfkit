@@ -957,13 +957,16 @@ static void
 pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
                               gpointer          user_data) /* IN */
 {
+	PkgWindowPrivate *priv;
 	PkConnection *connection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
+	GtkWidget *child;
 	gint row_type;
 	gint row_id;
 
 	ENTRY;
+	priv = PKG_WINDOW(user_data)->priv;
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
 		gtk_tree_model_get(model, &iter,
 		                   COLUMN_TYPE, &row_type,
@@ -983,7 +986,10 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 	}
 	EXIT;
   clear_contents:
-	DEBUG(Window, "Clear selection.");
+	DEBUG(Window, "Clearing current page.");
+	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
+		gtk_container_remove(GTK_CONTAINER(priv->container), child);
+	}
 	EXIT;
 }
 
