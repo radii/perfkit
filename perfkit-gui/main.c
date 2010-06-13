@@ -27,6 +27,9 @@ static GOptionEntry options[] = {
 	{ NULL }
 };
 
+void pkg_log_init     (gboolean _stdout, const gchar *filename);
+void pkg_log_shutdown (void);
+
 gint
 main (gint   argc,
       gchar *argv[])
@@ -54,6 +57,8 @@ main (gint   argc,
 		return EXIT_FAILURE;
 	}
 
+	pkg_log_init(TRUE, NULL);
+	gtk_window_set_default_icon_name("clock");
 	window = pkg_window_new();
 	pkg_window_connect_to(PKG_WINDOW(window), "dbus://");
 	g_signal_connect(window, "delete-event", gtk_main_quit, NULL);
