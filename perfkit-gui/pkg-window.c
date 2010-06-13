@@ -63,11 +63,19 @@ typedef struct
 	gint          subscription;
 } PkgWindowSubscriptionCall;
 
+typedef struct
+{
+	PkgWindow    *window;
+	PkConnection *connection;
+	gint          source;
+} PkgWindowSourceCall;
+
 enum
 {
 	TYPE_CHANNELS,
 	TYPE_PLUGINS,
 	TYPE_SUBSCRIPTIONS,
+	TYPE_SOURCES,
 };
 
 enum
@@ -96,7 +104,9 @@ pkg_window_channel_call_new (PkgWindow    *window,     /* IN */
 void
 pkg_window_channel_call_free (PkgWindowChannelCall *call) /* IN */
 {
+	ENTRY;
 	g_slice_free(PkgWindowChannelCall, call);
+	EXIT;
 }
 
 PkgWindowSubscriptionCall*
@@ -117,7 +127,32 @@ pkg_window_subscription_call_new (PkgWindow    *window,       /* IN */
 void
 pkg_window_subscription_call_free (PkgWindowSubscriptionCall *call) /* IN */
 {
+	ENTRY;
 	g_slice_free(PkgWindowSubscriptionCall, call);
+	EXIT;
+}
+
+PkgWindowSourceCall*
+pkg_window_source_call_new (PkgWindow    *window,     /* IN */
+                            PkConnection *connection, /* IN */
+                            gint          source)     /* IN */
+{
+	PkgWindowSourceCall *call;
+
+	ENTRY;
+	call = g_slice_new0(PkgWindowSourceCall);
+	call->window = window;
+	call->connection = connection;
+	call->source = source;
+	RETURN(call);
+}
+
+void
+pkg_window_source_call_free (PkgWindowSourceCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(PkgWindowSubscriptionCall, call);
+	EXIT;
 }
 
 /**
@@ -219,6 +254,15 @@ pkg_window_get_subscriptions_iter (PkgWindow    *window,     /* IN */
 {
 	return pkg_window_get_connection_child_iter (window, connection, iter,
 	                                             TYPE_SUBSCRIPTIONS);
+}
+
+static gboolean
+pkg_window_get_sources_iter (PkgWindow    *window,     /* IN */
+                             PkConnection *connection, /* IN */
+                             GtkTreeIter  *iter)       /* OUT */
+{
+	return pkg_window_get_connection_child_iter (window, connection, iter,
+	                                             TYPE_SOURCES);
 }
 
 static gboolean
@@ -573,6 +617,103 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 }
 
 static void
+pkg_window_connection_source_get_plugin_cb (GObject      *object,    /* IN */
+                                            GAsyncResult *result,    /* IN */
+                                            gpointer      user_data) /* IN */
+{
+	PkgWindowSourceCall *call = user_data;
+	PkConnection *connection;
+	PkgWindowPrivate *priv;
+	gchar *plugin = NULL;
+	gchar *subtitle = NULL;
+	GError *error = NULL;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+
+	g_return_if_fail(user_data != NULL);
+
+	ENTRY;
+	priv = call->window->priv;
+	connection = PK_CONNECTION(object);
+	if (!pk_connection_source_get_plugin_finish(connection, result,
+	                                            &plugin, &error)) {
+		WARNING(Connection, "Error retrieving subscription created-at: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	if (!pkg_window_get_sources_iter(call->window, connection, &iter)) {
+		GOTO(iter_not_found);
+	}
+	if (!pkg_window_get_child_iter_with_id(call->window, connection,
+	                                       &iter, &child, call->source)) {
+		GOTO(iter_not_found);
+	}
+	gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, plugin, -1);
+  iter_not_found:
+	pkg_window_source_call_free(call);
+	g_free(plugin);
+	EXIT;
+}
+
+static void
+pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkConnection *connection;
+	PkgWindowPrivate *priv;
+	gint *sources;
+	gsize sources_len;
+	gchar *title = NULL;
+	gchar *subtitle = NULL;
+	GError *error = NULL;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gint i;
+
+	g_return_if_fail(PKG_IS_WINDOW(user_data));
+
+	ENTRY;
+	priv = PKG_WINDOW(user_data)->priv;
+	connection = PK_CONNECTION(object);
+	if (!pk_connection_manager_get_sources_finish(connection, result,
+	                                              &sources, &sources_len,
+	                                              &error)) {
+		WARNING(Connection, "Error retrieving sources list: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	if (!pkg_window_get_sources_iter(user_data, connection, &iter)) {
+		GOTO(iter_not_found);
+	}
+	subtitle = g_strdup_printf(P_("%d source", "%d sources", sources_len),
+	                           (gint)sources_len);
+	gtk_tree_store_set(priv->model, &iter, COLUMN_SUBTITLE, subtitle, -1);
+  	g_free(subtitle);
+	for (i = 0; i < sources_len; i++) {
+		title = g_strdup_printf(_("Source %d"), sources[i]);
+		gtk_tree_store_append(priv->model, &child, &iter);
+		gtk_tree_store_set(priv->model, &child,
+		                   COLUMN_ID, sources[i],
+		                   COLUMN_TITLE, title,
+		                   COLUMN_SUBTITLE, _("Loading ..."),
+		                   -1);
+		pk_connection_source_get_plugin_async(
+				connection, sources[i], NULL,
+				pkg_window_connection_source_get_plugin_cb,
+				pkg_window_source_call_new(
+					user_data, connection, sources[i]));
+		pkg_window_expand_to_iter(user_data, &child);
+		g_free(title);
+	}
+  iter_not_found:
+  	g_free(sources);
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -614,6 +755,13 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
+	                   COLUMN_ID, TYPE_SOURCES,
+	                   COLUMN_TITLE, _("Sources"),
+		               COLUMN_SUBTITLE, _("Loading ..."),
+	                   -1);
+	pkg_window_expand_to_iter(user_data, &child);
+	gtk_tree_store_append(priv->model, &child, &iter);
+	gtk_tree_store_set(priv->model, &child,
 	                   COLUMN_ID, TYPE_SUBSCRIPTIONS,
 	                   COLUMN_TITLE, _("Subscriptions"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
@@ -634,6 +782,10 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pk_connection_manager_get_subscriptions_async(
 			connection, NULL,
 			pkg_window_connection_manager_get_subscriptions_cb,
+			user_data);
+	pk_connection_manager_get_sources_async(
+			connection, NULL,
+			pkg_window_connection_manager_get_sources_cb,
 			user_data);
 	EXIT;
 }
@@ -744,6 +896,9 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
 			break;
 		case TYPE_PLUGINS:
 			g_object_set(cell, "icon-name", "stock_insert-plugin", NULL);
+			break;
+		case TYPE_SOURCES:
+			g_object_set(cell, "icon-name", "stock_channel", NULL);
 			break;
 		default:
 			GOTO(invalid_row_type);
