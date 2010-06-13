@@ -56,6 +56,13 @@ typedef struct
 	gint          channel;
 } PkgWindowChannelCall;
 
+typedef struct
+{
+	PkgWindow    *window;
+	PkConnection *connection;
+	gint          subscription;
+} PkgWindowSubscriptionCall;
+
 enum
 {
 	TYPE_CHANNELS,
@@ -86,10 +93,31 @@ pkg_window_channel_call_new (PkgWindow    *window,     /* IN */
 	RETURN(call);
 }
 
-PkgWindowChannelCall*
-pkg_window_channel_call_free (PkgWindowChannelCall *call)
+void
+pkg_window_channel_call_free (PkgWindowChannelCall *call) /* IN */
 {
 	g_slice_free(PkgWindowChannelCall, call);
+}
+
+PkgWindowSubscriptionCall*
+pkg_window_subscription_call_new (PkgWindow    *window,       /* IN */
+                                  PkConnection *connection,   /* IN */
+                                  gint          subscription) /* IN */
+{
+	PkgWindowSubscriptionCall *call;
+
+	ENTRY;
+	call = g_slice_new0(PkgWindowSubscriptionCall);
+	call->window = window;
+	call->connection = connection;
+	call->subscription = subscription;
+	RETURN(call);
+}
+
+void
+pkg_window_subscription_call_free (PkgWindowSubscriptionCall *call) /* IN */
+{
+	g_slice_free(PkgWindowSubscriptionCall, call);
 }
 
 /**
@@ -318,7 +346,7 @@ pkg_window_connection_channel_get_created_at_cb (GObject      *object,    /* IN 
 		GOTO(iter_not_found);
 	}
 	dt = g_date_time_new_from_timeval(&tv);
-	subtitle = g_date_time_printf(dt, "Created on %x at %X");
+	subtitle = g_date_time_printf(dt, _("Created on %x at %X"));
 	g_date_time_unref(dt);
 	gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, subtitle, -1);
   iter_not_found:
@@ -441,6 +469,51 @@ pkg_window_connection_manager_get_plugins_cb (GObject      *object,    /* IN */
 }
 
 static void
+pkg_window_connection_subscription_get_created_at_cb (GObject      *object,    /* IN */
+                                                      GAsyncResult *result,    /* IN */
+                                                      gpointer      user_data) /* IN */
+{
+	PkgWindowSubscriptionCall *call = user_data;
+	PkConnection *connection;
+	PkgWindowPrivate *priv;
+	gchar *subtitle = NULL;
+	GError *error = NULL;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	GDateTime *dt;
+	GTimeVal tv;
+
+	g_return_if_fail(user_data != NULL);
+
+	ENTRY;
+	priv = call->window->priv;
+	connection = PK_CONNECTION(object);
+	if (!pk_connection_subscription_get_created_at_finish(connection, result,
+	                                                      &tv, &error)) {
+		WARNING(Connection, "Error retrieving subscription created-at: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	if (!pkg_window_get_subscriptions_iter(call->window, connection, &iter)) {
+		GOTO(iter_not_found);
+	}
+	if (!pkg_window_get_child_iter_with_id(call->window, connection,
+	                                       &iter, &child,
+	                                       call->subscription)) {
+		GOTO(iter_not_found);
+	}
+	dt = g_date_time_new_from_timeval(&tv);
+	subtitle = g_date_time_printf(dt, _("Created on %x at %X"));
+	g_date_time_unref(dt);
+	gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, subtitle, -1);
+  iter_not_found:
+	pkg_window_subscription_call_free(call);
+	g_free(subtitle);
+	EXIT;
+}
+
+static void
 pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* IN */
                                                     GAsyncResult *result,    /* IN */
                                                     gpointer      user_data) /* IN */
@@ -486,6 +559,11 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 		                   COLUMN_TITLE, title,
 		                   COLUMN_SUBTITLE, _("Loading ..."),
 		                   -1);
+		pk_connection_subscription_get_created_at_async(
+				connection, subscriptions[i], NULL,
+				pkg_window_connection_subscription_get_created_at_cb,
+				pkg_window_subscription_call_new(
+					user_data, connection, subscriptions[i]));
 		pkg_window_expand_to_iter(user_data, &child);
 		g_free(title);
 	}
