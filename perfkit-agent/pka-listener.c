@@ -3517,7 +3517,6 @@ pka_listener_source_get_plugin_finish (PkaListener    *listener, /* IN */
 	}
 	real_plugin = pka_source_get_plugin(source);
 	*plugin = g_strdup(pka_plugin_get_id(real_plugin));
-	g_object_unref(real_plugin);
 	g_object_unref(source);
 	ret = TRUE;
   failed:
