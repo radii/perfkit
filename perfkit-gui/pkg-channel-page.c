@@ -42,19 +42,26 @@ struct _PkgChannelPagePrivate
 {
 	PkConnection *connection;
 	gint          id;
+	GtkListStore *model;
 	GtkBuilder   *builder;
-
-	GtkWidget *page_label;
-	GtkWidget *container;
-	GtkWidget *target;
-	GtkWidget *args;
-	GtkWidget *working_dir;
-	GtkWidget *env;
-	GtkWidget *pid;
-	GtkWidget *kill_pid;
-	GtkWidget *exit_status;
-	GtkWidget *muted;
+	GtkWidget    *page_label;
+	GtkWidget    *container;
+	GtkWidget    *target;
+	GtkWidget    *args;
+	GtkWidget    *working_dir;
+	GtkWidget    *env;
+	GtkWidget    *pid;
+	GtkWidget    *kill_pid;
+	GtkWidget    *exit_status;
+	GtkWidget    *muted;
+	GtkWidget    *sources;
 };
+
+typedef struct
+{
+	PkgChannelPage *page;
+	gint source;
+} SourceCall;
 
 enum
 {
@@ -62,6 +69,35 @@ enum
 	PROP_CONNECTION,
 	PROP_ID,
 };
+
+enum
+{
+	COLUMN_ID,
+	COLUMN_IDSTR,
+	COLUMN_PLUGIN,
+};
+
+static SourceCall*
+source_call_new (PkgChannelPage *page,   /* IN */
+                 gint            source) /* IN */
+{
+	SourceCall *call;
+
+	ENTRY;
+	call = g_slice_new0(SourceCall);
+	call->page = g_object_ref(page);
+	call->source = source;
+	RETURN(call);
+}
+
+static void
+source_call_free (SourceCall *call)
+{
+	ENTRY;
+	g_object_unref(call->page);
+	g_slice_free(SourceCall, call);
+	EXIT;
+}
 
 /**
  * pkg_channel_page_new:
@@ -274,6 +310,92 @@ pkg_channel_page_get_kill_pid_cb (GObject      *object,    /* IN */
 	EXIT;
 }
 
+static void
+pkg_channel_page_source_get_plugin_cb (GObject      *object,    /* IN */
+                                       GAsyncResult *result,    /* IN */
+                                       gpointer      user_data) /* IN */
+{
+	PkgChannelPagePrivate *priv;
+	SourceCall *call = user_data;
+	GError *error = NULL;
+	gchar *plugin = NULL;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gint id;
+
+	g_return_if_fail(call != NULL);
+
+	ENTRY;
+	priv = call->page->priv;
+	model = GTK_TREE_MODEL(priv->model);
+	if (!pk_connection_source_get_plugin_finish(priv->connection, result,
+	                                            &plugin, &error)) {
+		WARNING(Source, "Error retrieving source plugin: %s",
+		        error->message);
+		g_error_free(error);
+		GOTO(failed);
+	}
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			gtk_tree_model_get(model, &iter, COLUMN_ID, &id, -1);
+			if (id == call->source) {
+				gtk_list_store_set(priv->model, &iter,
+				                   COLUMN_PLUGIN, plugin,
+				                   -1);
+				BREAK;
+			}
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+  failed:
+  	g_free(plugin);
+  	source_call_free(call);
+	EXIT;
+}
+
+static void
+pkg_channel_page_get_sources_cb (GObject      *object,    /* IN */
+                                 GAsyncResult *result,    /* IN */
+                                 gpointer      user_data) /* IN */
+{
+	PkConnection *connection = PK_CONNECTION(object);
+	PkgChannelPagePrivate *priv;
+	gint *sources;
+	gsize sources_len = 0;
+	gchar *idstr;
+	GError *error = NULL;
+	GtkTreeIter iter;
+	gint i;
+
+	g_return_if_fail(PKG_IS_CHANNEL_PAGE(user_data));
+
+	ENTRY;
+	priv = PKG_CHANNEL_PAGE(user_data)->priv;
+	if (!pk_connection_channel_get_sources_finish(connection, result,
+	                                              &sources, &sources_len,
+	                                              &error)) {
+	    WARNING(Channel, "Error retrieving channel sources: %s",
+	            error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	gtk_list_store_clear(priv->model);
+	for (i = 0; i < sources_len; i++) {
+		idstr = g_strdup_printf("%d", sources[i]);
+		gtk_list_store_append(priv->model, &iter);
+		gtk_list_store_set(priv->model, &iter,
+		                   COLUMN_ID, sources[i],
+		                   COLUMN_IDSTR, idstr,
+		                   -1);
+		g_free(idstr);
+		pk_connection_source_get_plugin_async(
+				priv->connection, sources[i], NULL,
+				pkg_channel_page_source_get_plugin_cb,
+				source_call_new(user_data, sources[i]));
+	}
+	g_free(sources);
+	EXIT;
+}
+
 void
 pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 {
@@ -310,6 +432,9 @@ pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 	pk_connection_channel_get_kill_pid_async(
 			priv->connection, priv->id, NULL,
 			pkg_channel_page_get_kill_pid_cb, page);
+	pk_connection_channel_get_sources_async(
+			priv->connection, priv->id, NULL,
+			pkg_channel_page_get_sources_cb, page);
 	EXIT;
 }
 
@@ -417,6 +542,8 @@ pkg_channel_page_init (PkgChannelPage *page)
 {
 	PkgChannelPagePrivate *priv;
 	gchar *path;
+	GtkTreeViewColumn *column;
+	GtkCellRenderer *cell;
 
 	ENTRY;
 	page->priv = G_TYPE_INSTANCE_GET_PRIVATE(page,
@@ -444,9 +571,31 @@ pkg_channel_page_init (PkgChannelPage *page)
 	EXTRACT_WIDGET("kill-pid", kill_pid);
 	EXTRACT_WIDGET("exit-status", exit_status);
 	EXTRACT_WIDGET("muted", muted);
+	EXTRACT_WIDGET("sources", sources);
 
 	gtk_widget_unparent(priv->container);
 	gtk_container_add(GTK_CONTAINER(page), priv->container);
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("ID"));
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->sources), column);
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", COLUMN_IDSTR);
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("Plugin"));
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->sources), column);
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", COLUMN_PLUGIN);
+
+	priv->model = gtk_list_store_new(3,
+	                                 G_TYPE_INT,
+	                                 G_TYPE_STRING,
+	                                 G_TYPE_STRING);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(priv->sources),
+	                        GTK_TREE_MODEL(priv->model));
 
 	EXIT;
 }
