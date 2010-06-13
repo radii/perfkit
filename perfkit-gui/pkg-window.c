@@ -378,6 +378,7 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
 				pkg_window_channel_call_new(user_data,
 				                            connection,
 				                            channels[i]));
+		pkg_window_expand_to_iter(user_data, &child);
 		g_free(str);
 	}
   iter_not_found:
@@ -427,11 +428,11 @@ pkg_window_connection_manager_get_plugins_cb (GObject      *object,    /* IN */
 		                   COLUMN_TITLE, plugins[i],
 		                   COLUMN_SUBTITLE, "Show plugin description here",
 		                   -1);
+		pkg_window_expand_to_iter(user_data, &child);
 		if (pk_connection_plugin_get_description(connection, plugins[i], &desc, NULL)) {
 			gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, desc, -1);
 			g_free(desc);
 		}
-		//g_free(str);
 	}
   iter_not_found:
   	g_free(subtitle);
@@ -485,6 +486,7 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 		                   COLUMN_TITLE, title,
 		                   COLUMN_SUBTITLE, _("Loading ..."),
 		                   -1);
+		pkg_window_expand_to_iter(user_data, &child);
 		g_free(title);
 	}
   iter_not_found:
