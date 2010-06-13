@@ -19,6 +19,8 @@ AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
 
 INST_H_FILES =								\
 	perfkit-gui.h							\
+	pkg-channel-page.h						\
+	pkg-path.h							\
 	pkg-version.h							\
 	$(NULL)
 
@@ -31,9 +33,11 @@ libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
+	pkg-channel-page.c						\
 	pkg-log.c							\
-	pkg-window.c							\
+	pkg-path.c							\
 	pkg-util.c							\
+	pkg-window.c							\
 	$(NULL)
 
 headerdir = $(prefix)/include/perfkit-1.0/perfkit-gui

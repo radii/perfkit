@@ -24,6 +24,7 @@
 #include <glib/gi18n.h>
 #include <perfkit/perfkit.h>
 
+#include "pkg-channel-page.h"
 #include "pkg-log.h"
 #include "pkg-window.h"
 
@@ -72,10 +73,14 @@ typedef struct
 
 enum
 {
-	TYPE_CHANNELS,
+	TYPE_CHANNELS = 1,
+	TYPE_CHANNEL,
 	TYPE_PLUGINS,
+	TYPE_PLUGIN,
 	TYPE_SUBSCRIPTIONS,
+	TYPE_SUBSCRIPTION,
 	TYPE_SOURCES,
+	TYPE_SOURCE,
 };
 
 enum
@@ -83,6 +88,7 @@ enum
 	COLUMN_CONNECTION,
 	COLUMN_TITLE,
 	COLUMN_SUBTITLE,
+	COLUMN_TYPE,
 	COLUMN_ID,
 };
 
@@ -440,6 +446,8 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
 		str = g_strdup_printf(_("Channel %d"), channels[i]);
 		gtk_tree_store_append(priv->model, &child, &iter);
 		gtk_tree_store_set(priv->model, &child,
+		                   COLUMN_CONNECTION, connection,
+		                   COLUMN_TYPE, TYPE_CHANNEL,
 		                   COLUMN_ID, channels[i],
 		                   COLUMN_TITLE, str,
 		                   COLUMN_SUBTITLE, _("Loading ..."),
@@ -496,6 +504,8 @@ pkg_window_connection_manager_get_plugins_cb (GObject      *object,    /* IN */
 		gchar *desc;
 		gtk_tree_store_append(priv->model, &child, &iter);
 		gtk_tree_store_set(priv->model, &child,
+		                   COLUMN_CONNECTION, connection,
+		                   COLUMN_TYPE, TYPE_PLUGIN,
 		                   COLUMN_ID, plugins[i],
 		                   COLUMN_TITLE, plugins[i],
 		                   COLUMN_SUBTITLE, "Show plugin description here",
@@ -599,6 +609,8 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 		title = g_strdup_printf(_("Subscription %d"), subscriptions[i]);
 		gtk_tree_store_append(priv->model, &child, &iter);
 		gtk_tree_store_set(priv->model, &child,
+		                   COLUMN_CONNECTION, connection,
+		                   COLUMN_TYPE, TYPE_SUBSCRIPTION,
 		                   COLUMN_ID, subscriptions[i],
 		                   COLUMN_TITLE, title,
 		                   COLUMN_SUBTITLE, _("Loading ..."),
@@ -696,6 +708,8 @@ pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
 		title = g_strdup_printf(_("Source %d"), sources[i]);
 		gtk_tree_store_append(priv->model, &child, &iter);
 		gtk_tree_store_set(priv->model, &child,
+		                   COLUMN_CONNECTION, connection,
+		                   COLUMN_TYPE, TYPE_SOURCE,
 		                   COLUMN_ID, sources[i],
 		                   COLUMN_TITLE, title,
 		                   COLUMN_SUBTITLE, _("Loading ..."),
@@ -741,6 +755,8 @@ pkg_window_connection_connect_cb (GObject      *object,
 	}
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
+		               COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_CHANNELS,
 	                   COLUMN_ID, TYPE_CHANNELS,
 	                   COLUMN_TITLE, _("Channels"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
@@ -748,6 +764,8 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
+		               COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_PLUGINS,
 	                   COLUMN_ID, TYPE_PLUGINS,
 	                   COLUMN_TITLE, _("Plugins"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
@@ -755,6 +773,8 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
+		               COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_SOURCES,
 	                   COLUMN_ID, TYPE_SOURCES,
 	                   COLUMN_TITLE, _("Sources"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
@@ -762,6 +782,8 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
+		               COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_SUBSCRIPTIONS,
 	                   COLUMN_ID, TYPE_SUBSCRIPTIONS,
 	                   COLUMN_TITLE, _("Subscriptions"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
@@ -886,7 +908,7 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
 	gtk_tree_path_free(path);
 
 	if (depth == 2) {
-		gtk_tree_model_get(model, iter, COLUMN_ID, &row_type, -1);
+		gtk_tree_model_get(model, iter, COLUMN_TYPE, &row_type, -1);
 		switch (row_type) {
 		case TYPE_CHANNELS:
 			g_object_set(cell, "icon-name", "stock_channel", NULL);
@@ -908,6 +930,61 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
 
   invalid_row_type:
 	g_object_set(cell, "icon-name", NULL, NULL);
+}
+
+void
+pkg_window_show_channel (PkgWindow    *window,     /* IN */
+                         PkConnection *connection, /* IN */
+                         gint          channel)    /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *page;
+	GtkWidget *child;
+
+	ENTRY;
+	priv = window->priv;
+	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
+		gtk_container_remove(GTK_CONTAINER(priv->container), child);
+	}
+	page = pkg_channel_page_new(connection, channel);
+	gtk_container_add(GTK_CONTAINER(priv->container), page);
+	pkg_channel_page_reload(PKG_CHANNEL_PAGE(page));
+	gtk_widget_show(page);
+	EXIT;
+}
+
+static void
+pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
+                              gpointer          user_data) /* IN */
+{
+	PkConnection *connection;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gint row_type;
+	gint row_id;
+
+	ENTRY;
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter,
+		                   COLUMN_TYPE, &row_type,
+		                   COLUMN_ID, &row_id,
+		                   COLUMN_CONNECTION, &connection,
+		                   -1);
+		switch (row_type) {
+		case TYPE_CHANNEL:
+			DEBUG(Window, "Show current channel.");
+			pkg_window_show_channel(PKG_WINDOW(user_data),
+			                        connection,
+			                        row_id);
+			break;
+		default:
+			GOTO(clear_contents);
+		}
+	}
+	EXIT;
+  clear_contents:
+	DEBUG(Window, "Clear selection.");
+	EXIT;
 }
 
 static void
@@ -940,6 +1017,7 @@ pkg_window_init (PkgWindow *window)
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *text;
 	GtkCellRenderer *cpix;
+	GtkTreeSelection *selection;
 
 	ENTRY;
 	priv = G_TYPE_INSTANCE_GET_PRIVATE(window, PKG_TYPE_WINDOW,
@@ -1015,10 +1093,11 @@ pkg_window_init (PkgWindow *window)
 	gtk_widget_show(scroller);
 	
 
-	priv->model = gtk_tree_store_new(4,
+	priv->model = gtk_tree_store_new(5,
 	                                 PK_TYPE_CONNECTION,
 	                                 G_TYPE_STRING,
 	                                 G_TYPE_STRING,
+	                                 G_TYPE_INT,
 	                                 G_TYPE_INT);
 	priv->treeview = gtk_tree_view_new();
 	gtk_container_add(GTK_CONTAINER(scroller), priv->treeview);
@@ -1026,6 +1105,12 @@ pkg_window_init (PkgWindow *window)
 	                        GTK_TREE_MODEL(priv->model));
 	gtk_tree_view_expand_all(GTK_TREE_VIEW(priv->treeview));
 	gtk_widget_show(priv->treeview);
+
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(priv->treeview));
+	g_signal_connect(selection,
+	                 "changed",
+	                 G_CALLBACK(pkg_window_selection_changed),
+	                 window);
 
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_title(column, _("Agents"));
