@@ -10,6 +10,7 @@ AM_CPPFLAGS = \
 	-DHAVE_CONFIG_H							\
 	-DG_LOG_DOMAIN=\"PerfkitGui\"					\
 	-DPERFKIT_GUI_COMPILATION					\
+	-I$(top_srcdir)/cut-n-paste					\
 	$(PERFKIT_GUI_CFLAGS)						\
 	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
@@ -29,6 +30,8 @@ NOINST_H_FILES =							\
 libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
+	$(top_srcdir)/cut-n-paste/gdatetime.c				\
+	pkg-log.c							\
 	pkg-window.c							\
 	pkg-util.c							\
 	$(NULL)
