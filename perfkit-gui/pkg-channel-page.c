@@ -245,7 +245,7 @@ pkg_channel_page_get_env_cb (GObject      *object,    /* IN */
 		EXIT;
 	}
 	if (g_strv_length(env)) {
-		str = g_strjoinv(" ", env);
+		str = g_strjoinv("\n", env);
 		markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>", str);
 		gtk_label_set_markup(GTK_LABEL(priv->env), markup);
 		g_free(markup);
