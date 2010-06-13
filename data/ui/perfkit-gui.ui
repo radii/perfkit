@@ -23,8 +23,8 @@
         <child>
           <object class="GtkAlignment" id="alignment1">
             <property name="visible">True</property>
-            <property name="left_padding">6</property>
-            <property name="right_padding">6</property>
+            <property name="left_padding">12</property>
+            <property name="right_padding">12</property>
             <child>
               <object class="GtkTable" id="table1">
                 <property name="visible">True</property>
@@ -347,8 +347,6 @@
         <child>
           <object class="GtkAlignment" id="alignment2">
             <property name="visible">True</property>
-            <property name="left_padding">6</property>
-            <property name="right_padding">6</property>
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>

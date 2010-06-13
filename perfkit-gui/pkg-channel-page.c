@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <glib/gi18n.h>
+
 #include "pkg-channel-page.h"
 #include "pkg-log.h"
 #include "pkg-path.h"
@@ -38,6 +44,7 @@ struct _PkgChannelPagePrivate
 	gint          id;
 	GtkBuilder   *builder;
 
+	GtkWidget *page_label;
 	GtkWidget *container;
 	GtkWidget *target;
 	GtkWidget *args;
@@ -271,11 +278,17 @@ void
 pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 {
 	PkgChannelPagePrivate *priv;
+	gchar *markup;
 
 	g_return_if_fail(PKG_IS_CHANNEL_PAGE(page));
 
 	ENTRY;
 	priv = page->priv;
+	markup = g_markup_printf_escaped(
+			_("<span weight=\"bold\">Channel %d</span>"),
+			priv->id);
+	gtk_label_set_markup(GTK_LABEL(priv->page_label), markup);
+	g_free(markup);
 	pk_connection_channel_get_target_async(
 			priv->connection, priv->id, NULL,
 			pkg_channel_page_get_target_cb, page);
@@ -421,6 +434,7 @@ pkg_channel_page_init (PkgChannelPage *page)
 	gtk_builder_add_from_file(priv->builder, path, NULL);
 	g_free(path);
 
+	EXTRACT_WIDGET("page-label", page_label);
 	EXTRACT_WIDGET("channel-page", container);
 	EXTRACT_WIDGET("target", target);
 	EXTRACT_WIDGET("args", args);
