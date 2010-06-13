@@ -360,6 +360,15 @@ struct _PkConnectionClass
 	                                                     gint                 **sources,
 	                                                     gsize                 *sources_len,
 	                                                     GError               **error);
+	void          (*manager_get_subscriptions_async)    (PkConnection          *connection,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*manager_get_subscriptions_finish)   (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                 **subscriptions,
+	                                                     gsize                 *subscriptions_len,
+	                                                     GError               **error);
 	void          (*manager_get_version_async)          (PkConnection          *connection,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,

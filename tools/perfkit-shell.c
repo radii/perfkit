@@ -2521,6 +2521,89 @@ pk_shell_manager_get_sources (EggLine  *line,   /* IN */
 }
 
 /**
+ * pk_shell_manager_get_subscriptions_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_manager_get_subscriptions_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_manager_get_subscriptions_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_manager_get_subscriptions_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* subscriptions */
+			task->params[1], /* subscriptions_len */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_manager_get_subscriptions:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_manager_get_subscriptions (EggLine  *line,   /* IN */
+                                    gint      argc,   /* IN */
+                                    gchar    *argv[], /* IN */
+                                    GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint* subscriptions;
+	gsize subscriptions_len;
+	gint i = 0;
+	gchar *tmp;
+
+	ENTRY;
+	if (argc != 0) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &subscriptions;
+	task.params[1] = &subscriptions_len;
+	pk_connection_manager_get_subscriptions_async(conn,
+	                             NULL,
+	                             pk_shell_manager_get_subscriptions_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	if (subscriptions && subscriptions_len) {
+		g_print("%16s: [", "subscriptions");
+		for (i = 0; i < subscriptions_len; i++) {
+			g_print("%d%s", subscriptions[i], ((i + 1) == subscriptions_len) ? "" : ", ");
+		}
+		g_print("]\n");
+	}
+	egg_line_set_variable(line, "1", "");
+	g_print("%16s: %d\n", "subscriptions_len", (gint)subscriptions_len);
+	tmp = g_strdup_printf("%d", (gint)subscriptions_len);
+	egg_line_set_variable(line, "2", tmp);
+	g_free(tmp);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_manager_get_version_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -4222,6 +4305,12 @@ static EggLineCommand manager_commands[] = {
 		.usage     = "manager get-sources ",
 	},
 	{
+		.name      = "get-subscriptions",
+		.help      = "Retrieve the list of subscriptions to the agent.",
+		.callback  = pk_shell_manager_get_subscriptions,
+		.usage     = "manager get-subscriptions ",
+	},
+	{
 		.name      = "get-version",
 		.help      = "Retrieves the version of the agent.",
 		.callback  = pk_shell_manager_get_version,
@@ -4765,7 +4854,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Manager commands.",
 		.callback  = NULL,
 		.generator = pk_shell_manager_generator,
-		.usage     = "manager [add-channel | add-source | add-subscription | get-channels | get-hostname | get-plugins | get-sources | get-version | ping | remove-channel | remove-source | remove-subscription]",
+		.usage     = "manager [add-channel | add-source | add-subscription | get-channels | get-hostname | get-plugins | get-sources | get-subscriptions | get-version | ping | remove-channel | remove-source | remove-subscription]",
 	},
 	{
 		.name      = "channel",

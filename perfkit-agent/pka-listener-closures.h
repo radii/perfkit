@@ -181,6 +181,10 @@ typedef struct
 
 typedef struct
 {
+} ManagerGetSubscriptionsCall;
+
+typedef struct
+{
 } ManagerGetVersionCall;
 
 typedef struct
@@ -531,6 +535,14 @@ ManagerGetSourcesCall_Free (ManagerGetSourcesCall *call) /* IN */
 {
 	ENTRY;
 	g_slice_free(ManagerGetSourcesCall, call);
+	EXIT;
+}
+
+void
+ManagerGetSubscriptionsCall_Free (ManagerGetSubscriptionsCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(ManagerGetSubscriptionsCall, call);
 	EXIT;
 }
 
@@ -906,6 +918,13 @@ ManagerGetSourcesCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(ManagerGetSourcesCall));
+}
+
+ManagerGetSubscriptionsCall*
+ManagerGetSubscriptionsCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(ManagerGetSubscriptionsCall));
 }
 
 ManagerGetVersionCall*

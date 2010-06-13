@@ -403,6 +403,19 @@ gboolean      pk_connection_manager_get_sources_finish        (PkConnection     
                                                                gint                 **sources,
                                                                gsize                 *sources_len,
                                                                GError               **error);
+gboolean      pk_connection_manager_get_subscriptions         (PkConnection          *connection,
+                                                               gint                 **subscriptions,
+                                                               gsize                 *subscriptions_len,
+                                                               GError               **error);
+void          pk_connection_manager_get_subscriptions_async   (PkConnection          *connection,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_manager_get_subscriptions_finish  (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               gint                 **subscriptions,
+                                                               gsize                 *subscriptions_len,
+                                                               GError               **error);
 gboolean      pk_connection_manager_get_version               (PkConnection          *connection,
                                                                gchar                **version,
                                                                GError               **error);

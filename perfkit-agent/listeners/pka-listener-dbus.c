@@ -795,6 +795,9 @@ static const gchar * ManagerIntrospection =
 	"  <method name=\"GetSources\">"
     "   <arg name=\"sources\" direction=\"out\" type=\"ao\"/>"
 	"  </method>"
+	"  <method name=\"GetSubscriptions\">"
+    "   <arg name=\"subscriptions\" direction=\"out\" type=\"ao\"/>"
+	"  </method>"
 	"  <method name=\"GetVersion\">"
     "   <arg name=\"version\" direction=\"out\" type=\"s\"/>"
 	"  </method>"
@@ -1175,6 +1178,62 @@ pka_listener_dbus_manager_get_sources_cb (GObject      *listener,  /* IN */
 		                         DBUS_TYPE_INVALID);
 		g_free(sources);
 		g_strfreev(sources_paths);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_manager_get_subscriptions_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "manager_get_subscriptions" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_manager_get_subscriptions_cb (GObject      *listener,  /* IN */
+                                                GAsyncResult *result,    /* IN */
+                                                gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint* subscriptions = NULL;
+	gchar **subscriptions_paths = NULL;
+	gsize subscriptions_len = 0;
+	gint i;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_manager_get_subscriptions_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&subscriptions,
+			&subscriptions_len,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		subscriptions_paths = g_new0(gchar*, subscriptions_len + 1);
+		for (i = 0; i < subscriptions_len; i++) {
+			subscriptions_paths[i] = g_strdup_printf("/org/perfkit/Agent/Subscription/%d", subscriptions[i]);
+		}
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &subscriptions_paths, subscriptions_len,
+		                         
+		                         DBUS_TYPE_INVALID);
+		g_free(subscriptions);
+		g_strfreev(subscriptions_paths);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
 	dbus_message_unref(reply);
@@ -1586,6 +1645,17 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			                                       dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
+		else if (IS_MEMBER(message, "GetSubscriptions")) {
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_manager_get_subscriptions_async(PKA_LISTENER(listener),
+			                                             NULL,
+			                                             pka_listener_dbus_manager_get_subscriptions_cb,
+			                                             dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
 		else if (IS_MEMBER(message, "GetVersion")) {
 			if (!dbus_message_get_args(message, NULL,
 			                           DBUS_TYPE_INVALID)) {
@@ -1693,6 +1763,9 @@ static const gchar * ChannelIntrospection =
 	"  </method>"
 	"  <method name=\"GetArgs\">"
     "   <arg name=\"args\" direction=\"out\" type=\"as\"/>"
+	"  </method>"
+	"  <method name=\"GetCreatedAt\">"
+    "   <arg name=\"tv\" direction=\"out\" type=\"s\"/>"
 	"  </method>"
 	"  <method name=\"GetEnv\">"
     "   <arg name=\"env\" direction=\"out\" type=\"as\"/>"

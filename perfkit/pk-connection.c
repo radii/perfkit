@@ -4071,6 +4071,134 @@ pk_connection_manager_get_sources_finish (PkConnection  *connection,  /* IN */
 }
 
 /**
+ * pk_connection_manager_get_subscriptions_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "manager_get_subscriptions" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_manager_get_subscriptions_cb (GObject      *source,    /* IN */
+                                            GAsyncResult *result,    /* IN */
+                                            gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_manager_get_subscriptions_finish(PK_CONNECTION(source),
+	                                                              result,
+	                                                              sync->params[0],
+	                                                              sync->params[1],
+	                                                              sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_subscriptions:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "manager_get_subscriptions" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieve the list of subscriptions to the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_subscriptions (PkConnection  *connection,        /* IN */
+                                         gint         **subscriptions,     /* OUT */
+                                         gsize         *subscriptions_len, /* OUT */
+                                         GError       **error)             /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(manager_get_subscriptions);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = subscriptions;
+	sync.params[1] = subscriptions_len;
+	pk_connection_manager_get_subscriptions_async(connection,
+	                                              NULL,
+	                                              pk_connection_manager_get_subscriptions_cb,
+	                                              &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_manager_get_subscriptions_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "manager_get_subscriptions_async" RPC.
+ *
+ * Retrieve the list of subscriptions to the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_manager_get_subscriptions_async (PkConnection        *connection,  /* IN */
+                                               GCancellable        *cancellable, /* IN */
+                                               GAsyncReadyCallback  callback,    /* IN */
+                                               gpointer             user_data)   /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(manager_get_subscriptions)(connection,
+	                                     cancellable,
+	                                     callback,
+	                                     user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_subscriptions_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "manager_get_subscriptions_finish" RPC.
+ *
+ * Retrieve the list of subscriptions to the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_manager_get_subscriptions_finish (PkConnection  *connection,        /* IN */
+                                                GAsyncResult  *result,            /* IN */
+                                                gint         **subscriptions,     /* OUT */
+                                                gsize         *subscriptions_len, /* OUT */
+                                                GError       **error)             /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, manager_get_subscriptions)(connection,
+	                                           result,
+	                                           subscriptions,
+	                                           subscriptions_len,
+	                                           error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_manager_get_version_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

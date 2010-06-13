@@ -2564,6 +2564,89 @@ pka_listener_manager_get_sources_finish (PkaListener    *listener,    /* IN */
 }
 
 /**
+ * pk_connection_manager_get_subscriptions_async:
+ * @connection: A #PkConnection.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "manager_get_subscriptions_async" RPC.  @callback
+ * MUST call pka_listener_manager_get_subscriptions_finish().
+ *
+ * Retrieve the list of subscriptions to the agent.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_manager_get_subscriptions_async (PkaListener           *listener,    /* IN */
+                                              GCancellable          *cancellable, /* IN */
+                                              GAsyncReadyCallback    callback,    /* IN */
+                                              gpointer               user_data)   /* IN */
+{
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_manager_get_subscriptions_async);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_manager_get_subscriptions_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @subscriptions: A #gint.
+ * @subscriptions_len: A #gsize.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "manager_get_subscriptions_finish" RPC.
+ *
+ * Retrieve the list of subscriptions to the agent.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_manager_get_subscriptions_finish (PkaListener    *listener,          /* IN */
+                                               GAsyncResult   *result,            /* IN */
+                                               gint          **subscriptions,     /* OUT */
+                                               gsize          *subscriptions_len, /* OUT */
+                                               GError        **error)             /* OUT */
+{
+	GList *list = NULL;
+	GList *iter = NULL;
+	gboolean ret = FALSE;
+	gint i = 0;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(manager_get_subscriptions), FALSE);
+	g_return_val_if_fail(subscriptions != NULL, FALSE);
+	g_return_val_if_fail(subscriptions_len != NULL, FALSE);
+
+	ENTRY;
+	if (!pka_manager_get_subscriptions(DEFAULT_CONTEXT, &list, error)) {
+		GOTO(failed);
+	}
+	*subscriptions_len = g_list_length(list);
+	*subscriptions = g_new(gint, *subscriptions_len);
+	for (iter = list; iter; iter = iter->next) {
+		(*subscriptions)[i++] = pka_subscription_get_id(iter->data);
+		pka_subscription_unref(iter->data);
+	}
+	g_list_free(list);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
+/**
  * pk_connection_manager_get_version_async:
  * @connection: A #PkConnection.
  * @cancellable: A #GCancellable.
