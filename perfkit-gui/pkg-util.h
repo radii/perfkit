@@ -28,10 +28,15 @@
 
 G_BEGIN_DECLS
 
-void pkg_util_get_mix_color (GtkWidget    *widget,
-                             GtkStateType  state,
-                             gchar        *color_buf,
-                             gsize         color_buf_size);
+GtkWidget* pkg_util_dialog_warning (GtkWidget   *parent,
+                                    const gchar *title,
+                                    const gchar *primary,
+                                    const gchar *secondary,
+                                    gboolean     use_expander);
+void       pkg_util_get_mix_color  (GtkWidget    *widget,
+                                    GtkStateType  state,
+                                    gchar        *color_buf,
+                                    gsize         color_buf_size);
 
 G_END_DECLS
 
