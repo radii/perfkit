@@ -20,6 +20,10 @@
 #include "pkg-log.h"
 #include "pkg-path.h"
 
+#define IS_NULL_OR_EMPTY(_s) ((!(_s)) || (g_strcmp0(_s, "") == 0))
+
+G_DEFINE_TYPE(PkgChannelPage, pkg_channel_page, GTK_TYPE_ALIGNMENT)
+
 /**
  * SECTION:pkg-channel-page
  * @title: PkgChannelPage
@@ -27,8 +31,6 @@
  *
  * Section overview.
  */
-
-G_DEFINE_TYPE(PkgChannelPage, pkg_channel_page, GTK_TYPE_ALIGNMENT)
 
 struct _PkgChannelPagePrivate
 {
@@ -98,10 +100,12 @@ pkg_channel_page_get_target_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
-	markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
-	                                 target);
-	gtk_label_set_markup(GTK_LABEL(priv->target), markup);
-	g_free(markup);
+	if (!IS_NULL_OR_EMPTY(target)) {
+		markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
+										 target);
+		gtk_label_set_markup(GTK_LABEL(priv->target), markup);
+		g_free(markup);
+	}
 	g_free(target);
 	EXIT;
 }
@@ -126,11 +130,13 @@ pkg_channel_page_get_working_dir_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
-	markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
-	                                 working_dir);
-	gtk_label_set_markup(GTK_LABEL(priv->working_dir), markup);
+	if (!IS_NULL_OR_EMPTY(working_dir)) {
+		markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
+										 working_dir);
+		gtk_label_set_markup(GTK_LABEL(priv->working_dir), markup);
+		g_free(markup);
+	}
 	g_free(working_dir);
-	g_free(markup);
 	EXIT;
 }
 
@@ -202,12 +208,62 @@ pkg_channel_page_get_args_cb (GObject      *object,    /* IN */
 		gtk_label_set_text(GTK_LABEL(priv->args), "-");
 		EXIT;
 	}
-	str = g_strjoinv(" ", args);
-	markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>", str);
-	gtk_label_set_markup(GTK_LABEL(priv->args), markup);
+	if (g_strv_length(args)) {
+		str = g_strjoinv(" ", args);
+		markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>", str);
+		gtk_label_set_markup(GTK_LABEL(priv->args), markup);
+		g_free(markup);
+		g_free(str);
+	}
 	g_strfreev(args);
-	g_free(markup);
-	g_free(str);
+	EXIT;
+}
+
+static void
+pkg_channel_page_get_env_cb (GObject      *object,    /* IN */
+                             GAsyncResult *result,    /* IN */
+                             gpointer      user_data) /* IN */
+{
+	PkConnection *connection = PK_CONNECTION(object);
+	PkgChannelPagePrivate *priv;
+	gchar **env;
+	gchar *markup;
+	gchar *str;
+
+	ENTRY;
+	priv = PKG_CHANNEL_PAGE(user_data)->priv;
+	if (!pk_connection_channel_get_env_finish(connection, result,
+	                                          &env, NULL)) {
+		gtk_label_set_text(GTK_LABEL(priv->env), "-");
+		EXIT;
+	}
+	if (g_strv_length(env)) {
+		str = g_strjoinv(" ", env);
+		markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>", str);
+		gtk_label_set_markup(GTK_LABEL(priv->env), markup);
+		g_free(markup);
+		g_free(str);
+	}
+	g_strfreev(env);
+	EXIT;
+}
+
+static void
+pkg_channel_page_get_kill_pid_cb (GObject      *object,    /* IN */
+                                  GAsyncResult *result,    /* IN */
+                                  gpointer      user_data) /* IN */
+{
+	PkConnection *connection = PK_CONNECTION(object);
+	PkgChannelPagePrivate *priv;
+	gboolean kill_pid;
+
+	ENTRY;
+	priv = PKG_CHANNEL_PAGE(user_data)->priv;
+	if (!pk_connection_channel_get_kill_pid_finish(connection, result,
+	                                               &kill_pid, NULL)) {
+		EXIT;
+	}
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(priv->kill_pid), kill_pid);
 	EXIT;
 }
 
@@ -235,6 +291,12 @@ pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 	pk_connection_channel_get_args_async(
 			priv->connection, priv->id, NULL,
 			pkg_channel_page_get_args_cb, page);
+	pk_connection_channel_get_env_async(
+			priv->connection, priv->id, NULL,
+			pkg_channel_page_get_env_cb, page);
+	pk_connection_channel_get_kill_pid_async(
+			priv->connection, priv->id, NULL,
+			pkg_channel_page_get_kill_pid_cb, page);
 	EXIT;
 }
 

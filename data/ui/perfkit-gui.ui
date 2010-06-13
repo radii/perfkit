@@ -280,7 +280,6 @@
                 </child>
                 <child>
                   <object class="GtkLabel" id="label5">
-                    <property name="visible">True</property>
                     <property name="xalign">1</property>
                     <property name="label" translatable="yes">&lt;span size="smaller" weight="bold"&gt;Mute channel:&lt;/span&gt;</property>
                     <property name="use_markup">True</property>
@@ -297,7 +296,6 @@
                     <property name="visible">True</property>
                     <child>
                       <object class="GtkCheckButton" id="muted">
-                        <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
@@ -349,7 +347,6 @@
         <child>
           <object class="GtkAlignment" id="alignment2">
             <property name="visible">True</property>
-            <property name="bottom_padding">6</property>
             <property name="left_padding">6</property>
             <property name="right_padding">6</property>
             <child>
