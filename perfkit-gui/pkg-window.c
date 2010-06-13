@@ -756,18 +756,18 @@ pkg_window_connection_connect_cb (GObject      *object,
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
-	                   COLUMN_TYPE, TYPE_CHANNELS,
-	                   COLUMN_ID, TYPE_CHANNELS,
-	                   COLUMN_TITLE, _("Channels"),
+	                   COLUMN_TYPE, TYPE_PLUGINS,
+	                   COLUMN_ID, TYPE_PLUGINS,
+	                   COLUMN_TITLE, _("Plugins"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
-	                   COLUMN_TYPE, TYPE_PLUGINS,
-	                   COLUMN_ID, TYPE_PLUGINS,
-	                   COLUMN_TITLE, _("Plugins"),
+	                   COLUMN_TYPE, TYPE_CHANNELS,
+	                   COLUMN_ID, TYPE_CHANNELS,
+	                   COLUMN_TITLE, _("Channels"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
