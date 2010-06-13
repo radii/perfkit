@@ -3316,6 +3316,9 @@ static const gchar * SubscriptionIntrospection =
 	"  <method name=\"GetCreatedAt\">"
     "   <arg name=\"tv\" direction=\"out\" type=\"s\"/>"
 	"  </method>"
+	"  <method name=\"GetSources\">"
+    "   <arg name=\"sources\" direction=\"out\" type=\"ao\"/>"
+	"  </method>"
 	"  <method name=\"Mute\">"
     "   <arg name=\"drain\" direction=\"in\" type=\"b\"/>"
 	"  </method>"
@@ -3467,6 +3470,62 @@ pka_listener_dbus_subscription_get_created_at_cb (GObject      *listener,  /* IN
 		                         DBUS_TYPE_STRING, &tv_str,
 		                         DBUS_TYPE_INVALID);
 		g_free(tv_str);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_subscription_get_sources_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "subscription_get_sources" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_subscription_get_sources_cb (GObject      *listener,  /* IN */
+                                               GAsyncResult *result,    /* IN */
+                                               gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint* sources = NULL;
+	gchar **sources_paths = NULL;
+	gsize sources_len = 0;
+	gint i;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_subscription_get_sources_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&sources,
+			&sources_len,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		sources_paths = g_new0(gchar*, sources_len + 1);
+		for (i = 0; i < sources_len; i++) {
+			sources_paths[i] = g_strdup_printf("/org/perfkit/Agent/Source/%d", sources[i]);
+		}
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &sources_paths, sources_len,
+		                         
+		                         DBUS_TYPE_INVALID);
+		g_free(sources);
+		g_strfreev(sources_paths);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
 	dbus_message_unref(reply);
@@ -3920,6 +3979,25 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                               NULL,
 			                                               pka_listener_dbus_subscription_get_created_at_cb,
 			                                               dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetSources")) {
+			gint subscription = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
+				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_subscription_get_sources_async(PKA_LISTENER(listener),
+			                                            subscription,
+			                                            NULL,
+			                                            pka_listener_dbus_subscription_get_sources_cb,
+			                                            dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "Mute")) {

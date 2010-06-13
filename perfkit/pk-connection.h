@@ -493,6 +493,16 @@ struct _PkConnectionClass
 	                                                     GAsyncResult          *result,
 	                                                     GTimeVal              *tv,
 	                                                     GError               **error);
+	void          (*subscription_get_sources_async)     (PkConnection          *connection,
+	                                                     gint                   subscription,
+	                                                     GCancellable          *cancellable,
+	                                                     GAsyncReadyCallback    callback,
+	                                                     gpointer               user_data);
+	gboolean      (*subscription_get_sources_finish)    (PkConnection          *connection,
+	                                                     GAsyncResult          *result,
+	                                                     gint                 **sources,
+	                                                     gsize                 *sources_len,
+	                                                     GError               **error);
 	void          (*subscription_mute_async)            (PkConnection          *connection,
 	                                                     gint                   subscription,
 	                                                     gboolean               drain,

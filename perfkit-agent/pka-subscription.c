@@ -752,6 +752,34 @@ pka_subscription_get_created_at (PkaSubscription *subscription, /* IN */
 	EXIT;
 }
 
+static gboolean
+pka_subscription_source_accumulator (gpointer key,
+                                     gpointer value,
+                                     gpointer user_data)
+{
+	GList **list = user_data;
+
+	ENTRY;
+	*list = g_list_prepend(*list, g_object_ref(value));
+	RETURN(FALSE);
+}
+
+GList*
+pka_subscription_get_sources (PkaSubscription *subscription) /* IN */
+{
+	GList *list = NULL;
+
+	g_return_val_if_fail(subscription != NULL, NULL);
+
+	ENTRY;
+	g_static_rw_lock_reader_lock(&subscription->rw_lock);
+	g_tree_foreach(subscription->sources,
+	               pka_subscription_source_accumulator,
+	               &list);
+	g_static_rw_lock_reader_unlock(&subscription->rw_lock);
+	RETURN(list);
+}
+
 /**
  * pka_subscription_get_id:
  * @subscription: A #PkaSubscription.

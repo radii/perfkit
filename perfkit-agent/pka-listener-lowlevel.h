@@ -421,6 +421,16 @@ gboolean      pka_listener_subscription_get_created_at_finish (PkaListener      
                                                                GAsyncResult          *result,
                                                                GTimeVal              *tv,
                                                                GError               **error);
+void          pka_listener_subscription_get_sources_async     (PkaListener           *listener,
+                                                               gint                   subscription,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_subscription_get_sources_finish    (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                 **sources,
+                                                               gsize                 *sources_len,
+                                                               GError               **error);
 void          pka_listener_subscription_mute_async            (PkaListener           *listener,
                                                                gint                   subscription,
                                                                gboolean               drain,

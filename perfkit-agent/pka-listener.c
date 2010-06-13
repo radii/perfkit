@@ -3809,6 +3809,103 @@ pka_listener_subscription_get_created_at_finish (PkaListener    *listener, /* IN
 	RETURN(ret);
 }
 
+/**
+ * pk_connection_subscription_get_sources_async:
+ * @connection: A #PkConnection.
+ * @subscription: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "subscription_get_sources_async" RPC.  @callback
+ * MUST call pka_listener_subscription_get_sources_finish().
+ *
+ * Retrieves the list of sources which are observed by the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_subscription_get_sources_async (PkaListener           *listener,     /* IN */
+                                             gint                   subscription, /* IN */
+                                             GCancellable          *cancellable,  /* IN */
+                                             GAsyncReadyCallback    callback,     /* IN */
+                                             gpointer               user_data)    /* IN */
+{
+	SubscriptionGetSourcesCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_subscription_get_sources_async);
+	call = SubscriptionGetSourcesCall_Create();
+	call->subscription = subscription;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)SubscriptionGetSourcesCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_sources_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @sources: A #gint.
+ * @sources_len: A #gsize.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "subscription_get_sources_finish" RPC.
+ *
+ * Retrieves the list of sources which are observed by the subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_subscription_get_sources_finish (PkaListener    *listener,    /* IN */
+                                              GAsyncResult   *result,      /* IN */
+                                              gint          **sources,     /* OUT */
+                                              gsize          *sources_len, /* OUT */
+                                              GError        **error)       /* OUT */
+{
+	SubscriptionGetSourcesCall *call;
+	PkaSubscription *subscription;
+	gboolean ret = FALSE;
+	GList *list;
+	GList *iter;
+	gint i;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_sources), FALSE);
+	g_return_val_if_fail(sources != NULL, FALSE);
+	g_return_val_if_fail(sources_len != NULL, FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(SubscriptionGetSourcesCall, result);
+	if (!pka_manager_find_subscription(DEFAULT_CONTEXT, call->subscription,
+	                                   &subscription, error)) {
+		GOTO(failed);
+	}
+	list = pka_subscription_get_sources(subscription);
+	*sources_len = g_list_length(list);
+	*sources = g_new(gint, *sources_len);
+	for (i = 0, iter = list; iter; i++, iter = iter->next) {
+		(*sources)[i] = pka_source_get_id(iter->data);
+	}
+	g_list_foreach(list, (GFunc)g_object_unref, NULL);
+	g_list_free(list);
+	pka_subscription_unref(subscription);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
 #if 0
 static void
 pka_listener_subscription_mute_cb (GObject      *listener,    /* IN */

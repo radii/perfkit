@@ -594,6 +594,21 @@ gboolean      pk_connection_subscription_get_created_at_finish (PkConnection    
                                                                 GAsyncResult          *result,
                                                                 GTimeVal              *tv,
                                                                 GError               **error);
+gboolean      pk_connection_subscription_get_sources          (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               gint                 **sources,
+                                                               gsize                 *sources_len,
+                                                               GError               **error);
+void          pk_connection_subscription_get_sources_async    (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_subscription_get_sources_finish   (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               gint                 **sources,
+                                                               gsize                 *sources_len,
+                                                               GError               **error);
 gboolean      pk_connection_subscription_mute                 (PkConnection          *connection,
                                                                gint                   subscription,
                                                                gboolean               drain,

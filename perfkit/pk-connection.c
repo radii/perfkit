@@ -5981,6 +5981,138 @@ pk_connection_subscription_get_created_at_finish (PkConnection  *connection, /* 
 }
 
 /**
+ * pk_connection_subscription_get_sources_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_get_sources" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_get_sources_cb (GObject      *source,    /* IN */
+                                           GAsyncResult *result,    /* IN */
+                                           gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_get_sources_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             sync->params[0],
+	                                                             sync->params[1],
+	                                                             sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_sources:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_get_sources" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the list of sources which are observed by the subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_get_sources (PkConnection  *connection,   /* IN */
+                                        gint           subscription, /* IN */
+                                        gint         **sources,      /* OUT */
+                                        gsize         *sources_len,  /* OUT */
+                                        GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_get_sources);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = sources;
+	sync.params[1] = sources_len;
+	pk_connection_subscription_get_sources_async(connection,
+	                                             subscription,
+	                                             NULL,
+	                                             pk_connection_subscription_get_sources_cb,
+	                                             &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_get_sources_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_get_sources_async" RPC.
+ *
+ * Retrieves the list of sources which are observed by the subscription.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_get_sources_async (PkConnection        *connection,   /* IN */
+                                              gint                 subscription, /* IN */
+                                              GCancellable        *cancellable,  /* IN */
+                                              GAsyncReadyCallback  callback,     /* IN */
+                                              gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_get_sources)(connection,
+	                                    subscription,
+	                                    cancellable,
+	                                    callback,
+	                                    user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_sources_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_get_sources_finish" RPC.
+ *
+ * Retrieves the list of sources which are observed by the subscription.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_get_sources_finish (PkConnection  *connection,  /* IN */
+                                               GAsyncResult  *result,      /* IN */
+                                               gint         **sources,     /* OUT */
+                                               gsize         *sources_len, /* OUT */
+                                               GError       **error)       /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_get_sources)(connection,
+	                                          result,
+	                                          sources,
+	                                          sources_len,
+	                                          error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_subscription_mute_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

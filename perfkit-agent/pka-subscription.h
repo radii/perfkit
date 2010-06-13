@@ -67,23 +67,23 @@ typedef enum
 	PKA_SUBSCRIPTION_MUTED,
 } PkaSubscriptionState;
 
-gint             pka_subscription_get_id       (PkaSubscription *subscription);
-GType            pka_subscription_get_type     (void) G_GNUC_CONST;
-PkaSubscription* pka_subscription_new          (void);
-PkaSubscription* pka_subscription_ref          (PkaSubscription *subscription);
-void             pka_subscription_unref        (PkaSubscription *subscription);
-gboolean         pka_subscription_add_channel  (PkaSubscription  *subscription,
-                                                PkaContext       *context,
-                                                PkaChannel       *channel,
-                                                GError          **error);
-gboolean         pka_subscription_remove_source (PkaSubscription  *subscription,
-                                                 PkaContext       *context,
-                                                 PkaSource        *source,
-                                                 GError          **error);
-gboolean         pka_subscription_add_source    (PkaSubscription  *subscription,
-                                                 PkaContext       *context,
-                                                 PkaSource        *source,
-                                                 GError          **error);
+gint             pka_subscription_get_id           (PkaSubscription *subscription);
+GType            pka_subscription_get_type         (void) G_GNUC_CONST;
+PkaSubscription* pka_subscription_new              (void);
+PkaSubscription* pka_subscription_ref              (PkaSubscription *subscription);
+void             pka_subscription_unref            (PkaSubscription *subscription);
+gboolean         pka_subscription_add_channel      (PkaSubscription  *subscription,
+                                                    PkaContext       *context,
+                                                    PkaChannel       *channel,
+                                                    GError          **error);
+gboolean         pka_subscription_remove_source    (PkaSubscription  *subscription,
+                                                    PkaContext       *context,
+                                                    PkaSource        *source,
+                                                    GError          **error);
+gboolean         pka_subscription_add_source       (PkaSubscription  *subscription,
+                                                    PkaContext       *context,
+                                                    PkaSource        *source,
+                                                    GError          **error);
 void             pka_subscription_set_handlers     (PkaSubscription  *subscription,
                                                     PkaContext       *context,
                                                     PkaManifestFunc   manifest_func,
@@ -100,15 +100,16 @@ gboolean         pka_subscription_mute             (PkaSubscription  *subscripti
 gboolean         pka_subscription_unmute           (PkaSubscription  *subscription,
                                                     PkaContext       *context,
                                                     GError          **error);
-void             pka_subscription_deliver_sample   (PkaSubscription *subscription,
-                                                    PkaSource       *source,
-                                                    PkaManifest     *manifest,
-                                                    PkaSample       *sample);
-void             pka_subscription_deliver_manifest (PkaSubscription *subscription,
-                                                    PkaSource       *source,
-                                                    PkaManifest     *manifest);
-void             pka_subscription_get_created_at   (PkaSubscription *subscription,
-                                                    GTimeVal        *tv);
+void             pka_subscription_deliver_sample   (PkaSubscription  *subscription,
+                                                    PkaSource        *source,
+                                                    PkaManifest      *manifest,
+                                                    PkaSample        *sample);
+void             pka_subscription_deliver_manifest (PkaSubscription  *subscription,
+                                                    PkaSource        *source,
+                                                    PkaManifest      *manifest);
+void             pka_subscription_get_created_at   (PkaSubscription  *subscription,
+                                                    GTimeVal         *tv);
+GList*           pka_subscription_get_sources      (PkaSubscription  *subscription);
 
 G_END_DECLS
 
