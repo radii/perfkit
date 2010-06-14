@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<interface>
+  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkWindow" id="source-page-container">
+    <child>
+      <object class="GtkVBox" id="source-page">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel" id="title">
+            <property name="visible">True</property>
+            <property name="xalign">0</property>
+            <property name="xpad">6</property>
+            <property name="ypad">6</property>
+            <property name="label" translatable="yes">&lt;span weight="bold"&gt;Source 0&lt;/span&gt;</property>
+            <property name="use_markup">True</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

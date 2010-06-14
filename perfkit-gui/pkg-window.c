@@ -24,8 +24,9 @@
 #include <glib/gi18n.h>
 #include <perfkit/perfkit.h>
 
-#include "pkg-channel-page.h"
 #include "pkg-log.h"
+#include "pkg-channel-page.h"
+#include "pkg-source-page.h"
 #include "pkg-subscription-page.h"
 #include "pkg-window.h"
 
@@ -989,10 +990,32 @@ pkg_window_show_subscription (PkgWindow    *window,       /* IN */
 	EXIT;
 }
 
+void
+pkg_window_show_source (PkgWindow    *window,     /* IN */
+                        PkConnection *connection, /* IN */
+                        gint          source)     /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *page;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	pkg_window_clear_page(window);
+	page = pkg_source_page_new(connection, source);
+	gtk_container_add(GTK_CONTAINER(priv->container), page);
+	pkg_source_page_reload(PKG_SOURCE_PAGE(page));
+	gtk_widget_show(page);
+	EXIT;
+}
+
 static void
 pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
                               gpointer          user_data) /* IN */
 {
+	PkgWindow *window;
 	PkgWindowPrivate *priv;
 	PkConnection *connection;
 	GtkTreeModel *model;
@@ -1002,7 +1025,8 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 	gint row_id;
 
 	ENTRY;
-	priv = PKG_WINDOW(user_data)->priv;
+	window = PKG_WINDOW(user_data);
+	priv = window->priv;
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
 		gtk_tree_model_get(model, &iter,
 		                   COLUMN_TYPE, &row_type,
@@ -1012,15 +1036,15 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		switch (row_type) {
 		CASE(TYPE_CHANNEL);
 			DEBUG(Window, "Show current channel.");
-			pkg_window_show_channel(PKG_WINDOW(user_data),
-			                        connection,
-			                        row_id);
+			pkg_window_show_channel(window, connection, row_id);
 			BREAK;
 		CASE(TYPE_SUBSCRIPTION);
 			DEBUG(Window, "Show current subscription.");
-			pkg_window_show_subscription(PKG_WINDOW(user_data),
-			                             connection,
-			                             row_id);
+			pkg_window_show_subscription(window, connection, row_id);
+			BREAK;
+		CASE(TYPE_SOURCE);
+			DEBUG(Window, "Show current source.");
+			pkg_window_show_source(window, connection, row_id);
 			BREAK;
 		default:
 			GOTO(clear_contents);
