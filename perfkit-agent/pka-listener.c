@@ -2252,8 +2252,11 @@ pka_listener_manager_add_subscription_finish (PkaListener    *listener,     /* I
 	if ((ret = pka_manager_add_subscription(DEFAULT_CONTEXT,
 	                                        &real_subscription,
 	                                        error))) {
-	    *subscription = pka_subscription_get_id(real_subscription);
-	    pka_subscription_unref(real_subscription);
+		/*
+		 * TODO: Apply buffer timeout and sizing information.
+		 */
+		*subscription = pka_subscription_get_id(real_subscription);
+		pka_subscription_unref(real_subscription);
 	}
 	RETURN(ret);
 }

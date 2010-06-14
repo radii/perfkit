@@ -642,6 +642,12 @@ pka_subscription_deliver_sample (PkaSubscription *subscription, /* IN */
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(PKA_IS_SOURCE(source));
 
+	/*
+	 * TODO: In the recent rewrite of this, we didn't implement buffering.
+	 *   We need to add back support for buffering based on timeouts or
+	 *   size of raw-data.
+	 */
+
 	ENTRY;
 	g_static_rw_lock_reader_lock(&subscription->rw_lock);
 	if (G_LIKELY(subscription->sample_closure)) {
