@@ -26,6 +26,7 @@
 
 #include "pkg-channel-page.h"
 #include "pkg-log.h"
+#include "pkg-subscription-page.h"
 #include "pkg-window.h"
 
 #define STR_OR_EMPTY(_s) ((_s) ? (_s) : "")
@@ -933,6 +934,22 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
 }
 
 void
+pkg_window_clear_page (PkgWindow *window) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *child;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+
+	ENTRY;
+	priv = window->priv;
+	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
+		gtk_container_remove(GTK_CONTAINER(priv->container), child);
+	}
+	EXIT;
+}
+
+void
 pkg_window_show_channel (PkgWindow    *window,     /* IN */
                          PkConnection *connection, /* IN */
                          gint          channel)    /* IN */
@@ -943,12 +960,31 @@ pkg_window_show_channel (PkgWindow    *window,     /* IN */
 
 	ENTRY;
 	priv = window->priv;
-	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
-		gtk_container_remove(GTK_CONTAINER(priv->container), child);
-	}
+	pkg_window_clear_page(window);
 	page = pkg_channel_page_new(connection, channel);
 	gtk_container_add(GTK_CONTAINER(priv->container), page);
 	pkg_channel_page_reload(PKG_CHANNEL_PAGE(page));
+	gtk_widget_show(page);
+	EXIT;
+}
+
+void
+pkg_window_show_subscription (PkgWindow    *window,       /* IN */
+                              PkConnection *connection,   /* IN */
+                              gint          subscription) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *page;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	pkg_window_clear_page(window);
+	page = pkg_subscription_page_new(connection, subscription);
+	gtk_container_add(GTK_CONTAINER(priv->container), page);
+	pkg_subscription_page_reload(PKG_SUBSCRIPTION_PAGE(page));
 	gtk_widget_show(page);
 	EXIT;
 }
@@ -974,12 +1010,18 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		                   COLUMN_CONNECTION, &connection,
 		                   -1);
 		switch (row_type) {
-		case TYPE_CHANNEL:
+		CASE(TYPE_CHANNEL);
 			DEBUG(Window, "Show current channel.");
 			pkg_window_show_channel(PKG_WINDOW(user_data),
 			                        connection,
 			                        row_id);
-			break;
+			BREAK;
+		CASE(TYPE_SUBSCRIPTION);
+			DEBUG(Window, "Show current subscription.");
+			pkg_window_show_subscription(PKG_WINDOW(user_data),
+			                             connection,
+			                             row_id);
+			BREAK;
 		default:
 			GOTO(clear_contents);
 		}
