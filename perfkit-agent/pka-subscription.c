@@ -36,6 +36,8 @@ struct _PkaSubscription
 	gint                  id;
 	PkaSubscriptionState  state;
 	GTimeVal              created_at;
+	gint                   buffer_timeout;
+	gint                   buffer_size;
 	GTree                *channels;
 	GTree                *sources;
 	GTree                *manifests;
@@ -784,6 +786,23 @@ pka_subscription_get_sources (PkaSubscription *subscription) /* IN */
 	               &list);
 	g_static_rw_lock_reader_unlock(&subscription->rw_lock);
 	RETURN(list);
+}
+
+void
+pka_subscription_get_buffer (PkaSubscription *subscription,   /* IN */
+                             gint            *buffer_timeout, /* OUT */
+                             gint            *buffer_size)    /* OUT */
+{
+	g_return_if_fail(subscription != NULL);
+	g_return_if_fail(buffer_timeout != NULL);
+	g_return_if_fail(buffer_size != NULL);
+
+	ENTRY;
+	g_static_rw_lock_reader_lock(&subscription->rw_lock);
+	*buffer_timeout = subscription->buffer_timeout;
+	*buffer_size = subscription->buffer_size;
+	g_static_rw_lock_reader_unlock(&subscription->rw_lock);
+	EXIT;
 }
 
 /**

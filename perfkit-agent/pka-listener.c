@@ -3817,12 +3817,7 @@ pka_listener_subscription_get_buffer_finish (PkaListener    *listener, /* IN */
 	                                   &subscription, error)) {
 		GOTO(failed);
 	}
-	/*
-	 * TODO: Add support for retrieving the buffer once the agent
-	 *   supports buffering again.
-	 */
-	*timeout = 0;
-	*size = 0;
+	pka_subscription_get_buffer(subscription, timeout, size);
 	pka_subscription_unref(subscription);
 	ret = TRUE;
   failed:

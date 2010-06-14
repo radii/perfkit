@@ -110,6 +110,9 @@ void             pka_subscription_deliver_manifest (PkaSubscription  *subscripti
 void             pka_subscription_get_created_at   (PkaSubscription  *subscription,
                                                     GTimeVal         *tv);
 GList*           pka_subscription_get_sources      (PkaSubscription  *subscription);
+void             pka_subscription_get_buffer       (PkaSubscription  *subscription,
+                                                    gint             *buffer_timeout,
+                                                    gint             *buffer_size);
 
 G_END_DECLS
 
