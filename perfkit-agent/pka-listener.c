@@ -3731,6 +3731,105 @@ pka_listener_subscription_add_source_finish (PkaListener    *listener, /* IN */
 }
 
 /**
+ * pk_connection_subscription_get_buffer_async:
+ * @connection: A #PkConnection.
+ * @subscription: A #gint.
+ * @cancellable: A #GCancellable.
+ * @callback: A #GAsyncReadyCallback.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronously requests the "subscription_get_buffer_async" RPC.  @callback
+ * MUST call pka_listener_subscription_get_buffer_finish().
+ *
+ * Retrieves the buffering timeout and maximum buffer size for the
+ * subscription.  If @timeout milliseconds pass or @size bytes are
+ * consumed buffering, the data will be delivered to the subscriber.
+ * 
+ * If @timeout and @size are 0, then no buffering will occur.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_listener_subscription_get_buffer_async (PkaListener           *listener,     /* IN */
+                                            gint                   subscription, /* IN */
+                                            GCancellable          *cancellable,  /* IN */
+                                            GAsyncReadyCallback    callback,     /* IN */
+                                            gpointer               user_data)    /* IN */
+{
+	SubscriptionGetBufferCall *call;
+	GSimpleAsyncResult *result;
+
+	g_return_if_fail(PKA_IS_LISTENER(listener));
+
+	ENTRY;
+	result = g_simple_async_result_new(G_OBJECT(listener),
+	                                   callback,
+	                                   user_data,
+	                                   pka_listener_subscription_get_buffer_async);
+	call = SubscriptionGetBufferCall_Create();
+	call->subscription = subscription;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)SubscriptionGetBufferCall_Free);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_buffer_finish:
+ * @connection: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @timeout: A #gint.
+ * @size: A #gint.
+ * @error: A #GError.
+ *
+ * Completes an asynchronous request for the "subscription_get_buffer_finish" RPC.
+ *
+ * Retrieves the buffering timeout and maximum buffer size for the
+ * subscription.  If @timeout milliseconds pass or @size bytes are
+ * consumed buffering, the data will be delivered to the subscriber.
+ * 
+ * If @timeout and @size are 0, then no buffering will occur.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pka_listener_subscription_get_buffer_finish (PkaListener    *listener, /* IN */
+                                             GAsyncResult   *result,   /* IN */
+                                             gint           *timeout,  /* OUT */
+                                             gint           *size,     /* OUT */
+                                             GError        **error)    /* OUT */
+{
+	SubscriptionGetBufferCall *call;
+	PkaSubscription *subscription;
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_buffer), FALSE);
+	g_return_val_if_fail(timeout != NULL, FALSE);
+	g_return_val_if_fail(size != NULL, FALSE);
+
+	ENTRY;
+	call = GET_RESULT_POINTER(SubscriptionGetBufferCall, result);
+	if (!pka_manager_find_subscription(DEFAULT_CONTEXT, call->subscription,
+	                                   &subscription, error)) {
+		GOTO(failed);
+	}
+	/*
+	 * TODO: Add support for retrieving the buffer once the agent
+	 *   supports buffering again.
+	 */
+	*timeout = 0;
+	*size = 0;
+	pka_subscription_unref(subscription);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
+/**
  * pk_connection_subscription_get_created_at_async:
  * @connection: A #PkConnection.
  * @subscription: A #gint.

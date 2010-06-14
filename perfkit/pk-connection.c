@@ -5854,6 +5854,150 @@ pk_connection_subscription_add_source_finish (PkConnection  *connection, /* IN *
 }
 
 /**
+ * pk_connection_subscription_get_buffer_cb:
+ * @source: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #GAsyncResult.
+ *
+ * Callback to notify a synchronous call to the "subscription_get_buffer" RPC that it
+ * has completed.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pk_connection_subscription_get_buffer_cb (GObject      *source,    /* IN */
+                                          GAsyncResult *result,    /* IN */
+                                          gpointer      user_data) /* IN */
+{
+	PkConnectionSync *sync = user_data;
+
+	g_return_if_fail(PK_IS_CONNECTION(source));
+	g_return_if_fail(sync != NULL);
+
+	ENTRY;
+	sync->result = pk_connection_subscription_get_buffer_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            sync->params[0],
+	                                                            sync->params[1],
+	                                                            sync->error);
+	pk_connection_sync_signal(sync);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_buffer:
+ * @connection: A #PkConnection.
+ *
+ * Synchronous implemenation of the "subscription_get_buffer" RPC.  Using
+ * synchronous RPCs is generally frowned upon.
+ *
+ * Retrieves the buffering timeout and maximum buffer size for the
+ * subscription.  If @timeout milliseconds pass or @size bytes are
+ * consumed buffering, the data will be delivered to the subscriber.
+ * 
+ * If @timeout and @size are 0, then no buffering will occur.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_get_buffer (PkConnection  *connection,   /* IN */
+                                       gint           subscription, /* IN */
+                                       gint          *timeout,      /* OUT */
+                                       gint          *size,         /* OUT */
+                                       GError       **error)        /* OUT */
+{
+	PkConnectionSync sync;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	CHECK_FOR_RPC(subscription_get_buffer);
+	pk_connection_sync_init(&sync);
+	sync.error = error;
+	sync.params[0] = timeout;
+	sync.params[1] = size;
+	pk_connection_subscription_get_buffer_async(connection,
+	                                            subscription,
+	                                            NULL,
+	                                            pk_connection_subscription_get_buffer_cb,
+	                                            &sync);
+	pk_connection_sync_wait(&sync);
+	pk_connection_sync_destroy(&sync);
+	RETURN(sync.result);
+}
+
+/**
+ * pk_connection_subscription_get_buffer_async:
+ * @connection: A #PkConnection.
+ *
+ * Asynchronous implementation of the "subscription_get_buffer_async" RPC.
+ *
+ * Retrieves the buffering timeout and maximum buffer size for the
+ * subscription.  If @timeout milliseconds pass or @size bytes are
+ * consumed buffering, the data will be delivered to the subscriber.
+ * 
+ * If @timeout and @size are 0, then no buffering will occur.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pk_connection_subscription_get_buffer_async (PkConnection        *connection,   /* IN */
+                                             gint                 subscription, /* IN */
+                                             GCancellable        *cancellable,  /* IN */
+                                             GAsyncReadyCallback  callback,     /* IN */
+                                             gpointer             user_data)    /* IN */
+{
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(callback != NULL);
+
+	ENTRY;
+	RPC_ASYNC(subscription_get_buffer)(connection,
+	                                   subscription,
+	                                   cancellable,
+	                                   callback,
+	                                   user_data);
+	EXIT;
+}
+
+/**
+ * pk_connection_subscription_get_buffer_finish:
+ * @connection: A #PkConnection.
+ *
+ * Completion of an asynchronous call to the "subscription_get_buffer_finish" RPC.
+ *
+ * Retrieves the buffering timeout and maximum buffer size for the
+ * subscription.  If @timeout milliseconds pass or @size bytes are
+ * consumed buffering, the data will be delivered to the subscriber.
+ * 
+ * If @timeout and @size are 0, then no buffering will occur.
+ *
+ * Returns: %TRUE if successful; otherwise %FALSE and @error is set.
+ * Side effects: None.
+ */
+gboolean
+pk_connection_subscription_get_buffer_finish (PkConnection  *connection, /* IN */
+                                              GAsyncResult  *result,     /* IN */
+                                              gint          *timeout,    /* OUT */
+                                              gint          *size,       /* OUT */
+                                              GError       **error)      /* OUT */
+{
+	gboolean ret;
+
+	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
+
+	ENTRY;
+	RPC_FINISH(ret, subscription_get_buffer)(connection,
+	                                         result,
+	                                         timeout,
+	                                         size,
+	                                         error);
+	RETURN(ret);
+}
+
+/**
  * pk_connection_subscription_get_created_at_cb:
  * @source: A #PkConnection.
  * @result: A #GAsyncResult.

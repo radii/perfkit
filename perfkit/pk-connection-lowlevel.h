@@ -581,6 +581,21 @@ void          pk_connection_subscription_add_source_async     (PkConnection     
 gboolean      pk_connection_subscription_add_source_finish    (PkConnection          *connection,
                                                                GAsyncResult          *result,
                                                                GError               **error);
+gboolean      pk_connection_subscription_get_buffer           (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               gint                  *timeout,
+                                                               gint                  *size,
+                                                               GError               **error);
+void          pk_connection_subscription_get_buffer_async     (PkConnection          *connection,
+                                                               gint                   subscription,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pk_connection_subscription_get_buffer_finish    (PkConnection          *connection,
+                                                               GAsyncResult          *result,
+                                                               gint                  *timeout,
+                                                               gint                  *size,
+                                                               GError               **error);
 gboolean      pk_connection_subscription_get_created_at       (PkConnection          *connection,
                                                                gint                   subscription,
                                                                GTimeVal              *tv,

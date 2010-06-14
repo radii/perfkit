@@ -3550,6 +3550,90 @@ pk_shell_subscription_add_source (EggLine  *line,   /* IN */
 }
 
 /**
+ * pk_shell_subscription_get_buffer_cb:
+ * @object: A #PkConnection.
+ * @result: A #GAsyncResult.
+ * @user_data: A #gpointer.
+ *
+ * Asynchronous completion of pk_connection_subscription_get_buffer_async().
+ *
+ * Returns: None.
+ * Side effects: Blocking AsyncTask is signaled.
+ */
+static void
+pk_shell_subscription_get_buffer_cb (GObject       *object,    /* IN */
+            GAsyncResult  *result,    /* IN */
+            gpointer       user_data) /* IN */
+{
+	AsyncTask *task = user_data;
+
+	ENTRY;
+	task->result = pk_connection_subscription_get_buffer_finish(
+			PK_CONNECTION(object),
+			result,
+			task->params[0], /* timeout */
+			task->params[1], /* size */
+			&task->error);
+	async_task_signal(task);
+	EXIT;
+}
+
+/**
+ * pk_shell_subscription_get_buffer:
+ * @line: An #EggLine.
+ * @argc: The number of arguments in @argv.
+ * @argv: The arguments to the command.
+ * @error: A location for #GError, or %NULL.
+ *
+ * 
+ *
+ * Returns: The commands status.
+ * Side effects: None.
+ */
+static EggLineStatus
+pk_shell_subscription_get_buffer (EggLine  *line,   /* IN */
+                                  gint      argc,   /* IN */
+                                  gchar    *argv[], /* IN */
+                                  GError  **error)  /* OUT */
+{
+	AsyncTask task;
+	gint subscription = 0;
+	gint timeout;
+	gint size;
+	gint i = 0;
+	gchar *tmp;
+
+	ENTRY;
+	if (argc != 1) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	if (!pk_shell_parse_int(argv[i++], &subscription)) {
+		RETURN(EGG_LINE_STATUS_BAD_ARGS);
+	}
+	async_task_init(&task);
+	task.params[0] = &timeout;
+	task.params[1] = &size;
+	pk_connection_subscription_get_buffer_async(conn,
+	                             subscription,
+	                             NULL,
+	                             pk_shell_subscription_get_buffer_cb,
+	                             &task);
+	if (!async_task_wait(&task)) {
+		g_propagate_error(error, task.error);
+		RETURN(EGG_LINE_STATUS_FAILURE);
+	}
+	g_print("%16s: %d\n", "timeout", (gint)timeout);
+	tmp = g_strdup_printf("%d", (gint)timeout);
+	egg_line_set_variable(line, "1", tmp);
+	g_free(tmp);
+	g_print("%16s: %d\n", "size", (gint)size);
+	tmp = g_strdup_printf("%d", (gint)size);
+	egg_line_set_variable(line, "2", tmp);
+	g_free(tmp);
+	RETURN(EGG_LINE_STATUS_OK);
+}
+
+/**
  * pk_shell_subscription_get_created_at_cb:
  * @object: A #PkConnection.
  * @result: A #GAsyncResult.
@@ -4764,6 +4848,16 @@ static EggLineCommand subscription_commands[] = {
 		.usage     = "subscription add-source SUBSCRIPTION SOURCE",
 	},
 	{
+		.name      = "get-buffer",
+		.help      = "Retrieves the buffering timeout and maximum buffer size for the\nsubscription.  If @timeout milliseconds pass or @size bytes are\nconsumed buffering, the data will be delivered to the subscriber.\n\nIf @timeout and @size are 0, then no buffering will occur.\n"
+		             "\n"
+		             "options:\n"
+		             "  SUBSCRIPTION:\t\tAn integer.\n"
+		             "\n",
+		.callback  = pk_shell_subscription_get_buffer,
+		.usage     = "subscription get-buffer SUBSCRIPTION",
+	},
+	{
 		.name      = "get-created-at",
 		.help      = "Retrieves the time at which the subscription was created.\n"
 		             "\n"
@@ -5053,7 +5147,7 @@ static EggLineCommand root_commands[] = {
 		.help      = "Subscription commands.",
 		.callback  = NULL,
 		.generator = pk_shell_subscription_generator,
-		.usage     = "subscription [add-channel | add-source | get-created-at | get-sources | mute | remove-channel | remove-source | set-buffer | set-encoder | unmute]",
+		.usage     = "subscription [add-channel | add-source | get-buffer | get-created-at | get-sources | mute | remove-channel | remove-source | set-buffer | set-encoder | unmute]",
 	},
 	{
 		.name      = "shell",

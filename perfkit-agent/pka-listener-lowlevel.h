@@ -412,6 +412,16 @@ void          pka_listener_subscription_add_source_async      (PkaListener      
 gboolean      pka_listener_subscription_add_source_finish     (PkaListener           *listener,
                                                                GAsyncResult          *result,
                                                                GError               **error);
+void          pka_listener_subscription_get_buffer_async      (PkaListener           *listener,
+                                                               gint                   subscription,
+                                                               GCancellable          *cancellable,
+                                                               GAsyncReadyCallback    callback,
+                                                               gpointer               user_data);
+gboolean      pka_listener_subscription_get_buffer_finish     (PkaListener           *listener,
+                                                               GAsyncResult          *result,
+                                                               gint                  *timeout,
+                                                               gint                  *size,
+                                                               GError               **error);
 void          pka_listener_subscription_get_created_at_async  (PkaListener           *listener,
                                                                gint                   subscription,
                                                                GCancellable          *cancellable,

@@ -252,6 +252,11 @@ typedef struct
 typedef struct
 {
 	gint subscription;
+} SubscriptionGetBufferCall;
+
+typedef struct
+{
+	gint subscription;
 } SubscriptionGetCreatedAtCall;
 
 typedef struct
@@ -666,6 +671,14 @@ SubscriptionAddSourceCall_Free (SubscriptionAddSourceCall *call) /* IN */
 }
 
 void
+SubscriptionGetBufferCall_Free (SubscriptionGetBufferCall *call) /* IN */
+{
+	ENTRY;
+	g_slice_free(SubscriptionGetBufferCall, call);
+	EXIT;
+}
+
+void
 SubscriptionGetCreatedAtCall_Free (SubscriptionGetCreatedAtCall *call) /* IN */
 {
 	ENTRY;
@@ -1042,6 +1055,13 @@ SubscriptionAddSourceCall_Create (void)
 {
 	ENTRY;
 	RETURN(g_slice_new0(SubscriptionAddSourceCall));
+}
+
+SubscriptionGetBufferCall*
+SubscriptionGetBufferCall_Create (void)
+{
+	ENTRY;
+	RETURN(g_slice_new0(SubscriptionGetBufferCall));
 }
 
 SubscriptionGetCreatedAtCall*

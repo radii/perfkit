@@ -3313,6 +3313,10 @@ static const gchar * SubscriptionIntrospection =
 	"  <method name=\"AddSource\">"
     "   <arg name=\"source\" direction=\"in\" type=\"i\"/>"
 	"  </method>"
+	"  <method name=\"GetBuffer\">"
+    "   <arg name=\"timeout\" direction=\"out\" type=\"i\"/>"
+    "   <arg name=\"size\" direction=\"out\" type=\"i\"/>"
+	"  </method>"
 	"  <method name=\"GetCreatedAt\">"
     "   <arg name=\"tv\" direction=\"out\" type=\"s\"/>"
 	"  </method>"
@@ -3421,6 +3425,54 @@ pka_listener_dbus_subscription_add_source_cb (GObject      *listener,  /* IN */
 	} else {
 		reply = dbus_message_new_method_return(message);
 		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INVALID);
+	}
+	dbus_connection_send(priv->dbus, reply, NULL);
+	dbus_message_unref(reply);
+	dbus_message_unref(message);
+	EXIT;
+}
+
+/**
+ * pka_listener_dbus_subscription_get_buffer_cb:
+ * @listener: A #PkaListenerDBus.
+ * @result: A #GAsyncResult.
+ * @user_data: A #DBusMessage containing the incoming method call.
+ *
+ * Handles the completion of the "subscription_get_buffer" RPC.  A response
+ * to the message is created and sent as a reply to the caller.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+static void
+pka_listener_dbus_subscription_get_buffer_cb (GObject      *listener,  /* IN */
+                                              GAsyncResult *result,    /* IN */
+                                              gpointer      user_data) /* IN */
+{
+	PkaListenerDBusPrivate *priv;
+	DBusMessage *message = user_data;
+	DBusMessage *reply = NULL;
+	GError *error = NULL;
+	gint timeout = 0;
+	gint size = 0;
+
+	ENTRY;
+	priv = PKA_LISTENER_DBUS(listener)->priv;
+	if (!pka_listener_subscription_get_buffer_finish(
+			PKA_LISTENER(listener),
+			result, 
+			&timeout,
+			&size,
+			&error)) {
+		reply = dbus_message_new_error(message, DBUS_ERROR_FAILED,
+		                               error->message);
+		g_error_free(error);
+	} else {
+		reply = dbus_message_new_method_return(message);
+		dbus_message_append_args(reply,
+		                         DBUS_TYPE_INT32, &timeout,
+		                         DBUS_TYPE_INT32, &size,
 		                         DBUS_TYPE_INVALID);
 	}
 	dbus_connection_send(priv->dbus, reply, NULL);
@@ -3959,6 +4011,25 @@ pka_listener_dbus_handle_subscription_message (DBusConnection *connection, /* IN
 			                                           source,
 			                                           NULL,
 			                                           pka_listener_dbus_subscription_add_source_cb,
+			                                           dbus_message_ref(message));
+			ret = DBUS_HANDLER_RESULT_HANDLED;
+		}
+		else if (IS_MEMBER(message, "GetBuffer")) {
+			gint subscription = 0;
+			const gchar *dbus_path;
+
+			dbus_path = dbus_message_get_path(message);
+			if (sscanf(dbus_path, "/org/perfkit/Agent/Subscription/%d", &subscription) != 1) {
+				goto oom;
+			}
+			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			pka_listener_subscription_get_buffer_async(PKA_LISTENER(listener),
+			                                           subscription,
+			                                           NULL,
+			                                           pka_listener_dbus_subscription_get_buffer_cb,
 			                                           dbus_message_ref(message));
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
