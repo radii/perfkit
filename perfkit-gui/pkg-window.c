@@ -1128,12 +1128,16 @@ pkg_window_init (PkgWindow *window)
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
 	    } G_STMT_END
 
-	#define ADD_MENU_ITEM_STOCK(_p, _s)                            \
+	#define ADD_MENU_ITEM_STOCK(_p, _s, _f)                        \
 	    G_STMT_START {                                             \
 	        GtkWidget *_w = gtk_image_menu_item_new_from_stock(    \
 	                (_s), accel_group);                            \
 	        gtk_widget_show((_w));                                 \
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
+            if (_f) {                                              \
+                g_signal_connect(_w, "activate", G_CALLBACK(_f),   \
+                                 window);                          \
+            }                                                      \
 	    } G_STMT_END
 
 	#define ADD_SEPARATOR(_p)                                      \
@@ -1146,9 +1150,9 @@ pkg_window_init (PkgWindow *window)
 	ADD_MENU(perfkit_menu, "_Perfkit");
 	ADD_MENU_ITEM(perfkit_menu, "Connect to _Server");
 	ADD_SEPARATOR(perfkit_menu);
-	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_QUIT);
+	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_QUIT, gtk_main_quit);
 	ADD_MENU(help_menu, "_Help");
-	ADD_MENU_ITEM_STOCK(help_menu, GTK_STOCK_ABOUT);
+	ADD_MENU_ITEM_STOCK(help_menu, GTK_STOCK_ABOUT, NULL);
 
 	hpaned = gtk_hpaned_new();
 	gtk_paned_set_position(GTK_PANED(hpaned), 275);
