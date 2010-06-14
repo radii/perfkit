@@ -21,6 +21,7 @@
 #endif
 
 #include <glib/gi18n.h>
+#include <gdatetime.h>
 
 #include "pkg-closures.h"
 #include "pkg-log.h"
@@ -46,6 +47,9 @@ struct _PkgSubscriptionPagePrivate
 	GtkWidget    *container;
 	GtkWidget    *sources;
 	GtkWidget    *title;
+	GtkWidget    *created_at;
+	GtkWidget    *buffer_size;
+	GtkWidget    *buffer_timeout;
 };
 
 enum
@@ -163,6 +167,74 @@ pkg_subscription_page_get_sources_cb (GObject      *object,    /* IN */
 	EXIT;
 }
 
+static void
+pkg_subscription_page_get_created_at_cb (GObject      *object,    /* IN */
+                                         GAsyncResult *result,    /* IN */
+                                         gpointer      user_data) /* IN */
+{
+	PkgSubscriptionPagePrivate *priv;
+	GError *error = NULL;
+	GTimeVal tv;
+	GDateTime *dt;
+	gchar *dtstr;
+	gchar *markup;
+
+	g_return_if_fail(PKG_IS_SUBSCRIPTION_PAGE(user_data));
+
+	ENTRY;
+	priv = PKG_SUBSCRIPTION_PAGE(user_data)->priv;
+	if (!pk_connection_subscription_get_created_at_finish(
+				PK_CONNECTION(object), result, &tv, &error)) {
+		WARNING(Subscription, "Failed to get subscription created-at: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	dt = g_date_time_new_from_timeval(&tv);
+	dtstr = g_date_time_format_for_display(dt);
+	markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
+	                                 dtstr);
+	gtk_label_set_markup(GTK_LABEL(priv->created_at), markup);
+	g_free(markup);
+	g_free(dtstr);
+	g_date_time_unref(dt);
+	EXIT;
+}
+
+static void
+pkg_subscription_page_get_buffer_cb (GObject      *object,    /* IN */
+                                     GAsyncResult *result,    /* IN */
+                                     gpointer      user_data) /* IN */
+{
+	PkgSubscriptionPagePrivate *priv;
+	gint buffer_timeout = 0;
+	gint buffer_size = 0;
+	GError *error = NULL;
+	gchar *markup;
+
+	g_return_if_fail(PKG_IS_SUBSCRIPTION_PAGE(user_data));
+
+	ENTRY;
+	priv = PKG_SUBSCRIPTION_PAGE(user_data)->priv;
+	if (!pk_connection_subscription_get_buffer_finish(
+				PK_CONNECTION(object), result,
+				&buffer_timeout, &buffer_size, &error)) {
+		WARNING(Subscription, "Error retreiving buffer info: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	markup = g_markup_printf_escaped("<span size=\"smaller\">%d</span>",
+	                                 buffer_timeout);
+	gtk_label_set_markup(GTK_LABEL(priv->buffer_timeout), markup);
+	g_free(markup);
+	markup = g_markup_printf_escaped("<span size=\"smaller\">%d</span>",
+	                                 buffer_size);
+	gtk_label_set_markup(GTK_LABEL(priv->buffer_size), markup);
+	g_free(markup);
+	EXIT;
+}
+
 void
 pkg_subscription_page_reload (PkgSubscriptionPage *page) /* IN */
 {
@@ -182,6 +254,14 @@ pkg_subscription_page_reload (PkgSubscriptionPage *page) /* IN */
 	pk_connection_subscription_get_sources_async(
 			priv->connection, priv->id, NULL,
 			pkg_subscription_page_get_sources_cb,
+			page);
+	pk_connection_subscription_get_created_at_async(
+			priv->connection, priv->id, NULL,
+			pkg_subscription_page_get_created_at_cb,
+			page);
+	pk_connection_subscription_get_buffer_async(
+			priv->connection, priv->id, NULL,
+			pkg_subscription_page_get_buffer_cb,
 			page);
 	EXIT;
 }
@@ -311,6 +391,9 @@ pkg_subscription_page_init (PkgSubscriptionPage *page)
 	EXTRACT_WIDGET("sources", sources);
 	EXTRACT_WIDGET("title", title);
 	EXTRACT_WIDGET("subscription-page", container);
+	EXTRACT_WIDGET("created-at", created_at);
+	EXTRACT_WIDGET("buffer-size", buffer_size);
+	EXTRACT_WIDGET("buffer-timeout", buffer_timeout);
 
 	priv->model = GTK_TREE_MODEL(
 			gtk_list_store_new(3,
