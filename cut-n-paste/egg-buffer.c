@@ -256,15 +256,27 @@ void
 egg_buffer_write_double (EggBuffer *buffer,
                          gdouble    d)
 {
-	gdouble d_;
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+	gdouble dt = d;
+	guint8 *pdt = (guint8 *)&dt;
+	const guint8 *pd = (const guint8 *)&d;
 
 	g_return_if_fail(buffer != NULL);
 
-	/*
-	 * Doubles are stored as 64-bit blobs in Little-Endian format.
-	 */
-	d_ = GUINT64_TO_LE(d);
-	g_byte_array_append(buffer->ar, ((guint8 *)&d_), 8);
+	pdt[0] = pd[7];
+	pdt[1] = pd[6];
+	pdt[2] = pd[5];
+	pdt[3] = pd[4];
+	pdt[4] = pd[3];
+	pdt[5] = pd[2];
+	pdt[6] = pd[1];
+	pdt[7] = pd[0];
+
+	g_byte_array_append(buffer->ar, ((guint8 *)&dt), 8);
+#else
+	g_return_if_fail(buffer != NULL);
+	g_byte_array_append(buffer->ar, ((guint8 *)&d), 8);
+#endif
 }
 
 /**
@@ -280,15 +292,23 @@ void
 egg_buffer_write_float (EggBuffer *buffer,
                         gfloat     f)
 {
-	gfloat f_;
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+	gfloat ft = f;
+	guint8 *pft = (guint8 *)&ft;
+	const guint8 *pf = (const guint8 *)&f;
 
 	g_return_if_fail(buffer != NULL);
 
-	/*
-	 * Floats are stored as 32-bit blobs in Little-Endian format.
-	 */
-	f_ = GUINT32_TO_LE(f);
-	g_byte_array_append(buffer->ar, ((guint8 *)&f_), 4);
+	pft[0] = pf[3];
+	pft[1] = pf[2];
+	pft[2] = pf[1];
+	pft[3] = pf[0];
+
+	g_byte_array_append(buffer->ar, ((guint8 *)&ft), 4);
+#else
+	g_return_if_fail(buffer != NULL);
+	g_byte_array_append(buffer->ar, ((guint8 *)&f), 4);
+#endif
 }
 
 /**
@@ -722,15 +742,24 @@ gboolean
 egg_buffer_read_double (EggBuffer *buffer,
                         gdouble   *d)
 {
-	gdouble d_;
-
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(d != NULL, FALSE);
 
 	if ((buffer->pos + 8) <= buffer->ar->len) {
-		d_ = *((gdouble *)&buffer->ar->data[buffer->pos]);
-		*d = GUINT64_FROM_LE(d_);
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+		guint8 *b = (guint8 *)d;
+		b[7] = buffer->ar->data[buffer->pos++];
+		b[6] = buffer->ar->data[buffer->pos++];
+		b[5] = buffer->ar->data[buffer->pos++];
+		b[4] = buffer->ar->data[buffer->pos++];
+		b[3] = buffer->ar->data[buffer->pos++];
+		b[2] = buffer->ar->data[buffer->pos++];
+		b[1] = buffer->ar->data[buffer->pos++];
+		b[0] = buffer->ar->data[buffer->pos++];
+#else
+		*d = *((gdouble *)&buffer->ar->data[buffer->pos]);
 		buffer->pos += 8;
+#endif
 		return TRUE;
 	}
 
@@ -753,15 +782,20 @@ gboolean
 egg_buffer_read_float (EggBuffer *buffer,
                        gfloat    *f)
 {
-	gfloat f_;
-
 	g_return_val_if_fail(buffer != NULL, FALSE);
 	g_return_val_if_fail(f != NULL, FALSE);
 
 	if ((buffer->pos + 4) <= buffer->ar->len) {
-		f_ = *((gfloat *)&buffer->ar->data[buffer->pos]);
-		*f = GUINT32_FROM_LE(f_);
+#if (G_BYTE_ORDER == G_BIG_ENDIAN)
+		guint8 *b = (guint8 *)f;
+		b[3] = buffer->ar->data[buffer->pos++];
+		b[2] = buffer->ar->data[buffer->pos++];
+		b[1] = buffer->ar->data[buffer->pos++];
+		b[0] = buffer->ar->data[buffer->pos++];
+#else
+		*f = *((gfloat *)&buffer->ar->data[buffer->pos]);
 		buffer->pos += 4;
+#endif
 		return TRUE;
 	}
 
