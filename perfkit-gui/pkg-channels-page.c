@@ -39,6 +39,7 @@ G_DEFINE_TYPE(PkgChannelsPage, pkg_channels_page, GTK_TYPE_ALIGNMENT)
 struct _PkgChannelsPagePrivate
 {
 	PkConnection *connection;
+	GtkTreeModel *model;
 	GtkBuilder   *builder;
 	GtkWidget    *container;
 	GtkWidget    *channels;
@@ -50,6 +51,12 @@ enum
 {
 	PROP_0,
 	PROP_CONNECTION,
+};
+
+enum
+{
+	COLUMN_ID,
+	COLUMN_IDSTR,
 };
 
 /**
@@ -72,6 +79,46 @@ pkg_channels_page_new (PkConnection *connection)
 	RETURN(page);
 }
 
+static void
+pkg_channels_page_get_channels_cb (PkConnection    *connection, /* IN */
+                                   GAsyncResult    *result,     /* IN */
+                                   PkgChannelsPage *page)       /* IN */
+{
+	PkgChannelsPagePrivate *priv;
+	GtkTreeIter iter;
+	GError *error = NULL;
+	gint *channels;
+	gsize channels_len;
+	gchar *idstr;
+	gint i;
+
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+	g_return_if_fail(G_IS_ASYNC_RESULT(result));
+	g_return_if_fail(PKG_IS_CHANNELS_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	if (!pk_connection_manager_get_channels_finish(connection, result,
+	                                               &channels, &channels_len,
+	                                               &error)) {
+		WARNING(Channels, "Failed to retrieve channels: %s",
+		        error->message);
+		g_error_free(error);
+		EXIT;
+	}
+	for (i = 0; i < channels_len; i++) {
+		idstr = g_strdup_printf("%d", channels[i]);
+		gtk_list_store_append(GTK_LIST_STORE(priv->model), &iter);
+		gtk_list_store_set(GTK_LIST_STORE(priv->model), &iter,
+		                   COLUMN_ID, channels[i],
+		                   COLUMN_IDSTR, idstr,
+		                   -1);
+		g_free(idstr);
+	}
+	g_free(channels);
+	EXIT;
+}
+
 void
 pkg_channels_page_reload (PkgChannelsPage *page)
 {
@@ -81,6 +128,11 @@ pkg_channels_page_reload (PkgChannelsPage *page)
 
 	ENTRY;
 	priv = page->priv;
+	gtk_list_store_clear(GTK_LIST_STORE(priv->model));
+	pk_connection_manager_get_channels_async(
+			priv->connection, NULL,
+			(GAsyncReadyCallback)pkg_channels_page_get_channels_cb,
+			page);
 	EXIT;
 }
 
@@ -217,6 +269,8 @@ static void
 pkg_channels_page_init (PkgChannelsPage *page)
 {
 	PkgChannelsPagePrivate *priv;
+	GtkTreeViewColumn *column;
+	GtkCellRenderer *cell;
 	gchar *path;
 
 	ENTRY;
@@ -239,6 +293,18 @@ pkg_channels_page_init (PkgChannelsPage *page)
 
 	gtk_widget_unparent(priv->container);
 	gtk_container_add(GTK_CONTAINER(page), priv->container);
+
+	priv->model = GTK_TREE_MODEL(gtk_list_store_new(2,
+	                                                G_TYPE_INT,
+	                                                G_TYPE_STRING));
+	gtk_tree_view_set_model(GTK_TREE_VIEW(priv->channels), priv->model);
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("ID"));
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->channels), column);
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", COLUMN_IDSTR);
 
 	g_signal_connect(priv->add,
 	                 "clicked",
