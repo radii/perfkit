@@ -26,6 +26,7 @@
 
 #include "pkg-log.h"
 #include "pkg-channel-page.h"
+#include "pkg-channels-page.h"
 #include "pkg-source-page.h"
 #include "pkg-subscription-page.h"
 #include "pkg-window.h"
@@ -951,6 +952,27 @@ pkg_window_clear_page (PkgWindow *window) /* IN */
 }
 
 void
+pkg_window_show_channels (PkgWindow    *window,     /* IN */
+                          PkConnection *connection) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *page;
+	GtkWidget *child;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	pkg_window_clear_page(window);
+	page = pkg_channels_page_new(connection);
+	gtk_container_add(GTK_CONTAINER(priv->container), page);
+	pkg_channels_page_reload(PKG_CHANNELS_PAGE(page));
+	gtk_widget_show(page);
+	EXIT;
+}
+
+void
 pkg_window_show_channel (PkgWindow    *window,     /* IN */
                          PkConnection *connection, /* IN */
                          gint          channel)    /* IN */
@@ -958,6 +980,9 @@ pkg_window_show_channel (PkgWindow    *window,     /* IN */
 	PkgWindowPrivate *priv;
 	GtkWidget *page;
 	GtkWidget *child;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
 	priv = window->priv;
@@ -1034,6 +1059,10 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		                   COLUMN_CONNECTION, &connection,
 		                   -1);
 		switch (row_type) {
+		CASE(TYPE_CHANNELS);
+			DEBUG(Window, "Show channels overview.");
+			pkg_window_show_channels(window, connection);
+			BREAK;
 		CASE(TYPE_CHANNEL);
 			DEBUG(Window, "Show current channel.");
 			pkg_window_show_channel(window, connection, row_id);
