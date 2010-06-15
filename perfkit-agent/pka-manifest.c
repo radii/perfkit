@@ -285,9 +285,10 @@ pka_manifest_append (PkaManifest *manifest,
 	case G_TYPE_CHAR:
 	case G_TYPE_BOOLEAN:
 	case G_TYPE_DOUBLE:
+	case G_TYPE_FLOAT:
 		break;
 	default:
-		g_warn_if_reached();
+		g_assert_not_reached();
 		return 0;
 	}
 
