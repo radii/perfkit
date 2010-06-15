@@ -2,7 +2,7 @@
 # Data source plugins.
 #
 
-source_LTLIBRARIES = memory.la sched.la
+source_LTLIBRARIES = memory.la sched.la netdev.la
 sourcedir = $(libdir)/perfkit-agent/plugins
 
 WARNINGS =								\
@@ -50,3 +50,4 @@ AM_LDFLAGS =								\
 
 memory_la_SOURCES = memory.c
 sched_la_SOURCES = sched.c
+netdev_la_SOURCES = netdev.c src-utils.c src-utils.h
