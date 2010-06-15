@@ -2065,6 +2065,7 @@ sample_cb (PkManifest *manifest,  /* IN */
 	        tv_str);
 	g_free(tv_str);
 	n = pk_manifest_get_n_rows(manifest);
+	g_print("There are %d rows\n", n);
 	for (i = 1; i <= n; i++) {
 		if (pk_sample_get_value(sample, i, &value)) {
 			g_print("  %32s = ", pk_manifest_get_row_name(manifest, i));

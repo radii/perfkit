@@ -25,6 +25,7 @@
 #include "pkg-channels-page.h"
 #include "pkg-path.h"
 #include "pkg-log.h"
+#include "pkg-util.h"
 
 /**
  * SECTION:pkg-channels-page

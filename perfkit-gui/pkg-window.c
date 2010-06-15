@@ -27,8 +27,10 @@
 #include "pkg-log.h"
 #include "pkg-channel-page.h"
 #include "pkg-channels-page.h"
+#include "pkg-plugin-page.h"
 #include "pkg-source-page.h"
 #include "pkg-subscription-page.h"
+#include "pkg-util.h"
 #include "pkg-window.h"
 
 #define STR_OR_EMPTY(_s) ((_s) ? (_s) : "")
@@ -354,7 +356,6 @@ pkg_window_connection_manager_get_hostname_cb (GObject      *object,    /* IN */
 {
 	PkConnection *connection = PK_CONNECTION(object);
 	PkgWindowPrivate *priv;
-	PkConnection *iter_conn;
 	gchar *hostname = NULL;
 	GError *error = NULL;
 	GtkTreeIter iter;
@@ -525,7 +526,7 @@ pkg_window_connection_manager_get_plugins_cb (GObject      *object,    /* IN */
 		gtk_tree_store_set(priv->model, &child,
 		                   COLUMN_CONNECTION, connection,
 		                   COLUMN_TYPE, TYPE_PLUGIN,
-		                   COLUMN_ID, plugins[i],
+		                   COLUMN_ID, 0,
 		                   COLUMN_TITLE, plugins[i],
 		                   COLUMN_SUBTITLE, "Show plugin description here",
 		                   -1);
@@ -656,7 +657,6 @@ pkg_window_connection_source_get_plugin_cb (GObject      *object,    /* IN */
 	PkConnection *connection;
 	PkgWindowPrivate *priv;
 	gchar *plugin = NULL;
-	gchar *subtitle = NULL;
 	GError *error = NULL;
 	GtkTreeIter iter;
 	GtkTreeIter child;
@@ -819,7 +819,6 @@ pkg_window_refresh_all (GtkWidget *menu_item, /* IN */
                         PkgWindow *window)    /* IN */
 {
 	PkgWindowPrivate *priv;
-	PkConnection *connection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 
@@ -912,7 +911,7 @@ pkg_window_connect_to (PkgWindow   *window,
 	PkConnection *connection;
 	GtkTreeIter iter;
 
-	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_val_if_fail(PKG_IS_WINDOW(window), FALSE);
 
 	ENTRY;
 	priv = window->priv;
@@ -927,7 +926,7 @@ pkg_window_connect_to (PkgWindow   *window,
 	                            NULL,
 	                            pkg_window_connection_connect_cb,
 	                            window);
-	EXIT;
+	RETURN(TRUE);
 }
 
 static void
@@ -981,7 +980,6 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
                              gpointer           user_data)
 {
 	PkgWindow *window = user_data;
-	PkConnection *connection;
 	GtkTreeIter parent;
 	GtkTreePath *path;
 	gint row_type;
@@ -1030,7 +1028,6 @@ pkg_window_show_channels (PkgWindow    *window,     /* IN */
 {
 	PkgWindowPrivate *priv;
 	GtkWidget *page;
-	GtkWidget *child;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
@@ -1052,7 +1049,6 @@ pkg_window_show_channel (PkgWindow    *window,     /* IN */
 {
 	PkgWindowPrivate *priv;
 	GtkWidget *page;
-	GtkWidget *child;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
@@ -1109,6 +1105,27 @@ pkg_window_show_source (PkgWindow    *window,     /* IN */
 	EXIT;
 }
 
+void
+pkg_window_show_plugin (PkgWindow    *window,     /* IN */
+                        PkConnection *connection, /* IN */
+                        const gchar  *plugin)     /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *page;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	pkg_window_clear_page(window);
+	page = pkg_plugin_page_new(connection, plugin);
+	gtk_container_add(GTK_CONTAINER(priv->container), page);
+	pkg_plugin_page_reload(PKG_PLUGIN_PAGE(page));
+	gtk_widget_show(page);
+	EXIT;
+}
+
 static void
 pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
                               gpointer          user_data) /* IN */
@@ -1119,6 +1136,7 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkWidget *child;
+	gchar *row_title;
 	gint row_type;
 	gint row_id;
 
@@ -1129,6 +1147,7 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		gtk_tree_model_get(model, &iter,
 		                   COLUMN_TYPE, &row_type,
 		                   COLUMN_ID, &row_id,
+		                   COLUMN_TITLE, &row_title,
 		                   COLUMN_CONNECTION, &connection,
 		                   -1);
 		switch (row_type) {
@@ -1147,6 +1166,10 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		CASE(TYPE_SOURCE);
 			DEBUG(Window, "Show current source.");
 			pkg_window_show_source(window, connection, row_id);
+			BREAK;
+		CASE(TYPE_PLUGIN);
+			DEBUG(Window, "Show current plugin.");
+			pkg_window_show_plugin(window, connection, row_title);
 			BREAK;
 		default:
 			GOTO(clear_contents);
@@ -1228,10 +1251,8 @@ pkg_window_init (PkgWindow *window)
 	        _w = gtk_menu_item_new_with_mnemonic(_s);              \
 	        gtk_widget_show((_w));                                 \
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
-            if (_f) {                                              \
-                g_signal_connect(_w, "activate", G_CALLBACK(_f),   \
-                                 window);                          \
-            }                                                      \
+            g_signal_connect(_w, "activate", G_CALLBACK(_f),       \
+                             window);                              \
 	    } G_STMT_END
 
 	#define ADD_MENU_ITEM_STOCK(_p, _s, _f)                        \
@@ -1240,10 +1261,8 @@ pkg_window_init (PkgWindow *window)
 	                (_s), accel_group);                            \
 	        gtk_widget_show((_w));                                 \
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
-            if (_f) {                                              \
-                g_signal_connect(_w, "activate", G_CALLBACK(_f),   \
-                                 window);                          \
-            }                                                      \
+            g_signal_connect(_w, "activate", G_CALLBACK(_f),       \
+                             window);                              \
 	    } G_STMT_END
 
 	#define ADD_SEPARATOR(_p)                                      \
@@ -1254,13 +1273,13 @@ pkg_window_init (PkgWindow *window)
 	    } G_STMT_END
 
 	ADD_MENU(perfkit_menu, _("_Perfkit"));
-	ADD_MENU_ITEM(perfkit_menu, _("Connect to _Server"), NULL);
+	ADD_MENU_ITEM(perfkit_menu, _("Connect to _Server"), gtk_false);
 	ADD_SEPARATOR(perfkit_menu);
 	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_REFRESH, pkg_window_refresh_all);
 	ADD_SEPARATOR(perfkit_menu);
 	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_QUIT, gtk_main_quit);
 	ADD_MENU(help_menu, _("_Help"));
-	ADD_MENU_ITEM_STOCK(help_menu, GTK_STOCK_ABOUT, NULL);
+	ADD_MENU_ITEM_STOCK(help_menu, GTK_STOCK_ABOUT, gtk_false);
 
 	hpaned = gtk_hpaned_new();
 	gtk_paned_set_position(GTK_PANED(hpaned), 275);

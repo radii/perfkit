@@ -229,7 +229,8 @@ pk_manifest_get_row_type (PkManifest *manifest, /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, G_TYPE_INVALID);
 	g_return_val_if_fail(manifest->rows != NULL, G_TYPE_INVALID);
-	g_return_val_if_fail(row > 0 && row <= manifest->n_rows, G_TYPE_INVALID);
+	g_return_val_if_fail(row > 0, G_TYPE_INVALID);
+	g_return_val_if_fail(row <= manifest->n_rows, G_TYPE_INVALID);
 
 	ENTRY;
 	RETURN(g_array_index(manifest->rows, PkManifestRow, --row).type);
@@ -251,7 +252,8 @@ pk_manifest_get_row_name (PkManifest *manifest, /* IN */
                           gint        row)      /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, NULL);
-	g_return_val_if_fail(row > 0 && row <= manifest->n_rows, NULL);
+	g_return_val_if_fail(row > 0, NULL);
+	g_return_val_if_fail(row <= manifest->n_rows, NULL);
 
 	ENTRY;
 	RETURN(g_array_index(manifest->rows, PkManifestRow, row - 1).name);

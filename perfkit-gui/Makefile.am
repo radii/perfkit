@@ -1,6 +1,28 @@
 bin_PROGRAMS = perfkit-gui
 noinst_LTLIBRARIES = libperfkit-gui.la
 
+WARNINGS =								\
+	-Wall								\
+	-Werror								\
+	-Wold-style-definition						\
+	-Wdeclaration-after-statement					\
+	-Wredundant-decls						\
+	-Wmissing-noreturn						\
+	-Wshadow							\
+	-Wcast-align							\
+	-Wwrite-strings							\
+	-Winline							\
+	-Wformat-nonliteral						\
+	-Wformat-security						\
+	-Wswitch-enum							\
+	-Wswitch-default						\
+	-Winit-self							\
+	-Wmissing-include-dirs						\
+	-Wundef								\
+	-Waggregate-return						\
+	-Wmissing-format-attribute					\
+	-Wnested-externs
+
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\"	\
 	-DPACKAGE_SRC_DIR=\""$(srcdir)"\"				\
@@ -13,6 +35,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/cut-n-paste					\
 	$(PERFKIT_GUI_CFLAGS)						\
 	$(PERFKIT_DEBUG_CFLAGS)						\
+	$(WARNINGS)							\
 	$(NULL)
 
 AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
@@ -23,6 +46,7 @@ INST_H_FILES =								\
 	pkg-channels-page.h						\
 	pkg-closures.h							\
 	pkg-path.h							\
+	pkg-plugin-page.h						\
 	pkg-source-page.h						\
 	pkg-subscription-page.h						\
 	pkg-version.h							\
@@ -42,6 +66,7 @@ libperfkit_gui_la_SOURCES =						\
 	pkg-closures.c							\
 	pkg-log.c							\
 	pkg-path.c							\
+	pkg-plugin-page.c						\
 	pkg-source-page.c						\
 	pkg-subscription-page.c						\
 	pkg-util.c							\
