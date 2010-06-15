@@ -179,6 +179,22 @@ pkg_window_new (void)
 	RETURN(g_object_new(PKG_TYPE_WINDOW, NULL));
 }
 
+void
+pkg_window_clear_page (PkgWindow *window) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkWidget *child;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+
+	ENTRY;
+	priv = window->priv;
+	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
+		gtk_container_remove(GTK_CONTAINER(priv->container), child);
+	}
+	EXIT;
+}
+
 static gboolean
 pkg_window_get_connection_iter (PkgWindow    *window,     /* IN */
                                 PkConnection *connection, /* IN */
@@ -731,6 +747,96 @@ pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
 }
 
 static void
+pkg_window_refresh_with_iter (PkgWindow    *window, /* IN */
+                              GtkTreeModel *model,  /* IN */
+                              GtkTreeIter  *iter)   /* IN */
+{
+	PkgWindowPrivate *priv;
+	PkConnection *connection;
+	GtkTreeView *treeview;
+	GtkTreeIter child;
+	GtkTreeIter grandchild;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(GTK_IS_TREE_MODEL(model));
+	g_return_if_fail(iter != NULL);
+
+	/*
+	 * All the children of this connection can stay, but their
+	 * children should be removed.
+	 */
+
+	ENTRY;
+	priv = window->priv;
+	gtk_tree_model_get(model, iter, COLUMN_CONNECTION, &connection, -1);
+	if (!connection) {
+		EXIT;
+	}
+	/*
+	 * Clear existing entries.
+	 */
+	pkg_window_clear_page(window);
+	treeview = GTK_TREE_VIEW(priv->treeview);
+	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(treeview));
+	if (gtk_tree_model_iter_children(model, &child, iter)) {
+		do {
+			if (gtk_tree_model_iter_children(model, &grandchild, &child)) {
+				while (gtk_tree_store_remove(GTK_TREE_STORE(model),
+				                             &grandchild)) {
+					;;
+				}
+			}
+		} while (gtk_tree_model_iter_next(model, &child));
+	}
+	/*
+	 * Refresh connection information.
+	 */
+	pk_connection_manager_get_hostname_async(
+			connection, NULL,
+	        pkg_window_connection_manager_get_hostname_cb,
+	        window);
+	pk_connection_manager_get_channels_async(
+			connection, NULL,
+			pkg_window_connection_manager_get_channels_cb,
+			window);
+	pk_connection_manager_get_plugins_async(
+			connection, NULL,
+			pkg_window_connection_manager_get_plugins_cb,
+			window);
+	pk_connection_manager_get_subscriptions_async(
+			connection, NULL,
+			pkg_window_connection_manager_get_subscriptions_cb,
+			window);
+	pk_connection_manager_get_sources_async(
+			connection, NULL,
+			pkg_window_connection_manager_get_sources_cb,
+			window);
+	EXIT;
+}
+
+static void
+pkg_window_refresh_all (GtkWidget *menu_item, /* IN */
+                        PkgWindow *window)    /* IN */
+{
+	PkgWindowPrivate *priv;
+	PkConnection *connection;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+
+	ENTRY;
+	priv = window->priv;
+	model = GTK_TREE_MODEL(priv->model);
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			pkg_window_refresh_with_iter(window, model, &iter);
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -792,26 +898,9 @@ pkg_window_connection_connect_cb (GObject      *object,
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
-	pk_connection_manager_get_hostname_async(
-			connection, NULL,
-	        pkg_window_connection_manager_get_hostname_cb,
-	        user_data);
-	pk_connection_manager_get_channels_async(
-			connection, NULL,
-			pkg_window_connection_manager_get_channels_cb,
-			user_data);
-	pk_connection_manager_get_plugins_async(
-			connection, NULL,
-			pkg_window_connection_manager_get_plugins_cb,
-			user_data);
-	pk_connection_manager_get_subscriptions_async(
-			connection, NULL,
-			pkg_window_connection_manager_get_subscriptions_cb,
-			user_data);
-	pk_connection_manager_get_sources_async(
-			connection, NULL,
-			pkg_window_connection_manager_get_sources_cb,
-			user_data);
+	pkg_window_refresh_with_iter(user_data,
+	                             GTK_TREE_MODEL(priv->model),
+	                             &iter);
 	EXIT;
 }
 
@@ -933,22 +1022,6 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
 
   invalid_row_type:
 	g_object_set(cell, "icon-name", NULL, NULL);
-}
-
-void
-pkg_window_clear_page (PkgWindow *window) /* IN */
-{
-	PkgWindowPrivate *priv;
-	GtkWidget *child;
-
-	g_return_if_fail(PKG_IS_WINDOW(window));
-
-	ENTRY;
-	priv = window->priv;
-	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
-		gtk_container_remove(GTK_CONTAINER(priv->container), child);
-	}
-	EXIT;
 }
 
 void
@@ -1149,12 +1222,16 @@ pkg_window_init (PkgWindow *window)
 	        gtk_menu_item_set_submenu(GTK_MENU_ITEM(_w), _n);      \
 	    } G_STMT_END
 
-	#define ADD_MENU_ITEM(_p, _s)                                  \
+	#define ADD_MENU_ITEM(_p, _s, _f)                              \
 	    G_STMT_START {                                             \
 	        GtkWidget *_w;                                         \
 	        _w = gtk_menu_item_new_with_mnemonic(_s);              \
 	        gtk_widget_show((_w));                                 \
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
+            if (_f) {                                              \
+                g_signal_connect(_w, "activate", G_CALLBACK(_f),   \
+                                 window);                          \
+            }                                                      \
 	    } G_STMT_END
 
 	#define ADD_MENU_ITEM_STOCK(_p, _s, _f)                        \
@@ -1176,11 +1253,13 @@ pkg_window_init (PkgWindow *window)
 	        gtk_menu_shell_append(GTK_MENU_SHELL(_p), (_w));       \
 	    } G_STMT_END
 
-	ADD_MENU(perfkit_menu, "_Perfkit");
-	ADD_MENU_ITEM(perfkit_menu, "Connect to _Server");
+	ADD_MENU(perfkit_menu, _("_Perfkit"));
+	ADD_MENU_ITEM(perfkit_menu, _("Connect to _Server"), NULL);
+	ADD_SEPARATOR(perfkit_menu);
+	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_REFRESH, pkg_window_refresh_all);
 	ADD_SEPARATOR(perfkit_menu);
 	ADD_MENU_ITEM_STOCK(perfkit_menu, GTK_STOCK_QUIT, gtk_main_quit);
-	ADD_MENU(help_menu, "_Help");
+	ADD_MENU(help_menu, _("_Help"));
 	ADD_MENU_ITEM_STOCK(help_menu, GTK_STOCK_ABOUT, NULL);
 
 	hpaned = gtk_hpaned_new();
