@@ -94,6 +94,7 @@ pkg_util_dialog_warning (GtkWidget   *parent,       /* IN */
 	                                     GTK_DIALOG_NO_SEPARATOR,
 	                                     GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE,
 	                                     NULL);
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
 	hbox = gtk_hbox_new(FALSE, 12);
 	gtk_container_set_border_width(GTK_CONTAINER(hbox), 12);
 	gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))),
