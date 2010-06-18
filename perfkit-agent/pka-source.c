@@ -495,7 +495,7 @@ pka_source_remove_subscription (PkaSource       *source,       /* IN */
 	priv = source->priv;
 	g_static_rw_lock_writer_lock(&priv->rw_lock);
 	if (g_ptr_array_remove_fast(priv->subscriptions, subscription)) {
-		g_object_unref(subscription);
+		pka_subscription_unref(subscription);
 	}
 	/*
 	 * If we are still running and there are no more subscriptions active,
