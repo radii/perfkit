@@ -23,12 +23,12 @@ targets=" \
 sudo apt-get install $targets 
 
 # checkout and install libethos
-git clone git://git.dronelabs.com/ethos
-pushd ethos
-./autogen.sh --prefix=/usr
-make
-sudo make install
-popd
+#git clone git://git.dronelabs.com/ethos
+#pushd ethos
+#./autogen.sh --prefix=/usr
+#make
+#sudo make install
+#popd
 
 # build perfkit
 ./autogen.sh
