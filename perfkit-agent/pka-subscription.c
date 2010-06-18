@@ -805,6 +805,34 @@ pka_subscription_get_buffer (PkaSubscription *subscription,   /* IN */
 	EXIT;
 }
 
+gboolean
+pka_subscription_set_buffer (PkaSubscription  *subscription,   /* IN */
+                             PkaContext       *context,        /* IN */
+                             gint              buffer_timeout, /* IN */
+                             gint              buffer_size,    /* IN */
+                             GError          **error)          /* OUT */
+{
+	gboolean ret = FALSE;
+
+	g_return_val_if_fail(subscription != NULL, FALSE);
+	g_return_val_if_fail(context != NULL, FALSE);
+
+	ENTRY;
+	if (!IS_AUTHORIZED(context, MODIFY_SUBSCRIPTION, subscription)) {
+		GOTO(failed);
+	}
+	g_static_rw_lock_writer_lock(&subscription->rw_lock);
+	subscription->buffer_timeout = buffer_timeout;
+	subscription->buffer_size = buffer_size;
+	/*
+	 * TODO: Flush buffers (once re-implemented).
+	 */
+	g_static_rw_lock_writer_unlock(&subscription->rw_lock);
+	ret = TRUE;
+  failed:
+	RETURN(ret);
+}
+
 /**
  * pka_subscription_get_id:
  * @subscription: A #PkaSubscription.
