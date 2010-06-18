@@ -221,6 +221,7 @@ pka_plugin_load_from_file (PkaPlugin    *plugin,   /* IN */
 	PkaPluginPrivate *priv;
 	GModuleFlags flags;
 	GModule *module;
+	gint i;
 
 	g_return_val_if_fail(PKA_IS_PLUGIN(plugin), FALSE);
 	g_return_val_if_fail(filename != NULL, FALSE);
@@ -238,6 +239,13 @@ pka_plugin_load_from_file (PkaPlugin    *plugin,   /* IN */
 	}
 	if (!plugin_info) {
 		GOTO(cleanup);
+	}
+	for (i = 0; plugin_info->id[i]; i++) {
+		if (!g_ascii_isalnum(plugin_info->id[i])) {
+			WARNING(Plugin, "Invalid plugin id: %s", plugin_info->id);
+			plugin_info = NULL;
+			GOTO(cleanup);
+		}
 	}
 	priv->info = plugin_info;
 	priv->module = module;
