@@ -76,11 +76,15 @@ gboolean         pka_subscription_add_channel      (PkaSubscription  *subscripti
                                                     PkaContext       *context,
                                                     PkaChannel       *channel,
                                                     GError          **error);
-gboolean         pka_subscription_remove_source    (PkaSubscription  *subscription,
+gboolean         pka_subscription_remove_channel   (PkaSubscription  *subscription,
+                                                    PkaContext       *context,
+                                                    PkaChannel       *channel,
+                                                    GError          **error);
+gboolean         pka_subscription_add_source       (PkaSubscription  *subscription,
                                                     PkaContext       *context,
                                                     PkaSource        *source,
                                                     GError          **error);
-gboolean         pka_subscription_add_source       (PkaSubscription  *subscription,
+gboolean         pka_subscription_remove_source    (PkaSubscription  *subscription,
                                                     PkaContext       *context,
                                                     PkaSource        *source,
                                                     GError          **error);

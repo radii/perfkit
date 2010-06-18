@@ -4152,6 +4152,7 @@ pka_listener_subscription_remove_channel_async (PkaListener           *listener,
                                                 GAsyncReadyCallback    callback,     /* IN */
                                                 gpointer               user_data)    /* IN */
 {
+	SubscriptionRemoveChannelCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -4161,15 +4162,13 @@ pka_listener_subscription_remove_channel_async (PkaListener           *listener,
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_subscription_remove_channel_async);
-// TEMP TO TEST RPC RESULTS
+	call = SubscriptionRemoveChannelCall_Create();
+	call->subscription = subscription;
+	call->channel = channel;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)SubscriptionRemoveChannelCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_subscription_remove_channel_async(instance,
-	                                      NULL,
-	                                      pka_listener_subscription_remove_channel_cb,
-	                                      result);
-#endif
 	EXIT;
 }
 
@@ -4192,22 +4191,31 @@ pka_listener_subscription_remove_channel_finish (PkaListener    *listener, /* IN
                                                  GAsyncResult   *result,   /* IN */
                                                  GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	SubscriptionRemoveChannelCall *call;
+	PkaSubscription *subscription;
+	PkaChannel *channel;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_remove_channel), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_subscription_remove_channel_finish(instance,
-	                                             real_result,
-	                                             error);
+	call = GET_RESULT_POINTER(SubscriptionRemoveChannelCall, result);
+	if (!pka_manager_find_subscription(DEFAULT_CONTEXT, call->subscription,
+	                                   &subscription, error)) {
+		GOTO(failed);
+	}
+	if (!pka_manager_find_channel(DEFAULT_CONTEXT, call->channel,
+	                              &channel, error)) {
+		pka_subscription_unref(subscription);
+		GOTO(failed);
+	}
+	ret = pka_subscription_remove_channel(subscription, DEFAULT_CONTEXT,
+	                                      channel, error);
+	g_object_unref(channel);
+	pka_subscription_unref(subscription);
+  failed:
 	RETURN(ret);
-#endif
 }
 
 /**
