@@ -3982,26 +3982,6 @@ pka_listener_subscription_get_sources_finish (PkaListener    *listener,    /* IN
 	RETURN(ret);
 }
 
-#if 0
-static void
-pka_listener_subscription_mute_cb (GObject      *listener,    /* IN */
-                                   GAsyncResult *result,      /* IN */
-                                   gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(subscription_mute));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	g_object_unref(real_result);
-	EXIT;
-}
-#endif
-
 /**
  * pk_connection_subscription_mute_async:
  * @connection: A #PkConnection.
@@ -4028,6 +4008,7 @@ pka_listener_subscription_mute_async (PkaListener           *listener,     /* IN
                                       GAsyncReadyCallback    callback,     /* IN */
                                       gpointer               user_data)    /* IN */
 {
+	SubscriptionMuteCall *call;
 	GSimpleAsyncResult *result;
 
 	g_return_if_fail(PKA_IS_LISTENER(listener));
@@ -4037,15 +4018,13 @@ pka_listener_subscription_mute_async (PkaListener           *listener,     /* IN
 	                                   callback,
 	                                   user_data,
 	                                   pka_listener_subscription_mute_async);
-// TEMP TO TEST RPC RESULTS
+	call = SubscriptionMuteCall_Create();
+	call->subscription = subscription;
+	call->drain = drain;
+	g_simple_async_result_set_op_res_gpointer(
+			result, call, (GDestroyNotify)SubscriptionMuteCall_Free);
 	g_simple_async_result_complete(result);
 	g_object_unref(result);
-#if 0
-	pka_subscription_mute_async(instance,
-	                            NULL,
-	                            pka_listener_subscription_mute_cb,
-	                            result);
-#endif
 	EXIT;
 }
 
@@ -4068,42 +4047,25 @@ pka_listener_subscription_mute_finish (PkaListener    *listener, /* IN */
                                        GAsyncResult   *result,   /* IN */
                                        GError        **error)    /* OUT */
 {
-	ENTRY;
-// TEMP TO TEST RPC RESULTS
-	RETURN(TRUE);
-#if 0
-	GSimpleAsyncResult *real_result;
-	gboolean ret;
+	SubscriptionMuteCall *call;
+	PkaSubscription *subscription;
+	gboolean ret = FALSE;
 
 	g_return_val_if_fail(PKA_IS_LISTENER(listener), FALSE);
+	g_return_val_if_fail(RESULT_IS_VALID(subscription_mute), FALSE);
 
 	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	ret = pka_subscription_mute_finish(instance,
-	                                   real_result,
-	                                   error);
+	call = GET_RESULT_POINTER(SubscriptionMuteCall, result);
+	if (!pka_manager_find_subscription(DEFAULT_CONTEXT, call->subscription,
+	                                   &subscription, error)) {
+		GOTO(failed);
+	}
+	ret = pka_subscription_mute(subscription, DEFAULT_CONTEXT,
+	                            call->drain, error);
+	pka_subscription_unref(subscription);
+  failed:
 	RETURN(ret);
-#endif
 }
-
-#if 0
-static void
-pka_listener_subscription_remove_channel_cb (GObject      *listener,    /* IN */
-                                             GAsyncResult *result,      /* IN */
-                                             gpointer      user_data)   /* IN */
-{
-	GSimpleAsyncResult *real_result;
-
-	g_return_if_fail(PKA_IS_LISTENER(listener));
-	g_return_if_fail(RESULT_IS_VALID(subscription_remove_channel));
-
-	ENTRY;
-	real_result = GET_RESULT_POINTER(result);
-	g_simple_async_result_set_op_res_gpointer(real_result, result);
-	g_simple_async_result_complete(real_result);
-	EXIT;
-}
-#endif
 
 /**
  * pk_connection_subscription_remove_channel_async:
