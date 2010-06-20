@@ -47,33 +47,34 @@ struct _PkaListenerClass
 {
 	GObjectClass parent_class;
 
-	gboolean (*listen) (PkaListener *listener, GError **error);
-	void     (*close)  (PkaListener *listener);
+	gboolean (*listen)               (PkaListener  *listener,
+	                                  GError      **error);
+	void     (*close)                (PkaListener  *listener);
 
-	void     (*plugin_added)         (PkaListener *listener,
-	                                  const gchar *plugin);
-	void     (*plugin_removed)       (PkaListener *listener,
-	                                  const gchar *plugin);
+	void     (*plugin_added)         (PkaListener  *listener,
+	                                  const gchar  *plugin);
+	void     (*plugin_removed)       (PkaListener  *listener,
+	                                  const gchar  *plugin);
 
-	void     (*encoder_added)        (PkaListener *listener,
-	                                  gint         encoder);
-	void     (*encoder_removed)      (PkaListener *listener,
-	                                  gint         encoder);
+	void     (*encoder_added)        (PkaListener  *listener,
+	                                  gint          encoder);
+	void     (*encoder_removed)      (PkaListener  *listener,
+	                                  gint          encoder);
 
-	void     (*source_added)         (PkaListener *listener,
-	                                  gint         source);
-	void     (*source_removed)       (PkaListener *listener,
-	                                  gint         source);
+	void     (*source_added)         (PkaListener  *listener,
+	                                  gint          source);
+	void     (*source_removed)       (PkaListener  *listener,
+	                                  gint          source);
 
-	void     (*channel_added)        (PkaListener *listener,
-	                                  gint         channel);
-	void     (*channel_removed)      (PkaListener *listener,
-	                                  gint         channel);
+	void     (*channel_added)        (PkaListener  *listener,
+	                                  gint          channel);
+	void     (*channel_removed)      (PkaListener  *listener,
+	                                  gint          channel);
 
-	void     (*subscription_added)   (PkaListener *listener,
-	                                  gint         subscription);
-	void     (*subscription_removed) (PkaListener *listener,
-	                                  gint         subscription);
+	void     (*subscription_added)   (PkaListener  *listener,
+	                                  gint          subscription);
+	void     (*subscription_removed) (PkaListener  *listener,
+	                                  gint          subscription);
 };
 
 GType    pka_listener_get_type (void) G_GNUC_CONST;

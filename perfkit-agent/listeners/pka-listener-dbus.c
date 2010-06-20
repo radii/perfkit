@@ -818,6 +818,36 @@ static const gchar * ManagerIntrospection =
 	"  <method name=\"SetDeliveryPath\">"
 	"   <arg name=\"path\" direction=\"in\" type=\"s\"/>"
 	"  </method>"
+	"  <signal name=\"PluginAdded\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"PluginRemoved\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"ChannelAdded\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"ChannelRemoved\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"SourceAdded\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"SourceRemoved\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"EncoderAdded\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"EncoderRemoved\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"SubscriptionAdded\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
+	"  <signal name=\"SubscriptionRemoved\">"
+	"   <arg name=\"path\" type=\"o\"/>"
+	"  </signal>"
 	" </interface>"
 	" <interface name=\"org.freedesktop.DBus.Introspectable\">"
 	"  <method name=\"Introspect\">"
@@ -4400,7 +4430,6 @@ pka_listener_dbus_error_quark (void)
 	return g_quark_from_static_string("pka-listener-dbus-error-quark");
 }
 
-
 /**
  * pka_listener_dbus_plugin_added:
  * @listener: A #PkaListenerDBus.
@@ -4416,6 +4445,7 @@ pka_listener_dbus_plugin_added (PkaListener *listener, /* IN */
                                 const gchar *plugin)   /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
@@ -4424,6 +4454,18 @@ pka_listener_dbus_plugin_added (PkaListener *listener, /* IN */
 	                                     path,
 	                                     &PluginVTable,
 	                                     listener);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "PluginAdded"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4443,11 +4485,24 @@ pka_listener_dbus_plugin_removed (PkaListener *listener, /* IN */
                                   const gchar *plugin)   /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Plugin/%s", plugin);
 	dbus_connection_unregister_object_path(priv->dbus, path);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "PluginRemoved"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4467,6 +4522,7 @@ pka_listener_dbus_encoder_added (PkaListener *listener, /* IN */
                                  gint         encoder)  /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
@@ -4475,6 +4531,18 @@ pka_listener_dbus_encoder_added (PkaListener *listener, /* IN */
 	                                     path,
 	                                     &EncoderVTable,
 	                                     listener);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "EncoderAdded"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4494,11 +4562,24 @@ pka_listener_dbus_encoder_removed (PkaListener *listener, /* IN */
                                    gint         encoder)  /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Encoder/%d", encoder);
 	dbus_connection_unregister_object_path(priv->dbus, path);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "EncoderRemoved"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4518,6 +4599,7 @@ pka_listener_dbus_source_added (PkaListener *listener, /* IN */
                                 gint         source)   /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
@@ -4526,6 +4608,18 @@ pka_listener_dbus_source_added (PkaListener *listener, /* IN */
 	                                     path,
 	                                     &SourceVTable,
 	                                     listener);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "SourceAdded"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4545,11 +4639,24 @@ pka_listener_dbus_source_removed (PkaListener *listener, /* IN */
                                   gint         source)   /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Source/%d", source);
 	dbus_connection_unregister_object_path(priv->dbus, path);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "SourceRemoved"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4569,6 +4676,7 @@ pka_listener_dbus_channel_added (PkaListener *listener, /* IN */
                                  gint         channel)  /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
@@ -4577,6 +4685,18 @@ pka_listener_dbus_channel_added (PkaListener *listener, /* IN */
 	                                     path,
 	                                     &ChannelVTable,
 	                                     listener);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "ChannelAdded"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4596,11 +4716,24 @@ pka_listener_dbus_channel_removed (PkaListener *listener, /* IN */
                                    gint         channel)  /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Channel/%d", channel);
 	dbus_connection_unregister_object_path(priv->dbus, path);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "ChannelRemoved"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4620,6 +4753,7 @@ pka_listener_dbus_subscription_added (PkaListener *listener,     /* IN */
                                       gint         subscription) /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
@@ -4628,6 +4762,18 @@ pka_listener_dbus_subscription_added (PkaListener *listener,     /* IN */
 	                                     path,
 	                                     &SubscriptionVTable,
 	                                     listener);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "SubscriptionAdded"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
@@ -4647,11 +4793,24 @@ pka_listener_dbus_subscription_removed (PkaListener *listener,     /* IN */
                                         gint         subscription) /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
+	DBusMessage *message;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Subscription/%d", subscription);
 	dbus_connection_unregister_object_path(priv->dbus, path);
+	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
+	                                        "org.perfkit.Agent.Manager",
+	                                        "SubscriptionRemoved"))) {
+		GOTO(failed);
+	}
+	dbus_message_append_args(message,
+	                         DBUS_TYPE_OBJECT_PATH, &path,
+	                         DBUS_TYPE_INVALID);
+	if (!dbus_connection_send(priv->dbus, message, NULL)) {
+		GOTO(failed);
+	}
+  failed:
 	g_free(path);
 	EXIT;
 }
