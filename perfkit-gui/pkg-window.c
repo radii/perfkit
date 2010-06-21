@@ -476,7 +476,9 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
                                                GAsyncResult *result,    /* IN */
                                                gpointer      user_data) /* IN */
 {
+	PkgWindowPrivate *priv;
 	PkConnection *connection;
+	GtkTreeIter iter;
 	gint *channels = NULL;
 	gsize channels_len = 0;
 	GError *error = NULL;
@@ -485,6 +487,7 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
 	g_return_if_fail(PKG_IS_WINDOW(user_data));
 
 	ENTRY;
+	priv = PKG_WINDOW(user_data)->priv;
 	connection = PK_CONNECTION(object);
 	if (!pk_connection_manager_get_channels_finish(connection, result,
 	                                               &channels, &channels_len,
@@ -494,9 +497,14 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
+	if (!pkg_window_get_channels_iter(user_data, connection, &iter)) {
+		GOTO(failed);
+	}
+	gtk_tree_store_set(priv->model, &iter, COLUMN_ID, 0, -1);
 	for (i = 0; i < channels_len; i++) {
 		pkg_window_add_channel(user_data, connection, channels[i]);
 	}
+  failed:
 	g_free(channels);
 	EXIT;
 }
@@ -939,7 +947,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                   COLUMN_TYPE, TYPE_CHANNELS,
 	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Channels"),
-		               COLUMN_SUBTITLE, _("Loading ..."),
+		               COLUMN_SUBTITLE, _("0 channels"),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
@@ -948,7 +956,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                   COLUMN_TYPE, TYPE_SOURCES,
 	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Sources"),
-		               COLUMN_SUBTITLE, _("Loading ..."),
+		               COLUMN_SUBTITLE, _("0 sources"),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
 	gtk_tree_store_append(priv->model, &child, &iter);
@@ -957,7 +965,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                   COLUMN_TYPE, TYPE_SUBSCRIPTIONS,
 	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Subscriptions"),
-		               COLUMN_SUBTITLE, _("Loading ..."),
+		               COLUMN_SUBTITLE, _("0 subscriptions"),
 	                   -1);
 	pkg_window_expand_to_iter(user_data, &child);
 	pkg_window_refresh_with_iter(user_data,
