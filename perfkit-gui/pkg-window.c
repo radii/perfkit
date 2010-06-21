@@ -691,6 +691,40 @@ pkg_window_connection_source_get_plugin_cb (GObject      *object,    /* IN */
 }
 
 static void
+pkg_window_add_source (PkgWindow    *window,     /* IN */
+                       PkConnection *connection, /* IN */
+                       gint          source)     /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gchar *title;
+
+	ENTRY;
+	priv = window->priv;
+	if (!pkg_window_get_sources_iter(window, connection, &iter)) {
+		EXIT;
+	}
+	title = g_strdup_printf(_("Source %d"), source);
+	gtk_tree_store_append(priv->model, &child, &iter);
+	gtk_tree_store_set(priv->model, &child,
+	                   COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_SOURCE,
+	                   COLUMN_ID, source,
+	                   COLUMN_TITLE, title,
+	                   COLUMN_SUBTITLE, _("Loading ..."),
+	                   -1);
+	pk_connection_source_get_plugin_async(
+			connection, source, NULL,
+			pkg_window_connection_source_get_plugin_cb,
+			pkg_window_source_call_new(
+				window, connection, source));
+	pkg_window_expand_to_iter(window, &child);
+	g_free(title);
+	EXIT;
+}
+
+static void
 pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
                                               GAsyncResult *result,    /* IN */
                                               gpointer      user_data) /* IN */
@@ -699,11 +733,7 @@ pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
 	PkgWindowPrivate *priv;
 	gint *sources;
 	gsize sources_len;
-	gchar *title = NULL;
-	gchar *subtitle = NULL;
 	GError *error = NULL;
-	GtkTreeIter iter;
-	GtkTreeIter child;
 	gint i;
 
 	g_return_if_fail(PKG_IS_WINDOW(user_data));
@@ -719,33 +749,10 @@ pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
-	if (!pkg_window_get_sources_iter(user_data, connection, &iter)) {
-		GOTO(iter_not_found);
-	}
-	subtitle = g_strdup_printf(P_("%d source", "%d sources", sources_len),
-	                           (gint)sources_len);
-	gtk_tree_store_set(priv->model, &iter, COLUMN_SUBTITLE, subtitle, -1);
-  	g_free(subtitle);
 	for (i = 0; i < sources_len; i++) {
-		title = g_strdup_printf(_("Source %d"), sources[i]);
-		gtk_tree_store_append(priv->model, &child, &iter);
-		gtk_tree_store_set(priv->model, &child,
-		                   COLUMN_CONNECTION, connection,
-		                   COLUMN_TYPE, TYPE_SOURCE,
-		                   COLUMN_ID, sources[i],
-		                   COLUMN_TITLE, title,
-		                   COLUMN_SUBTITLE, _("Loading ..."),
-		                   -1);
-		pk_connection_source_get_plugin_async(
-				connection, sources[i], NULL,
-				pkg_window_connection_source_get_plugin_cb,
-				pkg_window_source_call_new(
-					user_data, connection, sources[i]));
-		pkg_window_expand_to_iter(user_data, &child);
-		g_free(title);
+		pkg_window_add_source(user_data, connection, sources[i]);
 	}
-  iter_not_found:
-  	g_free(sources);
+	g_free(sources);
 	EXIT;
 }
 
@@ -850,6 +857,17 @@ pkg_window_channel_added_cb (PkConnection *connection,
 }
 
 static void
+pkg_window_source_added_cb (PkConnection *connection,
+                            gint          source,
+                            gpointer      user_data)
+{
+
+	ENTRY;
+	pkg_window_add_source(user_data, connection, source);
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -914,8 +932,14 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_refresh_with_iter(user_data,
 	                             GTK_TREE_MODEL(priv->model),
 	                             &iter);
+	/*
+	 * TODO: Remove signals on finalize.
+	 */
 	g_signal_connect(connection, "channel-added",
 	                 G_CALLBACK(pkg_window_channel_added_cb),
+	                 user_data);
+	g_signal_connect(connection, "source-added",
+	                 G_CALLBACK(pkg_window_source_added_cb),
 	                 user_data);
 	EXIT;
 }
@@ -1358,6 +1382,5 @@ pkg_window_init (PkgWindow *window)
 	gtk_paned_add2(GTK_PANED(hpaned), priv->container);
 	gtk_widget_show(priv->container);
 	
-
 	EXIT;
 }
