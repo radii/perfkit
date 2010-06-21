@@ -4676,15 +4676,21 @@ pka_listener_dbus_channel_added (PkaListener *listener, /* IN */
                                  gint         channel)  /* IN */
 {
 	PkaListenerDBusPrivate *priv = PKA_LISTENER_DBUS(listener)->priv;
-	DBusMessage *message;
+	DBusMessage *message = NULL;
 	gchar *path;
 
 	ENTRY;
 	path = g_strdup_printf("/org/perfkit/Agent/Channel/%d", channel);
+	/*
+	 * Register object on the DBus.
+	 */
 	dbus_connection_register_object_path(priv->dbus,
 	                                     path,
 	                                     &ChannelVTable,
 	                                     listener);
+	/*
+	 * Signal observers of new channel.
+	 */
 	if (!(message = dbus_message_new_signal("/org/perfkit/Agent/Manager",
 	                                        "org.perfkit.Agent.Manager",
 	                                        "ChannelAdded"))) {
@@ -4697,6 +4703,9 @@ pka_listener_dbus_channel_added (PkaListener *listener, /* IN */
 		GOTO(failed);
 	}
   failed:
+  	if (message) {
+  		dbus_message_unref(message);
+	}
 	g_free(path);
 	EXIT;
 }

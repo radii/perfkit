@@ -11,6 +11,10 @@ channel add-source $channel $source
 manager add-source Scheduler
 channel add-source $channel $1
 
+manager add-source Cpu
+source=$1
+channel add-source $channel $source
+
 # Set the channel properties
 channel set-target $channel /bin/nc
 channel set-args $channel '-l 10000'

@@ -603,6 +603,26 @@ gboolean      pk_connection_disconnect_finish                 (PkConnection     
                                                                GError               **error);
 void          pk_connection_emit_state_changed                (PkConnection          *connection,
                                                                PkConnectionState      state);
+void          pk_connection_emit_channel_added                (PkConnection          *connection,
+                                                               gint                   channel);
+void          pk_connection_emit_channel_removed              (PkConnection          *connection,
+                                                               gint                   channel);
+void          pk_connection_emit_encoder_added                (PkConnection          *connection,
+                                                               gint                   encoder);
+void          pk_connection_emit_encoder_removed              (PkConnection          *connection,
+                                                               gint                   encoder);
+void          pk_connection_emit_plugin_added                 (PkConnection          *connection,
+                                                               const gchar           *plugin);
+void          pk_connection_emit_plugin_removed               (PkConnection          *connection,
+                                                               const gchar           *plugin);
+void          pk_connection_emit_source_added                 (PkConnection          *connection,
+                                                               gint                   source);
+void          pk_connection_emit_source_removed               (PkConnection          *connection,
+                                                               gint                   source);
+void          pk_connection_emit_subscription_added           (PkConnection          *connection,
+                                                               gint                   subscription);
+void          pk_connection_emit_subscription_removed         (PkConnection          *connection,
+                                                               gint                   subscription);
 GQuark        pk_connection_error_quark                       (void);
 GType         pk_connection_get_type                          (void) G_GNUC_CONST;
 const gchar*  pk_connection_get_uri                           (PkConnection          *connection);

@@ -673,6 +673,91 @@ pk_connection_dbus_handle_connection (DBusServer     *server,     /* IN */
 	EXIT;
 }
 
+static DBusHandlerResult
+pk_connection_dbus_message_filter (DBusConnection *connection,
+                                   DBusMessage    *message,
+                                   gpointer        user_data)
+{
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
+
+	ENTRY;
+	if (dbus_message_get_type(message) != DBUS_MESSAGE_TYPE_SIGNAL) {
+		RETURN(DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+	}
+	if (dbus_message_is_signal(message,
+	                           "org.perfkit.Agent.Manager",
+	                           "ChannelAdded")) {
+		DEBUG(Channel, "Received channel added event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "ChannelRemoved")) {
+		DEBUG(Channel, "Received channel removed event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "SourceAdded")) {
+		DEBUG(Source, "Received source added event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "SourceRemoved")) {
+		DEBUG(Source, "Received source removed event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "PluginAdded")) {
+		DEBUG(Plugin, "Received plugin added event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "PluginRemoved")) {
+		DEBUG(Plugin, "Received plugin removed event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "EncoderAdded")) {
+		DEBUG(Encoder, "Received encoder added event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "EncoderRemoved")) {
+		DEBUG(Encoder, "Received encoder removed event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "SubscriptionAdded")) {
+		DEBUG(Subscription, "Received subscription added event.");
+	} else if (dbus_message_is_signal(message,
+	                                  "org.perfkit.Agent.Manager",
+	                                  "SubscriptionRemoved")) {
+		DEBUG(Subscription, "Received subscription removed event.");
+	} else {
+		ret = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+	RETURN(ret);
+}
+
+static void
+pk_connection_dbus_add_signal (PkConnection *connection, /* IN */
+                               const gchar  *path,       /* IN */
+                               const gchar  *iface,      /* IN */
+                               const gchar  *signame)    /* IN/UNUSED */
+{
+	PkConnectionDBusPrivate *priv;
+	DBusError dbus_error = { 0 };
+	gchar *rule;
+
+	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
+	g_return_if_fail(path != NULL);
+	g_return_if_fail(iface != NULL);
+
+	ENTRY;
+	priv = PK_CONNECTION_DBUS(connection)->priv;
+	rule = g_strdup_printf("type='signal',sender='org.perfkit.Agent',"
+	                       "interface='%s'", iface);
+	dbus_bus_add_match(priv->dbus, rule, &dbus_error);
+	if (dbus_error_is_set(&dbus_error)) {
+		WARNING(Connection, "Error attaching to signals: %s",
+		        dbus_error.message);
+		dbus_error_free(&dbus_error);
+	}
+	g_free(rule);
+	EXIT;
+}
+
 /**
  * pk_connection_dbus_connect_finish:
  * @connection: A #PkConnection
@@ -734,6 +819,14 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	priv->state = STATE_CONNECTED;
 
 	/*
+	 * Subscribe to manager events.
+	 */
+	pk_connection_dbus_add_signal(connection,
+	                              "/org/perfkit/Agent/Manager",
+	                              "org.perfkit.Agent.Manager",
+	                              NULL);
+
+	/*
 	 * Notify the agent where it should deliver private messages.
 	 */
 	path = g_strdup_printf("%s/perfkit-%s", g_get_tmp_dir(), g_get_user_name());
@@ -769,10 +862,16 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	dbus_message_append_args(msg, DBUS_TYPE_STRING, &path, DBUS_TYPE_INVALID);
 	dbus_connection_send(priv->dbus, msg, NULL);
 	g_free(path);
-
+	if (!dbus_connection_add_filter(priv->dbus,
+	                                pk_connection_dbus_message_filter,
+	                                g_object_ref(connection),
+	                                g_object_unref)) {
+		ERROR(DBus, "Failed to add message filter for signals.");
+		GOTO(unlock);
+	}
+	DEBUG(DBus, "Added message filter for signals.");
 	ret = TRUE;
-
-unlock:
+  unlock:
 	g_mutex_unlock(priv->mutex);
 	pk_connection_emit_state_changed(
 			connection,
