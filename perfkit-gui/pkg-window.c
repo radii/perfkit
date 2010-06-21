@@ -248,7 +248,7 @@ pkg_window_get_connection_child_iter (PkgWindow    *window,     /* IN */
 		RETURN(FALSE);
 	}
 	do {
-		gtk_tree_model_get(model, iter, COLUMN_ID, &row_type, -1);
+		gtk_tree_model_get(model, iter, COLUMN_TYPE, &row_type, -1);
 		if (row_type == id_type) {
 			RETURN(TRUE);
 		}
@@ -434,12 +434,23 @@ pkg_window_add_channel (PkgWindow    *window,     /* IN */
 	GtkTreeIter iter;
 	GtkTreeIter child;
 	gchar *title;
+	gchar *subtitle;
+	gint count = 0;
 
 	ENTRY;
 	priv = window->priv;
 	if (!pkg_window_get_channels_iter(window, connection, &iter)) {
 		EXIT;
 	}
+	gtk_tree_model_get(GTK_TREE_MODEL(priv->model), &iter,
+	                   COLUMN_ID, &count, -1);
+	count++;
+	subtitle = g_strdup_printf(P_("%d channel", "%d channels", count), count);
+	gtk_tree_store_set(priv->model, &iter,
+	                   COLUMN_ID, count,
+	                   COLUMN_SUBTITLE, subtitle,
+	                   -1);
+	g_free(subtitle);
 	title = g_strdup_printf(_("Channel %d"), channel);
 	gtk_tree_store_append(priv->model, &child, &iter);
 	gtk_tree_store_set(priv->model, &child,
@@ -917,7 +928,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
 	                   COLUMN_TYPE, TYPE_PLUGINS,
-	                   COLUMN_ID, TYPE_PLUGINS,
+	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Plugins"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
@@ -926,7 +937,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
 	                   COLUMN_TYPE, TYPE_CHANNELS,
-	                   COLUMN_ID, TYPE_CHANNELS,
+	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Channels"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
@@ -935,7 +946,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
 	                   COLUMN_TYPE, TYPE_SOURCES,
-	                   COLUMN_ID, TYPE_SOURCES,
+	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Sources"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
@@ -944,7 +955,7 @@ pkg_window_connection_connect_cb (GObject      *object,
 	gtk_tree_store_set(priv->model, &child,
 		               COLUMN_CONNECTION, connection,
 	                   COLUMN_TYPE, TYPE_SUBSCRIPTIONS,
-	                   COLUMN_ID, TYPE_SUBSCRIPTIONS,
+	                   COLUMN_ID, 0,
 	                   COLUMN_TITLE, _("Subscriptions"),
 		               COLUMN_SUBTITLE, _("Loading ..."),
 	                   -1);
