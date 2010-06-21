@@ -426,25 +426,54 @@ pkg_window_connection_channel_get_created_at_cb (GObject      *object,    /* IN 
 }
 
 static void
+pkg_window_add_channel (PkgWindow    *window,     /* IN */
+                        PkConnection *connection, /* IN */
+                        gint          channel)    /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gchar *title;
+
+	ENTRY;
+	priv = window->priv;
+	if (!pkg_window_get_channels_iter(window, connection, &iter)) {
+		EXIT;
+	}
+	title = g_strdup_printf(_("Channel %d"), channel);
+	gtk_tree_store_append(priv->model, &child, &iter);
+	gtk_tree_store_set(priv->model, &child,
+	                   COLUMN_ID, channel,
+	                   COLUMN_TYPE, TYPE_CHANNEL,
+	                   COLUMN_CONNECTION, connection,
+	                   COLUMN_TITLE, title,
+	                   COLUMN_SUBTITLE, _("Loading"),
+	                   -1);
+	pkg_window_expand_to_iter(window, &child);
+	pk_connection_channel_get_created_at_async(
+			connection, channel, NULL,
+			pkg_window_connection_channel_get_created_at_cb,
+			pkg_window_channel_call_new(window,
+			                            connection,
+			                            channel));
+	g_free(title);
+	EXIT;
+}
+
+static void
 pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
                                                GAsyncResult *result,    /* IN */
                                                gpointer      user_data) /* IN */
 {
 	PkConnection *connection;
-	PkgWindowPrivate *priv;
 	gint *channels = NULL;
 	gsize channels_len = 0;
-	gchar *subtitle = NULL;
 	GError *error = NULL;
-	GtkTreeIter iter;
-	GtkTreeIter child;
-	gchar *str;
 	gint i;
 
 	g_return_if_fail(PKG_IS_WINDOW(user_data));
 
 	ENTRY;
-	priv = PKG_WINDOW(user_data)->priv;
 	connection = PK_CONNECTION(object);
 	if (!pk_connection_manager_get_channels_finish(connection, result,
 	                                               &channels, &channels_len,
@@ -454,35 +483,9 @@ pkg_window_connection_manager_get_channels_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
-	if (!pkg_window_get_channels_iter(user_data, connection, &iter)) {
-		GOTO(iter_not_found);
-	}
-	subtitle = g_strdup_printf(P_("%d channel", "%d channels", channels_len),
-	                           (gint)channels_len);
-	gtk_tree_store_set(priv->model, &iter,
-	                   COLUMN_SUBTITLE, subtitle,
-	                   -1);
 	for (i = 0; i < channels_len; i++) {
-		str = g_strdup_printf(_("Channel %d"), channels[i]);
-		gtk_tree_store_append(priv->model, &child, &iter);
-		gtk_tree_store_set(priv->model, &child,
-		                   COLUMN_CONNECTION, connection,
-		                   COLUMN_TYPE, TYPE_CHANNEL,
-		                   COLUMN_ID, channels[i],
-		                   COLUMN_TITLE, str,
-		                   COLUMN_SUBTITLE, _("Loading ..."),
-		                   -1);
-		pk_connection_channel_get_created_at_async(
-				connection, channels[i], NULL,
-				pkg_window_connection_channel_get_created_at_cb,
-				pkg_window_channel_call_new(user_data,
-				                            connection,
-				                            channels[i]));
-		pkg_window_expand_to_iter(user_data, &child);
-		g_free(str);
+		pkg_window_add_channel(user_data, connection, channels[i]);
 	}
-  iter_not_found:
-	g_free(subtitle);
 	g_free(channels);
 	EXIT;
 }
@@ -840,26 +843,9 @@ pkg_window_channel_added_cb (PkConnection *connection,
                              gint          channel,
                              gpointer      user_data)
 {
-	PkgWindowPrivate *priv;
-	GtkTreeIter iter;
-	GtkTreeIter child;
-	gchar *title;
 
 	ENTRY;
-	if (!pkg_window_get_channels_iter(user_data, connection, &iter)) {
-		EXIT;
-	}
-	priv = PKG_WINDOW(user_data)->priv;
-	title = g_strdup_printf("Channel %d", channel);
-	gtk_tree_store_append(priv->model, &child, &iter);
-	gtk_tree_store_set(priv->model, &child,
-	                   COLUMN_ID, channel,
-	                   COLUMN_CONNECTION, connection,
-	                   COLUMN_TITLE, title,
-	                   COLUMN_SUBTITLE, "Channel was added",
-	                   -1);
-	pkg_window_expand_to_iter(user_data, &child);
-	g_free(title);
+	pkg_window_add_channel(user_data, connection, channel);
 	EXIT;
 }
 
