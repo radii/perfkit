@@ -678,56 +678,106 @@ pk_connection_dbus_message_filter (DBusConnection *connection,
                                    DBusMessage    *message,
                                    gpointer        user_data)
 {
-	DBusHandlerResult ret = DBUS_HANDLER_RESULT_HANDLED;
+	DBusHandlerResult ret = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	PkConnection *conn = user_data;
+	DBusError dbus_error = { 0 };
+
+	#define HANDLE_SIGNAL_INT(_n, _f)                                    \
+	    G_STMT_START {                                                   \
+	        const gchar *path;                                           \
+	        gint id;                                                     \
+	        if (!dbus_message_get_args(message, &dbus_error,             \
+	                                   DBUS_TYPE_OBJECT_PATH, &path,     \
+	                                   DBUS_TYPE_INVALID)) {             \
+	            GOTO(failed);                                            \
+	        }                                                            \
+	        if (sscanf(path, _f, &id) != 1) {                            \
+	            GOTO(failed);                                            \
+	        }                                                            \
+	        pk_connection_emit_##_n(conn, id);                           \
+	        ret = DBUS_HANDLER_RESULT_HANDLED;                           \
+	    } G_STMT_END
+
+	#define HANDLE_SIGNAL_STRING(_n, _f)                                 \
+	    G_STMT_START {                                                   \
+	        const gchar *path;                                           \
+	        gchar *id;                                                   \
+	        if (!dbus_message_get_args(message, &dbus_error,             \
+	                                   DBUS_TYPE_OBJECT_PATH, &path,     \
+	                                   DBUS_TYPE_INVALID)) {             \
+	            GOTO(failed);                                            \
+	        }                                                            \
+	        if (sscanf(path, _f, &id) != 1) {                            \
+	            GOTO(failed);                                            \
+	        }                                                            \
+	        pk_connection_emit_##_n(conn, id);                           \
+	        g_free(id);                                                  \
+	        ret = DBUS_HANDLER_RESULT_HANDLED;                           \
+	    } G_STMT_END
 
 	ENTRY;
 	if (dbus_message_get_type(message) != DBUS_MESSAGE_TYPE_SIGNAL) {
-		RETURN(DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+		RETURN(ret);
 	}
 	if (dbus_message_is_signal(message,
 	                           "org.perfkit.Agent.Manager",
 	                           "ChannelAdded")) {
 		DEBUG(Channel, "Received channel added event.");
+		HANDLE_SIGNAL_INT(channel_added, "/org/perfkit/Agent/Channel/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "ChannelRemoved")) {
 		DEBUG(Channel, "Received channel removed event.");
+		HANDLE_SIGNAL_INT(channel_removed, "/org/perfkit/Agent/Channel/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "SourceAdded")) {
 		DEBUG(Source, "Received source added event.");
+		HANDLE_SIGNAL_INT(source_added, "/org/perfkit/Agent/Source/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "SourceRemoved")) {
 		DEBUG(Source, "Received source removed event.");
+		HANDLE_SIGNAL_INT(source_removed, "/org/perfkit/Agent/Source/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "PluginAdded")) {
 		DEBUG(Plugin, "Received plugin added event.");
+		HANDLE_SIGNAL_STRING(plugin_added, "/org/perfkit/Agent/Plugin/%as");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "PluginRemoved")) {
 		DEBUG(Plugin, "Received plugin removed event.");
+		HANDLE_SIGNAL_STRING(plugin_removed, "/org/perfkit/Agent/Plugin/%as");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "EncoderAdded")) {
 		DEBUG(Encoder, "Received encoder added event.");
+		HANDLE_SIGNAL_INT(encoder_added, "/org/perfkit/Agent/Encoder/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "EncoderRemoved")) {
 		DEBUG(Encoder, "Received encoder removed event.");
+		HANDLE_SIGNAL_INT(encoder_removed, "/org/perfkit/Agent/Encoder/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "SubscriptionAdded")) {
 		DEBUG(Subscription, "Received subscription added event.");
+		HANDLE_SIGNAL_INT(subscription_added, "/org/perfkit/Agent/Subscription/%d");
 	} else if (dbus_message_is_signal(message,
 	                                  "org.perfkit.Agent.Manager",
 	                                  "SubscriptionRemoved")) {
 		DEBUG(Subscription, "Received subscription removed event.");
-	} else {
-		ret = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+		HANDLE_SIGNAL_INT(subscription_removed, "/org/perfkit/Agent/Subscription/%d");
+	}
+  failed:
+  	if (dbus_error_is_set(&dbus_error)) {
+		WARNING(DBus, "Error receiving signal: %s", dbus_error.message);
+		dbus_error_free(&dbus_error);
 	}
 	RETURN(ret);
+	#undef HANDLE_SIGNAL_INT
+	#undef HANDLE_SIGNAL_STRING
 }
 
 static void
@@ -8983,7 +9033,6 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
             connection_class->_n##_async = pk_connection_dbus_##_n##_async;   \
             connection_class->_n##_finish = pk_connection_dbus_##_n##_finish; \
         } G_STMT_END
-
 	OVERRIDE_VTABLE(channel_add_source);
 	OVERRIDE_VTABLE(channel_get_args);
 	OVERRIDE_VTABLE(channel_get_created_at);
@@ -9040,7 +9089,6 @@ pk_connection_dbus_class_init (PkConnectionDBusClass *klass)
 	OVERRIDE_VTABLE(subscription_set_encoder);
 	OVERRIDE_VTABLE(subscription_set_handlers);
 	OVERRIDE_VTABLE(subscription_unmute);
-
 	#undef ADD_RPC
 }
 

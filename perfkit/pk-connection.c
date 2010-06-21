@@ -133,6 +133,16 @@ enum
 enum
 {
 	STATE_CHANGED,
+	CHANNEL_ADDED,
+	CHANNEL_REMOVED,
+	ENCODER_ADDED,
+	ENCODER_REMOVED,
+	PLUGIN_ADDED,
+	PLUGIN_REMOVED,
+	SOURCE_ADDED,
+	SOURCE_REMOVED,
+	SUBSCRIPTION_ADDED,
+	SUBSCRIPTION_REMOVED,
 	LAST_SIGNAL
 };
 
@@ -7708,6 +7718,96 @@ pk_connection_emit_state_changed (PkConnection      *connection, /* IN */
 	g_signal_emit(connection, signals[STATE_CHANGED], 0, state);
 }
 
+void
+pk_connection_emit_channel_added (PkConnection *connection, /* IN */
+                                  gint          channel)    /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[CHANNEL_ADDED], 0, channel);
+	EXIT;
+}
+
+void
+pk_connection_emit_channel_removed (PkConnection *connection, /* IN */
+                                    gint          channel)    /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[CHANNEL_REMOVED], 0, channel);
+	EXIT;
+}
+
+void
+pk_connection_emit_source_added (PkConnection *connection, /* IN */
+                                 gint          source)     /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[SOURCE_ADDED], 0, source);
+	EXIT;
+}
+
+void
+pk_connection_emit_source_removed (PkConnection *connection, /* IN */
+                                   gint          source)    /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[SOURCE_REMOVED], 0, source);
+	EXIT;
+}
+
+void
+pk_connection_emit_subscription_added (PkConnection *connection,   /* IN */
+                                       gint          subscription) /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[SUBSCRIPTION_ADDED], 0, subscription);
+	EXIT;
+}
+
+void
+pk_connection_emit_subscription_removed (PkConnection *connection,   /* IN */
+                                         gint          subscription) /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[SUBSCRIPTION_REMOVED], 0, subscription);
+	EXIT;
+}
+
+void
+pk_connection_emit_plugin_added (PkConnection *connection, /* IN */
+                                 const gchar  *plugin)     /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[PLUGIN_ADDED], 0, plugin);
+	EXIT;
+}
+
+void
+pk_connection_emit_plugin_removed (PkConnection *connection, /* IN */
+                                   const gchar  *plugin)     /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[PLUGIN_REMOVED], 0, plugin);
+	EXIT;
+}
+
+void
+pk_connection_emit_encoder_added (PkConnection *connection, /* IN */
+                                  gint          encoder)    /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[ENCODER_ADDED], 0, encoder);
+	EXIT;
+}
+
+void
+pk_connection_emit_encoder_removed (PkConnection *connection, /* IN */
+                                    gint          encoder)    /* IN */
+{
+	ENTRY;
+	g_signal_emit(connection, signals[ENCODER_REMOVED], 0, encoder);
+	EXIT;
+}
+
 /**
  * pk_connection_get_property:
  * @object: A #PkConnection.
@@ -7825,11 +7925,38 @@ pk_connection_class_init (PkConnectionClass *klass) /* IN */
 	 * See pk_connection_emit_state_changed().
 	 */
 	signals[STATE_CHANGED] = g_signal_new("state-changed",
-	                                      G_OBJECT_CLASS_TYPE(object_class),
+	                                      PK_TYPE_CONNECTION,
 	                                      G_SIGNAL_RUN_FIRST,
 	                                      0, NULL, NULL,
 	                                      g_cclosure_marshal_VOID__UINT,
 	                                      G_TYPE_NONE, 1, G_TYPE_UINT);
+
+	#define ADD_SIGNAL_INT(_e, _n)                                   \
+		signals[_e] = g_signal_new(_n,                               \
+	                               PK_TYPE_CONNECTION,               \
+	                               G_SIGNAL_RUN_FIRST,               \
+	                               0, NULL, NULL,                    \
+	                               g_cclosure_marshal_VOID__INT,     \
+	                               G_TYPE_NONE, 1, G_TYPE_INT)
+
+	#define ADD_SIGNAL_STRING(_e, _n)                                \
+		signals[_e] = g_signal_new(_n,                               \
+	                               PK_TYPE_CONNECTION,               \
+	                               G_SIGNAL_RUN_FIRST,               \
+	                               0, NULL, NULL,                    \
+	                               g_cclosure_marshal_VOID__STRING,  \
+	                               G_TYPE_NONE, 1, G_TYPE_STRING)
+
+	ADD_SIGNAL_INT(CHANNEL_ADDED, "channel-added");
+	ADD_SIGNAL_INT(CHANNEL_REMOVED, "channel-removed");
+	ADD_SIGNAL_INT(SOURCE_ADDED, "source-added");
+	ADD_SIGNAL_INT(SOURCE_REMOVED, "source-removed");
+	ADD_SIGNAL_INT(SUBSCRIPTION_ADDED, "subscription-added");
+	ADD_SIGNAL_INT(SUBSCRIPTION_REMOVED, "subscription-removed");
+	ADD_SIGNAL_INT(ENCODER_ADDED, "encoder-added");
+	ADD_SIGNAL_INT(ENCODER_REMOVED, "encoder-removed");
+	ADD_SIGNAL_STRING(PLUGIN_ADDED, "plugin-added");
+	ADD_SIGNAL_STRING(PLUGIN_REMOVED, "plugin-removed");
 }
 
 /**

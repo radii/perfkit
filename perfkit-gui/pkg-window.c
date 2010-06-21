@@ -836,6 +836,34 @@ pkg_window_refresh_all (GtkWidget *menu_item, /* IN */
 }
 
 static void
+pkg_window_channel_added_cb (PkConnection *connection,
+                             gint          channel,
+                             gpointer      user_data)
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gchar *title;
+
+	ENTRY;
+	if (!pkg_window_get_channels_iter(user_data, connection, &iter)) {
+		EXIT;
+	}
+	priv = PKG_WINDOW(user_data)->priv;
+	title = g_strdup_printf("Channel %d", channel);
+	gtk_tree_store_append(priv->model, &child, &iter);
+	gtk_tree_store_set(priv->model, &child,
+	                   COLUMN_ID, channel,
+	                   COLUMN_CONNECTION, connection,
+	                   COLUMN_TITLE, title,
+	                   COLUMN_SUBTITLE, "Channel was added",
+	                   -1);
+	pkg_window_expand_to_iter(user_data, &child);
+	g_free(title);
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -900,6 +928,9 @@ pkg_window_connection_connect_cb (GObject      *object,
 	pkg_window_refresh_with_iter(user_data,
 	                             GTK_TREE_MODEL(priv->model),
 	                             &iter);
+	g_signal_connect(connection, "channel-added",
+	                 G_CALLBACK(pkg_window_channel_added_cb),
+	                 user_data);
 	EXIT;
 }
 
