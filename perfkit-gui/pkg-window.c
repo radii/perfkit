@@ -591,6 +591,43 @@ pkg_window_connection_subscription_get_created_at_cb (GObject      *object,    /
 }
 
 static void
+pkg_window_add_subscription (PkgWindow    *window,       /* IN */
+                             PkConnection *connection,   /* IN */
+                             gint          subscription) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gchar *title;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	if (!pkg_window_get_subscriptions_iter(window, connection, &iter)) {
+		EXIT;
+	}
+	title = g_strdup_printf(_("Subscription %d"), subscription);
+	gtk_tree_store_append(priv->model, &child, &iter);
+	gtk_tree_store_set(priv->model, &child,
+	                   COLUMN_CONNECTION, connection,
+	                   COLUMN_TYPE, TYPE_SUBSCRIPTION,
+	                   COLUMN_ID, subscription,
+	                   COLUMN_TITLE, title,
+	                   COLUMN_SUBTITLE, _("Loading ..."),
+	                   -1);
+	pk_connection_subscription_get_created_at_async(
+			connection, subscription, NULL,
+			pkg_window_connection_subscription_get_created_at_cb,
+			pkg_window_subscription_call_new(
+				window, connection, subscription));
+	pkg_window_expand_to_iter(window, &child);
+	g_free(title);
+	EXIT;
+}
+
+static void
 pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* IN */
                                                     GAsyncResult *result,    /* IN */
                                                     gpointer      user_data) /* IN */
@@ -599,11 +636,7 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 	PkgWindowPrivate *priv;
 	gint *subscriptions;
 	gsize subscriptions_len;
-	gchar *title = NULL;
-	gchar *subtitle = NULL;
 	GError *error = NULL;
-	GtkTreeIter iter;
-	GtkTreeIter child;
 	gint i;
 
 	g_return_if_fail(PKG_IS_WINDOW(user_data));
@@ -620,33 +653,9 @@ pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* 
 		g_error_free(error);
 		EXIT;
 	}
-	if (!pkg_window_get_subscriptions_iter(user_data, connection, &iter)) {
-		GOTO(iter_not_found);
-	}
-	subtitle = g_strdup_printf(P_("%d subscription", "%d subscriptions",
-	                              subscriptions_len),
-	                           (gint)subscriptions_len);
-	gtk_tree_store_set(priv->model, &iter, COLUMN_SUBTITLE, subtitle, -1);
-  	g_free(subtitle);
 	for (i = 0; i < subscriptions_len; i++) {
-		title = g_strdup_printf(_("Subscription %d"), subscriptions[i]);
-		gtk_tree_store_append(priv->model, &child, &iter);
-		gtk_tree_store_set(priv->model, &child,
-		                   COLUMN_CONNECTION, connection,
-		                   COLUMN_TYPE, TYPE_SUBSCRIPTION,
-		                   COLUMN_ID, subscriptions[i],
-		                   COLUMN_TITLE, title,
-		                   COLUMN_SUBTITLE, _("Loading ..."),
-		                   -1);
-		pk_connection_subscription_get_created_at_async(
-				connection, subscriptions[i], NULL,
-				pkg_window_connection_subscription_get_created_at_cb,
-				pkg_window_subscription_call_new(
-					user_data, connection, subscriptions[i]));
-		pkg_window_expand_to_iter(user_data, &child);
-		g_free(title);
+		pkg_window_add_subscription(user_data, connection, subscriptions[i]);
 	}
-  iter_not_found:
   	g_free(subscriptions);
 	EXIT;
 }
@@ -868,6 +877,17 @@ pkg_window_source_added_cb (PkConnection *connection,
 }
 
 static void
+pkg_window_subscription_added_cb (PkConnection *connection,
+                                  gint          subscription,
+                                  gpointer      user_data)
+{
+
+	ENTRY;
+	pkg_window_add_subscription(user_data, connection, subscription);
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -940,6 +960,9 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                 user_data);
 	g_signal_connect(connection, "source-added",
 	                 G_CALLBACK(pkg_window_source_added_cb),
+	                 user_data);
+	g_signal_connect(connection, "subscription-added",
+	                 G_CALLBACK(pkg_window_subscription_added_cb),
 	                 user_data);
 	EXIT;
 }
