@@ -99,3 +99,6 @@ typelibs_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(dist_gir_DATA) $(typelibs_DATA)
 endif
+
+run: perfkit-chart
+	./perfkit-chart

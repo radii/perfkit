@@ -45,6 +45,7 @@ create_scatter_window (void)
 	gtk_widget_show(window);
 
 	scatter = pkc_scatter_new();
+	gtk_container_set_border_width(GTK_CONTAINER(scatter), 12);
 	gtk_container_add(GTK_CONTAINER(window), scatter);
 	gtk_widget_show(scatter);
 }
