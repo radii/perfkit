@@ -64,6 +64,12 @@ enum
 	EXACT,
 };
 
+enum
+{
+	X_AXIS,
+	Y_AXIS,
+};
+
 /**
  * pkc_scatter_new:
  *
@@ -208,6 +214,49 @@ pkc_scatter_get_tick_label_layout (PkcScatter *scatter,  /* IN */
 }
 
 static void
+pkc_scatter_add_axis_label (PkcScatter  *scatter, /* IN */
+                            cairo_t     *cr,      /* IN */
+                            const gchar *title,   /* IN */
+                            gint         axis,    /* IN */
+                            gdouble      x,       /* IN */
+                            gdouble      y)       /* IN */
+{
+	PkcScatterPrivate *priv;
+	PangoLayout *layout;
+	PangoFontDescription *font_desc;
+	gint w, h;
+
+	g_return_if_fail(PKC_IS_SCATTER(scatter));
+
+	ENTRY;
+	cairo_save(cr);
+	priv = scatter->priv;
+	layout = pango_cairo_create_layout(cr);
+	font_desc = pango_font_description_new();
+	pango_font_description_set_size(font_desc, 10 * PANGO_SCALE);
+	pango_font_description_set_family_static(font_desc, "Monospace");
+	pango_layout_set_font_description(layout, font_desc);
+	pango_font_description_free(font_desc);
+	pango_layout_set_markup(layout, title, -1);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	switch (axis) {
+	case X_AXIS:
+		cairo_move_to(cr, x, y + (w / 2.));
+		cairo_rotate(cr, -(G_PI / 2.));
+		break;
+	case Y_AXIS:
+		cairo_move_to(cr, x - (w / 2.), y - h);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+	pango_cairo_show_layout(cr, layout);
+	cairo_restore(cr);
+	g_object_unref(layout);
+	EXIT;
+}
+
+static void
 pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 {
 	PkcScatterPrivate *priv;
@@ -323,6 +372,14 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	                                       x3 - 2., y2, UPPER_LEFT);
 	pango_cairo_show_layout(cr, pl);
 	g_object_unref(pl);
+
+	/*
+	 * Draw titles.
+	 */
+	pkc_scatter_add_axis_label(scatter, cr, "X Axis",
+	                           X_AXIS, 0, y2 / 2.);
+	pkc_scatter_add_axis_label(scatter, cr, "Y Axis",
+	                           Y_AXIS, x2 + ((x3 - x2) / 2.), h);
 
 	/*
 	 * Clean up resources.
