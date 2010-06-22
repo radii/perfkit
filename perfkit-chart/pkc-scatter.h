@@ -52,8 +52,10 @@ struct _PkcScatterClass
 	GtkAlignmentClass parent_class;
 };
 
-GType      pkc_scatter_get_type (void) G_GNUC_CONST;
-GtkWidget* pkc_scatter_new      (void);
+GType          pkc_scatter_get_type        (void) G_GNUC_CONST;
+GtkWidget*     pkc_scatter_new             (void);
+GtkAdjustment* pkc_scatter_get_xadjustment (PkcScatter *scatter);
+GtkAdjustment* pkc_scatter_get_yadjustment (PkcScatter *scatter);
 
 G_END_DECLS
 

@@ -58,8 +58,10 @@ struct _PkcScatterPrivate
 enum
 {
 	UPPER_LEFT,
+	BOTTOM_LEFT,
 	CENTER_MIDDLE,
 	SHADOW,
+	EXACT,
 };
 
 /**
@@ -163,6 +165,48 @@ pkc_scatter_position_relative (PkcScatter   *scatter, /* IN */
 	EXIT;
 }
 
+static PangoLayout*
+pkc_scatter_get_tick_label_layout (PkcScatter *scatter,  /* IN */
+                                   cairo_t    *cr,       /* IN */
+                                   gdouble     value,    /* IN */
+                                   gdouble     x,        /* IN */
+                                   gdouble     y,        /* IN */
+                                   gint        relative) /* IN */
+{
+	PangoLayout *layout;
+	PangoFontDescription *font_desc;
+	gchar *markup;
+	gint w, h;
+
+	g_return_val_if_fail(PKC_IS_SCATTER(scatter), NULL);
+	g_return_val_if_fail(cr != NULL, NULL);
+
+	ENTRY;
+	layout = pango_cairo_create_layout(cr);
+	font_desc = pango_font_description_new();
+	pango_font_description_set_size(font_desc, 10 * PANGO_SCALE);
+	pango_font_description_set_family_static(font_desc, "Monospace");
+	pango_layout_set_font_description(layout, font_desc);
+	pango_font_description_free(font_desc);
+	markup = g_markup_printf_escaped("<span size='smaller'>%d</span>", (gint)value);
+	pango_layout_set_markup(layout, markup, -1);
+	g_free(markup);
+	pango_layout_get_pixel_size(layout, &w, &h);
+	switch (relative) {
+	case UPPER_LEFT:
+		cairo_move_to(cr, x - w, y);
+		break;
+	case BOTTOM_LEFT:
+		cairo_move_to(cr, x - w, y - h);
+		break;
+	case EXACT:
+	default:
+		cairo_move_to(cr, x, y);
+		break;
+	}
+	RETURN(layout);
+}
+
 static void
 pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 {
@@ -175,6 +219,7 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	GtkAllocation alloc;
 	gfloat w, h;
 	cairo_t *cr;
+	PangoLayout *pl;
 	//cairo_pattern_t *p;
 
 	#define LABEL_HEIGHT 24
@@ -244,19 +289,44 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	 */
 	cairo_move_to(cr, x1, y3);
 	cairo_line_to(cr, x2, y3);
+	cairo_stroke(cr);
+	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
+	                                       gtk_adjustment_get_upper(priv->x_adj),
+	                                       x2 - 2, y3, UPPER_LEFT);
+	pango_cairo_show_layout(cr, pl);
+	g_object_unref(pl);
 	cairo_move_to(cr, x1, y2);
 	cairo_line_to(cr, x2, y2);
 	cairo_stroke(cr);
+	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
+	                                       gtk_adjustment_get_lower(priv->x_adj),
+	                                       x2 - 2, y2, BOTTOM_LEFT);
+	pango_cairo_show_layout(cr, pl);
+	g_object_unref(pl);
 
 	/*
 	 * Draw X-axis ticks.
 	 */
 	cairo_move_to(cr, x2, y2);
 	cairo_line_to(cr, x2, y1);
+	cairo_stroke(cr);
+	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
+	                                       gtk_adjustment_get_lower(priv->y_adj),
+	                                       x2 + 1., y2, EXACT);
+	pango_cairo_show_layout(cr, pl);
+	g_object_unref(pl);
 	cairo_move_to(cr, x3, y2);
 	cairo_line_to(cr, x3, y1);
 	cairo_stroke(cr);
+	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
+	                                       gtk_adjustment_get_upper(priv->y_adj),
+	                                       x3 - 2., y2, UPPER_LEFT);
+	pango_cairo_show_layout(cr, pl);
+	g_object_unref(pl);
 
+	/*
+	 * Clean up resources.
+	 */
 	cairo_destroy(cr);
 	EXIT;
 }
@@ -326,7 +396,40 @@ pkc_scatter_style_set (GtkWidget *scatter,
 	pkc_scatter_update_background(PKC_SCATTER(scatter));
 	EXIT;
 }
-                           
+
+/**
+ * pkc_scatter_get_xadjustment:
+ * @scatter: A #PkcScatter.
+ *
+ * Retrieves the #GtkAdjustment representing the horizontal axis of the
+ * scatter plot.
+ *
+ * Returns: A #GtkAdjustment.
+ * Side effects: None.
+ */
+GtkAdjustment*
+pkc_scatter_get_xadjustment (PkcScatter *scatter) /* IN */
+{
+	g_return_val_if_fail(PKC_IS_SCATTER(scatter), NULL);
+	return scatter->priv->x_adj;
+}
+
+/**
+ * pkc_scatter_get_yadjustment:
+ * @scatter: A #PkcScatter.
+ *
+ * Retrieves the #GtkAdjustment representing the vertical axis of the
+ * scatter plot.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+GtkAdjustment*
+pkc_scatter_get_yadjustment (PkcScatter *scatter) /* IN */
+{
+	g_return_val_if_fail(PKC_IS_SCATTER(scatter), NULL);
+	return scatter->priv->y_adj;
+}
 
 /**
  * pkc_scatter_finalize:

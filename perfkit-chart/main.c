@@ -38,6 +38,8 @@ create_scatter_window (void)
 {
 	GtkWidget *window;
 	GtkWidget *scatter;
+	GtkAdjustment *x_adj;
+	GtkAdjustment *y_adj;
 
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "PkcScatter");
@@ -45,6 +47,10 @@ create_scatter_window (void)
 	gtk_widget_show(window);
 
 	scatter = pkc_scatter_new();
+	x_adj = pkc_scatter_get_xadjustment(PKC_SCATTER(scatter));
+	y_adj = pkc_scatter_get_yadjustment(PKC_SCATTER(scatter));
+	gtk_adjustment_set_upper(x_adj, 100);
+	gtk_adjustment_set_upper(y_adj, 200);
 	gtk_container_set_border_width(GTK_CONTAINER(scatter), 12);
 	gtk_container_add(GTK_CONTAINER(window), scatter);
 	gtk_widget_show(scatter);
