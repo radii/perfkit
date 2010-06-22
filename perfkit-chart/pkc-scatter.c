@@ -48,8 +48,18 @@ struct _PkcScatterPrivate
 	ClutterActor  *legend_label;
 	ClutterActor  *legend_label2;
 
+	ClutterActor  *x_label;
+	ClutterActor  *y_label;
+
 	GtkAdjustment *x_adj;
 	GtkAdjustment *y_adj;
+};
+
+enum
+{
+	UPPER_LEFT,
+	CENTER_MIDDLE,
+	SHADOW,
 };
 
 /**
@@ -71,6 +81,89 @@ pkc_scatter_new (void)
 }
 
 static void
+pkc_scatter_update_labels (PkcScatter *scatter) /* IN */
+{
+	PkcScatterPrivate *priv;
+	ClutterColor black = { 0, 0, 0, 0xFF };
+
+	ENTRY;
+	priv = scatter->priv;
+	if (!priv->x_label) {
+		priv->x_label = clutter_text_new_full("Monospace", "", &black);
+		priv->y_label = clutter_text_new_full("Monospace", "", &black);
+		clutter_container_add(CLUTTER_CONTAINER(priv->stage),
+		                      priv->x_label, priv->y_label, NULL);
+		clutter_actor_show(priv->x_label);
+		clutter_actor_show(priv->y_label);
+	}
+	EXIT;
+}
+
+void
+pkc_scatter_set_x_label (PkcScatter  *scatter, /* IN */
+                         const gchar *text)    /* IN */
+{
+	PkcScatterPrivate *priv;
+
+	g_return_if_fail(PKC_IS_SCATTER(scatter));
+	g_return_if_fail(text != NULL);
+
+	ENTRY;
+	priv = scatter->priv;
+	clutter_text_set_text(CLUTTER_TEXT(priv->x_label), text);
+	pkc_scatter_update_labels(scatter);
+	EXIT;
+}
+
+void
+pkc_scatter_set_y_label (PkcScatter  *scatter, /* IN */
+                         const gchar *text)    /* IN */
+{
+	PkcScatterPrivate *priv;
+
+	g_return_if_fail(PKC_IS_SCATTER(scatter));
+	g_return_if_fail(text != NULL);
+
+	ENTRY;
+	priv = scatter->priv;
+	clutter_text_set_text(CLUTTER_TEXT(priv->y_label), text);
+	pkc_scatter_update_labels(scatter);
+	EXIT;
+}
+
+static void
+pkc_scatter_position_relative (PkcScatter   *scatter, /* IN */
+                               ClutterActor *parent,  /* IN */
+                               ClutterActor *actor,   /* IN */
+                               gint          rel)     /* IN */
+{
+	gfloat pw, w;
+	gfloat ph, h;
+	gfloat x, y;
+
+	ENTRY;
+	clutter_actor_get_size(parent, &pw, &ph);
+	clutter_actor_get_size(actor, &w, &h);
+	clutter_actor_get_position(parent, &x, &y);
+	switch (rel) {
+	case UPPER_LEFT:
+		clutter_actor_set_position(actor, x + pw - w, y);
+		break;
+	case CENTER_MIDDLE:
+		clutter_actor_set_position(actor,
+		                           x + ((pw - w) / 2.),
+		                           y + ((ph - h) / 2.));
+		break;
+	case SHADOW:
+		clutter_actor_set_position(actor, x + 1, y + 1);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+	EXIT;
+}
+
+static void
 pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 {
 	PkcScatterPrivate *priv;
@@ -82,6 +175,7 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	GtkAllocation alloc;
 	gfloat w, h;
 	cairo_t *cr;
+	//cairo_pattern_t *p;
 
 	#define LABEL_HEIGHT 24
 	#define TICK_HEIGHT  15
@@ -131,7 +225,12 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	cairo_set_line_width(cr, 1.0);
 	cairo_rectangle(cr, x2, y3, x3 - x2, y2 - y3);
 	cairo_set_source_rgb(cr, 1, 1, 1);
+	//p = cairo_pattern_create_linear(0., 0., 0., h);
+	//cairo_pattern_add_color_stop_rgb(p, 0., .53, .54, .52);
+	//cairo_pattern_add_color_stop_rgb(p, .618, .933, .933, .925);
+	//cairo_set_source(cr, p);
 	cairo_fill_preserve(cr);
+	//cairo_pattern_destroy(p);
 
 	/*
 	 * Draw border basic border.
@@ -163,7 +262,7 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 }
 
 static void
-pkc_scatter_update_legend (PkcScatter *scatter)
+pkc_scatter_update_legend (PkcScatter *scatter) /* IN */
 {
 	PkcScatterPrivate *priv;
 	ClutterColor black = { 0, 0, 0, 0xFF };
@@ -194,7 +293,6 @@ pkc_scatter_size_allocate (GtkWidget     *scatter,
                            GtkAllocation *allocation)
 {
 	PkcScatterPrivate *priv;
-	gfloat w, h;
 
 	ENTRY;
 	priv = PKC_SCATTER(scatter)->priv;
@@ -203,12 +301,18 @@ pkc_scatter_size_allocate (GtkWidget     *scatter,
 	                                       allocation->width,
 	                                       allocation->height);
 	clutter_actor_set_size(priv->bg, allocation->width, allocation->height);
-	clutter_actor_set_position(priv->legend, allocation->width - TAB_WIDTH, 0);
-	clutter_actor_get_size(priv->legend_label, &w, &h);
-	clutter_actor_set_position(priv->legend_label,
-	                           allocation->width - TAB_WIDTH + (w / 2), 0);
-	clutter_actor_set_position(priv->legend_label2,
-	                           allocation->width - TAB_WIDTH + (w / 2) + 1, 1);
+	pkc_scatter_position_relative(PKC_SCATTER(scatter),
+	                              priv->bg,
+	                              priv->legend,
+	                              UPPER_LEFT);
+	pkc_scatter_position_relative(PKC_SCATTER(scatter),
+	                              priv->legend,
+	                              priv->legend_label,
+	                              CENTER_MIDDLE);
+	pkc_scatter_position_relative(PKC_SCATTER(scatter),
+	                              priv->legend_label,
+	                              priv->legend_label2,
+	                              SHADOW);
 	pkc_scatter_update_background(PKC_SCATTER(scatter));
 	EXIT;
 }
@@ -306,6 +410,7 @@ pkc_scatter_init (PkcScatter *scatter) /* IN */
 	 */
 	pkc_scatter_update_background(scatter);
 	pkc_scatter_update_legend(scatter);
+	pkc_scatter_update_labels(scatter);
 
 	EXIT;
 }
