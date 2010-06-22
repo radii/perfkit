@@ -7,7 +7,7 @@ SUBDIRS = . sources encoders listeners
 noinst_LTLIBRARIES = libperfkit-agent.la
 bin_PROGRAMS = perfkit-agent
 
-headerdir = $(prefix)/include/perfkit-agent-1.0/perfkit-agent
+headerdir = $(prefix)/include/perfkit-1.0/perfkit-agent
 header_DATA = $(INST_H_FILES)
 
 etcdir = $(sysconfdir)/perfkit

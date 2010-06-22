@@ -82,6 +82,12 @@ PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0      >= 2.20
 PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gio-2.0          >= 2.20])
+PKG_CHECK_MODULES(PERFKIT_CHART,  [gobject-2.0      >= 2.20
+                                   gthread-2.0      >= 2.20
+                                   gio-2.0          >= 2.20
+                                   gtk+-2.0         >= 2.20
+                                   clutter-1.0      >= 1.2
+                                   clutter-gtk-0.10 >= 0.10.4])
 PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gtk+-2.0         >= 2.18])
@@ -180,6 +186,10 @@ AC_OUTPUT([
 	perfkit-agent/encoders/Makefile
 	perfkit-agent/listeners/Makefile
 	perfkit-agent/pka-version.h
+
+	perfkit-chart/Makefile
+	perfkit-chart/pkc-version.h
+	perfkit-chart/perfkit-chart-1.0.pc
 
 	perfkit-gui/Makefile
 	perfkit-gui/pkg-version.h

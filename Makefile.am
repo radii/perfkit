@@ -1,4 +1,14 @@
-SUBDIRS = data perfkit-agent perfkit tools perfkit-gui bindings tests doc
+SUBDIRS =		\
+	data		\
+	perfkit-agent	\
+	perfkit		\
+	tools		\
+	perfkit-chart	\
+	perfkit-gui	\
+	bindings	\
+	tests		\
+	doc
+
 ACLOCAL_AMFLAGS = -I build/m4
 DISTCHECK_CONFIGURE_FLAGS = --enable-maintainer-flags --enable-gtk-doc --enable-introspection
 
