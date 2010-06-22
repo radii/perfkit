@@ -43,13 +43,7 @@ NOINST_H_FILES =							\
 	pkc-log.h							\
 	$(NULL)
 
-libperfkit_chart_1_0_la_SOURCES =					\
-	$(INST_H_FILES)							\
-	$(NOINST_H_FILES)						\
-	pkc-scatter.c							\
-	$(NULL)
-
-libperfkit_chart_1_0_la_CPPFLAGS =					\
+INCLUDES =								\
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\"	\
 	-DPACKAGE_SRC_DIR=\""$(srcdir)"\"				\
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\"				\
@@ -63,22 +57,21 @@ libperfkit_chart_1_0_la_CPPFLAGS =					\
 	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
 
+libperfkit_chart_1_0_la_SOURCES =					\
+	$(INST_H_FILES)							\
+	$(NOINST_H_FILES)						\
+	pkc-scatter.c							\
+	$(NULL)
+libperfkit_chart_1_0_la_CPPFLAGS = $(INCLUDES)
+libperfkit_chart_1_0_la_LIBADD =					\
+	$(PERFKIT_CHART_LIBS)						\
+	$(NULL)
+
 perfkit_chart_SOURCES =							\
 	main.c								\
 	$(NULL)
-
-perfkit_chart_CPPFLAGS =						\
-	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)s/locale"\"	\
-	-DGETTEXT_PACKAGE=\""perfkit-chart"\"				\
-	-DG_LOG_DOMAIN=\"PerfkitChart\"					\
-	-DPERFKIT_CHART_COMPILATION					\
-	$(WARNINGS)							\
-	$(PERFKIT_CHART_CFLAGS)						\
-	$(PERFKIT_DEBUG_CFLAGS)						\
-	$(NULL)
-
+perfkit_chart_CPPFLAGS = $(INCLUDES)
 perfkit_chart_LDADD =							\
-	$(PERFKIT_CHART_LIBS)						\
 	libperfkit-chart-1.0.la						\
 	$(NULL)
 
@@ -87,12 +80,12 @@ CLEANFILES =
 DISTCLEANFILES = $(BUILD_SOURCES)
 
 if HAVE_INTROSPECTION
-introspection_files = $(INST_H_FILES) pk-*.c
+introspection_files = $(INST_H_FILES) pkc-*.c
 
 Perfkit-Chart-1.0.gir: $(INTROSPECTION_SCANNER) libperfkit-chart-1.0.la Makefile
 Perfkit_Chart_1_0_gir_SCANNERFLAGS = --strip-prefix=Pkc
-Perfkit_Chart_1_0_gir_INCLUDES = Gio-2.0
-Perfkit_Chart_1_0_gir_CFLAGS = $(INCLUDES) -DPERFKIT_COMPILATION
+Perfkit_Chart_1_0_gir_INCLUDES = Gio-2.0 Gtk-2.0
+Perfkit_Chart_1_0_gir_CFLAGS = $(PERFKIT_CHART_CFLAGS) -DPERFKIT_CHART_COMPILATION
 Perfkit_Chart_1_0_gir_LIBS = libperfkit-chart-1.0.la
 Perfkit_Chart_1_0_gir_FILES = $(addprefix $(srcdir)/, $(introspection_files))
 
