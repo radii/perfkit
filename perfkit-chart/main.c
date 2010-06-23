@@ -49,8 +49,16 @@ create_scatter_window (void)
 	scatter = pkc_scatter_new();
 	x_adj = pkc_scatter_get_xadjustment(PKC_SCATTER(scatter));
 	y_adj = pkc_scatter_get_yadjustment(PKC_SCATTER(scatter));
+
+	gtk_adjustment_set_lower(x_adj, 0);
 	gtk_adjustment_set_upper(x_adj, 100);
+	gtk_adjustment_set_page_size(x_adj, 100);
+	gtk_adjustment_set_page_increment(x_adj, 10);
+	gtk_adjustment_set_value(x_adj, 50);
+
 	gtk_adjustment_set_upper(y_adj, 200);
+	gtk_adjustment_set_page_size(y_adj, 200);
+	gtk_adjustment_set_page_increment(y_adj, 10);
 	gtk_container_set_border_width(GTK_CONTAINER(scatter), 12);
 	gtk_container_add(GTK_CONTAINER(window), scatter);
 	gtk_widget_show(scatter);

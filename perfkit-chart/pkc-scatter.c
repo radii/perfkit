@@ -28,6 +28,19 @@
 #include "pkc-log.h"
 #include "pkc-scatter.h"
 
+#define X_UPPER gtk_adjustment_get_upper(priv->x_adj)
+#define Y_UPPER gtk_adjustment_get_upper(priv->y_adj)
+#define X_LOWER gtk_adjustment_get_lower(priv->x_adj)
+#define Y_LOWER gtk_adjustment_get_lower(priv->y_adj)
+#define X_VALUE gtk_adjustment_get_value(priv->x_adj)
+#define Y_VALUE gtk_adjustment_get_value(priv->y_adj)
+#define X_PAGE  gtk_adjustment_get_page_size(priv->x_adj)
+#define Y_PAGE  gtk_adjustment_get_page_size(priv->y_adj)
+#define X_INC   gtk_adjustment_get_page_increment(priv->x_adj)
+#define Y_INC   gtk_adjustment_get_page_increment(priv->y_adj)
+
+G_DEFINE_TYPE(PkcScatter, pkc_scatter, GTK_TYPE_ALIGNMENT)
+
 /**
  * SECTION:pkc-scatter
  * @title: PkcScatter
@@ -35,8 +48,6 @@
  *
  * Section overview.
  */
-
-G_DEFINE_TYPE(PkcScatter, pkc_scatter, GTK_TYPE_ALIGNMENT)
 
 struct _PkcScatterPrivate
 {
@@ -171,32 +182,31 @@ pkc_scatter_position_relative (PkcScatter   *scatter, /* IN */
 	EXIT;
 }
 
-static PangoLayout*
-pkc_scatter_get_tick_label_layout (PkcScatter *scatter,  /* IN */
-                                   cairo_t    *cr,       /* IN */
-                                   gdouble     value,    /* IN */
-                                   gdouble     x,        /* IN */
-                                   gdouble     y,        /* IN */
-                                   gint        relative) /* IN */
+static void
+pkc_scatter_draw_tick_label (PkcScatter *scatter,  /* IN */
+                             cairo_t    *cr,       /* IN */
+                             gdouble     value,    /* IN */
+                             gdouble     x,        /* IN */
+                             gdouble     y,        /* IN */
+                             gint        relative) /* IN */
 {
 	PangoLayout *layout;
 	PangoFontDescription *font_desc;
 	gchar *markup;
 	gint w, h;
 
-	g_return_val_if_fail(PKC_IS_SCATTER(scatter), NULL);
-	g_return_val_if_fail(cr != NULL, NULL);
+	g_return_if_fail(PKC_IS_SCATTER(scatter));
+	g_return_if_fail(cr != NULL);
 
 	ENTRY;
+	cairo_save(cr);
 	layout = pango_cairo_create_layout(cr);
 	font_desc = pango_font_description_new();
 	pango_font_description_set_size(font_desc, 10 * PANGO_SCALE);
 	pango_font_description_set_family_static(font_desc, "Monospace");
 	pango_layout_set_font_description(layout, font_desc);
-	pango_font_description_free(font_desc);
 	markup = g_markup_printf_escaped("<span size='smaller'>%d</span>", (gint)value);
 	pango_layout_set_markup(layout, markup, -1);
-	g_free(markup);
 	pango_layout_get_pixel_size(layout, &w, &h);
 	switch (relative) {
 	case UPPER_LEFT:
@@ -210,7 +220,12 @@ pkc_scatter_get_tick_label_layout (PkcScatter *scatter,  /* IN */
 		cairo_move_to(cr, x, y);
 		break;
 	}
-	RETURN(layout);
+	pango_cairo_show_layout(cr, layout);
+	cairo_restore(cr);
+	pango_font_description_free(font_desc);
+	g_object_unref(layout);
+	g_free(markup);
+	EXIT;
 }
 
 static void
@@ -256,6 +271,21 @@ pkc_scatter_add_axis_label (PkcScatter  *scatter, /* IN */
 	EXIT;
 }
 
+static inline void
+pkc_scatter_draw_tick (PkcScatter *scatter,
+                       cairo_t    *cr,
+                       gdouble     x0,
+                       gdouble     y0,
+                       gdouble     x1,
+                       gdouble     y1)
+{
+	cairo_save(cr);
+	cairo_move_to(cr, x0, y0);
+	cairo_line_to(cr, x1, y1);
+	cairo_stroke(cr);
+	cairo_restore(cr);
+}
+
 static void
 pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 {
@@ -268,7 +298,6 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	GtkAllocation alloc;
 	gfloat w, h;
 	cairo_t *cr;
-	PangoLayout *pl;
 	//cairo_pattern_t *p;
 
 	#define LABEL_HEIGHT 24
@@ -336,42 +365,42 @@ pkc_scatter_update_background (PkcScatter *scatter) /* IN */
 	/*
 	 * Draw Y-axis ticks.
 	 */
-	cairo_move_to(cr, x1, y3);
-	cairo_line_to(cr, x2, y3);
-	cairo_stroke(cr);
-	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
-	                                       gtk_adjustment_get_upper(priv->x_adj),
-	                                       x2 - 2, y3, UPPER_LEFT);
-	pango_cairo_show_layout(cr, pl);
-	g_object_unref(pl);
-	cairo_move_to(cr, x1, y2);
-	cairo_line_to(cr, x2, y2);
-	cairo_stroke(cr);
-	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
-	                                       gtk_adjustment_get_lower(priv->x_adj),
-	                                       x2 - 2, y2, BOTTOM_LEFT);
-	pango_cairo_show_layout(cr, pl);
-	g_object_unref(pl);
+	pkc_scatter_draw_tick(scatter, cr, x1, y3, x2, y3);
+	pkc_scatter_draw_tick_label(scatter, cr, Y_UPPER, x2 - 2., y3, UPPER_LEFT);
+	pkc_scatter_draw_tick(scatter, cr, x1, y2, x2, y2);
+	pkc_scatter_draw_tick_label(scatter, cr, Y_LOWER, x2 - 2., y2, BOTTOM_LEFT);
 
 	/*
 	 * Draw X-axis ticks.
 	 */
-	cairo_move_to(cr, x2, y2);
-	cairo_line_to(cr, x2, y1);
-	cairo_stroke(cr);
-	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
-	                                       gtk_adjustment_get_lower(priv->y_adj),
-	                                       x2 + 1., y2, EXACT);
-	pango_cairo_show_layout(cr, pl);
-	g_object_unref(pl);
-	cairo_move_to(cr, x3, y2);
-	cairo_line_to(cr, x3, y1);
-	cairo_stroke(cr);
-	pl = pkc_scatter_get_tick_label_layout(scatter, cr,
-	                                       gtk_adjustment_get_upper(priv->y_adj),
-	                                       x3 - 2., y2, UPPER_LEFT);
-	pango_cairo_show_layout(cr, pl);
-	g_object_unref(pl);
+	pkc_scatter_draw_tick(scatter, cr, x2, y2, x2, y1);
+	pkc_scatter_draw_tick_label(scatter, cr, X_VALUE, x2 + 1., y2, EXACT);
+	pkc_scatter_draw_tick(scatter, cr, x3, y2, x3, y1);
+	pkc_scatter_draw_tick_label(scatter, cr, X_VALUE + X_PAGE, x3 - 2., y2, UPPER_LEFT);
+
+
+	if ((X_INC != .0) && (X_PAGE != .0) && (X_UPPER != .0))
+	{
+		//gdouble upper = MAX(X_VALUE + X_PAGE, X_UPPER);
+		gint count = ((gint)(X_PAGE / X_INC)) - 1;
+		gdouble val = X_VALUE;
+		gdouble ratio = (x3 - x2) / X_PAGE;
+		gint i;
+
+		DEBUG(Scatter, "X_PAGE=%f X_INC=%f Count=%d", X_PAGE, X_INC, count);
+
+		for (i = 0; i < count; i++) {
+			gdouble _x;
+
+			val += X_INC;
+			_x = ((gint)(x2 + ((val - X_VALUE) * ratio))) + .5;
+
+			DEBUG(Scatter, "X=%f, Y1=%f, Y2=%f", _x, y1, y2);
+			pkc_scatter_draw_tick(scatter, cr, _x, y2, _x, y1);
+			pkc_scatter_draw_tick_label(scatter, cr, val, _x + 1., y2, EXACT);
+		}
+	}
+
 
 	/*
 	 * Draw titles.
