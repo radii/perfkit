@@ -91,7 +91,7 @@ if HAVE_INTROSPECTION
 introspection_files = $(INST_H_FILES) pk-*.c
 
 Perfkit-1.0.gir: $(INTROSPECTION_SCANNER) libperfkit-1.0.la Makefile
-Perfkit_1_0_gir_SCANNERFLAGS = --strip-prefix=Pk
+Perfkit_1_0_gir_SCANNERFLAGS = --strip-prefix=Pk --c-include="perfkit/perfkit.h"
 Perfkit_1_0_gir_INCLUDES = Gio-2.0
 Perfkit_1_0_gir_CFLAGS = $(INCLUDES) -DPERFKIT_COMPILATION
 Perfkit_1_0_gir_LIBS = libperfkit-1.0.la
