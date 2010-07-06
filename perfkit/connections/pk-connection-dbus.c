@@ -8781,11 +8781,13 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
                                                     GAsyncReadyCallback  callback,         /* IN */
                                                     gpointer             user_data)        /* IN */
 {
+	GSimpleAsyncResult *result;
 	PkConnectionDBusPrivate *priv;
 	DBusMessage *message;
 	Handler *handler;
 	gchar *sub_path;
 	gchar *path;
+	gboolean ret = FALSE;
 
 	g_return_if_fail(PK_IS_CONNECTION_DBUS(connection));
 	g_return_if_fail(subscription >= 0);
@@ -8833,8 +8835,15 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 		g_free(sub_path);
 		g_free(path);
 	}
+	ret = TRUE;
   oom:
 	g_mutex_unlock(priv->mutex);
+	result = g_simple_async_result_new(
+			G_OBJECT(connection), callback, user_data,
+			pk_connection_dbus_subscription_set_handlers_async);
+	g_simple_async_result_set_op_res_gboolean(result, ret);
+	g_simple_async_result_complete(result);
+	g_object_unref(result);
 	EXIT;
 }
 
@@ -8845,7 +8854,7 @@ pk_connection_dbus_subscription_set_handlers_finish (PkConnection  *connection, 
                                                      GError       **error)      /* OUT */
 {
 	ENTRY;
-	RETURN(FALSE);
+	RETURN(TRUE);
 }
 
 
