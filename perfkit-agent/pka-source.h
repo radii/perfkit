@@ -71,19 +71,20 @@ struct _PkaSourceClass
 	gpointer reserved[16];
 };
 
-GType      pka_source_get_type          (void) G_GNUC_CONST;
-gint       pka_source_get_id            (PkaSource      *source);
-gboolean   pka_source_conflicts         (PkaSource      *source,
-                                         PkaSource      *other,
-                                         GError        **error);
-void       pka_source_deliver_sample    (PkaSource      *source,
-                                         PkaSample      *sample);
-void       pka_source_deliver_manifest  (PkaSource      *source,
-                                         PkaManifest    *manifest);
-gboolean   pka_source_modify_spawn_info (PkaSource     *source,
-                                         PkaSpawnInfo  *spawn_info,
-                                         GError       **error);
-PkaPlugin* pka_source_get_plugin        (PkaSource     *source);
+GType        pka_source_get_type          (void) G_GNUC_CONST;
+gint         pka_source_get_id            (PkaSource      *source);
+gboolean     pka_source_conflicts         (PkaSource      *source,
+                                           PkaSource      *other,
+                                           GError        **error);
+void         pka_source_deliver_sample    (PkaSource      *source,
+                                           PkaSample      *sample);
+void         pka_source_deliver_manifest  (PkaSource      *source,
+                                           PkaManifest    *manifest);
+gboolean     pka_source_modify_spawn_info (PkaSource     *source,
+                                           PkaSpawnInfo  *spawn_info,
+                                           GError       **error);
+PkaPlugin*   pka_source_get_plugin        (PkaSource     *source);
+PkaManifest* pka_source_get_manifest      (PkaSource     *source);
 
 G_END_DECLS
 

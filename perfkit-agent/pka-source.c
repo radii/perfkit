@@ -679,6 +679,35 @@ pka_source_modify_spawn_info (PkaSource     *source,     /* IN */
 }
 
 /**
+ * pka_source_get_manifest:
+ * @source: A #PkaSource.
+ *
+ * Retrieves the current manifest for @source.  If no manifest has been
+ * delivered, this will return %NULL.
+ *
+ * Returns: A #PkaManifest which should be freed with pka_manifest_unref(),
+ *   or %NULL if no manifest was delivered.
+ * Side effects: None.
+ */
+PkaManifest*
+pka_source_get_manifest (PkaSource *source) /* IN */
+{
+	PkaSourcePrivate *priv;
+	PkaManifest *ret = NULL;
+
+	g_return_val_if_fail(PKA_IS_SOURCE(source), NULL);
+
+	ENTRY;
+	priv = source->priv;
+	g_static_rw_lock_reader_lock(&priv->rw_lock);
+	if (priv->manifest) {
+		ret = pka_manifest_ref(priv->manifest);
+	}
+	g_static_rw_lock_reader_unlock(&priv->rw_lock);
+	RETURN(ret);
+}
+
+/**
  * pka_source_finalize:
  * @source: A #PkaSource.
  *
