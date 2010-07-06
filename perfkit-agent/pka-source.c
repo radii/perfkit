@@ -742,6 +742,17 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	object_class->dispose = pka_source_dispose;
 	g_type_class_add_private(object_class, sizeof(PkaSourcePrivate));
 
+	/**
+	 * PkaSource::started:
+	 * @source: A #PkaSource.
+	 * @spawn_info: A #PkaSpawnInfo.
+	 *
+	 * The "started" event is emitted when the source is started.  @spawn_info
+	 * contains the information used to start the source.
+	 *
+	 * Returns: None.
+	 * Side effects: None.
+	 */
 	signals[STARTED] = g_signal_new("started",
 	                                PKA_TYPE_SOURCE,
 	                                G_SIGNAL_RUN_FIRST,
@@ -751,6 +762,15 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                                G_TYPE_NONE,
 	                                1, G_TYPE_POINTER);
 
+	/**
+	 * PkaSource::stopped:
+	 * @source: A #PkaSource.
+	 *
+	 * The "stopped" signal is emitted when the source is stopped.
+	 *
+	 * Returns: None.
+	 * Side effects: None.
+	 */
 	signals[STOPPED] = g_signal_new("stopped",
 	                                PKA_TYPE_SOURCE,
 	                                G_SIGNAL_RUN_FIRST,
@@ -759,6 +779,16 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                                g_cclosure_marshal_VOID__VOID,
 	                                G_TYPE_NONE, 0);
 
+	/**
+	 * PkaSource::muted:
+	 * @source: A #PkaSource.
+	 *
+	 * The "muted" signal is emitted when the source is muted.  Samples will
+	 * be dropped while the source is muted.
+	 *
+	 * Returns: None.
+	 * Side effects: None.
+	 */
 	signals[MUTED] = g_signal_new("muted",
 	                              PKA_TYPE_SOURCE,
 	                              G_SIGNAL_RUN_FIRST,
@@ -767,6 +797,16 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                              g_cclosure_marshal_VOID__VOID,
 	                              G_TYPE_NONE, 0);
 
+	/**
+	 * PkaSource::unmuted:
+	 * @source: A #PkaSource.
+	 *
+	 * The "unmuted" signal is emitted when the source is unmuted.  Samples
+	 * will no longer be dropped and delivered to the subscribers.
+	 *
+	 * Returns: None.
+	 * Side effects: None.
+	 */
 	signals[UNMUTED] = g_signal_new("unmuted",
 	                                PKA_TYPE_SOURCE,
 	                                G_SIGNAL_RUN_FIRST,
