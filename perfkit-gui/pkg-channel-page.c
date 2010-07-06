@@ -24,11 +24,18 @@
 
 #include "pkg-channel-page.h"
 #include "pkg-log.h"
+#include "pkg-page.h"
 #include "pkg-path.h"
 
 #define IS_NULL_OR_EMPTY(_s) ((!(_s)) || (g_strcmp0(_s, "") == 0))
 
-G_DEFINE_TYPE(PkgChannelPage, pkg_channel_page, GTK_TYPE_ALIGNMENT)
+static void pkg_page_init (PkgPageIface *iface);
+
+G_DEFINE_TYPE_EXTENDED(PkgChannelPage,
+                       pkg_channel_page,
+                       GTK_TYPE_ALIGNMENT,
+                       0,
+                       G_IMPLEMENT_INTERFACE(PKG_TYPE_PAGE, pkg_page_init));
 
 /**
  * SECTION:pkg-channel-page
@@ -397,7 +404,7 @@ pkg_channel_page_get_sources_cb (GObject      *object,    /* IN */
 }
 
 void
-pkg_channel_page_reload (PkgChannelPage *page) /* IN */
+pkg_channel_page_load (PkgPage *page) /* IN */
 {
 	PkgChannelPagePrivate *priv;
 	gchar *markup;
@@ -405,7 +412,7 @@ pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 	g_return_if_fail(PKG_IS_CHANNEL_PAGE(page));
 
 	ENTRY;
-	priv = page->priv;
+	priv = PKG_CHANNEL_PAGE(page)->priv;
 	markup = g_markup_printf_escaped(
 			_("<span weight=\"bold\">Channel %d</span>"),
 			priv->id);
@@ -436,6 +443,11 @@ pkg_channel_page_reload (PkgChannelPage *page) /* IN */
 			priv->connection, priv->id, NULL,
 			pkg_channel_page_get_sources_cb, page);
 	EXIT;
+}
+
+static void
+pkg_channel_page_unload (PkgPage *page) /* IN */
+{
 }
 
 static void
@@ -493,6 +505,15 @@ pkg_channel_page_finalize (GObject *object)
 {
 	ENTRY;
 	G_OBJECT_CLASS(pkg_channel_page_parent_class)->finalize(object);
+	EXIT;
+}
+
+static void
+pkg_page_init (PkgPageIface *iface) /* IN */
+{
+	ENTRY;
+	iface->load = pkg_channel_page_load;
+	iface->unload = pkg_channel_page_unload;
 	EXIT;
 }
 

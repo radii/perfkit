@@ -45,6 +45,7 @@ INST_H_FILES =								\
 	pkg-channel-page.h						\
 	pkg-channels-page.h						\
 	pkg-closures.h							\
+	pkg-page.h							\
 	pkg-path.h							\
 	pkg-plugin-page.h						\
 	pkg-source-page.h						\
@@ -65,6 +66,7 @@ libperfkit_gui_la_SOURCES =						\
 	pkg-channels-page.c						\
 	pkg-closures.c							\
 	pkg-log.c							\
+	pkg-page.c							\
 	pkg-path.c							\
 	pkg-plugin-page.c						\
 	pkg-source-page.c						\

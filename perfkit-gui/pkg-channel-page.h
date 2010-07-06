@@ -56,7 +56,6 @@ struct _PkgChannelPageClass
 GType      pkg_channel_page_get_type (void) G_GNUC_CONST;
 GtkWidget* pkg_channel_page_new      (PkConnection   *connection,
                                       gint            channel);
-void       pkg_channel_page_reload   (PkgChannelPage *page);
 
 G_END_DECLS
 

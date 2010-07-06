@@ -23,6 +23,7 @@
 #include <glib/gi18n.h>
 
 #include "pkg-log.h"
+#include "pkg-page.h"
 #include "pkg-path.h"
 #include "pkg-plugin-page.h"
 
@@ -34,7 +35,13 @@
  * Section overview.
  */
 
-G_DEFINE_TYPE(PkgPluginPage, pkg_plugin_page, GTK_TYPE_ALIGNMENT)
+static void pkg_page_init (PkgPageIface *iface);
+
+G_DEFINE_TYPE_EXTENDED(PkgPluginPage,
+                       pkg_plugin_page,
+                       GTK_TYPE_ALIGNMENT,
+                       0,
+                       G_IMPLEMENT_INTERFACE(PKG_TYPE_PAGE, pkg_page_init));
 
 struct _PkgPluginPagePrivate
 {
@@ -182,13 +189,13 @@ pkg_plugin_page_get_description_cb (GObject      *object,
 }
 
 void
-pkg_plugin_page_reload (PkgPluginPage *page)
+pkg_plugin_page_load (PkgPage *page) /* IN */
 {
 	PkgPluginPagePrivate *priv;
 	gchar *markup;
 
 	ENTRY;
-	priv = page->priv;
+	priv = PKG_PLUGIN_PAGE(page)->priv;
 	markup = g_markup_printf_escaped(
 			_("<span weight=\"bold\">%s Plugin</span>"),
 			priv->id);
@@ -340,5 +347,13 @@ pkg_plugin_page_init (PkgPluginPage *page)
 	gtk_widget_unparent(priv->container);
 	gtk_container_add(GTK_CONTAINER(page), priv->container);
 
+	EXIT;
+}
+
+static void
+pkg_page_init (PkgPageIface *iface) /* IN */
+{
+	ENTRY;
+	iface->load = pkg_plugin_page_load;
 	EXIT;
 }

@@ -27,6 +27,7 @@
 #include "pkg-log.h"
 #include "pkg-channel-page.h"
 #include "pkg-channels-page.h"
+#include "pkg-page.h"
 #include "pkg-plugin-page.h"
 #include "pkg-source-page.h"
 #include "pkg-subscription-page.h"
@@ -182,19 +183,34 @@ pkg_window_new (void)
 }
 
 void
-pkg_window_clear_page (PkgWindow *window) /* IN */
+pkg_window_set_page (PkgWindow *window, /* IN */
+                     PkgPage   *page)   /* IN */
 {
 	PkgWindowPrivate *priv;
 	GtkWidget *child;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(!page || PKG_IS_PAGE(page));
 
 	ENTRY;
 	priv = window->priv;
 	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
+		DEBUG(Page, "Unloading active page");
+		pkg_page_unload(PKG_PAGE(child));
 		gtk_container_remove(GTK_CONTAINER(priv->container), child);
 	}
+	if (page) {
+		gtk_container_add(GTK_CONTAINER(priv->container), GTK_WIDGET(page));
+		pkg_page_load(page);
+		gtk_widget_show(GTK_WIDGET(page));
+	}
 	EXIT;
+}
+
+void
+pkg_window_clear_page (PkgWindow *window) /* IN */
+{
+	pkg_window_set_page(window, NULL);
 }
 
 static gboolean
@@ -647,6 +663,39 @@ pkg_window_add_subscription (PkgWindow    *window,       /* IN */
 }
 
 static void
+pkg_window_remove_subscription (PkgWindow    *window,       /* IN */
+                                PkConnection *connection,   /* IN */
+                                gint          subscription) /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeIter child;
+	gint id = 0;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	priv = window->priv;
+	if (!pkg_window_get_subscriptions_iter(window, connection, &iter)) {
+		EXIT;
+	}
+	if (!gtk_tree_model_iter_children(GTK_TREE_MODEL(priv->model),
+	                                  &child, &iter)) {
+		EXIT;
+	}
+	do {
+		gtk_tree_model_get(GTK_TREE_MODEL(priv->model), &child, COLUMN_ID, &id, -1);
+		g_debug("%d == %d", id, subscription);
+		if (id == subscription) {
+			gtk_tree_store_remove(priv->model, &child);
+			break;
+		}
+	} while (gtk_tree_model_iter_next(GTK_TREE_MODEL(priv->model), &child));
+	EXIT;
+}
+
+static void
 pkg_window_connection_manager_get_subscriptions_cb (GObject      *object,    /* IN */
                                                     GAsyncResult *result,    /* IN */
                                                     gpointer      user_data) /* IN */
@@ -907,6 +956,16 @@ pkg_window_subscription_added_cb (PkConnection *connection,
 }
 
 static void
+pkg_window_subscription_removed_cb (PkConnection *connection,
+                                    gint          subscription,
+                                    gpointer      user_data)
+{
+	ENTRY;
+	pkg_window_remove_subscription(user_data, connection, subscription);
+	EXIT;
+}
+
+static void
 pkg_window_connection_connect_cb (GObject      *object,
                                   GAsyncResult *result,
                                   gpointer      user_data)
@@ -982,6 +1041,9 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                 user_data);
 	g_signal_connect(connection, "subscription-added",
 	                 G_CALLBACK(pkg_window_subscription_added_cb),
+	                 user_data);
+	g_signal_connect(connection, "subscription-removed",
+	                 G_CALLBACK(pkg_window_subscription_removed_cb),
 	                 user_data);
 	EXIT;
 }
@@ -1109,19 +1171,14 @@ void
 pkg_window_show_channels (PkgWindow    *window,     /* IN */
                           PkConnection *connection) /* IN */
 {
-	PkgWindowPrivate *priv;
 	GtkWidget *page;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
-	priv = window->priv;
-	pkg_window_clear_page(window);
 	page = pkg_channels_page_new(connection);
-	gtk_container_add(GTK_CONTAINER(priv->container), page);
-	pkg_channels_page_reload(PKG_CHANNELS_PAGE(page));
-	gtk_widget_show(page);
+	pkg_window_set_page(window, PKG_PAGE(page));
 	EXIT;
 }
 
@@ -1130,19 +1187,14 @@ pkg_window_show_channel (PkgWindow    *window,     /* IN */
                          PkConnection *connection, /* IN */
                          gint          channel)    /* IN */
 {
-	PkgWindowPrivate *priv;
 	GtkWidget *page;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
-	priv = window->priv;
-	pkg_window_clear_page(window);
 	page = pkg_channel_page_new(connection, channel);
-	gtk_container_add(GTK_CONTAINER(priv->container), page);
-	pkg_channel_page_reload(PKG_CHANNEL_PAGE(page));
-	gtk_widget_show(page);
+	pkg_window_set_page(window, PKG_PAGE(page));
 	EXIT;
 }
 
@@ -1151,19 +1203,14 @@ pkg_window_show_subscription (PkgWindow    *window,       /* IN */
                               PkConnection *connection,   /* IN */
                               gint          subscription) /* IN */
 {
-	PkgWindowPrivate *priv;
 	GtkWidget *page;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
-	priv = window->priv;
-	pkg_window_clear_page(window);
 	page = pkg_subscription_page_new(connection, subscription);
-	gtk_container_add(GTK_CONTAINER(priv->container), page);
-	pkg_subscription_page_reload(PKG_SUBSCRIPTION_PAGE(page));
-	gtk_widget_show(page);
+	pkg_window_set_page(window, PKG_PAGE(page));
 	EXIT;
 }
 
@@ -1172,19 +1219,15 @@ pkg_window_show_source (PkgWindow    *window,     /* IN */
                         PkConnection *connection, /* IN */
                         gint          source)     /* IN */
 {
-	PkgWindowPrivate *priv;
 	GtkWidget *page;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
-	priv = window->priv;
 	pkg_window_clear_page(window);
 	page = pkg_source_page_new(connection, source);
-	gtk_container_add(GTK_CONTAINER(priv->container), page);
-	pkg_source_page_reload(PKG_SOURCE_PAGE(page));
-	gtk_widget_show(page);
+	pkg_window_set_page(window, PKG_PAGE(page));
 	EXIT;
 }
 
@@ -1193,19 +1236,14 @@ pkg_window_show_plugin (PkgWindow    *window,     /* IN */
                         PkConnection *connection, /* IN */
                         const gchar  *plugin)     /* IN */
 {
-	PkgWindowPrivate *priv;
 	GtkWidget *page;
 
 	g_return_if_fail(PKG_IS_WINDOW(window));
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 
 	ENTRY;
-	priv = window->priv;
-	pkg_window_clear_page(window);
 	page = pkg_plugin_page_new(connection, plugin);
-	gtk_container_add(GTK_CONTAINER(priv->container), page);
-	pkg_plugin_page_reload(PKG_PLUGIN_PAGE(page));
-	gtk_widget_show(page);
+	pkg_window_set_page(window, PKG_PAGE(page));
 	EXIT;
 }
 
@@ -1218,7 +1256,6 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 	PkConnection *connection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	GtkWidget *child;
 	gchar *row_title;
 	gint row_type;
 	gint row_id;
@@ -1260,10 +1297,7 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 	}
 	EXIT;
   clear_contents:
-	DEBUG(Window, "Clearing current page.");
-	if ((child = gtk_bin_get_child(GTK_BIN(priv->container)))) {
-		gtk_container_remove(GTK_CONTAINER(priv->container), child);
-	}
+	pkg_window_clear_page(window);
 	EXIT;
 }
 

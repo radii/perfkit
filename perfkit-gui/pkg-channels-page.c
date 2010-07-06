@@ -23,6 +23,7 @@
 #include <glib/gi18n.h>
 
 #include "pkg-channels-page.h"
+#include "pkg-page.h"
 #include "pkg-path.h"
 #include "pkg-log.h"
 #include "pkg-util.h"
@@ -35,7 +36,13 @@
  * Section overview.
  */
 
-G_DEFINE_TYPE(PkgChannelsPage, pkg_channels_page, GTK_TYPE_ALIGNMENT)
+static void pkg_page_init (PkgPageIface *iface);
+
+G_DEFINE_TYPE_EXTENDED(PkgChannelsPage,
+                       pkg_channels_page,
+                       GTK_TYPE_ALIGNMENT,
+                       0,
+                       G_IMPLEMENT_INTERFACE(PKG_TYPE_PAGE, pkg_page_init));
 
 struct _PkgChannelsPagePrivate
 {
@@ -120,15 +127,15 @@ pkg_channels_page_get_channels_cb (PkConnection    *connection, /* IN */
 	EXIT;
 }
 
-void
-pkg_channels_page_reload (PkgChannelsPage *page)
+static void
+pkg_channels_page_load (PkgPage *page) /* IN */
 {
 	PkgChannelsPagePrivate *priv;
 
 	g_return_if_fail(PKG_IS_CHANNELS_PAGE(page));
 
 	ENTRY;
-	priv = page->priv;
+	priv = PKG_CHANNELS_PAGE(page)->priv;
 	gtk_list_store_clear(GTK_LIST_STORE(priv->model));
 	pk_connection_manager_get_channels_async(
 			priv->connection, NULL,
@@ -316,5 +323,13 @@ pkg_channels_page_init (PkgChannelsPage *page)
 	                 G_CALLBACK(pkg_channels_page_remove_clicked_cb),
 	                 page);
 
+	EXIT;
+}
+
+static void
+pkg_page_init (PkgPageIface *iface) /* IN */
+{
+	ENTRY;
+	iface->load = pkg_channels_page_load;
 	EXIT;
 }

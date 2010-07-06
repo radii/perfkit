@@ -25,6 +25,7 @@
 
 #include "pkg-closures.h"
 #include "pkg-log.h"
+#include "pkg-page.h"
 #include "pkg-path.h"
 #include "pkg-subscription-page.h"
 
@@ -36,7 +37,13 @@
  * Section overview.
  */
 
-G_DEFINE_TYPE(PkgSubscriptionPage, pkg_subscription_page, GTK_TYPE_ALIGNMENT)
+static void pkg_page_init (PkgPageIface *iface);
+
+G_DEFINE_TYPE_EXTENDED(PkgSubscriptionPage,
+                       pkg_subscription_page,
+                       GTK_TYPE_ALIGNMENT,
+                       0,
+                       G_IMPLEMENT_INTERFACE(PKG_TYPE_PAGE, pkg_page_init));
 
 struct _PkgSubscriptionPagePrivate
 {
@@ -236,7 +243,7 @@ pkg_subscription_page_get_buffer_cb (GObject      *object,    /* IN */
 }
 
 void
-pkg_subscription_page_reload (PkgSubscriptionPage *page) /* IN */
+pkg_subscription_page_load (PkgPage *page) /* IN */
 {
 	PkgSubscriptionPagePrivate *priv;
 	gchar *markup;
@@ -244,7 +251,7 @@ pkg_subscription_page_reload (PkgSubscriptionPage *page) /* IN */
 	g_return_if_fail(PKG_IS_SUBSCRIPTION_PAGE(page));
 
 	ENTRY;
-	priv = page->priv;
+	priv = PKG_SUBSCRIPTION_PAGE(page)->priv;
 	markup = g_markup_printf_escaped("<span weight=\"bold\">"
 	                                 "Subscription %d"
 	                                 "</span>",
@@ -419,5 +426,13 @@ pkg_subscription_page_init (PkgSubscriptionPage *page)
 	gtk_widget_unparent(priv->container);
 	gtk_container_add(GTK_CONTAINER(page), priv->container);
 
+	EXIT;
+}
+
+static void
+pkg_page_init (PkgPageIface *iface) /* IN */
+{
+	ENTRY;
+	iface->load = pkg_subscription_page_load;
 	EXIT;
 }
