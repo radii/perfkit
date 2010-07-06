@@ -718,6 +718,7 @@ pka_manager_find_subscription (PkaContext       *context,         /* IN */
                                GError          **error)           /* OUT */
 {
 	PkaSubscription *iter;
+	gboolean ret = FALSE;
 	gint i;
 
 	g_return_val_if_fail(context != NULL, FALSE);
@@ -733,16 +734,17 @@ pka_manager_find_subscription (PkaContext       *context,         /* IN */
 			 * TODO: Verify permissions.
 			 */
 			*subscription = pka_subscription_ref(iter);
+			ret = TRUE;
 			BREAK;
 		}
 	}
 	G_UNLOCK(subscriptions);
-	if (!*subscription) {
+	if (!ret) {
 		g_set_error(error, PKA_CONTEXT_ERROR,
 		            PKA_CONTEXT_ERROR_NOT_AUTHORIZED,
 		            "Not authorized or invalid subscription.");
 	}
-	RETURN(*subscription != NULL);
+	RETURN(ret);
 }
 
 /**
@@ -1114,21 +1116,13 @@ pka_manager_remove_subscription (PkaContext       *context,      /* IN */
 
 	ENTRY;
 	AUTHORIZE_IOCTL(context, REMOVE_SUBSCRIPTION);
-	/*
-	 * TODO:
-	 *
-	 *   1) Disable the subscription if necessary.
-	 *
-	 */
-	if (FALSE) {
-		subscription_id = pka_subscription_get_id(subscription);
-		INFO(Subscription, "Removing subscription %d on behalf of context %d",
-		     subscription_id, pka_context_get_id(context));
-		G_LOCK(subscriptions);
-		g_ptr_array_remove(manager.subscriptions, subscription);
-		G_UNLOCK(subscriptions);
-		NOTIFY_LISTENERS(subscription_removed, subscription_id);
-		pka_subscription_unref(subscription);
-	}
+	subscription_id = pka_subscription_get_id(subscription);
+	INFO(Subscription, "Removing subscription %d on behalf of context %d",
+	     subscription_id, pka_context_get_id(context));
+	G_LOCK(subscriptions);
+	g_ptr_array_remove(manager.subscriptions, subscription);
+	G_UNLOCK(subscriptions);
+	NOTIFY_LISTENERS(subscription_removed, subscription_id);
+	pka_subscription_unref(subscription);
 	RETURN(TRUE);
 }
