@@ -49,8 +49,10 @@ struct _PkgSourcePagePrivate
 	gint          id;        /* Source id. */
 	gint          sub_id;    /* Subscription id for info. */
 	GtkBuilder   *builder;
+	GtkListStore *model;
 	GtkWidget    *container;
 	GtkWidget    *title;
+	GtkWidget    *treeview;
 };
 
 enum
@@ -82,7 +84,73 @@ pkg_source_page_new (PkConnection *connection, /* IN */
 	RETURN(GTK_WIDGET(page));
 }
 
-void
+static void
+pkg_source_page_manifest_cb (PkManifest *manifest,  /* IN */
+                             gpointer    user_data) /* IN */
+{
+	PkgSourcePagePrivate *priv;
+	PkgSourcePage *page = user_data;
+	GtkTreeIter iter;
+	const gchar *name;
+	const gchar *type;
+	gint n_rows;
+	gint i;
+
+	g_return_if_fail(PKG_IS_SOURCE_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	DEBUG(SourcePage, "Received a new manifest");
+	n_rows = pk_manifest_get_n_rows(manifest);
+	for (i = 1; i <= n_rows; i++) {
+		name = pk_manifest_get_row_name(manifest, i);
+		type = g_type_name(pk_manifest_get_row_type(manifest, i));
+		gtk_list_store_append(priv->model, &iter);
+		gtk_list_store_set(priv->model, &iter,
+		                   0, name,
+		                   1, type,
+		                   -1);
+	}
+	EXIT;
+}
+
+static void
+pkg_source_page_sample_cb (PkManifest *manifest,  /* IN */
+                           PkSample   *sample,    /* IN */
+                           gpointer    user_data) /* IN */
+{
+	PkgSourcePagePrivate *priv;
+	PkgSourcePage *page = user_data;
+
+	g_return_if_fail(PKG_IS_SOURCE_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	DEBUG(SourcePage, "Received a new sample");
+	EXIT;
+}
+
+static void
+pkg_source_page_set_handlers_cb (GObject      *source,    /* IN */
+                                 GAsyncResult *result,    /* IN */
+                                 gpointer      user_data) /* IN */
+{
+	PkConnection *connection = PK_CONNECTION(source);
+	PkgSourcePagePrivate *priv;
+	PkgSourcePage *page = user_data;
+
+	g_return_if_fail(PKG_IS_SOURCE_PAGE(page));
+	g_return_if_fail(PK_IS_CONNECTION(source));
+
+	ENTRY;
+	priv = page->priv;
+	DEBUG(SourcesPage, "Set handlers complete: %d", priv->id);
+	pk_connection_subscription_add_source(connection, priv->sub_id, priv->id, NULL);
+	pk_connection_subscription_unmute(connection, priv->sub_id, NULL);
+	EXIT;
+}
+
+static void
 pkg_source_page_subscription_added (GObject      *source,    /* IN */
                                     GAsyncResult *result,    /* IN */
                                     gpointer      user_data) /* IN */
@@ -97,6 +165,15 @@ pkg_source_page_subscription_added (GObject      *source,    /* IN */
 	                                                  result, &priv->sub_id,
 	                                                  NULL)) {
 		g_debug("Subscribed with sub_id: %d", priv->sub_id);
+		pk_connection_subscription_set_handlers_async(
+				priv->connection, priv->sub_id,
+				pkg_source_page_manifest_cb,
+				user_data, NULL,
+				pkg_source_page_sample_cb,
+				user_data, NULL,
+				NULL,
+				pkg_source_page_set_handlers_cb,
+				user_data);
 	}
 	g_object_unref(user_data);
 	EXIT;
@@ -244,6 +321,8 @@ static void
 pkg_source_page_init (PkgSourcePage *page)
 {
 	PkgSourcePagePrivate *priv;
+	GtkTreeViewColumn *column;
+	GtkCellRenderer *cell;
 	gchar *path;
 
 	ENTRY;
@@ -263,6 +342,25 @@ pkg_source_page_init (PkgSourcePage *page)
 
 	EXTRACT_WIDGET("source-page", container);
 	EXTRACT_WIDGET("title", title);
+	EXTRACT_WIDGET("treeview", treeview);
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("Name"));
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", 0);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->treeview), column);
+
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("Type"));
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", 1);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->treeview), column);
+
+	priv->model = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(priv->treeview),
+	                        GTK_TREE_MODEL(priv->model));
 
 	gtk_widget_unparent(priv->container);
 	gtk_container_add(GTK_CONTAINER(page), priv->container);
