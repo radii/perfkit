@@ -390,7 +390,7 @@ pkg_window_connection_manager_get_hostname_cb (GObject      *object,    /* IN */
 	if (pkg_window_get_connection_iter(user_data, connection, &iter)) {
 		gtk_tree_store_set(priv->model, &iter,
 		                   1, hostname,
-		                   2, "Some sort of info here",
+		                   2, NULL,
 		                   -1);
 	}
 	g_free(hostname);
@@ -1169,12 +1169,21 @@ pkg_window_label_data_func (GtkTreeViewColumn *column,
 		             NULL);
 		return;
 	}
+
 	pkg_util_get_mix_color(GTK_WIDGET(window), state, color, sizeof(color));
-	markup = g_markup_printf_escaped("<span size=\"smaller\">"
-	                                 "<b>%s</b>\n"
-	                                 "<span color=\"%s\">%s</span>"
-	                                 "</span>",
-	                                 title, color, STR_OR_EMPTY(subtitle));
+
+	if (title && !subtitle) {
+		markup = g_markup_printf_escaped("<span size=\"smaller\">"
+		                                 "<b>%s</b>"
+		                                 "</span>",
+		                                 title);
+	} else {
+		markup = g_markup_printf_escaped("<span size=\"smaller\">"
+		                                 "<b>%s</b>\n"
+		                                 "<span color=\"%s\">%s</span>"
+		                                 "</span>",
+		                                 title, color, STR_OR_EMPTY(subtitle));
+	}
 	g_object_set(cell, "markup", markup, NULL);
 	g_free(markup);
 }
