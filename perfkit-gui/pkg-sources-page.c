@@ -23,6 +23,7 @@
 #include <glib/gi18n.h>
 #include <perfkit/perfkit.h>
 
+#include "pkg-closures.h"
 #include "pkg-path.h"
 #include "pkg-log.h"
 #include "pkg-sources-page.h"
@@ -54,6 +55,14 @@ struct _PkgSourcesPagePrivate
 	GtkWidget    *add;
 	GtkWidget    *remove;
 	GtkWidget    *combo;
+};
+
+enum
+{
+	COLUMN_ID,
+	COLUMN_IDSTR,
+	COLUMN_PLUGIN,
+	COLUMN_STATE,
 };
 
 enum
@@ -96,6 +105,7 @@ pkg_sources_page_get_plugins_cb (PkConnection *connection, /* IN */
 
 	ENTRY;
 	priv = page->priv;
+	/* TODO: Show error */
 	if (pk_connection_manager_get_plugins_finish(connection, result, &plugins, NULL)) {
 		for (i = 0; plugins[i]; i++) {
 			gtk_list_store_append(priv->types, &iter);
@@ -103,6 +113,116 @@ pkg_sources_page_get_plugins_cb (PkConnection *connection, /* IN */
 		}
 		g_strfreev(plugins);
 	}
+	g_object_unref(page);
+	EXIT;
+}
+
+static gboolean
+pkg_sources_page_get_source_iter (PkgSourcesPage *page,   /* IN */
+                                  gint            source, /* IN */
+                                  GtkTreeIter    *iter)   /* OUT */
+{
+	PkgSourcesPagePrivate *priv;
+	gint id = 0;
+
+	ENTRY;
+	priv = page->priv;
+	if (gtk_tree_model_get_iter_first(GTK_TREE_MODEL(priv->model), iter)) {
+		do {
+			gtk_tree_model_get(GTK_TREE_MODEL(priv->model), iter, COLUMN_ID, &id, -1);
+			if (id == source) {
+				RETURN(TRUE);
+			}
+		} while (gtk_tree_model_iter_next(GTK_TREE_MODEL(priv->model), iter));
+	}
+	RETURN(FALSE);
+}
+
+static void
+pkg_sources_page_get_plugin_cb (PkConnection *connection, /* IN */
+                                GAsyncResult *result,     /* IN */
+                                gpointer      user_data)  /* IN */
+{
+	PkgSourceCall *call = user_data;
+	PkgSourcesPagePrivate *priv;
+	PkgSourcesPage *page;
+	GtkTreeIter iter;
+	GError *error = NULL;
+	gchar *plugin = NULL;
+
+	g_return_if_fail(call != NULL);
+
+	ENTRY;
+	page = PKG_SOURCES_PAGE(call->user_data);
+	priv = page->priv;
+	if (!pk_connection_source_get_plugin_finish(connection, result, &plugin, &error)) {
+		/* TODO: show error */
+		g_error_free(error);
+		GOTO(cleanup);
+	}
+	if (!pkg_sources_page_get_source_iter(call->user_data, call->source, &iter)) {
+		GOTO(cleanup);
+	}
+	gtk_list_store_set(priv->model, &iter, COLUMN_PLUGIN, plugin, -1);
+  cleanup:
+	g_free(plugin);
+	g_object_unref(page);
+	pkg_source_call_free(call);
+	EXIT;
+}
+
+static void
+pkg_sources_page_add_source (PkgSourcesPage *page,   /* IN */
+                             gint            source) /* IN */
+{
+	PkgSourcesPagePrivate *priv;
+	GtkTreeIter iter;
+	gchar *id_str;
+
+	g_return_if_fail(PKG_IS_SOURCES_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	id_str = g_strdup_printf("%d", source);
+	gtk_list_store_append(priv->model, &iter);
+	gtk_list_store_set(priv->model, &iter,
+	                   COLUMN_ID, source,
+	                   COLUMN_IDSTR, id_str,
+	                   -1);
+	g_free(id_str);
+	pk_connection_source_get_plugin_async(
+			priv->connection, source, NULL,
+			(GAsyncReadyCallback)pkg_sources_page_get_plugin_cb,
+			pkg_source_call_new(priv->connection, source, g_object_ref(page)));
+	EXIT;
+}
+
+static void
+pkg_sources_page_get_sources_cb (PkConnection *connection, /* IN */
+                                 GAsyncResult *result,     /* IN */
+                                 gpointer      user_data)  /* IN */
+{
+	PkgSourcesPagePrivate *priv;
+	PkgSourcesPage *page = user_data;
+	gint *sources = NULL;
+	gsize sources_len = 0;
+	GError *error = NULL;
+	gint i;
+
+	g_return_if_fail(PKG_IS_SOURCES_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	if (!pk_connection_manager_get_sources_finish(connection, result, &sources, &sources_len, &error)) {
+		/* TODO: Show error */
+		g_error_free(error);
+		GOTO(cleanup);
+	}
+	for (i = 0; i < sources_len; i++) {
+		pkg_sources_page_add_source(page, sources[i]);
+	}
+  cleanup:
+	g_free(sources);
 	g_object_unref(page);
 	EXIT;
 }
@@ -129,6 +249,11 @@ pkg_sources_page_load (PkgPage *page) /* IN */
 			priv->connection,
 			NULL,
 			(GAsyncReadyCallback)pkg_sources_page_get_plugins_cb,
+			g_object_ref(page));
+	pk_connection_manager_get_sources_async(
+			priv->connection,
+			NULL,
+			(GAsyncReadyCallback)pkg_sources_page_get_sources_cb,
 			g_object_ref(page));
 	EXIT;
 }
@@ -190,8 +315,27 @@ pkg_sources_page_add_source_cb (PkConnection *connection, /* IN */
 	priv = page->priv;
 	if (!pk_connection_manager_add_source_finish(
 				connection, result, &id, &error)) {
+		/* TODO: Show error */
 		g_error_free(error);
 	}
+	EXIT;
+}
+
+static void
+pkg_sources_page_selection_changed_cb (GtkTreeSelection *selection, /* IN */
+                                       PkgSourcesPage   *page)      /* IN */
+{
+	PkgSourcesPagePrivate *priv;
+	gboolean sensitive = FALSE;
+
+	g_return_if_fail(PKG_IS_SOURCES_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	if (gtk_tree_selection_count_selected_rows(selection)) {
+		sensitive = TRUE;
+	}
+	gtk_widget_set_sensitive(priv->remove, sensitive);
 	EXIT;
 }
 
@@ -216,6 +360,32 @@ pkg_sources_page_add_clicked_cb (GtkWidget *add,       /* IN */
 				priv->connection, plugin, NULL,
 				(GAsyncReadyCallback)pkg_sources_page_add_source_cb,
 				NULL);
+	}
+	EXIT;
+}
+
+static void
+pkg_sources_page_remove_clicked_cb (GtkWidget *widget,    /* IN */
+                                    gpointer   user_data) /* IN */
+{
+	PkgSourcesPagePrivate *priv;
+	PkgSourcesPage *page = user_data;
+	GtkTreeSelection *selection;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gint id = 0;
+
+	g_return_if_fail(PKG_IS_SOURCES_PAGE(page));
+
+	ENTRY;
+	priv = page->priv;
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(priv->treeview));
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, COLUMN_ID, &id, -1);
+		INFO(Sources, "Removing source %d", id);
+		pk_connection_manager_remove_source(priv->connection, id, NULL);
+		/* TODO: Remove after attaching signals */
+		gtk_list_store_remove(priv->model, &iter);
 	}
 	EXIT;
 }
@@ -343,13 +513,24 @@ pkg_sources_page_init (PkgSourcesPage *page) /* IN */
 	EXTRACT_WIDGET("combo", combo);
 
 	column = gtk_tree_view_column_new();
-	gtk_tree_view_column_set_title(column, _("Type"));
+	gtk_tree_view_column_set_title(column, _("ID"));
 	cell = gtk_cell_renderer_text_new();
 	gtk_tree_view_column_pack_start(column, cell, TRUE);
 	gtk_tree_view_column_add_attribute(column, cell, "text", 1);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->treeview), column);
 
-	priv->model = gtk_list_store_new(1, G_TYPE_STRING);
+	column = gtk_tree_view_column_new();
+	gtk_tree_view_column_set_title(column, _("Type"));
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", 2);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->treeview), column);
+
+	priv->model = gtk_list_store_new(4,
+	                                 G_TYPE_INT,
+	                                 G_TYPE_STRING,
+	                                 G_TYPE_STRING,
+	                                 G_TYPE_STRING);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(priv->treeview),
 	                        GTK_TREE_MODEL(priv->model));
 
@@ -369,6 +550,16 @@ pkg_sources_page_init (PkgSourcesPage *page) /* IN */
 	g_signal_connect(priv->add,
 	                 "clicked",
 	                 G_CALLBACK(pkg_sources_page_add_clicked_cb),
+	                 page);
+
+	g_signal_connect(priv->remove,
+	                 "clicked",
+	                 G_CALLBACK(pkg_sources_page_remove_clicked_cb),
+	                 page);
+
+	g_signal_connect(gtk_tree_view_get_selection(GTK_TREE_VIEW(priv->treeview)),
+	                 "changed",
+	                 G_CALLBACK(pkg_sources_page_selection_changed_cb),
 	                 page);
 
 	gtk_widget_unparent(priv->container);
