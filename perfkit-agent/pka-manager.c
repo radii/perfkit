@@ -56,6 +56,8 @@
         G_UNLOCK(listeners);                                        \
     } G_STMT_END
 
+extern void pka_source_notify_stopped (PkaSource *source);
+
 typedef struct
 {
 	GPtrArray *channels;
@@ -1065,6 +1067,7 @@ pka_manager_remove_source (PkaContext  *context, /* IN */
                            PkaSource   *source,  /* IN */
                            GError     **error)   /* OUT */
 {
+	gboolean found;
 	gint source_id;
 
 	g_return_val_if_fail(context != NULL, FALSE);
@@ -1072,24 +1075,18 @@ pka_manager_remove_source (PkaContext  *context, /* IN */
 
 	ENTRY;
 	AUTHORIZE_IOCTL(context, REMOVE_SOURCE);
-	/*
-	 * TODO:
-	 *
-	 *   1) Ensure the source is stopped.
-	 *   2) Remove the source from a channel if attached.
-	 *
-	 */
-	if (FALSE) {
-		source_id = pka_source_get_id(source);
-		INFO(Source, "Removing source %d on behalf of context %d.",
-		     source_id, pka_context_get_id(context));
-		G_LOCK(sources);
-		g_ptr_array_remove(manager.sources, source);
-		G_UNLOCK(sources);
+	pka_source_notify_stopped(source);
+	source_id = pka_source_get_id(source);
+	INFO(Source, "Removing source %d on behalf of context %d.",
+	     source_id, pka_context_get_id(context));
+	G_LOCK(sources);
+	found = g_ptr_array_remove(manager.sources, source);
+	G_UNLOCK(sources);
+	if (found) {
 		NOTIFY_LISTENERS(source_removed, source_id);
 		g_object_unref(source);
 	}
-	RETURN(TRUE);
+	RETURN(found);
 }
 
 /**
