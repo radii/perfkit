@@ -802,6 +802,51 @@ pkg_window_add_source (PkgWindow    *window,     /* IN */
 	EXIT;
 }
 
+static gboolean
+pkg_window_get_source_iter (PkgWindow    *window,     /* IN */
+                            PkConnection *connection, /* IN */
+                            gint          source,     /* IN */
+                            GtkTreeIter  *iter)       /* OUT */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter child;
+	gint id;
+
+	ENTRY;
+	priv = window->priv;
+	if (!pkg_window_get_sources_iter(window, connection, iter)) {
+		RETURN(FALSE);
+	}
+	if (!gtk_tree_model_iter_children(GTK_TREE_MODEL(priv->model), &child, iter)) {
+		RETURN(FALSE);
+	}
+	do {
+		gtk_tree_model_get(GTK_TREE_MODEL(priv->model), &child, COLUMN_ID, &id, -1);
+		if (id == source) {
+			RETURN(TRUE);
+		}
+	} while (gtk_tree_model_iter_next(GTK_TREE_MODEL(priv->model), iter));
+	RETURN(FALSE);
+}
+
+static void
+pkg_window_remove_source (PkgWindow    *window,     /* IN */
+                          PkConnection *connection, /* IN */
+                          gint          source)     /* IN */
+{
+	PkgWindowPrivate *priv;
+	GtkTreeIter iter;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+
+	ENTRY;
+	priv = window->priv;
+	if (pkg_window_get_source_iter(window, connection, source, &iter)) {
+		gtk_tree_store_remove(priv->model, &iter);
+	}
+	EXIT;
+}
+
 static void
 pkg_window_connection_manager_get_sources_cb (GObject      *object,    /* IN */
                                               GAsyncResult *result,    /* IN */
@@ -941,7 +986,20 @@ pkg_window_source_added_cb (PkConnection *connection,
 {
 
 	ENTRY;
+	DEBUG(Sources, "Source %d was added.", source);
 	pkg_window_add_source(user_data, connection, source);
+	EXIT;
+}
+
+static void
+pkg_window_source_removed_cb (PkConnection *connection,
+                              gint          source,
+                              gpointer      user_data)
+{
+
+	ENTRY;
+	DEBUG(Sources, "Source %d was removed.", source);
+	pkg_window_remove_source(user_data, connection, source);
 	EXIT;
 }
 
@@ -1039,6 +1097,9 @@ pkg_window_connection_connect_cb (GObject      *object,
 	                 user_data);
 	g_signal_connect(connection, "source-added",
 	                 G_CALLBACK(pkg_window_source_added_cb),
+	                 user_data);
+	g_signal_connect(connection, "source-removed",
+	                 G_CALLBACK(pkg_window_source_removed_cb),
 	                 user_data);
 	g_signal_connect(connection, "subscription-added",
 	                 G_CALLBACK(pkg_window_subscription_added_cb),
