@@ -317,7 +317,12 @@ pkg_sources_page_add_source_cb (PkConnection *connection, /* IN */
 				connection, result, &id, &error)) {
 		/* TODO: Show error */
 		g_error_free(error);
+		GOTO(cleanup);
 	}
+	/* TODO: remove after plumbing signals */
+	pkg_sources_page_add_source(page, id);
+  cleanup:
+	g_object_unref(page);
 	EXIT;
 }
 
@@ -359,7 +364,7 @@ pkg_sources_page_add_clicked_cb (GtkWidget *add,       /* IN */
 		pk_connection_manager_add_source_async(
 				priv->connection, plugin, NULL,
 				(GAsyncReadyCallback)pkg_sources_page_add_source_cb,
-				NULL);
+				g_object_ref(page));
 	}
 	EXIT;
 }
