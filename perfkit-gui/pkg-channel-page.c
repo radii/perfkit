@@ -577,7 +577,7 @@ pkg_channel_page_init (PkgChannelPage *page)
 	        priv->_w = (gpointer)gtk_builder_get_object(priv->builder, _n); \
 	    } G_STMT_END
 
-	path = pkg_path_for_data("ui", "perfkit-gui.ui", NULL);
+	path = pkg_path_for_data("ui", "pkg-channel-page.ui", NULL);
 	priv->builder = gtk_builder_new();
 	gtk_builder_add_from_file(priv->builder, path, NULL);
 	g_free(path);

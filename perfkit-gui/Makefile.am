@@ -49,6 +49,7 @@ INST_H_FILES =								\
 	pkg-path.h							\
 	pkg-plugin-page.h						\
 	pkg-source-page.h						\
+	pkg-sources-page.h						\
 	pkg-subscription-page.h						\
 	pkg-version.h							\
 	$(NULL)
@@ -70,6 +71,7 @@ libperfkit_gui_la_SOURCES =						\
 	pkg-path.c							\
 	pkg-plugin-page.c						\
 	pkg-source-page.c						\
+	pkg-sources-page.c						\
 	pkg-subscription-page.c						\
 	pkg-util.c							\
 	pkg-window.c							\

@@ -30,6 +30,7 @@
 #include "pkg-page.h"
 #include "pkg-plugin-page.h"
 #include "pkg-source-page.h"
+#include "pkg-sources-page.h"
 #include "pkg-subscription-page.h"
 #include "pkg-util.h"
 #include "pkg-window.h"
@@ -1215,6 +1216,23 @@ pkg_window_show_subscription (PkgWindow    *window,       /* IN */
 }
 
 void
+pkg_window_show_sources (PkgWindow    *window,     /* IN */
+                         PkConnection *connection) /* IN */
+{
+	GtkWidget *page;
+
+	g_return_if_fail(PKG_IS_WINDOW(window));
+	g_return_if_fail(PK_IS_CONNECTION(connection));
+
+	ENTRY;
+	page = g_object_new(PKG_TYPE_SOURCES_PAGE,
+	                    "connection", connection,
+	                    NULL);
+	pkg_window_set_page(window, PKG_PAGE(page));
+	EXIT;
+}
+
+void
 pkg_window_show_source (PkgWindow    *window,     /* IN */
                         PkConnection *connection, /* IN */
                         gint          source)     /* IN */
@@ -1290,6 +1308,10 @@ pkg_window_selection_changed (GtkTreeSelection *selection, /* IN */
 		CASE(TYPE_PLUGIN);
 			DEBUG(Window, "Show current plugin.");
 			pkg_window_show_plugin(window, connection, row_title);
+			BREAK;
+		CASE(TYPE_SOURCES);
+			DEBUG(Window, "Show sources overview.");
+			pkg_window_show_sources(window, connection);
 			BREAK;
 		default:
 			GOTO(clear_contents);
