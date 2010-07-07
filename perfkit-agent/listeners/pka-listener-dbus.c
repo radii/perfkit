@@ -809,7 +809,7 @@ static const gchar * ManagerIntrospection =
     "   <arg name=\"removed\" direction=\"out\" type=\"b\"/>"
 	"  </method>"
 	"  <method name=\"RemoveSource\">"
-    "   <arg name=\"source\" direction=\"in\" type=\"i\"/>"
+    "   <arg name=\"source\" direction=\"in\" type=\"o\"/>"
 	"  </method>"
 	"  <method name=\"RemoveSubscription\">"
     "   <arg name=\"subscription\" direction=\"in\" type=\"o\"/>"
@@ -1722,9 +1722,14 @@ pka_listener_dbus_handle_manager_message (DBusConnection *connection, /* IN */
 			ret = DBUS_HANDLER_RESULT_HANDLED;
 		}
 		else if (IS_MEMBER(message, "RemoveSource")) {
+			const gchar *path = NULL;
 			gint source = 0;
 			if (!dbus_message_get_args(message, NULL,
+			                           DBUS_TYPE_OBJECT_PATH, &path,
 			                           DBUS_TYPE_INVALID)) {
+				GOTO(oom);
+			}
+			if (sscanf(path, "/org/perfkit/Agent/Source/%d", &source) != 1) {
 				GOTO(oom);
 			}
 			pka_listener_manager_remove_source_async(PKA_LISTENER(listener),

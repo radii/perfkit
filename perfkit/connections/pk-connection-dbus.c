@@ -6137,7 +6137,7 @@ pk_connection_dbus_manager_remove_source_async (PkConnection        *connection,
 	 * Add message parameters.
 	 */
 	dbus_message_iter_init_append(msg, &iter);
-	APPEND_INT_PARAM(source);
+	APPEND_OBJECT_PARAM("/org/perfkit/Agent/Source/%d", source);
 
 	/*
 	 * Send message to agent and schedule to be notified of the result.
