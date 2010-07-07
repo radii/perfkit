@@ -809,19 +809,19 @@ pkg_window_get_source_iter (PkgWindow    *window,     /* IN */
                             GtkTreeIter  *iter)       /* OUT */
 {
 	PkgWindowPrivate *priv;
-	GtkTreeIter child;
+	GtkTreeIter parent;
 	gint id;
 
 	ENTRY;
 	priv = window->priv;
-	if (!pkg_window_get_sources_iter(window, connection, iter)) {
+	if (!pkg_window_get_sources_iter(window, connection, &parent)) {
 		RETURN(FALSE);
 	}
-	if (!gtk_tree_model_iter_children(GTK_TREE_MODEL(priv->model), &child, iter)) {
+	if (!gtk_tree_model_iter_children(GTK_TREE_MODEL(priv->model), iter, &parent)) {
 		RETURN(FALSE);
 	}
 	do {
-		gtk_tree_model_get(GTK_TREE_MODEL(priv->model), &child, COLUMN_ID, &id, -1);
+		gtk_tree_model_get(GTK_TREE_MODEL(priv->model), iter, COLUMN_ID, &id, -1);
 		if (id == source) {
 			RETURN(TRUE);
 		}
