@@ -566,8 +566,10 @@ pka_source_notify_stopped (PkaSource *source) /* IN */
 	ENTRY;
 	priv = source->priv;
 	g_static_rw_lock_writer_lock(&priv->rw_lock);
-	priv->running = FALSE;
-	pka_source_queue_stopped(source);
+	if (priv->running) {
+		priv->running = FALSE;
+		pka_source_queue_stopped(source);
+	}
 	g_static_rw_lock_writer_unlock(&priv->rw_lock);
 	EXIT;
 }
