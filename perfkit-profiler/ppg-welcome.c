@@ -27,6 +27,7 @@
 #include "ppg-path.h"
 #include "ppg-util.h"
 #include "ppg-welcome.h"
+#include "ppg-window.h"
 
 extern guint ppg_window_count (void);
 
@@ -35,6 +36,7 @@ typedef struct
 	gsize         initialized;
 	GtkBuilder   *builder;
 	GtkWidget    *window;
+	GtkWidget    *local;
 	GtkWidget    *treeview;
 	GtkListStore *model;
 } PpgWelcome;
@@ -61,6 +63,17 @@ ppg_welcome_separator_func (GtkTreeModel *model, /* IN */
 
 	gtk_tree_model_get(model, iter, 2, &sep, -1);
 	return sep;
+}
+
+static void
+ppg_welcome_local_clicked (GtkWidget *button,    /* IN */
+                           gpointer   user_data) /* IN */
+{
+	GtkWidget *window;
+
+	window = ppg_window_new();
+	gtk_widget_show(window);
+	gtk_widget_hide(welcome.window);
 }
 
 static void
@@ -97,6 +110,7 @@ ppg_welcome_init (void)
 	 */
 	EXTRACT_WIDGET(welcome.builder, "welcome-child", child);
 	EXTRACT_WIDGET(welcome.builder, "treeview", welcome.treeview);
+	EXTRACT_WIDGET(welcome.builder, "local-button", welcome.local);
 
 	/*
 	 * Build treeview columns.
@@ -149,6 +163,10 @@ ppg_welcome_init (void)
 	g_signal_connect(window,
 	                 "delete-event",
 	                 G_CALLBACK(ppg_welcome_delete_event),
+	                 NULL);
+	g_signal_connect(welcome.local,
+	                 "clicked",
+	                 G_CALLBACK(ppg_welcome_local_clicked),
 	                 NULL);
 }
 
