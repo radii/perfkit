@@ -32,9 +32,11 @@ extern guint ppg_window_count (void);
 
 typedef struct
 {
-	gsize       initialized;
-	GtkBuilder *builder;
-	GtkWidget  *window;
+	gsize         initialized;
+	GtkBuilder   *builder;
+	GtkWidget    *window;
+	GtkWidget    *treeview;
+	GtkListStore *model;
 } PpgWelcome;
 
 static PpgWelcome welcome = { 0 };
@@ -50,9 +52,24 @@ ppg_welcome_delete_event (GtkWidget *widget,    /* IN */
 	return TRUE;
 }
 
+static gboolean
+ppg_welcome_separator_func (GtkTreeModel *model, /* IN */
+                            GtkTreeIter  *iter,  /* IN */
+                            gpointer      data)  /* IN */
+{
+	gboolean sep;
+
+	gtk_tree_model_get(model, iter, 2, &sep, -1);
+	return sep;
+}
+
 static void
 ppg_welcome_init (void)
 {
+	GtkTreeViewColumn *column;
+	GtkTreeSelection *selection;
+	GtkCellRenderer *cell;
+	GtkTreeIter iter;
 	GtkWidget *window;
 	GtkWidget *child;
 	gchar *path;
@@ -62,7 +79,8 @@ ppg_welcome_init (void)
 	 */
 	welcome.window = window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "");
-	gtk_window_set_default_size(GTK_WINDOW(window), 640, 480);
+	gtk_widget_set_size_request(window, 620, 420);
+	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
 
 	/*
 	 * Load widgets from gtk builder.
@@ -78,6 +96,47 @@ ppg_welcome_init (void)
 	 * Extract widgets from UI file.
 	 */
 	EXTRACT_WIDGET(welcome.builder, "welcome-child", child);
+	EXTRACT_WIDGET(welcome.builder, "treeview", welcome.treeview);
+
+	/*
+	 * Build treeview columns.
+	 */
+	column = gtk_tree_view_column_new();
+	cell = gtk_cell_renderer_pixbuf_new();
+	gtk_tree_view_column_pack_start(column, cell, FALSE);
+	gtk_tree_view_column_add_attribute(column, cell, "icon-name", 0);
+	g_object_set(cell, "stock-size", GTK_ICON_SIZE_DND, NULL);
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, TRUE);
+	gtk_tree_view_column_add_attribute(column, cell, "text", 1);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(welcome.treeview),
+	                            column);
+	gtk_tree_view_set_row_separator_func(GTK_TREE_VIEW(welcome.treeview),
+	                                     ppg_welcome_separator_func,
+	                                     NULL, NULL);
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(welcome.treeview));
+
+	/*
+	 * Attach model.
+	 */
+	welcome.model = gtk_list_store_new(3,
+	                                   G_TYPE_STRING,
+	                                   G_TYPE_STRING,
+	                                   G_TYPE_BOOLEAN);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(welcome.treeview),
+	                        GTK_TREE_MODEL(welcome.model));
+
+	/*
+	 * Add Home button.
+	 */
+	gtk_list_store_append(welcome.model, &iter);
+	gtk_list_store_set(welcome.model, &iter,
+	                   0, GTK_STOCK_HOME,
+	                   1, _("Home"),
+	                   -1);
+	gtk_tree_selection_select_iter(selection, &iter);
+	gtk_list_store_append(welcome.model, &iter);
+	gtk_list_store_set(welcome.model, &iter, 2, TRUE, -1);
 
 	/*
 	 * Reparent child widget into window.
