@@ -1,12 +1,13 @@
-SUBDIRS =		\
-	data		\
-	perfkit-agent	\
-	perfkit		\
-	tools		\
-	perfkit-chart	\
-	perfkit-gui	\
-	bindings	\
-	tests		\
+SUBDIRS =			\
+	data			\
+	perfkit-agent		\
+	perfkit			\
+	tools			\
+	perfkit-chart		\
+	perfkit-gui		\
+	perfkit-profiler	\
+	bindings		\
+	tests			\
 	doc
 
 ACLOCAL_AMFLAGS = -I build/m4
