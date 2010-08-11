@@ -77,6 +77,11 @@ ppg_path_build (const gchar *first_part, /* IN */
 	va_end(args);
 
 	/*
+	 * Null sentinal.
+	 */
+	g_ptr_array_add(ptr, NULL);
+
+	/*
 	 * Build filename.
 	 */
 	ret = g_build_filenamev((gchar **)ptr->pdata);
