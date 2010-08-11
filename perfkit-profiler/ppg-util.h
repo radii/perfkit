@@ -35,6 +35,13 @@ G_BEGIN_DECLS
     G_STMT_START {                                    \
         o = (t)(gtk_builder_get_object(b, n));        \
     } G_STMT_END
+#define EXTRACT_MENU_ITEM(b, n, f)                    \
+    G_STMT_START {                                    \
+        GtkWidget *w;                                 \
+        w = GTK_WIDGET(gtk_builder_get_object(b, n)); \
+        g_signal_connect(w, "activate",               \
+                         G_CALLBACK(f), NULL);        \
+    } G_STMT_END
 
 G_END_DECLS
 

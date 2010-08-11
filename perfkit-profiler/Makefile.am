@@ -44,6 +44,7 @@ INST_H_FILES =								\
 	perfkit-profiler.h						\
 	ppg-config.h							\
 	ppg-log.h							\
+	ppg-panels.h							\
 	ppg-path.h							\
 	ppg-welcome.h							\
 	ppg-version.h							\
@@ -58,6 +59,7 @@ libperfkit_profiler_la_SOURCES =					\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
 	ppg-config.c							\
 	ppg-log.c							\
+	ppg-panels.c							\
 	ppg-path.c							\
 	ppg-welcome.c							\
 	ppg-window.c							\

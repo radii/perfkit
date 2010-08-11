@@ -35,6 +35,7 @@ extern void ppg_config_init     (void);
 extern void ppg_config_shutdown (void);
 extern void ppg_log_init        (void);
 extern void ppg_log_shutdown    (void);
+extern void ppg_panels_init     (void);
 
 static GOptionEntry options[] = {
 	{ NULL }
@@ -87,6 +88,7 @@ main (gint   argc,
 	 */
 	ppg_log_init();
 	ppg_config_init();
+	ppg_panels_init();
 
 	/*
 	 * Register signal handler.

@@ -20,9 +20,13 @@
 #include "config.h"
 #endif
 
+#include "ppg-panels.h"
 #include "ppg-path.h"
 #include "ppg-window.h"
 #include "ppg-util.h"
+
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN "Window"
 
 /**
  * SECTION:ppg-window.h
@@ -87,6 +91,12 @@ ppg_window_delete_event (PpgWindow *window,    /* IN */
 	if (!ppg_window_count()) {
 		gtk_main_quit();
 	}
+}
+
+static void
+ppg_window_show_sources (PpgWindow *window) /* IN */
+{
+	ppg_panels_sources_show();
 }
 
 /**
@@ -170,6 +180,8 @@ ppg_window_init (PpgWindow *window) /* IN */
 	EXTRACT_WIDGET(priv->builder, "toolbar", priv->toolbar);
 	EXTRACT_OBJECT(priv->builder, GtkAction*, "record-action",
 	               priv->record_action);
+	EXTRACT_MENU_ITEM(priv->builder, "show-sources",
+	                  ppg_window_show_sources);
 
 	/*
 	 * Reparent gtk builder widgets.

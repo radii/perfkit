@@ -1,4 +1,4 @@
-/* perfkit-profiler.h
+/* ppg-panels.h
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -20,21 +20,16 @@
 #error "Only <perfkit-profiler/perfkit-profiler.h> can be included directly."
 #endif
 
-#ifndef __PERFKIT_PROFILER_H__
-#define __PERFKIT_PROFILER_H__
+#ifndef __PPG_PANELS_H__
+#define __PPG_PANELS_H__
 
 #include <glib.h>
 
 G_BEGIN_DECLS
 
-#include "ppg-config.h"
-#include "ppg-log.h"
-#include "ppg-path.h"
-#include "ppg-util.h"
-#include "ppg-welcome.h"
-#include "ppg-window.h"
-#include "ppg-version.h"
+void ppg_panels_sources_show (void);
+void ppg_panels_sources_hide (void);
 
 G_END_DECLS
 
-#endif /* __PERFKIT_PROFILER_H__ */
+#endif /* __PPG_PANELS_H__ */
