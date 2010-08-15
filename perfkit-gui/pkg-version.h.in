@@ -14,28 +14,28 @@
  *
  * Major version of Serenity, e.g. 1 in "1.2.3"
  */
-#define PKG_MAJOR_VERSION (@PKG_MAJOR_VERSION@)
+#define PKG_MAJOR_VERSION (@PK_MAJOR_VERSION@)
 
 /**
  * PKG_MINOR_VERSION:
  *
  * Minor version of Serenity, e.g. 2 in "1.2.3"
  */
-#define PKG_MINOR_VERSION (@PKG_MINOR_VERSION@)
+#define PKG_MINOR_VERSION (@PK_MINOR_VERSION@)
 
 /**
  * PKG_MICRO_VERSION:
  *
  * Micro version of Serenity, e.g. 3 in "1.2.3"
  */
-#define PKG_MICRO_VERSION (@PKG_MICRO_VERSION@)
+#define PKG_MICRO_VERSION (@PK_MICRO_VERSION@)
 
 /**
  * PKG_API_VERSION_S:
  *
  * Version of the API of Serenity
  */
-#define PKG_API_VERSION_S "@PKG_API_VERSION@"
+#define PKG_API_VERSION_S "@PK_API_VERSION@"
 
 /**
  * PKG_VERSION_S:
@@ -44,7 +44,7 @@
  *
  * Useful for display.
  */
-#define PKG_VERSION_S "@PKG_MAJOR_VERSION@.@PKG_MINOR_VERSION@.@PKG_MICRO_VERSION@"
+#define PKG_VERSION_S "@PK_MAJOR_VERSION@.@PK_MINOR_VERSION@.@PK_MICRO_VERSION@"
 
 /**
  * PKG_VERSION_HEX:

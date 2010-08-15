@@ -37,46 +37,16 @@ AS_AM_REALLY_SILENT
 dnl ************************************************************************
 dnl Versioning Definitions
 dnl ************************************************************************
-PKA_MAJOR_VERSION=perfkit_major_version
-PKA_MINOR_VERSION=perfkit_minor_version
-PKA_MICRO_VERSION=perfkit_micro_version
-PKA_API_VERSION=1.0
-PKA_VERSION=perfkit_version
 PK_MAJOR_VERSION=perfkit_major_version
 PK_MINOR_VERSION=perfkit_minor_version
 PK_MICRO_VERSION=perfkit_micro_version
 PK_API_VERSION=1.0
 PK_VERSION=perfkit_version
-PKG_MAJOR_VERSION=perfkit_major_version
-PKG_MINOR_VERSION=perfkit_minor_version
-PKG_MICRO_VERSION=perfkit_micro_version
-PKG_API_VERSION=1.0
-PKG_VERSION=perfkit_version
-PKC_MAJOR_VERSION=perfkit_major_version
-PKC_MINOR_VERSION=perfkit_minor_version
-PKC_MICRO_VERSION=perfkit_micro_version
-PKC_API_VERSION=1.0
-PKC_VERSION=perfkit_version
-AC_SUBST(PKA_MAJOR_VERSION)
-AC_SUBST(PKA_MINOR_VERSION)
-AC_SUBST(PKA_MICRO_VERSION)
-AC_SUBST(PKA_API_VERSION)
-AC_SUBST(PKA_VERSION)
 AC_SUBST(PK_MAJOR_VERSION)
 AC_SUBST(PK_MINOR_VERSION)
 AC_SUBST(PK_MICRO_VERSION)
 AC_SUBST(PK_API_VERSION)
 AC_SUBST(PK_VERSION)
-AC_SUBST(PKG_MAJOR_VERSION)
-AC_SUBST(PKG_MINOR_VERSION)
-AC_SUBST(PKG_MICRO_VERSION)
-AC_SUBST(PKG_API_VERSION)
-AC_SUBST(PKG_VERSION)
-AC_SUBST(PKC_MAJOR_VERSION)
-AC_SUBST(PKC_MINOR_VERSION)
-AC_SUBST(PKC_MICRO_VERSION)
-AC_SUBST(PKC_API_VERSION)
-AC_SUBST(PKC_VERSION)
 
 
 dnl ************************************************************************
@@ -95,9 +65,7 @@ PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0      >= 2.20
 PKG_CHECK_MODULES(PERFKIT_CHART,  [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gio-2.0          >= 2.20
-                                   gtk+-2.0         >= 2.20
-                                   clutter-1.0      >= 1.2
-                                   clutter-gtk-0.10 >= 0.10.4])
+                                   gtk+-2.0         >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0      >= 2.20
                                    gthread-2.0      >= 2.20
                                    gtk+-2.0         >= 2.18])
