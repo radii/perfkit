@@ -72,6 +72,7 @@ ppg_welcome_local_clicked (GtkWidget *button,    /* IN */
 	GtkWidget *window;
 
 	window = ppg_window_new();
+	ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
 	gtk_widget_show(window);
 	gtk_widget_hide(welcome.window);
 }

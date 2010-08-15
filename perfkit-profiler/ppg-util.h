@@ -23,7 +23,7 @@
 #ifndef __PPG_UTIL_H__
 #define __PPG_UTIL_H__
 
-#include <glib.h>
+#include "ppg-dialog.h"
 
 G_BEGIN_DECLS
 
@@ -48,7 +48,14 @@ G_BEGIN_DECLS
         g_signal_connect((o), "activate",             \
                          G_CALLBACK(f), d);           \
     } G_STMT_END
-
+#define DISPLAY_ERROR(p, f1, f2, ...)                 \
+    G_STMT_START {                                    \
+        gchar *m;                                     \
+        m = g_strdup_printf(f2, ## __VA_ARGS__);      \
+        ppg_dialog_warning(GTK_WIDGET(p), "", f1, m,  \
+                           TRUE);                     \
+    } G_STMT_END
+#define G_ASYNC(f) ((GAsyncReadyCallback)f)
 
 G_END_DECLS
 

@@ -20,6 +20,10 @@
 #include "config.h"
 #endif
 
+#include <glib/gi18n.h>
+#include <perfkit/perfkit.h>
+
+#include "ppg-log.h"
 #include "ppg-log-window.h"
 #include "ppg-panels.h"
 #include "ppg-path.h"
@@ -43,8 +47,11 @@ static guint window_count = 0;
 
 struct _PpgWindowPrivate
 {
-	GtkBuilder *builder;
-	GtkWidget  *toolbar;
+	PkConnection *conn;
+
+	GtkBuilder   *builder;
+	GtkWidget    *toolbar;
+	GtkWidget    *content;
 
 	struct {
 		GtkAction *record;
@@ -80,6 +87,70 @@ ppg_window_count (void)
 	return window_count;
 }
 
+static void
+ppg_window_connected (PkConnection *conn,   /* IN */
+                      GAsyncResult *result, /* IN */
+                      PpgWindow    *window) /* IN */
+{
+	PpgWindowPrivate *priv;
+	GError *error = NULL;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+	/*
+	 * Check if the connection succeeded.
+	 */
+	if (!pk_connection_connect_finish(conn, result, &error)) {
+		DISPLAY_ERROR(window,
+		              _("Could not connect to Perfkit Agent"),
+		              "%s", error->message);
+		g_error_free(error);
+		goto cleanup;
+	}
+	gtk_widget_set_sensitive(priv->content, TRUE);
+  cleanup:
+	g_object_unref(window);
+}
+
+/**
+ * ppg_window_connect_to:
+ * @window: A #PpgWindow.
+ *
+ * XXX
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+ppg_window_connect_to (PpgWindow   *window, /* IN */
+                       const gchar *uri)    /* IN */
+{
+	PpgWindowPrivate *priv;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+	if (priv->conn) {
+		CRITICAL("%s() may only be called once for a window.", G_STRFUNC);
+		return;
+	}
+	/*
+	 * Create a connection for the uri.
+	 */
+	if (!(priv->conn = pk_connection_new_from_uri(uri))) {
+		CRITICAL("Invalid URI: %s", uri);
+		return;
+	}
+	/*
+	 * Start connceting to the agent.
+	 */
+	gtk_widget_set_sensitive(priv->content, FALSE);
+	pk_connection_connect_async(priv->conn, NULL,
+	                            G_ASYNC(ppg_window_connected),
+	                            g_object_ref(window));
+}
+
 /**
  * ppg_window_delete_event:
  * @window: A #PpgWindow.
@@ -98,12 +169,32 @@ ppg_window_delete_event (PpgWindow *window,    /* IN */
 	}
 }
 
+/**
+ * ppg_window_show_sources:
+ * @window: A #PpgWindow.
+ *
+ * Shows the sources panel and ensures it contains the list of sources
+ * for this window.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_show_sources (PpgWindow *window) /* IN */
 {
 	ppg_panels_sources_show();
 }
 
+/**
+ * ppg_window_debug_action:
+ * @action: A #GtkAction.
+ * @window: A #PpgWindow.
+ *
+ * Handles the #GtkAction for showing the debug log.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_debug_action (GtkAction *action, /* IN */
                          PpgWindow *window) /* IN */
@@ -194,6 +285,7 @@ ppg_window_init (PpgWindow *window) /* IN */
 	 */
 	EXTRACT_WIDGET(priv->builder, "window-child", child);
 	EXTRACT_WIDGET(priv->builder, "toolbar", priv->toolbar);
+	EXTRACT_WIDGET(priv->builder, "content", priv->content);
 	EXTRACT_OBJECT(priv->builder, GtkAction*, "record-action",
 	               priv->actions.record);
 	EXTRACT_ACTION(priv->builder, "debug-action", priv->actions.debug,

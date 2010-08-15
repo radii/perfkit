@@ -27,10 +27,11 @@
 
 G_BEGIN_DECLS
 
-#define DEBUG(f,...)   g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, f, ## __VA_ARGS__)
-#define ERROR(f,...)   g_log(G_LOG_DOMAIN, G_LOG_LEVEL_ERROR, f, ## __VA_ARGS__)
-#define INFO(f,...)    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, f, ## __VA_ARGS__)
-#define WARNING(f,...) g_log(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, f, ## __VA_ARGS__)
+#define DEBUG(f,...)    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, f, ## __VA_ARGS__)
+#define ERROR(f,...)    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_ERROR, f, ## __VA_ARGS__)
+#define INFO(f,...)     g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, f, ## __VA_ARGS__)
+#define WARNING(f,...)  g_log(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, f, ## __VA_ARGS__)
+#define CRITICAL(f,...) g_log(G_LOG_DOMAIN, G_LOG_LEVEL_CRITICAL, f, ## __VA_ARGS__)
 
 typedef void (*PpgLogFunc) (const gchar *message,
                             gpointer     user_data);
