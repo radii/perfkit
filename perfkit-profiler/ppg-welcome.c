@@ -156,6 +156,8 @@ ppg_welcome_init (void)
 	 * Reparent child widget into window.
 	 */
 	gtk_widget_reparent(child, window);
+	gtk_window_set_default(GTK_WINDOW(window), welcome.local);
+	gtk_widget_grab_focus(welcome.local);
 
 	/*
 	 * Connect signals.
@@ -181,9 +183,17 @@ ppg_welcome_init (void)
 void
 ppg_welcome_show (void)
 {
+	/*
+	 * Initialize welcome window if needed.
+	 */
 	if (g_once_init_enter(&welcome.initialized)) {
 		ppg_welcome_init();
 		g_once_init_leave(&welcome.initialized, TRUE);
 	}
-	gtk_widget_show(welcome.window);
+
+	/*
+	 * Center window on screen and display it.
+	 */
+	gtk_window_set_position(GTK_WINDOW(welcome.window), GTK_WIN_POS_CENTER);
+	gtk_window_present(GTK_WINDOW(welcome.window));
 }
