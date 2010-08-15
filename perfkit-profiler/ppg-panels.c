@@ -38,7 +38,7 @@ static PpgPanels panels = { 0 };
 void
 ppg_panels_sources_show (void)
 {
-	gtk_widget_show(panels.sources);
+	gtk_window_present(GTK_WINDOW(panels.sources));
 }
 
 void
