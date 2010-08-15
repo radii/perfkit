@@ -32,6 +32,13 @@ G_BEGIN_DECLS
 #define INFO(f,...)    g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, f, ## __VA_ARGS__)
 #define WARNING(f,...) g_log(G_LOG_DOMAIN, G_LOG_LEVEL_WARNING, f, ## __VA_ARGS__)
 
+typedef void (*PpgLogFunc) (const gchar *message,
+                            gpointer     user_data);
+
+guint ppg_log_add_listener    (PpgLogFunc func,
+                               gpointer   user_data);
+void  ppg_log_remove_listener (guint      listener_id);
+
 G_END_DECLS
 
 #endif /* __PPG_LOG_H__ */

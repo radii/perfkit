@@ -42,6 +42,13 @@ G_BEGIN_DECLS
         g_signal_connect(w, "activate",               \
                          G_CALLBACK(f), NULL);        \
     } G_STMT_END
+#define EXTRACT_ACTION(b, n, o, f, d)                 \
+    G_STMT_START {                                    \
+        o = GTK_ACTION(gtk_builder_get_object(b, n)); \
+        g_signal_connect((o), "activate",             \
+                         G_CALLBACK(f), d);           \
+    } G_STMT_END
+
 
 G_END_DECLS
 

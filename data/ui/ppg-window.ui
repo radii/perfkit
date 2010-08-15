@@ -41,8 +41,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menuitem5">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">record-action</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -50,8 +50,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menuitem6">
                         <property name="visible">True</property>
-                        <property name="use_action_appearance">True</property>
                         <property name="related_action">pause-action</property>
+                        <property name="use_action_appearance">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -73,6 +73,61 @@
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">_Sources</property>
                         <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menuitem7">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">_Help</property>
+                <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu" id="menu4">
+                    <property name="visible">True</property>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menuitem8">
+                        <property name="label">gtk-about</property>
+                        <property name="visible">True</property>
+                        <property name="tooltip_text" translatable="yes">About Perfkit</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="menuitem9">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem10">
+                        <property name="visible">True</property>
+                        <property name="tooltip_text" translatable="yes">Find help on the Perfkit wiki</property>
+                        <property name="label" translatable="yes">Perfkit Wiki</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuitem11">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Perfkit User Manual</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="menuitem12">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menuitem13">
+                        <property name="visible">True</property>
+                        <property name="tooltip_text" translatable="yes">Show the Perfkit debug log</property>
+                        <property name="related_action">debug-action</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="use_stock">True</property>
                       </object>
                     </child>
                   </object>
@@ -144,5 +199,9 @@
     <property name="label">Pause</property>
     <property name="stock_id">gtk-media-pause</property>
     <property name="icon_name">media-playback-pause</property>
+  </object>
+  <object class="GtkAction" id="debug-action">
+    <property name="label">Debug Log</property>
+    <property name="tooltip">Show the debug log</property>
   </object>
 </interface>

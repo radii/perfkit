@@ -51,6 +51,7 @@ INST_H_FILES =								\
 	$(NULL)
 
 NOINST_H_FILES =							\
+	ppg-log-window.h						\
 	$(NULL)
 
 libperfkit_profiler_la_SOURCES =					\
@@ -58,6 +59,7 @@ libperfkit_profiler_la_SOURCES =					\
 	$(NOINST_H_FILES)						\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
 	ppg-config.c							\
+	ppg-log-window.c						\
 	ppg-log.c							\
 	ppg-panels.c							\
 	ppg-path.c							\

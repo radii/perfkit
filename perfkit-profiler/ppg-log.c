@@ -38,8 +38,17 @@ typedef struct
 {
 	GMutex    *mutex;
 	GPtrArray *channels;
+	GArray    *listeners;
 	gchar      hostname[64];
+	guint      id_seq;
 } PpgLog;
+
+typedef struct
+{
+	guint      id;
+	PpgLogFunc func;
+	gpointer   user_data;
+} PpgLogListener;
 
 static PpgLog ppg_log = { 0 };
 
@@ -101,6 +110,7 @@ ppg_log_handler (const gchar    *log_domain, /* IN */
                  const gchar    *message,    /* IN */
                  gpointer        user_data)  /* IN */
 {
+	PpgLogListener *listener;
 	GIOChannel *channel;
 	const gchar *level;
 	gchar ftime[32];
@@ -116,7 +126,7 @@ ppg_log_handler (const gchar    *log_domain, /* IN */
 		t = (time_t)ts.tv_sec;
 		tt = *localtime(&t);
 		strftime(ftime, sizeof(ftime), "%Y/%m/%d %H:%M:%S", &tt);
-		buffer = g_strdup_printf("%s.%04ld  %s: %12s[%d]: %8s: %s\n",
+		buffer = g_strdup_printf("%s.%04ld  %s: %12s[%d]: %8s: %s",
 		                         ftime, ts.tv_nsec / 100000,
 		                         ppg_log.hostname, log_domain,
 		                         ppg_log_get_thread(), level, message);
@@ -124,7 +134,12 @@ ppg_log_handler (const gchar    *log_domain, /* IN */
 		for (i = 0; i < ppg_log.channels->len; i++) {
 			channel = g_ptr_array_index(ppg_log.channels, i);
 			g_io_channel_write_chars(channel, buffer, -1, NULL, NULL);
+			g_io_channel_write_chars(channel, "\n", -1, NULL, NULL);
 			g_io_channel_flush(channel, NULL);
+		}
+		for (i = 0; i < ppg_log.listeners->len; i++) {
+			listener = &g_array_index(ppg_log.listeners, PpgLogListener, i);
+			listener->func(buffer, listener->user_data);
 		}
 		g_mutex_unlock(ppg_log.mutex);
 		g_free(buffer);
@@ -150,6 +165,7 @@ ppg_log_init (gboolean stdout_) /* IN */
 	 */
 	ppg_log.mutex = g_mutex_new();
 	ppg_log.channels = g_ptr_array_new();
+	ppg_log.listeners = g_array_new(FALSE, FALSE, sizeof(PpgLogListener));
 	g_ptr_array_set_free_func(ppg_log.channels,
 	                          (GDestroyNotify)g_io_channel_unref);
 
@@ -193,4 +209,61 @@ ppg_log_shutdown (void)
 	g_ptr_array_free(ppg_log.channels, TRUE);
 	g_mutex_free(ppg_log.mutex);
 	memset(&ppg_log, 0, sizeof(ppg_log));
+}
+
+/**
+ * ppg_log_func_name:
+ * @func: A #PpgLogFunc
+ * @user_data: user data for @func.
+ *
+ * Registers a log observer.
+ *
+ * Returns: A unique observer id.
+ * Side effects: None.
+ */
+guint
+ppg_log_add_listener (PpgLogFunc func,      /* IN */
+                      gpointer   user_data) /* IN */
+{
+	PpgLogListener listener;
+
+	g_return_val_if_fail(func != NULL, -1);
+
+	listener.func = func;
+	listener.user_data = user_data;
+
+	g_mutex_lock(ppg_log.mutex);
+	listener.id = ++ppg_log.id_seq;
+	g_array_append_val(ppg_log.listeners, listener);
+	g_mutex_unlock(ppg_log.mutex);
+
+	return listener.id;
+}
+
+/**
+ * ppg_log_remove_listener:
+ * @: A #guint.
+ *
+ * XXX
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+ppg_log_remove_listener (guint listener_id) /* IN */
+{
+	PpgLogListener *listener;
+	gint i;
+
+	g_mutex_lock(ppg_log.mutex);
+	for (i = 0; i < ppg_log.listeners->len; i++) {
+		listener = &g_array_index(ppg_log.listeners, PpgLogListener, i);
+		if (listener->id == listener_id) {
+			g_array_remove_index(ppg_log.listeners, i);
+			goto unlock;
+		}
+	}
+	g_warning("No log listener matched %u.", listener_id);
+  unlock:
+	g_mutex_unlock(ppg_log.mutex);
 }

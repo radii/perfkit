@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include "ppg-log-window.h"
 #include "ppg-panels.h"
 #include "ppg-path.h"
 #include "ppg-window.h"
@@ -43,8 +44,12 @@ static guint window_count = 0;
 struct _PpgWindowPrivate
 {
 	GtkBuilder *builder;
-	GtkAction  *record_action;
 	GtkWidget  *toolbar;
+
+	struct {
+		GtkAction *record;
+		GtkAction *debug;
+	} actions;
 };
 
 /**
@@ -97,6 +102,16 @@ static void
 ppg_window_show_sources (PpgWindow *window) /* IN */
 {
 	ppg_panels_sources_show();
+}
+
+static void
+ppg_window_debug_action (GtkAction *action, /* IN */
+                         PpgWindow *window) /* IN */
+{
+	GtkWidget *log;
+
+	log = ppg_log_window_new();
+	gtk_window_present(GTK_WINDOW(log));
 }
 
 /**
@@ -180,7 +195,9 @@ ppg_window_init (PpgWindow *window) /* IN */
 	EXTRACT_WIDGET(priv->builder, "window-child", child);
 	EXTRACT_WIDGET(priv->builder, "toolbar", priv->toolbar);
 	EXTRACT_OBJECT(priv->builder, GtkAction*, "record-action",
-	               priv->record_action);
+	               priv->actions.record);
+	EXTRACT_ACTION(priv->builder, "debug-action", priv->actions.debug,
+	               ppg_window_debug_action, window);
 	EXTRACT_MENU_ITEM(priv->builder, "show-sources",
 	                  ppg_window_show_sources);
 
