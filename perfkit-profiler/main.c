@@ -33,7 +33,7 @@
  */
 extern void ppg_config_init     (void);
 extern void ppg_config_shutdown (void);
-extern void ppg_log_init        (void);
+extern void ppg_log_init        (gboolean stdout_);
 extern void ppg_log_shutdown    (void);
 extern void ppg_panels_init     (void);
 
@@ -86,7 +86,7 @@ main (gint   argc,
 	/*
 	 * Configure subsystems.
 	 */
-	ppg_log_init();
+	ppg_log_init(TRUE);
 	ppg_config_init();
 	ppg_panels_init();
 
