@@ -156,6 +156,7 @@ ppg_welcome_init (void)
 	 * Reparent child widget into window.
 	 */
 	gtk_widget_reparent(child, window);
+	gtk_widget_set_can_default(welcome.local, TRUE);
 	gtk_window_set_default(GTK_WINDOW(window), welcome.local);
 	gtk_widget_grab_focus(welcome.local);
 
