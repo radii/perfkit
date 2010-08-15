@@ -828,6 +828,7 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	PkConnectionDBusPrivate *priv;
 	DBusError db_error = { NULL };
 	DBusMessage *msg;
+	DBusMessage *reply;
 	gboolean ret = FALSE;
 	gchar *path;
 
@@ -866,6 +867,47 @@ pk_connection_dbus_connect_finish (PkConnection  *connection, /* IN */
 	 * Install GMainLoop integration.
 	 */
 	dbus_connection_setup_with_g_main(priv->dbus, NULL);
+
+	/*
+	 * Try to lookup the perfit agent on the bus.
+	 */
+	msg = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
+	g_assert(msg);
+
+	/*
+	 * Build the DBus message.
+	 */
+	dbus_message_set_destination(msg, "org.perfkit.Agent");
+	dbus_message_set_interface(msg, "org.perfkit.Agent.Manager");
+	dbus_message_set_member(msg, "Ping");
+	dbus_message_set_path(msg, "/org/perfkit/Agent/Manager");
+
+	/*
+	 * Send message to agent and schedule to be notified of the result.
+	 */
+	if (!(reply = dbus_connection_send_with_reply_and_block(priv->dbus, msg, -1, &db_error))) {
+		g_warning("Error dispatching message to %s/%s",
+		          dbus_message_get_path(msg),
+		          dbus_message_get_member(msg));
+		dbus_message_unref(msg);
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
+		            "Failed to locate Perfkit Agent on DBus");
+		goto unlock;
+	}
+	dbus_message_unref(msg);
+	if (dbus_message_get_type(reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		dbus_message_unref(reply);
+		g_set_error(error, PK_CONNECTION_DBUS_ERROR,
+		            PK_CONNECTION_DBUS_ERROR_NOT_AVAILABLE,
+		            "Failed to locate Perfkit Agent on DBus");
+		goto unlock;
+	}
+	dbus_message_unref(reply);
+
+	/*
+	 * Looks like we found the agent.
+	 */
 	priv->state = STATE_CONNECTED;
 
 	/*
