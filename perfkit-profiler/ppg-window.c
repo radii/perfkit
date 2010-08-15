@@ -162,6 +162,7 @@ ppg_window_init (PpgWindow *window) /* IN */
 	 * Set defaults.
 	 */
 	gtk_window_set_default_size(GTK_WINDOW(window), 770, 550);
+	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
 	/*
 	 * Load GtkBuilder ui.
