@@ -17,7 +17,6 @@ WARNINGS =								\
 	-Wdeclaration-after-statement					\
 	-Wredundant-decls						\
 	-Wmissing-noreturn						\
-	-Wshadow							\
 	-Wcast-align							\
 	-Wwrite-strings							\
 	-Winline							\
@@ -31,6 +30,8 @@ WARNINGS =								\
 	-Waggregate-return						\
 	-Wmissing-format-attribute					\
 	-Wnested-externs
+
+#	-Wshadow
 
 BUILD_SOURCES = pk-version.h
 
