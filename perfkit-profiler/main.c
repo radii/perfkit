@@ -20,10 +20,10 @@
 #include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <glib.h>
+#include <clutter/clutter.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <stdlib.h>
 
 #include "ppg-log.h"
 #include "ppg-welcome.h"
@@ -77,6 +77,7 @@ main (gint   argc,
 	context = g_option_context_new(_("- Perfkit Profiler"));
 	g_option_context_add_main_entries(context, options, GETTEXT_PACKAGE);
 	g_option_context_add_group(context, gtk_get_option_group(TRUE));
+	g_option_context_add_group(context, clutter_get_option_group());
 	if (!g_option_context_parse(context, &argc, &argv, &error)) {
 		g_printerr("%s\n", error->message);
 		g_error_free(error);
