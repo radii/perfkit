@@ -181,6 +181,36 @@
               <object class="GtkToolbar" id="toolbar">
                 <property name="visible">True</property>
                 <child>
+                  <object class="GtkToggleToolButton" id="toolbutton3">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="label" translatable="yes">Stop</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">media-playback-stop</property>
+                    <property name="active">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="toolbutton1">
+                    <property name="visible">True</property>
+                    <property name="sensitive">False</property>
+                    <property name="use_action_appearance">True</property>
+                    <property name="related_action">pause-action</property>
+                    <property name="label" translatable="yes">Pause</property>
+                    <property name="use_underline">True</property>
+                    <property name="stock_id">gtk-media-pause</property>
+                    <property name="icon_name">media-playback-pause</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkToggleToolButton" id="record">
                     <property name="visible">True</property>
                     <property name="use_action_appearance">True</property>
@@ -195,14 +225,12 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolButton" id="toolbutton1">
+                  <object class="GtkToolButton" id="toolbutton4">
                     <property name="visible">True</property>
-                    <property name="use_action_appearance">True</property>
-                    <property name="related_action">pause-action</property>
-                    <property name="label" translatable="yes">Pause</property>
+                    <property name="sensitive">False</property>
+                    <property name="label" translatable="yes">toolbutton4</property>
                     <property name="use_underline">True</property>
-                    <property name="stock_id">gtk-media-pause</property>
-                    <property name="icon_name">media-playback-pause</property>
+                    <property name="icon_name">view-refresh</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -237,13 +265,14 @@
   </object>
   <object class="GtkAction" id="record-action">
     <property name="label">Record</property>
-    <property name="icon_name">media-record</property>
+    <property name="icon_name">media-playback-start</property>
     <property name="always_show_image">True</property>
   </object>
   <object class="GtkAction" id="pause-action">
     <property name="label">Pause</property>
     <property name="stock_id">gtk-media-pause</property>
     <property name="icon_name">media-playback-pause</property>
+    <property name="sensitive">False</property>
   </object>
   <object class="GtkAction" id="debug-action">
     <property name="label">Debug Log</property>
@@ -254,4 +283,5 @@
     <property name="tooltip">Add source to this session</property>
     <property name="stock_id">gtk-add</property>
   </object>
+  <object class="GtkAction" id="action1"/>
 </interface>
