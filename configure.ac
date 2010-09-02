@@ -52,24 +52,28 @@ AC_SUBST(PK_VERSION)
 dnl ************************************************************************
 dnl Check for Required Modules
 dnl ************************************************************************
-PKG_CHECK_MODULES(PERFKIT_AGENT,  [gobject-2.0      >= 2.20
-                                   gthread-2.0      >= 2.20
-                                   gmodule-2.0      >= 2.20
-                                   gio-2.0          >= 2.20])
-PKG_CHECK_MODULES(PERFKIT_TOOLS,  [gobject-2.0      >= 2.20
-                                   gthread-2.0      >= 2.20
-                                   gio-2.0          >= 2.20])
-PKG_CHECK_MODULES(PERFKIT,        [gobject-2.0      >= 2.20
-                                   gthread-2.0      >= 2.20
-                                   gio-2.0          >= 2.20])
-PKG_CHECK_MODULES(PERFKIT_CHART,  [gobject-2.0      >= 2.20
-                                   gthread-2.0      >= 2.20
-                                   gio-2.0          >= 2.20
-                                   gtk+-2.0         >= 2.20])
-PKG_CHECK_MODULES(PERFKIT_GUI,    [gobject-2.0      >= 2.20
-                                   gthread-2.0      >= 2.20
-                                   gtk+-2.0         >= 2.18])
-PKG_CHECK_MODULES(DBUS,           [dbus-glib-1      >= 0.80])
+PKG_CHECK_MODULES(PERFKIT_AGENT,    [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gmodule-2.0      >= 2.20
+                                     gio-2.0          >= 2.20])
+PKG_CHECK_MODULES(PERFKIT_TOOLS,    [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gio-2.0          >= 2.20])
+PKG_CHECK_MODULES(PERFKIT,          [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gio-2.0          >= 2.20])
+PKG_CHECK_MODULES(PERFKIT_CHART,    [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gio-2.0          >= 2.20
+                                     gtk+-2.0         >= 2.20])
+PKG_CHECK_MODULES(PERFKIT_GUI,      [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gtk+-2.0         >= 2.18])
+PKG_CHECK_MODULES(PERFKIT_PROFILER, [gobject-2.0      >= 2.20
+                                     gthread-2.0      >= 2.20
+                                     gtk+-2.0         >= 2.18
+                                     clutter-gtk-0.10 >= 0.10.4])
+PKG_CHECK_MODULES(DBUS,             [dbus-glib-1      >= 0.80])
 
 
 dnl ************************************************************************

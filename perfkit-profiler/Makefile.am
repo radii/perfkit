@@ -33,12 +33,12 @@ AM_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Profiler\"					\
 	-DPERFKIT_COMPILATION						\
 	-I$(top_srcdir)/cut-n-paste					\
-	$(PERFKIT_GUI_CFLAGS)						\
+	$(PERFKIT_PROFILER_CFLAGS)					\
 	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(WARNINGS)							\
 	$(NULL)
 
-AM_LDFLAGS = $(PERFKIT_GUI_LIBS)
+AM_LDFLAGS = $(PERFKIT_PROFILER_LIBS)
 
 INST_H_FILES =								\
 	perfkit-profiler.h						\
