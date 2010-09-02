@@ -48,10 +48,10 @@ struct _PpgWindowClass
 	GtkWindowClass parent_class;
 };
 
-GType      ppg_window_get_type   (void) G_GNUC_CONST;
-GtkWidget* ppg_window_new        (void);
-void       ppg_window_connect_to (PpgWindow   *window,
-                                  const gchar *uri);
+GType      ppg_window_get_type       (void) G_GNUC_CONST;
+guint      ppg_window_count          (void);
+void       ppg_window_connect_to     (PpgWindow   *window,
+                                      const gchar *uri);
 
 G_END_DECLS
 

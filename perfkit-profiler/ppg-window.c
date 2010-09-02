@@ -62,20 +62,6 @@ struct _PpgWindowPrivate
 };
 
 /**
- * ppg_window_new:
- *
- * Creates a new instance of #PpgWindow.
- *
- * Returns: the newly created instance of #PpgWindow.
- * Side effects: None.
- */
-GtkWidget*
-ppg_window_new (void)
-{
-	return g_object_new(PPG_TYPE_WINDOW, NULL);
-}
-
-/**
  * ppg_window_count:
  *
  * Returns the count of active windows.

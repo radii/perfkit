@@ -29,7 +29,6 @@
 #include "ppg-welcome.h"
 #include "ppg-window.h"
 
-extern guint ppg_window_count (void);
 
 typedef struct
 {
@@ -41,12 +40,25 @@ typedef struct
 	GtkListStore *model;
 } PpgWelcome;
 
+
 static PpgWelcome welcome = { 0 };
 
+
+/**
+ * ppg_welcome_delete_event:
+ * @widget: A #PpgWelcome.
+ *
+ * Handle "delete-event" for welcome window. Hide instead.
+ *
+ * Returns: TRUE always.
+ * Side effects: Window hidden.
+ */
 static gboolean
-ppg_welcome_delete_event (GtkWidget *widget,    /* IN */
-                          gpointer   user_data) /* IN */
+ppg_welcome_delete_event (GtkWidget *widget,
+                          gpointer   user_data)
 {
+	g_return_val_if_fail(GTK_IS_WIDGET(widget), FALSE);
+
 	gtk_widget_hide(widget);
 	if (!ppg_window_count()) {
 		gtk_main_quit();
@@ -54,29 +66,59 @@ ppg_welcome_delete_event (GtkWidget *widget,    /* IN */
 	return TRUE;
 }
 
+/**
+ * ppg_welcome_separator_func:
+ * @welcome: A #PpgWelcome.
+ *
+ * Determines if the current GtkTreeIter is for a separator row.
+ *
+ * Returns: TRUE if the row is a separator; otherwise FALSE.
+ * Side effects: None.
+ */
 static gboolean
-ppg_welcome_separator_func (GtkTreeModel *model, /* IN */
-                            GtkTreeIter  *iter,  /* IN */
-                            gpointer      data)  /* IN */
+ppg_welcome_separator_func (GtkTreeModel *model,
+                            GtkTreeIter  *iter,
+                            gpointer      data)
 {
 	gboolean sep;
+
+	g_return_val_if_fail(GTK_IS_TREE_MODEL(model), FALSE);
+	g_return_val_if_fail(iter != NULL, FALSE);
 
 	gtk_tree_model_get(model, iter, 2, &sep, -1);
 	return sep;
 }
 
+/**
+ * ppg_welcome_local_clicked:
+ * @welcome: A #PpgWelcome.
+ *
+ * Handle "clicked" signal for new local profiling session button.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-ppg_welcome_local_clicked (GtkWidget *button,    /* IN */
-                           gpointer   user_data) /* IN */
+ppg_welcome_local_clicked (GtkWidget *button,
+                           gpointer   user_data)
 {
 	GtkWidget *window;
 
-	window = ppg_window_new();
-	ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
-	gtk_widget_show(window);
+	window = g_object_new(PPG_TYPE_WINDOW,
+	                      "visible", TRUE,
+	                      NULL);
 	gtk_widget_hide(welcome.window);
+	ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
 }
 
+/**
+ * ppg_welcome_init:
+ *
+ * Initialize the welcome screen.
+ *
+ * Returns: None.
+ * Side effects: Welcome screen is initialized.
+ */
 static void
 ppg_welcome_init (void)
 {
