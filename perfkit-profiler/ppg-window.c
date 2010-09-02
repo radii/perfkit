@@ -27,6 +27,7 @@
 #include "ppg-log-window.h"
 #include "ppg-panels.h"
 #include "ppg-path.h"
+#include "ppg-session-view.h"
 #include "ppg-window.h"
 #include "ppg-util.h"
 
@@ -52,6 +53,7 @@ struct _PpgWindowPrivate
 	GtkBuilder   *builder;
 	GtkWidget    *toolbar;
 	GtkWidget    *content;
+	GtkWidget    *session_view;
 
 	struct {
 		GtkAction *record;
@@ -132,7 +134,7 @@ ppg_window_connect_to (PpgWindow   *window, /* IN */
 
 	priv = window->priv;
 	if (priv->conn) {
-		CRITICAL("%s() may only be called once for a window.", G_STRFUNC);
+		CRITICAL("%s() may only be called once per window.", G_STRFUNC);
 		return;
 	}
 	/*
@@ -264,15 +266,12 @@ ppg_window_init (PpgWindow *window) /* IN */
 	                                           PpgWindowPrivate);
 	priv = window->priv;
 
-	/*
-	 * Set defaults.
-	 */
-	gtk_window_set_default_size(GTK_WINDOW(window), 770, 550);
-	gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+	g_object_set(window,
+	             "default-width", 770,
+	             "default-height", 550,
+	             "window-position", GTK_WIN_POS_CENTER,
+	             NULL);
 
-	/*
-	 * Load GtkBuilder ui.
-	 */
 	path = ppg_path_build("ui", "ppg-window.ui", NULL);
 	priv->builder = gtk_builder_new();
 	if (!gtk_builder_add_from_file(priv->builder, path, NULL)) {
@@ -280,9 +279,6 @@ ppg_window_init (PpgWindow *window) /* IN */
 	}
 	g_free(path);
 
-	/*
-	 * Extract widgets.
-	 */
 	EXTRACT_WIDGET(priv->builder, "window-child", child);
 	EXTRACT_WIDGET(priv->builder, "toolbar", priv->toolbar);
 	EXTRACT_WIDGET(priv->builder, "content", priv->content);
@@ -293,15 +289,15 @@ ppg_window_init (PpgWindow *window) /* IN */
 	EXTRACT_MENU_ITEM(priv->builder, "show-sources",
 	                  ppg_window_show_sources);
 
-	/*
-	 * Reparent gtk builder widgets.
-	 */
+	priv->session_view = g_object_new(PPG_TYPE_SESSION_VIEW,
+	                                  "visible", TRUE,
+	                                  NULL);
+	gtk_container_add(GTK_CONTAINER(priv->content), priv->session_view);
+
 	gtk_widget_reparent(child, GTK_WIDGET(window));
 
-	/*
-	 * Connect signals.
-	 */
 	gtk_builder_connect_signals(GTK_BUILDER(priv->builder), window);
+
 	g_signal_connect(window,
 	                 "delete-event",
 	                 G_CALLBACK(ppg_window_delete_event),

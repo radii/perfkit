@@ -47,6 +47,8 @@ INST_H_FILES =								\
 	ppg-log.h							\
 	ppg-panels.h							\
 	ppg-path.h							\
+	ppg-session.h							\
+	ppg-session-view.h						\
 	ppg-welcome.h							\
 	ppg-version.h							\
 	$(NULL)
@@ -65,6 +67,8 @@ libperfkit_profiler_la_SOURCES =					\
 	ppg-log.c							\
 	ppg-panels.c							\
 	ppg-path.c							\
+	ppg-session.c							\
+	ppg-session-view.c						\
 	ppg-welcome.c							\
 	ppg-window.c							\
 	$(NULL)
