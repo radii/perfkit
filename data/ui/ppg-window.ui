@@ -72,10 +72,26 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkImageMenuItem" id="menuitem18">
+                        <property name="visible">True</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="related_action">stop-action</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menuitem19">
+                        <property name="visible">True</property>
+                        <property name="use_action_appearance">True</property>
+                        <property name="related_action">pause-action</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="menuitem5">
                         <property name="visible">True</property>
-                        <property name="related_action">record-action</property>
                         <property name="use_action_appearance">True</property>
+                        <property name="related_action">record-action</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -83,9 +99,8 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menuitem6">
                         <property name="visible">True</property>
-                        <property name="related_action">pause-action</property>
                         <property name="use_action_appearance">True</property>
-                        <property name="use_underline">True</property>
+                        <property name="related_action">restart-action</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>
@@ -158,8 +173,8 @@
                       <object class="GtkImageMenuItem" id="menuitem13">
                         <property name="visible">True</property>
                         <property name="tooltip_text" translatable="yes">Show the Perfkit debug log</property>
-                        <property name="related_action">debug-action</property>
                         <property name="use_action_appearance">True</property>
+                        <property name="related_action">debug-action</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
@@ -273,6 +288,7 @@
     <property name="stock_id">gtk-media-pause</property>
     <property name="icon_name">media-playback-pause</property>
     <property name="sensitive">False</property>
+    <property name="always_show_image">True</property>
   </object>
   <object class="GtkAction" id="debug-action">
     <property name="label">Debug Log</property>
@@ -283,5 +299,16 @@
     <property name="tooltip">Add source to this session</property>
     <property name="stock_id">gtk-add</property>
   </object>
-  <object class="GtkAction" id="action1"/>
+  <object class="GtkAction" id="stop-action">
+    <property name="label">Stop</property>
+    <property name="tooltip">Stop this session</property>
+    <property name="icon_name">media-playback-stop</property>
+    <property name="always_show_image">True</property>
+  </object>
+  <object class="GtkAction" id="restart-action">
+    <property name="label">Restart</property>
+    <property name="tooltip">Restart this session</property>
+    <property name="icon_name">view-refresh</property>
+    <property name="always_show_image">True</property>
+  </object>
 </interface>
