@@ -42,6 +42,7 @@ AM_LDFLAGS = $(PERFKIT_PROFILER_LIBS)
 
 INST_H_FILES =								\
 	perfkit-profiler.h						\
+	ppg-add-source-dialog.h						\
 	ppg-config.h							\
 	ppg-dialog.h							\
 	ppg-log.h							\
@@ -61,6 +62,7 @@ libperfkit_profiler_la_SOURCES =					\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
+	ppg-add-source-dialog.c						\
 	ppg-config.c							\
 	ppg-dialog.c							\
 	ppg-log-window.c						\

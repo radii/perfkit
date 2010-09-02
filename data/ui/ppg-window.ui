@@ -59,6 +59,19 @@
                   <object class="GtkMenu" id="menu3">
                     <property name="visible">True</property>
                     <child>
+                      <object class="GtkMenuItem" id="menuitem16">
+                        <property name="visible">True</property>
+                        <property name="related_action">add-source-action</property>
+                        <property name="label" translatable="yes">Add Source</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem" id="menuitem17">
+                        <property name="visible">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="menuitem5">
                         <property name="visible">True</property>
                         <property name="related_action">record-action</property>
@@ -235,5 +248,10 @@
   <object class="GtkAction" id="debug-action">
     <property name="label">Debug Log</property>
     <property name="tooltip">Show the debug log</property>
+  </object>
+  <object class="GtkAction" id="add-source-action">
+    <property name="label">Add Source</property>
+    <property name="tooltip">Add source to this session</property>
+    <property name="stock_id">gtk-add</property>
   </object>
 </interface>

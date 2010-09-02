@@ -23,13 +23,14 @@
 #include <glib/gi18n.h>
 #include <perfkit/perfkit.h>
 
+#include "ppg-add-source-dialog.h"
 #include "ppg-log.h"
 #include "ppg-log-window.h"
 #include "ppg-panels.h"
 #include "ppg-path.h"
 #include "ppg-session-view.h"
-#include "ppg-window.h"
 #include "ppg-util.h"
+#include "ppg-window.h"
 
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN "Window"
@@ -58,6 +59,7 @@ struct _PpgWindowPrivate
 	struct {
 		GtkAction *record;
 		GtkAction *debug;
+		GtkAction *add_source;
 	} actions;
 };
 
@@ -173,6 +175,22 @@ ppg_window_show_sources (PpgWindow *window) /* IN */
 	ppg_panels_sources_show();
 }
 
+static void
+ppg_window_add_source_action (GtkAction *action,
+                              PpgWindow *window)
+{
+	GtkWidget *dialog;
+
+	g_return_if_fail(GTK_IS_ACTION(action));
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	dialog = g_object_new(PPG_TYPE_ADD_SOURCE_DIALOG,
+	                      "transient-for", window,
+	                      NULL);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
+
 /**
  * ppg_window_debug_action:
  * @action: A #GtkAction.
@@ -272,6 +290,8 @@ ppg_window_init (PpgWindow *window) /* IN */
 	               priv->actions.record);
 	EXTRACT_ACTION(priv->builder, "debug-action", priv->actions.debug,
 	               ppg_window_debug_action, window);
+	EXTRACT_ACTION(priv->builder, "add-source-action", priv->actions.add_source,
+	               ppg_window_add_source_action, window);
 	EXTRACT_MENU_ITEM(priv->builder, "show-sources",
 	                  ppg_window_show_sources);
 
