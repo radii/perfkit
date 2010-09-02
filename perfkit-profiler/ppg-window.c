@@ -262,9 +262,6 @@ ppg_window_init (PpgWindow *window) /* IN */
 	GtkWidget *child;
 	gchar *path;
 
-	/*
-	 * Allocate private data.
-	 */
 	window->priv = G_TYPE_INSTANCE_GET_PRIVATE(window,
 	                                           PPG_TYPE_WINDOW,
 	                                           PpgWindowPrivate);

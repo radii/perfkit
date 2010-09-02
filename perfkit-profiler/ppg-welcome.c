@@ -133,10 +133,13 @@ ppg_welcome_init (void)
 	/*
 	 * Create window.
 	 */
-	welcome.window = window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "");
-	gtk_widget_set_size_request(window, 620, 420);
-	gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
+	welcome.window = window = g_object_new(GTK_TYPE_WINDOW,
+	                                       "height-request", 420,
+	                                       "resizable", FALSE,
+	                                       "title", _("Perfkit Profiler"),
+	                                       "type", GTK_WINDOW_TOPLEVEL,
+	                                       "width-request", 620,
+	                                       NULL);
 
 	/*
 	 * Load widgets from gtk builder.

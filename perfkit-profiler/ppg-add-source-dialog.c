@@ -101,9 +101,10 @@ ppg_add_source_dialog_init (PpgAddSourceDialog *add) /* IN */
 	priv = add->priv;
 
 	g_object_set(add,
+	             "border-width", 6,
 	             "default-height", 400,
 	             "has-separator", FALSE,
-	             "border-width", 6,
+	             "title", "",
 	             NULL);
 
 	content = gtk_dialog_get_content_area(dialog);

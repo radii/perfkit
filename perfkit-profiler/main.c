@@ -99,6 +99,7 @@ main (gint   argc,
 	/*
 	 * Show the welcome dialog.
 	 */
+	gtk_window_set_default_icon_name("clock");
 	ppg_welcome_show();
 	gtk_main();
 
