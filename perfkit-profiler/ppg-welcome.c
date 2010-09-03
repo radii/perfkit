@@ -108,7 +108,7 @@ ppg_welcome_local_clicked (GtkWidget *button,
 	                      "visible", TRUE,
 	                      NULL);
 	gtk_widget_hide(welcome.window);
-	ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
+	//ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
 }
 
 /**

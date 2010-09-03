@@ -56,6 +56,8 @@ G_BEGIN_DECLS
                            TRUE);                     \
     } G_STMT_END
 #define G_ASYNC(f) ((GAsyncReadyCallback)f)
+#define INIT_PRIV(o, T, t) \
+    (o)->priv = G_TYPE_INSTANCE_GET_PRIVATE((o), PPG_TYPE_##T, Ppg##t##Private)
 
 G_END_DECLS
 

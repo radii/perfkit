@@ -33,6 +33,7 @@ AM_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Profiler\"					\
 	-DPERFKIT_COMPILATION						\
 	-I$(top_srcdir)/cut-n-paste					\
+	-I$(srcdir)/actions						\
 	$(PERFKIT_PROFILER_CFLAGS)					\
 	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(WARNINGS)							\
@@ -42,6 +43,7 @@ AM_LDFLAGS = $(PERFKIT_PROFILER_LIBS)
 
 INST_H_FILES =								\
 	perfkit-profiler.h						\
+	actions/ppg-stop-action.h					\
 	ppg-add-source-dialog.h						\
 	ppg-config.h							\
 	ppg-dialog.h							\
@@ -62,6 +64,7 @@ libperfkit_profiler_la_SOURCES =					\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
+	actions/ppg-stop-action.c					\
 	ppg-add-source-dialog.c						\
 	ppg-config.c							\
 	ppg-dialog.c							\
