@@ -109,7 +109,6 @@ ppg_window_delete_event (GtkWidget   *widget,
 	return FALSE;
 }
 
-
 static GtkActionGroup*
 ppg_window_create_action_group (PpgWindow *window)
 {
@@ -127,7 +126,6 @@ ppg_window_create_action_group (PpgWindow *window)
 
 	return action_group;
 }
-
 
 static void
 ppg_window_get_property (GObject    *object,
@@ -147,13 +145,17 @@ ppg_window_get_property (GObject    *object,
 	}
 }
 
-
 static void
 ppg_window_finalize (GObject *object)
 {
+	PpgWindowPrivate *priv = PPG_WINDOW(object)->priv;
+
+	if (priv->session) {
+		g_object_unref(priv->session);
+	}
+
 	G_OBJECT_CLASS(ppg_window_parent_class)->finalize(object);
 }
-
 
 static void
 ppg_window_class_init (PpgWindowClass *klass)
@@ -182,7 +184,6 @@ ppg_window_class_init (PpgWindowClass *klass)
 	ppg_actions_register(PPG_TYPE_WINDOW, PPG_TYPE_RESTART_ACTION);
 	ppg_actions_register(PPG_TYPE_WINDOW, PPG_TYPE_STOP_ACTION);
 }
-
 
 static void
 ppg_window_init (PpgWindow *window)
