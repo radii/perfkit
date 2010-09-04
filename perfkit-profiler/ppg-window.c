@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -39,13 +38,8 @@
 #include "ppg-util.h"
 #include "ppg-window.h"
 
-
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN "Window"
-
-
-G_DEFINE_TYPE(PpgWindow, ppg_window, GTK_TYPE_WINDOW)
-
 
 struct _PpgWindowPrivate
 {
@@ -55,16 +49,15 @@ struct _PpgWindowPrivate
 	GtkWidget *session_status;
 };
 
-
 enum
 {
 	PROP_0,
 	PROP_SESSION,
 };
 
-
 static guint window_count = 0;
 
+G_DEFINE_TYPE(PpgWindow, ppg_window, GTK_TYPE_WINDOW)
 
 /**
  * ppg_window_count:
@@ -80,6 +73,21 @@ ppg_window_count (void)
 	return window_count;
 }
 
+static void
+ppg_window_add_source_cb (PpgWindow *window,
+                          GtkAction *action)
+{
+	GtkDialog *dialog;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+	g_return_if_fail(GTK_IS_ACTION(action));
+
+	dialog = g_object_new(PPG_TYPE_ADD_SOURCE_DIALOG,
+	                      "transient-for", window,
+	                      NULL);
+	gtk_dialog_run(dialog);
+	gtk_widget_destroy(GTK_WIDGET(dialog));
+}
 
 /**
  * ppg_window_delete_event:
@@ -112,6 +120,8 @@ ppg_window_create_action_group (PpgWindow *window)
 	ADD_STOCK_ACTION(action_group, "QuitAction", GTK_STOCK_QUIT, gtk_main_quit);
 	ADD_ACTION(action_group, "EditAction", _("_Edit"), NULL);
 	ADD_ACTION(action_group, "ProfileAction", _("_Profile"), NULL);
+	ADD_ACTION(action_group, "AddSourceAction", _("Add source"),
+	           ppg_window_add_source_cb);
 	ADD_ACTION(action_group, "ViewAction", _("View"), NULL);
 	ADD_ACTION(action_group, "HelpAction", _("Help"), NULL);
 
@@ -231,6 +241,8 @@ ppg_window_init (PpgWindow *window)
 	                                "  <menu action=\"ViewAction\">"
 	                                "  </menu>"
 	                                "  <menu action=\"ProfileAction\">"
+	                                "   <menuitem action=\"AddSourceAction\"/>"
+	                                "   <separator/>"
 	                                "   <menuitem action=\"StopAction\"/>"
 	                                "   <menuitem action=\"PauseAction\"/>"
 	                                "   <menuitem action=\"RecordAction\"/>"
