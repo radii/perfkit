@@ -38,6 +38,14 @@ G_BEGIN_DECLS
 typedef struct _PpgSession        PpgSession;
 typedef struct _PpgSessionClass   PpgSessionClass;
 typedef struct _PpgSessionPrivate PpgSessionPrivate;
+typedef enum   _PpgSessionState   PpgSessionState;
+
+enum _PpgSessionState
+{
+	PPG_SESSION_STOPPED = 1,
+	PPG_SESSION_STARTED = 2,
+	PPG_SESSION_PAUSED  = 3,
+};
 
 struct _PpgSession
 {
@@ -52,8 +60,15 @@ struct _PpgSessionClass
 	GObjectClass parent_class;
 };
 
-GType       ppg_session_get_type (void) G_GNUC_CONST;
-PpgSession* ppg_session_new      (void);
+GType    ppg_session_get_type (void) G_GNUC_CONST;
+gboolean ppg_session_start    (PpgSession  *session,
+                               GError     **error);
+gboolean ppg_session_stop     (PpgSession  *session,
+                               GError     **error);
+gboolean ppg_session_pause    (PpgSession  *session,
+                               GError     **error);
+gboolean ppg_session_unpause  (PpgSession  *session,
+                               GError     **error);
 
 G_END_DECLS
 

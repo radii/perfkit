@@ -20,32 +20,67 @@
 #include "config.h"
 #endif
 
-#include "ppg-session.h"
+#include <glib/gi18n.h>
+#include <perfkit/perfkit.h>
 
+#include "ppg-log.h"
+#include "ppg-session.h"
 
 G_DEFINE_TYPE(PpgSession, ppg_session, G_TYPE_OBJECT)
 
-
 struct _PpgSessionPrivate
 {
-	gpointer dummy;
+	PkConnection *conn;
+	guint         state;
 };
 
-
-/**
- * ppg_session_new:
- *
- * Creates a new instance of #PpgSession.
- *
- * Returns: the newly created instance of #PpgSession.
- * Side effects: None.
- */
-PpgSession*
-ppg_session_new (void)
+enum
 {
-	return g_object_new(PPG_TYPE_SESSION, NULL);
+	STATE_CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
+gboolean
+ppg_session_start (PpgSession  *session,
+                   GError     **error)
+{
+	INFO("Starting session %p", session);
+	session->priv->state = PPG_SESSION_STARTED;
+	g_signal_emit(session, signals[STATE_CHANGED], 0, session->priv->state);
+	return TRUE;
 }
 
+gboolean
+ppg_session_stop (PpgSession  *session,
+                  GError     **error)
+{
+	INFO("Stopping session %p", session);
+	session->priv->state = PPG_SESSION_STOPPED;
+	g_signal_emit(session, signals[STATE_CHANGED], 0, session->priv->state);
+	return TRUE;
+}
+
+gboolean
+ppg_session_pause (PpgSession  *session,
+                   GError     **error)
+{
+	INFO("Pause session %p", session);
+	session->priv->state = PPG_SESSION_PAUSED;
+	g_signal_emit(session, signals[STATE_CHANGED], 0, session->priv->state);
+	return TRUE;
+}
+
+gboolean
+ppg_session_unpause (PpgSession  *session,
+                     GError     **error)
+{
+	INFO("Unpause session %p", session);
+	session->priv->state = PPG_SESSION_STARTED;
+	g_signal_emit(session, signals[STATE_CHANGED], 0, session->priv->state);
+	return TRUE;
+}
 
 /**
  * ppg_session_finalize:
@@ -62,7 +97,6 @@ ppg_session_finalize (GObject *object)
 {
 	G_OBJECT_CLASS(ppg_session_parent_class)->finalize(object);
 }
-
 
 /**
  * ppg_session_class_init:
@@ -81,8 +115,18 @@ ppg_session_class_init (PpgSessionClass *klass)
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = ppg_session_finalize;
 	g_type_class_add_private(object_class, sizeof(PpgSessionPrivate));
-}
 
+	signals[STATE_CHANGED] = g_signal_new("state-changed",
+	                                      PPG_TYPE_SESSION,
+	                                      G_SIGNAL_RUN_FIRST,
+	                                      0,
+	                                      NULL,
+	                                      NULL,
+	                                      g_cclosure_marshal_VOID__UINT,
+	                                      G_TYPE_NONE,
+	                                      1,
+	                                      G_TYPE_UINT);
+}
 
 /**
  * ppg_session_init:

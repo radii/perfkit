@@ -25,6 +25,7 @@
 
 #include "ppg-log.h"
 #include "ppg-path.h"
+#include "ppg-session.h"
 #include "ppg-util.h"
 #include "ppg-welcome.h"
 #include "ppg-window.h"
@@ -108,7 +109,6 @@ ppg_welcome_local_clicked (GtkWidget *button,
 	                      "visible", TRUE,
 	                      NULL);
 	gtk_widget_hide(welcome.window);
-	//ppg_window_connect_to(PPG_WINDOW(window), "dbus://");
 }
 
 /**

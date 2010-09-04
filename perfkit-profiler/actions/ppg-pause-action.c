@@ -1,4 +1,4 @@
-/* ppg-stop-action.c
+/* ppg-pause-action.c
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -22,12 +22,12 @@
 
 #include <glib/gi18n.h>
 
-#include "ppg-stop-action.h"
+#include "ppg-pause-action.h"
 #include "ppg-session.h"
 #include "ppg-window.h"
 #include "ppg-util.h"
 
-struct _PpgStopActionPrivate
+struct _PpgPauseActionPrivate
 {
 	GtkWidget  *window;
 	PpgSession *session;
@@ -40,50 +40,55 @@ enum
 	PROP_WIDGET,
 };
 
-G_DEFINE_TYPE(PpgStopAction, ppg_stop_action, GTK_TYPE_TOGGLE_ACTION)
+G_DEFINE_TYPE(PpgPauseAction, ppg_pause_action, GTK_TYPE_TOGGLE_ACTION)
 
 static void
-ppg_stop_action_toggled (GtkToggleAction *toggle)
+ppg_pause_action_toggled (GtkToggleAction *toggle)
 {
-	PpgStopActionPrivate *priv;
+	PpgPauseActionPrivate *priv;
 	gboolean active;
 
-	g_return_if_fail(PPG_IS_STOP_ACTION(toggle));
+	g_return_if_fail(PPG_IS_PAUSE_ACTION(toggle));
 
-	priv = PPG_STOP_ACTION(toggle)->priv;
+	priv = PPG_PAUSE_ACTION(toggle)->priv;
 	g_object_get(toggle, "active", &active, NULL);
 	if (!priv->block_toggled) {
 		if (priv->session) {
 			if (active) {
-				ppg_session_stop(priv->session, NULL);
+				ppg_session_pause(priv->session, NULL);
+			} else {
+				ppg_session_unpause(priv->session, NULL);
 			}
 		}
 	}
 }
 
 static void
-ppg_stop_action_state_changed (PpgStopAction *action,
-                               guint          state,
-                               PpgSession    *session)
+ppg_pause_action_state_changed (PpgPauseAction *action,
+                                guint           state,
+                                PpgSession     *session)
 {
-	PpgStopActionPrivate *priv;
+	PpgPauseActionPrivate *priv;
 	gboolean active;
 	gboolean sensitive;
 
-	g_return_if_fail(PPG_IS_STOP_ACTION(action));
+	g_return_if_fail(PPG_IS_PAUSE_ACTION(action));
 	g_return_if_fail(PPG_IS_SESSION(session));
 
 	priv = action->priv;
 
 	switch (state) {
 	case PPG_SESSION_STARTED:
-	case PPG_SESSION_PAUSED:
 		active = FALSE;
 		sensitive = TRUE;
 		break;
 	case PPG_SESSION_STOPPED:
-		active = TRUE;
+		active = FALSE;
 		sensitive = FALSE;
+		break;
+	case PPG_SESSION_PAUSED:
+		active = TRUE;
+		sensitive = TRUE;
 		break;
 	default:
 		g_assert_not_reached();
@@ -99,46 +104,47 @@ ppg_stop_action_state_changed (PpgStopAction *action,
 }
 
 static void
-ppg_stop_action_set_widget (PpgStopAction *action,
-                            GtkWidget     *widget)
+ppg_pause_action_set_widget (PpgPauseAction *action,
+                             GtkWidget      *widget)
 {
-	PpgStopActionPrivate *priv;
+	PpgPauseActionPrivate *priv;
 
-	g_return_if_fail(PPG_IS_STOP_ACTION(action));
+	g_return_if_fail(PPG_IS_PAUSE_ACTION(action));
 	g_return_if_fail(GTK_IS_WIDGET(widget));
-	g_return_if_fail(action->priv->window == NULL);
+	g_return_if_fail(action->priv->session == NULL);
 
 	priv = action->priv;
 	priv->window = widget;
-	g_object_get(priv->window,
+	g_object_get(widget,
 	             "session", &priv->session,
 	             NULL);
-	g_signal_connect_swapped(priv->session, "state-changed",
-	                         G_CALLBACK(ppg_stop_action_state_changed),
+	g_signal_connect_swapped(priv->session,
+	                         "state-changed",
+	                         G_CALLBACK(ppg_pause_action_state_changed),
 	                         action);
 }
 
 static void
-ppg_stop_action_finalize (GObject *object)
+ppg_pause_action_finalize (GObject *object)
 {
-	PpgStopActionPrivate *priv = PPG_STOP_ACTION(object)->priv;
+	PpgPauseActionPrivate *priv = PPG_PAUSE_ACTION(object)->priv;
 
 	if (priv->session) {
 		g_object_unref(priv->session);
 	}
 
-	G_OBJECT_CLASS(ppg_stop_action_parent_class)->finalize(object);
+	G_OBJECT_CLASS(ppg_pause_action_parent_class)->finalize(object);
 }
 
 static void
-ppg_stop_action_get_property (GObject    *object,
-                              guint       prop_id,
-                              GValue     *value,
-                              GParamSpec *pspec)
+ppg_pause_action_get_property (GObject    *object,
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
 {
-	PpgStopActionPrivate *priv;
+	PpgPauseActionPrivate *priv;
 
-	priv = PPG_STOP_ACTION(object)->priv;
+	priv = PPG_PAUSE_ACTION(object)->priv;
 	switch (prop_id) {
 	case PROP_WIDGET:
 		g_value_set_object(value, priv->window);
@@ -149,15 +155,15 @@ ppg_stop_action_get_property (GObject    *object,
 }
 
 static void
-ppg_stop_action_set_property (GObject      *object,
-                              guint         prop_id,
-                              const GValue *value,
-                              GParamSpec   *pspec)
+ppg_pause_action_set_property (GObject      *object,
+                               guint         prop_id,
+                               const GValue *value,
+                               GParamSpec   *pspec)
 {
 	switch (prop_id) {
 	case PROP_WIDGET:
-		ppg_stop_action_set_widget(PPG_STOP_ACTION(object),
-		                           g_value_get_object(value));
+		ppg_pause_action_set_widget(PPG_PAUSE_ACTION(object),
+		                            g_value_get_object(value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -165,39 +171,39 @@ ppg_stop_action_set_property (GObject      *object,
 }
 
 static GObject*
-ppg_stop_action_constructor (GType                  type,
-                             guint                  n_props,
-                             GObjectConstructParam *props)
+ppg_pause_action_constructor (GType                  type,
+                              guint                  n_props,
+                              GObjectConstructParam *props)
 {
 	GObject *object;
 
-	object = PARENT_CTOR(ppg_stop_action)(type, n_props, props);
+	object = PARENT_CTOR(ppg_pause_action)(type, n_props, props);
 	g_object_set(object,
-	             "active", TRUE,
-	             "icon-name", GTK_STOCK_MEDIA_STOP,
-	             "label", _("Stop"),
-	             "name", "StopAction",
+	             "active", FALSE,
+	             "icon-name", GTK_STOCK_MEDIA_PAUSE,
+	             "label", _("Pause"),
+	             "name", "PauseAction",
 	             "sensitive", FALSE,
-	             "tooltip", _("Stop this profiling session"),
+	             "tooltip", _("Pause this profiling session"),
 	             NULL);
 	return object;
 }
 
 static void
-ppg_stop_action_class_init (PpgStopActionClass *klass)
+ppg_pause_action_class_init (PpgPauseActionClass *klass)
 {
 	GObjectClass *object_class;
 	GtkToggleActionClass *toggle_class;
 
 	object_class = G_OBJECT_CLASS(klass);
-	object_class->constructor = ppg_stop_action_constructor;
-	object_class->finalize = ppg_stop_action_finalize;
-	object_class->get_property = ppg_stop_action_get_property;
-	object_class->set_property = ppg_stop_action_set_property;
-	g_type_class_add_private(object_class, sizeof(PpgStopActionPrivate));
+	object_class->constructor = ppg_pause_action_constructor;
+	object_class->finalize = ppg_pause_action_finalize;
+	object_class->get_property = ppg_pause_action_get_property;
+	object_class->set_property = ppg_pause_action_set_property;
+	g_type_class_add_private(object_class, sizeof(PpgPauseActionPrivate));
 
 	toggle_class = GTK_TOGGLE_ACTION_CLASS(klass);
-	toggle_class->toggled = ppg_stop_action_toggled;
+	toggle_class->toggled = ppg_pause_action_toggled;
 
 	g_object_class_install_property(object_class,
 	                                PROP_WIDGET,
@@ -209,7 +215,7 @@ ppg_stop_action_class_init (PpgStopActionClass *klass)
 }
 
 static void
-ppg_stop_action_init (PpgStopAction *action)
+ppg_pause_action_init (PpgPauseAction *action)
 {
-	INIT_PRIV(action, STOP_ACTION, StopAction);
+	INIT_PRIV(action, PAUSE_ACTION, PauseAction);
 }

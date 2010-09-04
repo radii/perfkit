@@ -58,6 +58,32 @@ G_BEGIN_DECLS
 #define G_ASYNC(f) ((GAsyncReadyCallback)f)
 #define INIT_PRIV(o, T, t) \
     (o)->priv = G_TYPE_INSTANCE_GET_PRIVATE((o), PPG_TYPE_##T, Ppg##t##Private)
+#define ADD_ACTION(ag, n, l, f)                                           \
+    G_STMT_START {                                                        \
+        GtkAction *_obj = g_object_new(GTK_TYPE_ACTION,                   \
+                                       "name", (n),                       \
+                                       "label", (l),                      \
+                                       NULL);                             \
+        gtk_action_group_add_action((ag), _obj);                          \
+        if (NULL != (gpointer)(f)) {                                      \
+            g_signal_connect_swapped(_obj, "activate",                    \
+                                     G_CALLBACK((f)), window);            \
+        }                                                                 \
+    } G_STMT_END
+#define ADD_STOCK_ACTION(ag, n, st, f)                                    \
+    G_STMT_START {                                                        \
+        GtkAction *_obj;                                                  \
+        gtk_action_group_add_action((ag),                                 \
+                                    _obj = g_object_new(GTK_TYPE_ACTION,  \
+                                                        "name", (n),      \
+                                                        "stock-id", (st), \
+                                                        NULL));           \
+        if (NULL != (gpointer)(f)) {                                      \
+            g_signal_connect_swapped(_obj, "activate",                    \
+                                     G_CALLBACK((f)), window);            \
+        }                                                                 \
+    } G_STMT_END
+#define PARENT_CTOR(n) (G_OBJECT_CLASS(n ## _parent_class)->constructor)
 
 G_END_DECLS
 

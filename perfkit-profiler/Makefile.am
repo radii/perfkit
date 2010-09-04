@@ -43,6 +43,10 @@ AM_LDFLAGS = $(PERFKIT_PROFILER_LIBS)
 
 INST_H_FILES =								\
 	perfkit-profiler.h						\
+	actions/ppg-actions.h						\
+	actions/ppg-pause-action.h					\
+	actions/ppg-record-action.h					\
+	actions/ppg-restart-action.h					\
 	actions/ppg-stop-action.h					\
 	ppg-add-source-dialog.h						\
 	ppg-config.h							\
@@ -64,6 +68,10 @@ libperfkit_profiler_la_SOURCES =					\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
 	$(top_srcdir)/cut-n-paste/gdatetime.c				\
+	actions/ppg-actions.c						\
+	actions/ppg-pause-action.c					\
+	actions/ppg-record-action.c					\
+	actions/ppg-restart-action.c					\
 	actions/ppg-stop-action.c					\
 	ppg-add-source-dialog.c						\
 	ppg-config.c							\
