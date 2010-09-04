@@ -59,6 +59,7 @@ ppg_restart_action_activate (GtkAction *action)
 		                      "transient-for", priv->window,
 		                      "visible", TRUE,
 		                      NULL);
+		gtk_dialog_set_default_response(dialog, GTK_RESPONSE_CANCEL);
 		if (gtk_dialog_run(dialog) == GTK_RESPONSE_OK) {
 			ppg_session_stop(priv->session, NULL);
 			ppg_session_start(priv->session, NULL);

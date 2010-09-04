@@ -184,8 +184,8 @@ ppg_window_init (PpgWindow *window)
 	GtkWidget *vbox;
 
 	g_object_set(window,
-	             "default-width", 770,
-	             "default-height", 550,
+	             "default-width", 1000,
+	             "default-height", 620,
 	             "window-position", GTK_WIN_POS_CENTER,
 	             NULL);
 
