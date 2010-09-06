@@ -29,6 +29,7 @@ AC_PROG_CC
 # AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
+AM_PROG_VALAC([0.9.5])
 GOBJECT_INTROSPECTION_CHECK([0.6.7])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 AS_AM_REALLY_SILENT
@@ -181,6 +182,8 @@ AC_OUTPUT([
 
 	bindings/Makefile
 	bindings/vala/Makefile
+
+	ppg-vala/Makefile
 
 	tests/Makefile
 	tests/perfkit/Makefile
