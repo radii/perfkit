@@ -44,6 +44,8 @@ namespace Ppg {
 		Row selected;
 		int selected_offset = -1;
 
+		bool in_move;
+
 		Adjustment hadj;
 		Adjustment vadj;
 		Adjustment zadj;
@@ -60,7 +62,7 @@ namespace Ppg {
 			    null);
 
 			hadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-			vadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+			vadj = new Adjustment(0.0f, 0.0f, 1.0f, 5.0f, 1.0f, 1.0f);
 			zadj = new Adjustment(1.0f, 0.001f, 2.0f, 0.1f, 0.5f, 0.0f);
 
 			var vbox = new VBox(false, 0);
@@ -180,6 +182,8 @@ namespace Ppg {
 			});
 
 			this.zadj.value_changed.connect(zoom_changed);
+			this.vadj.value_changed.connect(vadj_changed);
+			this.rows_box.notify["allocation"].connect(box_allocation_notify);
 
 			add_row("Row 1");
 			add_row("Row 2");
@@ -222,6 +226,27 @@ namespace Ppg {
 			ruler.set_range(lower, upper, lower, 0);
 		}
 
+		void vadj_changed (Adjustment adj) {
+			in_move = true;
+			rows_box.y = -(int)adj.value;
+			in_move = false;
+		}
+
+		void box_allocation_notify () {
+			Clutter.ActorBox box;
+			double upper;
+			double value;
+
+			if (!in_move) {
+				rows_box.get_allocation_box(out box);
+				upper = box.get_height();
+				value = -(int)box.y1;
+				vadj.set("upper", upper,
+				         "value", value,
+				         null);
+			}
+		}
+
 		public override void style_set (Gtk.Style? old_style) {
 			Clutter.Color dark;
 			Clutter.Color mid;
@@ -244,8 +269,10 @@ namespace Ppg {
 			Gtk.Allocation embed_alloc;
 
 			base.size_allocate(alloc);
-
 			embed.get_allocation(out embed_alloc);
+
+			vadj.page_size = embed_alloc.height;
+
 			bg_actor.height = embed_alloc.height;
 			bg_stripe.height = embed_alloc.height;
 
@@ -300,9 +327,25 @@ namespace Ppg {
 						this.selected_offset = i;
 					}
 				}
+				scroll_to_row(this.selected);
 			}
 
 			row_changed();
+		}
+
+		void scroll_to_row (Row row) {
+			Gtk.Allocation alloc;
+			float y = row.group.y;
+			float h = row.group.height;
+			float box_y = rows_box.y;
+
+			embed.get_allocation(out alloc);
+
+			if (box_y < -y) {
+				rows_box.y = -y;
+			} else if ((y + h + box_y) > alloc.height) {
+				rows_box.y = -(y + h - alloc.height);
+			}
 		}
 
 		public int get_selected_row () {
