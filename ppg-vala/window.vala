@@ -23,6 +23,7 @@ using GtkClutter;
 
 namespace Ppg {
 	static const float ROW_HEIGHT = 45.0f;
+	static const float PIXELS_PER_SECOND = 20.0f;
 	static int window_count = 0;
 
 	public class Window: Gtk.Window {
@@ -176,6 +177,8 @@ namespace Ppg {
 				return false;
 			});
 
+			this.zadj.value_changed.connect(zoom_changed);
+
 			add_row("Row 1");
 			add_row("Row 2");
 			add_row("Row 3");
@@ -196,6 +199,25 @@ namespace Ppg {
 
 		public static int count_windows () {
 			return window_count;
+		}
+
+		void zoom_changed (Adjustment zoom) {
+			Gtk.Allocation alloc;
+			double upper;
+			double lower;
+			double scale;
+
+			this.get_allocation(out alloc);
+			scale = zoom.value;
+			scale.clamp(0.0, 2.0);
+			if (scale > 1.0) {
+				scale = (scale - 1.0) * 100.0;
+			}
+			scale.clamp(0.001, 100.0);
+
+			upper = (alloc.width - 200.0) / (scale * PIXELS_PER_SECOND);
+			lower = 0.0f; /* FIXME */
+			ruler.set_range(lower, upper, lower, 0);
 		}
 
 		public override void style_set (Gtk.Style? old_style) {
