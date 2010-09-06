@@ -26,6 +26,7 @@ namespace Ppg {
 
 		construct {
 			this.title = _("Perfkit Profiler");
+			this.border_width = 6;
 			this.default_width = 350;
 			this.default_height = 400;
 			this.has_separator = false;
