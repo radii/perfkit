@@ -82,7 +82,7 @@ namespace Ppg {
 			halign.show();
 			table.add_with_properties(halign,
 			                          "left-attach", 1,
-			                          "right-attach", 2,
+			                          "right-attach", 3,
 			                          "top-attach", 2,
 			                          "bottom-attach", 3,
 			                          "y-options", AttachOptions.FILL,
