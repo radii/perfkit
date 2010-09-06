@@ -23,6 +23,7 @@ namespace Ppg {
 	public class PreferencesDialog: Gtk.Dialog {
 		construct {
 			this.title = _("Perfkit Profiler Preferences");
+			this.border_width = 6;
 			this.default_width = 400;
 			this.default_height = 450;
 			this.has_separator = false;
@@ -31,7 +32,7 @@ namespace Ppg {
 			this.set_default_response(ResponseType.CLOSE);
 
 			var notebook = new Notebook();
-			notebook.border_width = 12;
+			notebook.border_width = 6;
 			notebook.show();
 			this.vbox.pack_start(notebook, true, true, 0);
 
