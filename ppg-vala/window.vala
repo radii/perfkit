@@ -105,7 +105,6 @@ namespace Ppg {
 			embed = new Embed();
 			create_actors();
 			embed.can_focus = true;
-			embed.has_focus = true;
 			embed.add_events(Gdk.EventMask.KEY_PRESS_MASK);
 			embed.key_press_event.connect(embed_key_press);
 			embed.show();
@@ -181,6 +180,8 @@ namespace Ppg {
 			add_row("Row 2");
 			add_row("Row 3");
 			add_row("Row 4");
+
+			embed.grab_focus();
 		}
 
 		public Stage stage {
