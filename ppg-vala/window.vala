@@ -184,6 +184,7 @@ namespace Ppg {
   </menu>
   <menu action="ProfileAction">
    <menuitem action="AddSourceAction"/>
+   <menuitem action="RemoveSourceAction"/>
    <separator/>
    <menuitem action="StopAction"/>
    <menuitem action="PauseAction"/>

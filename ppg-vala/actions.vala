@@ -76,6 +76,7 @@ namespace Ppg {
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddSourceAction));
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.EditAction));
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction));
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RemoveSourceAction));
 		}
 	}
 }

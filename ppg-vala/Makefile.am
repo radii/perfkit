@@ -12,6 +12,7 @@ perfkit_profiler_SOURCES = \
 	actions/edit-action.vala \
 	actions/preferences-action.vala \
 	actions/add-source-action.vala \
+	actions/remove-source-action.vala \
 	actions/quit-action.vala \
 	actions/perfkit-action.vala \
 	actions/profile-action.vala \
