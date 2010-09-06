@@ -110,8 +110,9 @@ namespace Ppg {
 			embed = new Embed();
 			create_actors();
 			embed.can_focus = true;
-			embed.add_events(Gdk.EventMask.KEY_PRESS_MASK);
+			embed.add_events(Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK);
 			embed.key_press_event.connect(embed_key_press);
+			embed.motion_notify_event.connect(embed_motion_notity);
 			embed.show();
 			table.add_with_properties(embed,
 			                          "left-attach", 0,
@@ -305,6 +306,20 @@ namespace Ppg {
 			}
 
 			return retval;
+		}
+
+		bool embed_motion_notity (Gdk.EventMotion motion) {
+			Gtk.Allocation alloc;
+			double offset;
+
+			if (motion.x > 200) {
+				embed.get_allocation(out alloc);
+				offset = (motion.x - 200.0f) / (alloc.width - 200.0f);
+				ruler.position = ruler.lower + ((ruler.upper - ruler.lower) * offset);
+			} else {
+				ruler.position = ruler.lower;
+			}
+			return false;
 		}
 
 		void select_row (Row? row) {
