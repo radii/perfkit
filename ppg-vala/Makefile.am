@@ -9,6 +9,8 @@ perfkit_profiler_SOURCES = \
 	session.vala \
 	welcome.vala \
 	actions.vala \
+	actions/edit-action.vala \
+	actions/preferences-action.vala \
 	actions/add-source-action.vala \
 	actions/quit-action.vala \
 	actions/perfkit-action.vala \
@@ -18,6 +20,7 @@ perfkit_profiler_SOURCES = \
 	actions/run-action.vala \
 	actions/restart-action.vala \
 	dialogs/add-source-dialog.vala \
+	dialogs/preferences-dialog.vala \
 	$(NULL)
 
 perfkit_profiler_LDADD = $(PERFKIT_PROFILER_LIBS)

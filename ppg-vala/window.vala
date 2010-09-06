@@ -179,6 +179,9 @@ namespace Ppg {
   <menu action="PerfkitAction">
    <menuitem action="QuitAction"/>
   </menu>
+  <menu action="EditAction">
+   <menuitem action="PreferencesAction"/>
+  </menu>
   <menu action="ProfileAction">
    <menuitem action="AddSourceAction"/>
    <separator/>
