@@ -271,6 +271,7 @@ namespace Ppg {
 			base.size_allocate(alloc);
 			embed.get_allocation(out embed_alloc);
 
+			zoom_changed(this.zadj);
 			vadj.page_size = embed_alloc.height;
 
 			bg_actor.height = embed_alloc.height;
