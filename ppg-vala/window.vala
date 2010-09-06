@@ -48,6 +48,8 @@ namespace Ppg {
 		Adjustment vadj;
 		Adjustment zadj;
 
+		public signal void row_changed ();
+
 		construct {
 			window_count++;
 
@@ -299,6 +301,12 @@ namespace Ppg {
 					}
 				}
 			}
+
+			row_changed();
+		}
+
+		public int get_selected_row () {
+			return this.selected_offset;
 		}
 
 		void select_next (int count) {

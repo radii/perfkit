@@ -21,6 +21,8 @@ using Gtk;
 
 namespace Ppg {
 	public class RemoveSourceAction: Gtk.Action {
+		Ppg.Window _widget;
+
 		construct {
 			set("name", "RemoveSourceAction",
 			    "label", _("Remove source"),
@@ -28,11 +30,24 @@ namespace Ppg {
 			    null);
 		}
 
-		public Widget widget { get; set; }
+		public Widget widget {
+			set {
+				if (value.get_type().is_a(typeof(Ppg.Window))) {
+					_widget = (Ppg.Window)value;
+					_widget.row_changed.connect(() => {
+						if (_widget.get_selected_row() >= 0) {
+							this.sensitive = true;
+						} else {
+							this.sensitive = false;
+						}
+					});
+				}
+			}
+		}
 
 		public override void activate () {
-			if (widget != null) {
-				var dialog = new MessageDialog((Window)widget,
+			if (_widget != null) {
+				var dialog = new MessageDialog(_widget,
 				                               DialogFlags.MODAL,
 				                               MessageType.QUESTION,
 				                               ButtonsType.OK_CANCEL,
