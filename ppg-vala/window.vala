@@ -16,15 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using Clutter;
 using GLib;
 using Gtk;
 using GtkClutter;
 
 namespace Ppg {
+	static const float ROW_HEIGHT = 45.0f;
 	static int window_count = 0;
 
 	public class Window: Gtk.Window {
 		Session _session = new Session();
+		GenericArray<Row> rows = new GenericArray<Row>();
 
 		Embed     embed;
 		Statusbar statusbar;
@@ -32,6 +35,12 @@ namespace Ppg {
 		Toolbar   toolbar;
 		UIManager ui_manager;
 		Ruler     ruler;
+
+		Clutter.Rectangle bg_actor;
+		Clutter.Rectangle bg_stripe;
+		Clutter.Box       rows_box;
+
+		Row selected;
 
 		Adjustment hadj;
 		Adjustment vadj;
@@ -93,6 +102,7 @@ namespace Ppg {
 			halign.add(hscrollbar);
 
 			embed = new Embed();
+			create_actors();
 			embed.show();
 			table.add_with_properties(embed,
 			                          "left-attach", 0,
@@ -161,6 +171,17 @@ namespace Ppg {
 				}
 				return false;
 			});
+
+			add_row("Row 1");
+			add_row("Row 2");
+			add_row("Row 3");
+			add_row("Row 4");
+		}
+
+		public Stage stage {
+			get {
+				return (Stage)embed.get_stage();
+			}
 		}
 
 		public Session session {
@@ -169,6 +190,190 @@ namespace Ppg {
 
 		public static int count_windows () {
 			return window_count;
+		}
+
+		public override void style_set (Gtk.Style? old_style) {
+			Clutter.Color dark;
+			Clutter.Color mid;
+
+			base.style_set(old_style);
+
+			GtkClutter.get_dark_color(this, StateType.NORMAL, out dark);
+			GtkClutter.get_mid_color(this, StateType.NORMAL, out mid);
+
+			bg_actor.color = mid;
+			bg_stripe.color = dark;
+
+			rows.foreach((data) => {
+				Row row = (Row)data;
+				row.paint(embed);
+			});
+		}
+
+		public override void size_allocate (Gdk.Rectangle alloc) {
+			Gtk.Allocation embed_alloc;
+
+			base.size_allocate(alloc);
+
+			embed.get_allocation(out embed_alloc);
+			bg_actor.height = embed_alloc.height;
+			bg_stripe.height = embed_alloc.height;
+
+			rows.foreach((data) => {
+				Row row = (Row)data;
+				row.update_size(embed);
+			});
+		}
+
+		void select_row (Row? row) {
+			if (row == this.selected) {
+				return;
+			}
+
+			if (this.selected != null) {
+				this.selected.selected = false;
+				this.selected.paint(embed);
+			}
+
+			this.selected = row;
+
+			if (this.selected != null) {
+				this.selected.selected = true;
+				this.selected.paint(embed);
+			}
+		}
+
+		void create_actors () {
+			Clutter.Color black = Clutter.Color.from_string("#000");
+
+			bg_actor = new Clutter.Rectangle.with_color(black);
+			bg_actor.set_size(200, 100);
+			stage.add_actor(bg_actor);
+
+			var layout = new Clutter.BoxLayout();
+			layout.easing_duration = 250;
+			layout.easing_mode = AnimationMode.EASE_IN_QUAD;
+			layout.pack_start = false;
+			layout.use_animations = true;
+			layout.vertical = true;
+			rows_box = new Clutter.Box(layout);
+			stage.add_actor(rows_box);
+
+			bg_stripe = new Clutter.Rectangle.with_color(black);
+			bg_stripe.set_size(1, 200);
+			bg_stripe.set_position(200, 0);
+			stage.add_actor(bg_stripe);
+		}
+
+		void add_row (string title) {
+			var row = new Row();
+			row.title = title;
+			row.update_size(embed);
+
+			row.group.button_press_event.connect((event) => {
+				if (event.button == 1) {
+					if (event.click_count == 1) {
+						if ((event.modifier_state & ModifierType.CONTROL_MASK) != 0) {
+							this.select_row(null);
+						} else {
+							this.select_row(row);
+						}
+					}
+				}
+				return false;
+			});
+
+			row.attach(rows_box);
+			rows.add(row);
+		}
+	}
+
+	class Row {
+		public Clutter.Group group;
+
+		Clutter.CairoTexture hdr_bg;
+		Clutter.Text         hdr_text;
+		Clutter.Rectangle    data_bg;
+		Clutter.CairoTexture data_fg;
+
+		public Row () {
+			group = new Clutter.Group();
+			group.reactive = true;
+			hdr_bg = new Clutter.CairoTexture(200, (uint)ROW_HEIGHT);
+			hdr_text = new Clutter.Text();
+			hdr_text.x = 15.0f;
+			data_bg = new Clutter.Rectangle();
+			data_bg.height = 1.0f;
+			data_bg.x = 200.0f;
+			data_bg.y = ROW_HEIGHT - 1.0f;
+			data_fg = new Clutter.CairoTexture(1, 1);
+			data_fg.height = ROW_HEIGHT - 1.0f;
+			data_fg.x = 200.0f;
+			group.add(hdr_bg, hdr_text, data_bg, data_fg);
+		}
+
+		public void attach (Clutter.Box box) {
+			BoxLayout layout = (BoxLayout)box.layout_manager;
+
+			layout.pack(this.group, true, true, false,
+			            BoxAlignment.START,
+			            BoxAlignment.START);
+		}
+
+		public void paint (Widget widget) {
+			StateType state = StateType.NORMAL;
+			Clutter.Color mid;
+			Clutter.Color dark;
+			Gtk.Allocation alloc;
+
+			if (this.selected) {
+				state = StateType.SELECTED;
+			}
+
+			widget.get_allocation(out alloc);
+			GtkClutter.get_dark_color(widget, state, out dark);
+			GtkClutter.get_mid_color(widget, state, out mid);
+
+			var cr = hdr_bg.create();
+			var p = new Cairo.Pattern.linear(0, 0, 0, group.height);
+			add_color_stop(p, 0.0, mid);
+			add_color_stop(p, 1.0, dark);
+			cr.rectangle(0, 0, group.width, group.height);
+			cr.set_source(p);
+			cr.fill();
+
+			data_bg.color = mid;
+		}
+
+		void add_color_stop (Cairo.Pattern pattern,
+		                     double offset,
+		                     Clutter.Color color) {
+			pattern.add_color_stop_rgb(offset,
+			                           color.red / 255.0f,
+			                           color.green / 255.0f,
+			                           color.blue / 255.0f);
+		}
+
+		public string title {
+			set {
+				hdr_text.text = value;
+				hdr_text.y = (float)Math.floor((ROW_HEIGHT - hdr_text.height) / 2.0f);
+			}
+			get {
+				return hdr_text.text;
+			}
+		}
+
+		public bool selected { get; set; }
+
+		public void update_size (Widget widget) {
+			Gtk.Allocation alloc;
+
+			widget.get_allocation(out alloc);
+			data_bg.width = alloc.width - 200.0f;
+			data_fg.width = alloc.width - 200.0f;
+			data_fg.set_surface_size((uint)data_fg.width, (uint)data_fg.height);
+			this.paint(widget);
 		}
 	}
 
