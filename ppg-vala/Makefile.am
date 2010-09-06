@@ -25,7 +25,7 @@ perfkit_profiler_SOURCES = \
 	$(NULL)
 
 perfkit_profiler_LDADD = $(PERFKIT_PROFILER_LIBS)
-perfkit_profiler_VALAFLAGS = --pkg=gtk+-2.0 --pkg=clutter-gtk-0.10
+perfkit_profiler_VALAFLAGS = --pkg=gtk+-2.0 --pkg=clutter-gtk-0.10 --pkg=gdkkeysyms --vapidir=$(srcdir)/vapi
 
 run: perfkit-profiler
 	@libtool --mode=execute $(builddir)/perfkit-profiler

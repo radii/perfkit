@@ -41,6 +41,7 @@ namespace Ppg {
 		Clutter.Box       rows_box;
 
 		Row selected;
+		int selected_offset = -1;
 
 		Adjustment hadj;
 		Adjustment vadj;
@@ -103,6 +104,10 @@ namespace Ppg {
 
 			embed = new Embed();
 			create_actors();
+			embed.can_focus = true;
+			embed.has_focus = true;
+			embed.add_events(Gdk.EventMask.KEY_PRESS_MASK);
+			embed.key_press_event.connect(embed_key_press);
 			embed.show();
 			table.add_with_properties(embed,
 			                          "left-attach", 0,
@@ -225,6 +230,30 @@ namespace Ppg {
 			});
 		}
 
+		bool embed_key_press (Gdk.EventKey event) {
+			bool retval = true;
+
+			switch (event.keyval) {
+			case Gdk.KeySym.Down:
+				select_next(1);
+				break;
+			case Gdk.KeySym.Page_Down:
+				select_next(5);
+				break;
+			case Gdk.KeySym.Up:
+				select_previous(1);
+				break;
+			case Gdk.KeySym.Page_Up:
+				select_previous(5);
+				break;
+			default:
+				retval = false;
+				break;
+			}
+
+			return retval;
+		}
+
 		void select_row (Row? row) {
 			if (row == this.selected) {
 				return;
@@ -236,10 +265,32 @@ namespace Ppg {
 			}
 
 			this.selected = row;
+			this.selected_offset = -1;
 
 			if (this.selected != null) {
 				this.selected.selected = true;
 				this.selected.paint(embed);
+				for (int i = 0; i < rows.length; i++) {
+					if (rows.get(i) == row) {
+						this.selected_offset = i;
+					}
+				}
+			}
+		}
+
+		void select_next (int count) {
+			if ((selected_offset + count) < rows.length) {
+				select_row(rows.get(selected_offset + count));
+			} else if (rows.length > 0) {
+				select_row(rows.get(rows.length - 1));
+			}
+		}
+
+		void select_previous (int count) {
+			if ((selected_offset - count) >= 0) {
+				select_row(rows.get(selected_offset - count));
+			} else if (rows.length > 0) {
+				select_row(rows.get(0));
 			}
 		}
 
@@ -271,6 +322,7 @@ namespace Ppg {
 			row.update_size(embed);
 
 			row.group.button_press_event.connect((event) => {
+				embed.grab_focus();
 				if (event.button == 1) {
 					if (event.click_count == 1) {
 						if ((event.modifier_state & ModifierType.CONTROL_MASK) != 0) {
