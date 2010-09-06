@@ -43,8 +43,10 @@ namespace Ppg {
 			if (_widget != null) {
 				var dialog = new AddSourceDialog();
 				dialog.transient_for = (Window)_widget;
-				dialog.run();
-				dialog.destroy();
+				dialog.response.connect((response) => {
+					dialog.destroy();
+				});
+				dialog.show();
 			}
 		}
 	}
