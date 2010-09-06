@@ -63,7 +63,7 @@ namespace Ppg {
 
 			hadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 			vadj = new Adjustment(0.0f, 0.0f, 1.0f, 5.0f, 1.0f, 1.0f);
-			zadj = new Adjustment(1.0f, 0.001f, 2.0f, 0.1f, 0.5f, 0.0f);
+			zadj = new Adjustment(1.0f, 0.0f, 2.0f, 0.025f, 0.5f, 0.0f);
 
 			var vbox = new VBox(false, 0);
 			this.add(vbox);
