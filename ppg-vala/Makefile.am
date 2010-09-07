@@ -44,7 +44,11 @@ perfkit_profiler_VALAFLAGS = \
 	$(NULL)
 
 run: perfkit-profiler
-	@PPG_DATA_DIR=$(top_builddir)/data libtool --mode=execute $(builddir)/perfkit-profiler
+	@PPG_DATA_DIR=$(top_builddir)/data \
+	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
+	libtool --mode=execute $(builddir)/perfkit-profiler
 
 debug:
-	@PPG_DATA_DIR=$(top_builddir)/data libtool --mode=execute gdb $(builddir)/perfkit-profiler
+	@PPG_DATA_DIR=$(top_builddir)/data \
+	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
+	libtool --mode=execute gdb $(builddir)/perfkit-profiler

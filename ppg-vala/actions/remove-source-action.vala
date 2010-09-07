@@ -48,17 +48,27 @@ namespace Ppg {
 
 		public override void activate () {
 			if (_widget != null) {
+				int source = _widget.get_selected_source();
+				if (source < 0) {
+					return;
+				}
+
+				string title = _widget.session.get_source_name(source);
+
 				var dialog = new MessageDialog(_widget,
 				                               DialogFlags.MODAL,
 				                               MessageType.QUESTION,
 				                               ButtonsType.OK_CANCEL,
 				                               _("<span size=\"larger\" weight=\"bold\">Are you sure you want to delete the source named %s?</span>"),
-				                               "SOME SOURCE");
+				                               title);
 				dialog.use_markup = true;
 				dialog.secondary_text = _("Deleting a source cannot be undone. Doing so will result in the sources information being lost.");
 				dialog.set_default_response(ResponseType.CANCEL);
+
 				if (dialog.run() == ResponseType.OK) {
+					_widget.session.remove_source(source);
 				}
+
 				dialog.destroy();
 			}
 		}

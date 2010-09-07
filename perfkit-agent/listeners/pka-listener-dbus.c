@@ -16,11 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef G_LOG_DOMAIN
-#undef G_LOG_DOMAIN
-#endif
-#define G_LOG_DOMAIN "DBus"
-
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 #include <stdio.h>
@@ -29,6 +24,9 @@
 #include "pka-context.h"
 #include "pka-listener-dbus.h"
 #include "pka-log.h"
+
+#undef G_LOG_DOMAIN
+#define G_LOG_DOMAIN "DBus"
 
 /**
  * SECTION:pka-listener-dbus

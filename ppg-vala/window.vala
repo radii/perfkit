@@ -186,21 +186,18 @@ namespace Ppg {
 			this.vadj.value_changed.connect(vadj_changed);
 			this.rows_box.notify["allocation"].connect(box_allocation_notify);
 
-			_session.source_added.connect(source_added);
+			_session.source_added.connect(this.source_added);
+			_session.source_removed.connect(this.source_removed);
 
 			embed.grab_focus();
 		}
 
 		void source_added (int source) {
-			var conn = _session.connection;
-			string plugin;
+			add_row(source);
+		}
 
-			try {
-				conn.source_get_plugin(source, out plugin);
-				add_row(plugin);
-			} catch (Error err) {
-				warning("Failed to get plugin name for source: %d", source);
-			}
+		void source_removed (int source) {
+			remove_row(source);
 		}
 
 		public Stage stage {
@@ -215,6 +212,11 @@ namespace Ppg {
 
 		public static int count_windows () {
 			return window_count;
+		}
+
+		public int get_selected_source () {
+			int row = this.get_selected_row();
+			return (row >= 0) ? rows.get(row).source : -1;
 		}
 
 		void zoom_changed (Adjustment zoom) {
@@ -420,8 +422,22 @@ namespace Ppg {
 			this._session.teardown();
 		}
 
-		void add_row (string title) {
+		void add_row (int source) {
+			string title;
+
+			var conn = _session.connection;
+
+			try {
+				conn.source_get_plugin(source, out title);
+			} catch (Error err) {
+				warning("Failed to get plugin name for source: %d", source);
+				return;
+			}
+
+			debug("Notified of addition of %s", title);
+
 			var row = new Row();
+			row.source = source;
 			row.title = title;
 			row.update_size(embed);
 
@@ -442,10 +458,25 @@ namespace Ppg {
 			row.attach(rows_box);
 			rows.add(row);
 		}
+
+		void remove_row (int source) {
+			int i;
+
+			for (i = 0; i < rows.length; i++) {
+				var row = rows.get(i);
+
+				if (row.source == source) {
+					rows_box.remove(row.group);
+					rows.remove_index(i);
+					break;
+				}
+			}
+		}
 	}
 
 	class Row {
 		public Clutter.Group group;
+		public int source;
 
 		Clutter.CairoTexture hdr_bg;
 		Clutter.Text         hdr_text;

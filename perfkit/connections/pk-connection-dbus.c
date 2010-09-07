@@ -6222,10 +6222,6 @@ pk_connection_dbus_manager_remove_source_finish (PkConnection  *connection, /* I
 	                     FALSE);
 
 	/*
-	 * Clear out params.
-	 */
-
-	/*
 	 * Check if call was cancelled.
 	 */
 	if (!(msg = dbus_pending_call_steal_reply(call))) {

@@ -36,6 +36,7 @@ namespace Ppg {
 		public signal void connected ();
 		public signal void disconnected ();
 		public signal void source_added (int source);
+		public signal void source_removed (int source);
 
 		public SessionState state {
 			get { return _state; }
@@ -51,6 +52,18 @@ namespace Ppg {
 
 		construct {
 			_conn = new Perfkit.Connection.from_uri("dbus://");
+			_conn.source_added.connect((_, source) => {
+				GLib.Timeout.add(0, () => {
+					this.source_added(source);
+					return false;
+				});
+			});
+			_conn.source_removed.connect((_, source) => {
+				GLib.Timeout.add(0, () => {
+					this.source_removed(source);
+					return false;
+				});
+			});
 			_conn.connect_async(null, (obj, res) => {
 				try {
 					_conn.connect_finish(res);
@@ -93,6 +106,25 @@ namespace Ppg {
 			}
 		}
 
+		public string get_source_name (int source) {
+			try {
+				string name;
+				_conn.source_get_plugin(source, out name);
+				return name;
+			} catch (Error err) {
+				warning("Error retrieving source name: %d", source);
+				return "";
+			}
+		}
+
+		public void remove_source (int source) {
+			try {
+				_conn.manager_remove_source(source);
+			} catch (Error err) {
+				warning("Error removing source: %d: %s", source, err.message);
+			}
+		}
+
 		public void add_source_plugin (string type) {
 			if (!_conn.is_connected()) {
 				warning("Request to add plugin %s while not connected.", type);
@@ -104,7 +136,6 @@ namespace Ppg {
 
 				_conn.manager_add_source(type, out source);
 				_conn.channel_add_source(this.channel, source);
-				source_added(source);
 			} catch (Error err) {
 				warning("Error adding source: %s: %s", type, err.message);
 			}
