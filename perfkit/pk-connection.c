@@ -5519,6 +5519,9 @@ pk_connection_source_get_plugin_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_source_get_plugin:
  * @connection: A #PkConnection.
+ * @source: (in): The source id.
+ * @plugin: (out) (type utf8): A location for the plugin id.
+ * @error: (out): A location for a #GError or %NULL.
  *
  * Synchronous implemenation of the "source_get_plugin" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -5586,6 +5589,8 @@ pk_connection_source_get_plugin_async (PkConnection        *connection,  /* IN *
 /**
  * pk_connection_source_get_plugin_finish:
  * @connection: A #PkConnection.
+ * @plugin: (out) (type utf8): A location for the plugin id.
+ * @error: (out): A location for a #GError or %NULL.
  *
  * Completion of an asynchronous call to the "source_get_plugin_finish" RPC.
  *
