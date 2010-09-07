@@ -109,10 +109,12 @@ namespace Ppg {
 			local_button.grab_focus();
 
 			remote_button = create_button("network-server", 48, remote_msg);
+			remote_button.sensitive = false; /* FIXME: disabled */
 			remote_button.show();
 			content_vbox.pack_start(remote_button, false, true, 0);
 
 			open_button = create_button(STOCK_OPEN, 48, open_msg);
+			open_button.sensitive = false; /* FIXME: disabled */
 			open_button.show();
 			content_vbox.pack_start(open_button, false, true, 0);
 
@@ -125,10 +127,12 @@ namespace Ppg {
 			content_vbox.pack_start(sep, false, true, 0);
 
 			import_button = create_button("document-import", 16, import_msg);
+			import_button.sensitive = false; /* FIXME: disabled */
 			import_button.show();
 			content_vbox.pack_start(import_button, false, true, 0);
 
 			video_button = create_button("media-video", 16, video_msg);
+			video_button.sensitive = false; /* FIXME: disabled */
 			video_button.show();
 			content_vbox.pack_start(video_button, false, true, 0);
 
@@ -159,7 +163,6 @@ namespace Ppg {
 		}
 
 		void local_clicked (Button button) {
-			debug("Creating new window for local session");
 			var window = new Ppg.Window();
 			window.present();
 			this.destroy();
