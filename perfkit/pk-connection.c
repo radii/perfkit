@@ -3207,6 +3207,8 @@ pk_connection_manager_add_channel_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_manager_add_channel:
  * @connection: A #PkConnection.
+ * @channel: (out): A location for the channel id.
+ * @error: A location for a #GError or %NULL.
  *
  * Synchronous implemenation of the "manager_add_channel" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -3396,7 +3398,10 @@ pk_connection_manager_add_source_async (PkConnection        *connection,  /* IN 
 
 /**
  * pk_connection_manager_add_source_finish:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @source: (out): A location for the source id.
+ * @error: A location for a #GError or %NULL.
  *
  * Completion of an asynchronous call to the "manager_add_source_finish" RPC.
  *
@@ -3863,6 +3868,10 @@ pk_connection_manager_get_plugins_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_manager_get_plugins:
  * @connection: A #PkConnection.
+ * @plugins: (out) (transfer full) (array zero-terminated=1) (element-type utf8):
+ *   A location to store a %NULL terminated array of strings containing
+ *   the names of the plugins.
+ * @error: (out): A location for a #GError or %NULL.
  *
  * Synchronous implemenation of the "manager_get_plugins" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -3925,7 +3934,12 @@ pk_connection_manager_get_plugins_async (PkConnection        *connection,  /* IN
 
 /**
  * pk_connection_manager_get_plugins_finish:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @plugins: (out) (transfer full) (array zero-terminated=1) (element-type utf8):
+ *   A location to store a %NULL terminated array of strings containing
+ *   the names of the plugins.
+ * @error: (out): A location for a #GError or %NULL.
  *
  * Completion of an asynchronous call to the "manager_get_plugins_finish" RPC.
  *
@@ -4052,6 +4066,11 @@ pk_connection_manager_get_sources_async (PkConnection        *connection,  /* IN
 /**
  * pk_connection_manager_get_sources_finish:
  * @connection: A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @sources: (out) (array length=sources_len) (element-type gint) (transfer full):
+ *   A location to store the array of available sources.
+ * @sources_len: (out): A location to store the number of sources.
+ * @error: (out): A location to store a #GError or %NULL.
  *
  * Completion of an asynchronous call to the "manager_get_sources_finish" RPC.
  *
@@ -4570,13 +4589,14 @@ pk_connection_manager_remove_channel_finish (PkConnection  *connection, /* IN */
                                              GError       **error)      /* OUT */
 {
 	gboolean ret;
+	gboolean dummy;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	RPC_FINISH(ret, manager_remove_channel)(connection,
 	                                        result,
-	                                        removed,
+	                                        removed ? removed : &dummy,
 	                                        error);
 	RETURN(ret);
 }

@@ -147,6 +147,7 @@ AC_OUTPUT([
 
 	data/Makefile
 	data/ui/Makefile
+	data/icons/Makefile
 
 	doc/Makefile
 	doc/reference/Makefile

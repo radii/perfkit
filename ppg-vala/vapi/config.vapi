@@ -1,4 +1,4 @@
-/* main.vala
+/* config.vapi
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -17,25 +17,9 @@
  */
 
 using GLib;
-using Gtk;
-using GtkClutter;
 
-static int main (string[] args) {
-	GtkClutter.init(ref args);
-	Ppg.Actions.initialize();
-
-	var theme = Gtk.IconTheme.get_default();
-	theme.append_search_path(Ppg.Paths.get_icon_dir());
-
-	var welcome = new Ppg.Welcome();
-	welcome.delete_event.connect((event) => {
-		if (Ppg.Window.count_windows() < 1) {
-			Gtk.main_quit();
-		}
-		return false;
-	});
-	welcome.show();
-
-	Gtk.main();
-	return 0;
+[CCode(cheader_filename="config.h")]
+namespace Config {
+	[CCode(cname="PACKAGE_DATA_DIR")]
+	public const string PACKAGE_DATA_DIR;
 }

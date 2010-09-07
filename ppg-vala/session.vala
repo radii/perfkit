@@ -18,6 +18,7 @@
 
 using GLib;
 using Gtk;
+using Perfkit;
 
 namespace Ppg {
 	public enum SessionState {
@@ -28,11 +29,36 @@ namespace Ppg {
 
 	public class Session: GLib.Object {
 		SessionState _state = SessionState.STOPPED;
+		Perfkit.Connection _conn;
+		int _channel = -1;
 
 		public signal void state_changed (SessionState state);
+		public signal void connected ();
+		public signal void disconnected ();
 
 		public SessionState state {
 			get { return _state; }
+		}
+
+		public Perfkit.Connection connection {
+			get { return _conn; }
+		}
+
+		public int channel {
+			get { return _channel; }
+		}
+
+		construct {
+			_conn = new Perfkit.Connection.from_uri("dbus://");
+			_conn.connect_async(null, (obj, res) => {
+				try {
+					_conn.connect_finish(res);
+					_conn.manager_add_channel(out _channel);
+					connected();
+				} catch (Error err) {
+					warning("Could not connect to perfkit agent: %s", err.message);
+				}
+			});
 		}
 
 		public void start () throws GLib.Error {
@@ -53,6 +79,55 @@ namespace Ppg {
 		public void unpause () throws GLib.Error {
 			_state = SessionState.STARTED;
 			state_changed(_state);
+		}
+
+		public void teardown () {
+			if (_conn.is_connected() && _channel >= 0) {
+				try {
+					_conn.manager_remove_channel(_channel, null);
+					_conn.disconnect();
+				} catch (Error err) {
+					warning("Failed to remove existing channel: %s", err.message);
+				}
+			}
+		}
+
+		public void add_source_plugin (string type) {
+			if (!_conn.is_connected()) {
+				warning("Request to add plugin %s while not connected.", type);
+				return;
+			}
+
+			try {
+				int source;
+
+				_conn.manager_add_source(type, out source);
+				_conn.channel_add_source(this.channel, source);
+			} catch (Error err) {
+				warning("Error adding source: %s: %s", type, err.message);
+			}
+
+/*
+			_conn.manager_add_source_async(type, null, (_, res) => {
+				try {
+					int source;
+
+					_conn.manager_add_source_finish(res, out source);
+
+					_conn.channel_add_source_async(channel, source, null, (_, res2) => {
+						try {
+							_conn.channel_add_source_finish(res2);
+							message("Added source %d to channel %d", source, channel);
+						} catch (Error err2) {
+							warning("Failed to add source %d to channel %d: %s",
+							        source, channel, err2.message);
+						}
+					});
+				} catch (Error err) {
+					warning("Failed to add source %s: %s", type, err.message);
+				}
+			});
+*/
 		}
 	}
 }

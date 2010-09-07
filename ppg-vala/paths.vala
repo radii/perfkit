@@ -1,4 +1,4 @@
-/* actions/add-source-action.vala
+/* paths.vala
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -17,38 +17,26 @@
  */
 
 using GLib;
-using Gtk;
 
 namespace Ppg {
-	public class AddSourceAction: Gtk.Action {
-		Widget _widget;
+	namespace Paths {
+		static string data_dir = null;
 
-		construct {
-			set("name", "AddSourceAction",
-			    "label", _("Add source"),
-			    "icon-name", STOCK_ADD,
-			    "tooltip", _("Add a source to this profiling session"),
-			    null);
-		}
-
-		public Widget widget {
-			set {
-				if (value.get_type().is_a(typeof(Ppg.Window))) {
-					_widget = value;
+		public string get_data_dir () {
+			if (data_dir == null) {
+				if (Environment.get_variable("PPG_DATA_DIR") != null) {
+					data_dir = Environment.get_variable("PPG_DATA_DIR");
+				} else {
+					data_dir = Path.build_filename(Config.PACKAGE_DATA_DIR,
+					                               "perfkit", null);
 				}
 			}
+			return data_dir;
 		}
 
-		public override void activate () {
-			if (_widget != null) {
-				var dialog = new AddSourceDialog();
-				dialog.transient_for = (Window)_widget;
-				dialog.load_sources(((Ppg.Window)_widget).session);
-				dialog.response.connect((response) => {
-					dialog.destroy();
-				});
-				dialog.show();
-			}
+		public string get_icon_dir () {
+			return Path.build_filename(Ppg.Paths.get_data_dir(),
+			                           "icons", null);
 		}
 	}
 }

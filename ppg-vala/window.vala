@@ -406,6 +406,11 @@ namespace Ppg {
 			stage.add_actor(bg_stripe);
 		}
 
+		public override void destroy () {
+			base.destroy();
+			this._session.teardown();
+		}
+
 		void add_row (string title) {
 			var row = new Row();
 			row.title = title;

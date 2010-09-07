@@ -1,7 +1,10 @@
 bin_PROGRAMS = perfkit-profiler
 
-AM_CFLAGS = $(PERFKIT_PROFILER_CFLAGS) \
-	-DGETTEXT_PACKAGE="\"Perfkit\""
+AM_CFLAGS = \
+	$(PERFKIT_PROFILER_CFLAGS) \
+	-DGETTEXT_PACKAGE="\"Perfkit\"" \
+	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
+	$(NULL)
 
 perfkit_profiler_SOURCES = \
 	main.vala \
@@ -9,6 +12,7 @@ perfkit_profiler_SOURCES = \
 	session.vala \
 	welcome.vala \
 	actions.vala \
+	paths.vala \
 	actions/edit-action.vala \
 	actions/preferences-action.vala \
 	actions/add-source-action.vala \
@@ -24,8 +28,23 @@ perfkit_profiler_SOURCES = \
 	dialogs/preferences-dialog.vala \
 	$(NULL)
 
-perfkit_profiler_LDADD = $(PERFKIT_PROFILER_LIBS)
-perfkit_profiler_VALAFLAGS = --pkg=gtk+-2.0 --pkg=clutter-gtk-0.10 --pkg=gdkkeysyms --vapidir=$(srcdir)/vapi
+perfkit_profiler_LDADD = \
+	$(PERFKIT_PROFILER_LIBS) \
+	$(top_builddir)/perfkit/libperfkit-1.0.la \
+	$(NULL)
+
+perfkit_profiler_VALAFLAGS = \
+	--girdir=$(top_builddir)/perfkit \
+	--pkg=gtk+-2.0 \
+	--pkg=clutter-gtk-0.10 \
+	--pkg=gdkkeysyms \
+	--pkg=Perfkit-1.0 \
+	--pkg=config \
+	--vapidir=$(srcdir)/vapi \
+	$(NULL)
 
 run: perfkit-profiler
-	@libtool --mode=execute $(builddir)/perfkit-profiler
+	@PPG_DATA_DIR=$(top_builddir)/data libtool --mode=execute $(builddir)/perfkit-profiler
+
+debug:
+	@PPG_DATA_DIR=$(top_builddir)/data libtool --mode=execute gdb $(builddir)/perfkit-profiler
