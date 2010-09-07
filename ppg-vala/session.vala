@@ -35,6 +35,7 @@ namespace Ppg {
 		public signal void state_changed (SessionState state);
 		public signal void connected ();
 		public signal void disconnected ();
+		public signal void source_added (int source);
 
 		public SessionState state {
 			get { return _state; }
@@ -103,6 +104,7 @@ namespace Ppg {
 
 				_conn.manager_add_source(type, out source);
 				_conn.channel_add_source(this.channel, source);
+				source_added(source);
 			} catch (Error err) {
 				warning("Error adding source: %s: %s", type, err.message);
 			}

@@ -186,12 +186,21 @@ namespace Ppg {
 			this.vadj.value_changed.connect(vadj_changed);
 			this.rows_box.notify["allocation"].connect(box_allocation_notify);
 
-			add_row("Row 1");
-			add_row("Row 2");
-			add_row("Row 3");
-			add_row("Row 4");
+			_session.source_added.connect(source_added);
 
 			embed.grab_focus();
+		}
+
+		void source_added (int source) {
+			var conn = _session.connection;
+			string plugin;
+
+			try {
+				conn.source_get_plugin(source, out plugin);
+				add_row(plugin);
+			} catch (Error err) {
+				warning("Failed to get plugin name for source: %d", source);
+			}
 		}
 
 		public Stage stage {
