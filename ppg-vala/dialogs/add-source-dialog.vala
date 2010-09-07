@@ -127,6 +127,7 @@ namespace Ppg {
 			this.response.connect((response) => {
 				if (response == ResponseType.OK) {
 					add_selected();
+					Signal.stop_emission_by_name(this, "response");
 				}
 			});
 		}
