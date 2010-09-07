@@ -30,9 +30,15 @@ namespace Ppg {
 
 		public static void load (Widget widget,
 		                         ActionGroup action_group) {
+			var accel_group = new Gtk.AccelGroup();
+			if (widget.get_type().is_a(typeof(Gtk.Window))) {
+				((Gtk.Window)widget).add_accel_group(accel_group);
+			}
 			foreach (var map in actions) {
 				if (widget.get_type().is_a(map.widget_type)) {
 					var action = (Action)GLib.Object.new(map.action_type, null);
+					action.set_accel_path(create_accel_path(map.widget_type, map.action_type));
+					action.set_accel_group(accel_group);
 					action_group.add_action(action);
 					var pspec = action.get_class().find_property("widget");
 					if (pspec != null) {
@@ -42,16 +48,37 @@ namespace Ppg {
 							}
 						}
 					}
+					action.connect_accelerator();
 				}
 			}
 		}
 
+		static string create_accel_path (Type widget_type,
+		                                 Type action_type)
+		{
+			return "<Perfkit>/%s/%s".printf(widget_type.name(),
+			                                action_type.name());
+		}
+
 		public static void register (Type widget_type,
-		                             Type action_type) {
+		                             Type action_type,
+		                             string? accelerator) {
 			var map = new ActionMap();
 			map.widget_type = widget_type;
 			map.action_type = action_type;
 			actions.prepend(map);
+
+			if (accelerator != null) {
+				string accel_path;
+				Gdk.ModifierType modifier;
+				uint key;
+
+				Gtk.accelerator_parse(accelerator, out key, out modifier);
+				if (key != 0) {
+					accel_path = create_accel_path(widget_type, action_type);
+					Gtk.AccelMap.add_entry(accel_path, key, modifier);
+				}
+			}
 		}
 
 		public static void unregister (Type widget_type,
@@ -66,17 +93,17 @@ namespace Ppg {
 		}
 
 		public static void initialize () {
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.QuitAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.PerfkitAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.ProfileAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.StopAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.PauseAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RunAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RestartAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddSourceAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.EditAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction));
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RemoveSourceAction));
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.QuitAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.PerfkitAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.ProfileAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.StopAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.PauseAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RunAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RestartAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddSourceAction), "<Control>n");
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.EditAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RemoveSourceAction), null);
 		}
 	}
 }
