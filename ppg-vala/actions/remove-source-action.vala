@@ -27,6 +27,7 @@ namespace Ppg {
 			set("name", "RemoveSourceAction",
 			    "label", _("Remove source"),
 			    "icon-name", STOCK_REMOVE,
+			    "sensitive", false,
 			    null);
 		}
 
