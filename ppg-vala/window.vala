@@ -451,8 +451,6 @@ namespace Ppg {
 				return;
 			}
 
-			debug("Notified of addition of %s", title);
-
 			var row = new Row();
 			row.source = source;
 			row.title = title;
