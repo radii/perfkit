@@ -30,12 +30,12 @@ namespace Ppg {
 		Session _session = new Session();
 		GenericArray<Row> rows = new GenericArray<Row>();
 
-		Embed     embed;
-		Statusbar statusbar;
-		MenuBar   menubar;
-		Toolbar   toolbar;
-		UIManager ui_manager;
-		Ruler     ruler;
+		Embed      embed;
+		Statusbar  statusbar;
+		MenuBar    menubar;
+		Toolbar    toolbar;
+		UIManager  ui_manager;
+		Ppg.Ruler  ruler;
 
 		Clutter.Rectangle bg_actor;
 		Clutter.Rectangle bg_stripe;
@@ -73,7 +73,21 @@ namespace Ppg {
 			vbox.pack_start(table, true, true, 0);
 			table.show();
 
-			ruler = new HRuler();
+			var header = new Header();
+			header.corners = CairoUtil.CornerType.NONE;
+			header.height_request = 25;
+			header.show();
+			table.add_with_properties(header,
+			                          "left-attach", 0,
+			                          "right-attach", 1,
+			                          "top-attach", 0,
+			                          "bottom-attach", 1,
+			                          "y-options", AttachOptions.FILL,
+			                          "x-options", AttachOptions.FILL,
+			                          null);
+
+			ruler = new Ppg.Ruler();
+			ruler.corners = CairoUtil.CornerType.TOP_RIGHT;
 			ruler.show();
 			table.add_with_properties(ruler,
 			                          "left-attach", 1,
@@ -97,7 +111,7 @@ namespace Ppg {
 			halign.show();
 			table.add_with_properties(halign,
 			                          "left-attach", 1,
-			                          "right-attach", 3,
+			                          "right-attach", 2,
 			                          "top-attach", 2,
 			                          "bottom-attach", 3,
 			                          "y-options", AttachOptions.FILL,
@@ -514,7 +528,14 @@ namespace Ppg {
 			StateType state = StateType.NORMAL;
 			Clutter.Color mid;
 			Clutter.Color dark;
+			Clutter.Color text;
 			Gtk.Allocation alloc;
+
+			/*
+			 * FIXME: This is totally inefficient for adjusting a bunch of rows
+			 *        during a theme change.  But there is a lot of that type
+			 *        of code in this gui.
+			 */
 
 			if (this.selected) {
 				state = StateType.SELECTED;
@@ -523,6 +544,7 @@ namespace Ppg {
 			widget.get_allocation(out alloc);
 			GtkClutter.get_dark_color(widget, state, out dark);
 			GtkClutter.get_mid_color(widget, state, out mid);
+			GtkClutter.get_fg_color(widget, state, out text);
 
 			var cr = hdr_bg.create();
 			var p = new Cairo.Pattern.linear(0, 0, 0, group.height);
@@ -532,6 +554,7 @@ namespace Ppg {
 			cr.set_source(p);
 			cr.fill();
 
+			this.hdr_text.color = text;
 			data_bg.color = mid;
 		}
 

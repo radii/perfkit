@@ -26,6 +26,9 @@ perfkit_profiler_SOURCES = \
 	actions/restart-action.vala \
 	dialogs/add-source-dialog.vala \
 	dialogs/preferences-dialog.vala \
+	widgets/cairo-util.vala \
+	widgets/header.vala \
+	widgets/ruler.vala \
 	$(NULL)
 
 perfkit_profiler_LDADD = \
