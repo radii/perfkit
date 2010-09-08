@@ -66,16 +66,26 @@ namespace Ppg {
 
 		public override bool expose_event (Gdk.EventExpose event) {
 			Allocation alloc;
+			int text_height;
 
 			base.expose_event(event);
 			this.get_allocation(out alloc);
 
 			var style = this.get_style();
-			var color = new CairoUtil.Color.from_gdk(style.fg[StateType.NORMAL]);
+			//var color = new CairoUtil.Color.from_gdk(style.fg[StateType.NORMAL]);
+			var color = new CairoUtil.Color.from_gdk(style.dark[StateType.NORMAL]);
+			color.shade(0.5);
 
 			var cr = Gdk.cairo_create(event.window);
 			cr.set_line_width(1.0);
 			CairoUtil.set_source_color(cr, color);
+
+			/*
+			 * Create layout for cairo text.
+			 */
+			var layout = Pango.cairo_create_layout(cr);
+			layout.set_markup("<span size=\"smaller\">00:00:00</span>", -1);
+			layout.get_pixel_size(null, out text_height);
 
 			/*
 			 * Draw the base line.
@@ -86,13 +96,20 @@ namespace Ppg {
 			/*
 			 * XXX: Draw some lines.
 			 */
-			 for (int i = 1; i < alloc.width; i += 20) {
-			 	cr.move_to(i + 0.5, alloc.height - 1.5);
-			 	cr.line_to(i + 0.5, 10);
+			for (int i = 1; i < alloc.width; i += 20) {
+				cr.move_to(i + 0.5, alloc.height - 1.5);
+				cr.line_to(i + 0.5, text_height + 1);
+
+				if (((i - 1) / 10) % 10 == 0) {
+					cr.line_to(i + 0.5, 0);
+
+					cr.move_to(i + 1 + 0.5, 0);
+					Pango.cairo_show_layout(cr, layout);
+				}
 			 }
 			 for (int i = 11; i < alloc.width; i += 20) {
 			 	cr.move_to(i + 0.5, alloc.height - 1.5);
-			 	cr.line_to(i + 0.5, 15);
+				cr.line_to(i + 0.5, text_height + 1 + 2);
 			 }
 
 			/*
