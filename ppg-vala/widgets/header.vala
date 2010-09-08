@@ -70,12 +70,17 @@ namespace Ppg {
 		                                           int height)
 		{
 			var style = this.get_style();
-			var light = style.light[StateType.NORMAL];
-			var dark = style.dark[StateType.NORMAL];
+			var light = new CairoUtil.Color.from_gdk(style.light[StateType.NORMAL]);
+			var dark = new CairoUtil.Color.from_gdk(style.dark[StateType.NORMAL]);
 			var p = new Cairo.Pattern.linear(0, 0, 0, height);
+
+			light.shade(1.1);
+			dark.shade(0.95);
+
 			CairoUtil.add_color_stop(p, 0, light);
 			CairoUtil.add_color_stop(p, 0.75, dark);
 			CairoUtil.add_color_stop(p, 0, light);
+
 			return p;
 		}
 	}

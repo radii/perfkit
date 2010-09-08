@@ -71,14 +71,33 @@ namespace Ppg {
 			this.get_allocation(out alloc);
 
 			var style = this.get_style();
-			var color = style.dark[StateType.NORMAL];
+			var color = new CairoUtil.Color.from_gdk(style.fg[StateType.NORMAL]);
 
 			var cr = Gdk.cairo_create(event.window);
 			cr.set_line_width(1.0);
+			CairoUtil.set_source_color(cr, color);
 
-			cr.move_to(1, alloc.height - 3.5);
-			cr.line_to(alloc.width - 2, alloc.height - 3.5);
-			Gdk.cairo_set_source_color(cr, color);
+			/*
+			 * Draw the base line.
+			 */
+			cr.move_to(1, alloc.height - 1.5);
+			cr.line_to(alloc.width - 2, alloc.height - 1.5);
+
+			/*
+			 * XXX: Draw some lines.
+			 */
+			 for (int i = 1; i < alloc.width; i += 20) {
+			 	cr.move_to(i + 0.5, alloc.height - 1.5);
+			 	cr.line_to(i + 0.5, 10);
+			 }
+			 for (int i = 11; i < alloc.width; i += 20) {
+			 	cr.move_to(i + 0.5, alloc.height - 1.5);
+			 	cr.line_to(i + 0.5, 15);
+			 }
+
+			/*
+			 * Stroke the whole thing.
+			 */
 			cr.stroke();
 
 			return false;
