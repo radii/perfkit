@@ -262,12 +262,15 @@ namespace Ppg {
 		public override void style_set (Gtk.Style? old_style) {
 			Clutter.Color dark;
 			Clutter.Color mid;
+			Clutter.Color light;
 
 			base.style_set(old_style);
 
+			GtkClutter.get_light_color(this, StateType.NORMAL, out light);
 			GtkClutter.get_dark_color(this, StateType.NORMAL, out dark);
 			GtkClutter.get_mid_color(this, StateType.NORMAL, out mid);
 
+			stage.color = light;
 			bg_actor.color = mid;
 			bg_stripe.color = dark;
 
