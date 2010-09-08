@@ -101,6 +101,10 @@ namespace Ppg {
 			scroller.add(icon_view);
 			icon_view.show();
 
+			icon_view.item_activated.connect(() => {
+				add_selected();
+			});
+
 			model = new ListStore(5,
 			                      typeof(string),     // Id
 			                      typeof(string),     // Search text (lowercase)
