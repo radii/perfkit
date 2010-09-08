@@ -179,12 +179,9 @@ AC_OUTPUT([
 	perfkit-gui/pkg-version.h
 
 	perfkit-profiler/Makefile
-	perfkit-profiler/ppg-version.h
 
 	bindings/Makefile
 	bindings/vala/Makefile
-
-	ppg-vala/Makefile
 
 	tests/Makefile
 	tests/perfkit/Makefile
