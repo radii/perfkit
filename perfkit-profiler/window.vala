@@ -75,7 +75,6 @@ namespace Ppg {
 
 			var header = new Header();
 			header.corners = CairoUtil.CornerType.NONE;
-			header.height_request = 25;
 			header.show();
 			table.add_with_properties(header,
 			                          "left-attach", 0,

@@ -76,6 +76,25 @@ namespace CairoUtil {
 			this.alpha = 1.0;
 		}
 
+		public CairoUtil.Color.from_string (string str) {
+			Gdk.Color color;
+
+			Gdk.Color.parse(str, out color);
+			this.alpha = 1.0;
+			this.red = color.red / 65535.0;
+			this.green = color.green / 65535.0;
+			this.blue = color.blue / 65535.0;
+		}
+
+		public CairoUtil.Color copy() {
+			var color = new CairoUtil.Color();
+			color.red = this.red;
+			color.green = this.green;
+			color.blue = this.blue;
+			color.alpha = this.alpha;
+			return color;
+		}
+
 		public void shade (double ratio) {
 			double h;
 			double s;
