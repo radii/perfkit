@@ -295,20 +295,26 @@ namespace Ppg {
 
 		public override void size_allocate (Gdk.Rectangle alloc) {
 			Gtk.Allocation embed_alloc;
+			Gtk.Allocation last;
 
+			this.get_allocation(out last);
 			base.size_allocate(alloc);
-			embed.get_allocation(out embed_alloc);
 
-			zoom_changed(this.zadj);
-			vadj.page_size = embed_alloc.height;
+			if (last.x != alloc.x || last.y != alloc.y ||
+			    last.width != alloc.width ||
+			    last.height != alloc.height)
+			{
+				embed.get_allocation(out embed_alloc);
+				zoom_changed(this.zadj);
+				vadj.page_size = embed_alloc.height;
+				bg_actor.height = embed_alloc.height;
+				bg_stripe.height = embed_alloc.height;
 
-			bg_actor.height = embed_alloc.height;
-			bg_stripe.height = embed_alloc.height;
-
-			rows.foreach((data) => {
-				Row row = (Row)data;
-				row.update_size(embed);
-			});
+				rows.foreach((data) => {
+					Row row = (Row)data;
+					row.update_size(embed);
+				});
+			}
 		}
 
 		bool embed_key_press (Gdk.EventKey event) {
