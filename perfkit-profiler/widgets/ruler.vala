@@ -31,6 +31,10 @@ namespace Ppg {
 		double _upper = 0.0;
 		double _pos = 100.0;
 
+		construct {
+			this.add_events(Gdk.EventMask.POINTER_MOTION_MASK);
+		}
+
 		public double lower {
 			get { return _lower; }
 			set {
@@ -68,6 +72,14 @@ namespace Ppg {
 			this._upper = upper;
 			this._pos = position;
 			this.queue_draw();
+		}
+
+		public override bool motion_notify_event (Gdk.EventMotion event) {
+			Gtk.Allocation alloc;
+
+			this.get_allocation(out alloc);
+			position = _lower + (event.x / alloc.width * (_upper - _lower));
+			return false;
 		}
 
 		public override bool expose_event (Gdk.EventExpose event) {
@@ -204,9 +216,9 @@ namespace Ppg {
 					Pango.cairo_show_layout(cr, layout);
 				}
 			 }
-			 for (int i = 11; i < alloc.width; i += 20) {
+			 for (int i = 10; i < alloc.width; i += 20) {
 			 	cr.move_to(i + 0.5, alloc.height - 1.5);
-				cr.line_to(i + 0.5, text_height + 1 + 2);
+				cr.line_to(i + 0.5, text_height + 1 + 3);
 			 }
 
 			 cr.stroke();

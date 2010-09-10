@@ -86,6 +86,13 @@ namespace CairoUtil {
 			this.blue = color.blue / 65535.0;
 		}
 
+		public CairoUtil.Color.from_clutter (Clutter.Color color) {
+			this.alpha = color.alpha / 255.0;
+			this.red = color.red / 255.0;
+			this.green = color.green / 255.0;
+			this.blue = color.blue / 255.0;
+		}
+
 		public CairoUtil.Color copy() {
 			var color = new CairoUtil.Color();
 			color.red = this.red;

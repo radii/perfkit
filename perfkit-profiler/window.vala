@@ -549,10 +549,14 @@ namespace Ppg {
 			GtkClutter.get_mid_color(widget, state, out mid);
 			GtkClutter.get_fg_color(widget, state, out text);
 
+			var dark_ = new CairoUtil.Color.from_clutter(dark);
+			dark_.shade(0.8);
+
 			var cr = hdr_bg.create();
 			var p = new Cairo.Pattern.linear(0, 0, 0, group.height);
 			add_color_stop(p, 0.0, mid);
-			add_color_stop(p, 1.0, dark);
+			//add_color_stop(p, 1.0, dark);
+			CairoUtil.add_color_stop(p, 1.0, dark_);
 			cr.rectangle(0, 0, group.width, group.height);
 			cr.set_source(p);
 			cr.fill();
