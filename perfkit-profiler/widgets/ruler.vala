@@ -150,18 +150,22 @@ namespace Ppg {
 			var colormap = new Gdk.Colormap(visual, false);
 			ruler.set_colormap(colormap);
 
-			var cr = Gdk.cairo_create(ruler);
-			draw_ruler(cr);
+			if (this.is_drawable()) {
+				var cr = Gdk.cairo_create(ruler);
+				draw_ruler(cr);
+			}
 		}
 
 		public override void style_set (Gtk.Style? old_style) {
 			base.style_set(old_style);
 
-			var cr = Gdk.cairo_create(arrow);
-			draw_arrow(cr, 0, 0, ARROW_WIDTH, ARROW_HEIGHT);
+			if (this.is_drawable()) {
+				var cr = Gdk.cairo_create(arrow);
+				draw_arrow(cr, 0, 0, ARROW_WIDTH, ARROW_HEIGHT);
 
-			cr = Gdk.cairo_create(ruler);
-			draw_ruler(cr);
+				cr = Gdk.cairo_create(ruler);
+				draw_ruler(cr);
+			}
 		}
 
 		void draw_ruler (Cairo.Context cr) {
