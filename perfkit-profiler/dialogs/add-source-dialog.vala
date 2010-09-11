@@ -22,12 +22,16 @@ using Gtk;
 namespace Ppg {
 	public class AddSourceDialog: Dialog {
 		Ppg.Session _session;
+		int n_tasks;
 
 		Button _add_button;
 		Entry _search_entry;
 		ListStore model;
 		TreeModelFilter filter;
 		IconView icon_view;
+		Spinner spinner;
+		InfoBar info_bar;
+		Label message;
 
 		construct {
 			this.title = _("Perfkit Profiler");
@@ -36,12 +40,24 @@ namespace Ppg {
 			this.default_height = 400;
 			this.has_separator = false;
 
+			info_bar = new InfoBar();
+			message = new Label(null);
+			message.xalign = 0.0f;
+			message.wrap = true;
+			var action = (Container)info_bar.get_action_area();
+			action.add_with_properties(message,
+			                           "expand", true,
+			                           "fill", true,
+			                           null);
+			this.vbox.pack_start(info_bar, false, true, 0);
+			message.show();
+
 			var vbox = new VBox(false, 0);
 			vbox.border_width = 6;
 			this.vbox.add(vbox);
 			vbox.show();
 
-			var l = new Label(_(title_msg));
+			var l = new Label(_("Choose one or more sources to add to your session."));
 			l.xpad = 12;
 			l.ypad = 6;
 			vbox.pack_start(l, false, true, 0);
@@ -128,6 +144,19 @@ namespace Ppg {
 			this._add_button = (Button)this.get_widget_for_response(ResponseType.OK);
 			this._add_button.sensitive = false;
 
+			var align = new Alignment(1.0f, 0.5f, 0.0f, 0.0f);
+			action_area.add_with_properties(align,
+			                                "expand", false,
+			                                "fill", true,
+			                                "position", 0,
+			                                null);
+			align.show();
+
+			spinner = new Spinner();
+			spinner.set_size_request(16, 16);
+			align.add(spinner);
+			spinner.start();
+
 			this.response.connect((response) => {
 				if (response == ResponseType.OK) {
 					add_selected();
@@ -167,7 +196,11 @@ namespace Ppg {
 				}
 			} catch (Error err) {
 				/* TODO: Display to user */
-				warning("Error retrieving sources: %s", err.message);
+				message.label = _("There was an error retrieving the list of plugins from the agent.");
+				info_bar.message_type = MessageType.ERROR;
+				info_bar.show();
+				icon_view.sensitive = false;
+				_search_entry.sensitive = false;
 			}
 		}
 
@@ -182,12 +215,31 @@ namespace Ppg {
 				filter.get_iter(out iter, path);
 				filter.get(iter, 0, out id, -1);
 
-				debug("Adding item %s", id);
-
-				_session.add_source_plugin(id);
+				var task = new AddSourceTask() {
+					channel = _session.channel,
+					connection = _session.connection,
+					plugin = id
+				};
+				task.started.connect(() => {
+					n_tasks++;
+					spinner.show();
+					spinner.start();
+				});
+				task.finished.connect((_, success, error) => {
+					n_tasks--;
+					if (n_tasks == 0) {
+						spinner.hide();
+						spinner.stop();
+					}
+					if (!success) {
+						var label = error.message.strip();
+						info_bar.message_type = MessageType.ERROR;
+						message.label = label;
+						info_bar.show();
+					}
+				});
+				task.schedule();
 			}
 		}
-
-		static const string title_msg = "Choose one or more sources to add to your session.";
 	}
 }

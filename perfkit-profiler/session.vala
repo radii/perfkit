@@ -54,6 +54,7 @@ namespace Ppg {
 			_conn = new Perfkit.Connection.from_uri("dbus://");
 			_conn.source_added.connect((_, source) => {
 				GLib.Timeout.add(0, () => {
+					debug("Source %d added.", source);
 					this.source_added(source);
 					return false;
 				});
