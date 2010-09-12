@@ -54,7 +54,6 @@ namespace Ppg {
 				}
 
 				string title = _widget.session.get_source_name(source);
-
 				var dialog = new MessageDialog(_widget,
 				                               DialogFlags.MODAL,
 				                               MessageType.QUESTION,
@@ -66,7 +65,24 @@ namespace Ppg {
 				dialog.set_default_response(ResponseType.CANCEL);
 
 				if (dialog.run() == ResponseType.OK) {
-					_widget.session.remove_source(source);
+					var task = new RemoveSourceTask() {
+						connection = _widget.session.connection,
+						source = source
+					};
+					task.finished.connect((_, success, error) => {
+						if (!success) {
+							var err_dialog = new MessageDialog(_widget,
+							                                   DialogFlags.MODAL,
+							                                   MessageType.ERROR,
+							                                   ButtonsType.CLOSE,
+							                                   "There was an error removing the source named %s.",
+							                                   title);
+							err_dialog.secondary_text = error.message;
+							err_dialog.run();
+							err_dialog.destroy();
+						}
+					});
+					task.schedule();
 				}
 
 				dialog.destroy();
