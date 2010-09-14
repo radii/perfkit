@@ -25,6 +25,10 @@
 
 #include <glib-object.h>
 
+G_BEGIN_DECLS
+
+#define PKA_TYPE_SPAWN_INFO (pka_spawn_info_get_type())
+
 /**
  * PkaSpawnInfo:
  *
@@ -51,5 +55,7 @@ typedef struct
 GType         pka_spawn_info_get_type (void) G_GNUC_CONST;
 PkaSpawnInfo* pka_spawn_info_copy     (PkaSpawnInfo *spawn_info);
 void          pka_spawn_info_free     (PkaSpawnInfo *spawn_info);
+
+G_END_DECLS
 
 #endif /* __PKA_SPAWN_INFO_H__ */
