@@ -27,6 +27,10 @@ namespace Ppg {
 		PAUSED  = 3,
 	}
 
+	public errordomain SessionError {
+		NOT_CONNECTED,
+	}
+
 	public class Session: GLib.Object {
 		SessionState _state = SessionState.STOPPED;
 		Perfkit.Connection _conn;
@@ -76,14 +80,44 @@ namespace Ppg {
 			});
 		}
 
+		/*
+		 * TODO: This should simply request the call and a signal notify
+		 *       us that the operation has completed and we should update
+		 *       the UI.  That way, the gui doesn't get inconsistent.
+		 */
 		public void start () throws GLib.Error {
-			_state = SessionState.STARTED;
-			state_changed(_state);
+			if (!connection.is_connected()) {
+				throw new SessionError.NOT_CONNECTED("Session not connected");
+			}
+
+			connection.channel_start_async(channel, null, (_, res) => {
+				try {
+					connection.channel_start_finish(res);
+					_state = SessionState.STARTED;
+					state_changed(_state);
+				} catch (GLib.Error error) {
+					warning("Could not start session: %s", error.message);
+				}
+			});
 		}
 
+		/*
+		 * TODO: Same as above.
+		 */
 		public void stop () throws GLib.Error {
-			_state = SessionState.STOPPED;
-			state_changed(_state);
+			if (!connection.is_connected()) {
+				throw new SessionError.NOT_CONNECTED("Session not connected");
+			}
+
+			connection.channel_stop_async(channel, null, (_, res) => {
+				try {
+					connection.channel_stop_finish(res);
+					_state = SessionState.STOPPED;
+					state_changed(_state);
+				} catch (GLib.Error error) {
+					warning("Could not stop session: %s", error.message);
+				}
+			});
 		}
 
 		public void pause () throws GLib.Error {

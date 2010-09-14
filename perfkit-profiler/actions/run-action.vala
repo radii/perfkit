@@ -45,12 +45,10 @@ namespace Ppg {
 
 		public override void toggled () {
 			if (_session != null && !_block) {
-				try {
-					debug("Run action toggled");
-					_session.start();
-				} catch (Error err) {
-					warning("%s", err.message);
-				}
+				var task = new RecordTask() {
+					session = _session
+				};
+				task.schedule();
 			}
 		}
 

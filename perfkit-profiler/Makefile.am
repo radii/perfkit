@@ -28,7 +28,9 @@ perfkit_profiler_SOURCES = \
 	dialogs/preferences-dialog.vala \
 	tasks/task.vala \
 	tasks/add-source-task.vala \
+	tasks/start-task.vala \
 	tasks/remove-source-task.vala \
+	tasks/stop-task.vala \
 	widgets/cairo-util.vala \
 	widgets/header.vala \
 	widgets/ruler.vala \
