@@ -124,6 +124,7 @@ extern void     pka_source_notify_started         (PkaSource       *source,
 extern void     pka_source_notify_stopped         (PkaSource       *source);
 extern void     pka_source_notify_muted           (PkaSource       *source);
 extern void     pka_source_notify_unmuted         (PkaSource       *source);
+extern void     pka_source_notify_reset           (PkaSource       *source);
 extern gboolean pka_source_set_channel            (PkaSource       *source,
                                                    PkaChannel      *channel);
 
@@ -700,6 +701,18 @@ pka_channel_start (PkaChannel  *channel, /* IN */
 	ENTRY;
 	priv = channel->priv;
 	g_mutex_lock(priv->mutex);
+	/*
+	 * If we are in the stopped state, go ahead and reset everything.
+	 */
+	if (priv->state == PKA_CHANNEL_STOPPED) {
+		g_ptr_array_foreach(priv->sources,
+		                    (GFunc)pka_source_notify_reset,
+		                    NULL);
+		priv->state = PKA_CHANNEL_READY;
+	}
+	/*
+	 * Verify we are in good state.
+	 */
 	ENSURE_STATE(channel, READY, unlock);
 	INFO(Channel, "Starting channel %d on behalf of context %d.",
 	     priv->id, pka_context_get_id(context));

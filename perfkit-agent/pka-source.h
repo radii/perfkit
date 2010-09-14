@@ -67,6 +67,7 @@ struct _PkaSourceClass
 	void     (*stopped)           (PkaSource     *source);
 	void     (*muted)             (PkaSource     *source);
 	void     (*unmuted)           (PkaSource     *source);
+	void     (*reset)             (PkaSource     *source);
 
 	gpointer reserved[16];
 };

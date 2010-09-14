@@ -79,6 +79,7 @@ enum
 	MUTED,
 	UNMUTED,
 	STOPPED,
+	RESET,
 	LAST_SIGNAL
 };
 
@@ -258,6 +259,47 @@ pka_source_queue_unmuted (PkaSource *source) /* IN */
 	ENTRY;
 	g_timeout_add(0, (GSourceFunc)pka_source_emit_unmuted,
 	              g_object_ref(source));
+	EXIT;
+}
+
+/**
+ * pka_source_emit_reset:
+ * @user_data: A #PkaSource.
+ *
+ * #GSourceFunc style callback that emits the "reset" signal.
+ *
+ * Returns: %FALSE.
+ * Side effects: None.
+ */
+static gboolean
+pka_source_emit_reset (gpointer user_data) /* IN */
+{
+	PkaSource *source = user_data;
+
+	g_return_val_if_fail(PKA_IS_SOURCE(source), FALSE);
+
+	ENTRY;
+	g_signal_emit(source, signals[RESET], 0);
+	g_object_unref(source);
+	RETURN(FALSE);
+}
+
+/**
+ * pka_source_queue_reset:
+ * @source: A #PkaSource.
+ *
+ * Queues the emission of the "reset" signal to the main thread.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_queue_reset (PkaSource *source) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	g_timeout_add(0, pka_source_emit_reset, g_object_ref(source));
 	EXIT;
 }
 
@@ -616,6 +658,25 @@ pka_source_notify_unmuted (PkaSource *source) /* IN */
 }
 
 /**
+ * pka_source_notify_reset:
+ * @source: (in): A #PkaSource.
+ *
+ * Notifies @source that it should reset itself for another run.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
+void
+pka_source_notify_reset (PkaSource *source) /* IN */
+{
+	g_return_if_fail(PKA_IS_SOURCE(source));
+
+	ENTRY;
+	pka_source_queue_reset(source);
+	EXIT;
+}
+
+/**
  * pka_source_get_plugin:
  * @source: A #PkaSource.
  *
@@ -791,7 +852,8 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                                NULL, NULL,
 	                                g_cclosure_marshal_VOID__BOXED,
 	                                G_TYPE_NONE,
-	                                1, G_TYPE_POINTER);
+	                                1,
+	                                PKA_TYPE_SPAWN_INFO);
 
 	/**
 	 * PkaSource::stopped:
@@ -808,7 +870,8 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                                G_STRUCT_OFFSET(PkaSourceClass, stopped),
 	                                NULL, NULL,
 	                                g_cclosure_marshal_VOID__VOID,
-	                                G_TYPE_NONE, 0);
+	                                G_TYPE_NONE,
+	                                0);
 
 	/**
 	 * PkaSource::muted:
@@ -826,7 +889,8 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                              G_STRUCT_OFFSET(PkaSourceClass, muted),
 	                              NULL, NULL,
 	                              g_cclosure_marshal_VOID__VOID,
-	                              G_TYPE_NONE, 0);
+	                              G_TYPE_NONE,
+	                              0);
 
 	/**
 	 * PkaSource::unmuted:
@@ -844,7 +908,18 @@ pka_source_class_init (PkaSourceClass *klass) /* IN */
 	                                G_STRUCT_OFFSET(PkaSourceClass, unmuted),
 	                                NULL, NULL,
 	                                g_cclosure_marshal_VOID__VOID,
-	                                G_TYPE_NONE, 0);
+	                                G_TYPE_NONE,
+	                                0);
+
+	signals[RESET] = g_signal_new("reset",
+	                              PKA_TYPE_SOURCE,
+	                              G_SIGNAL_RUN_FIRST,
+	                              G_STRUCT_OFFSET(PkaSourceClass, reset),
+	                              NULL,
+	                              NULL,
+	                              g_cclosure_marshal_VOID__VOID,
+	                              G_TYPE_NONE,
+	                              0);
 }
 
 /**

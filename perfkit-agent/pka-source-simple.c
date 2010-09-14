@@ -616,7 +616,7 @@ pka_source_simple_muted (PkaSource *source) /* IN */
 {
 	PkaSourceSimplePrivate *priv;
 
-	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 
 	ENTRY;
 	priv = PKA_SOURCE_SIMPLE(source)->priv;
@@ -633,7 +633,7 @@ pka_source_simple_unmuted (PkaSource *source) /* In */
 {
 	PkaSourceSimplePrivate *priv;
 
-	g_return_if_fail(PKA_IS_SOURCE(source));
+	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
 
 	ENTRY;
 	priv = PKA_SOURCE_SIMPLE(source)->priv;
@@ -643,6 +643,19 @@ pka_source_simple_unmuted (PkaSource *source) /* In */
 	}
 	pthread_mutex_unlock(&priv->mutex);
 	EXIT;
+}
+
+static void
+pka_source_simple_reset (PkaSource *source) /* IN */
+{
+	PkaSourceSimplePrivate *priv;
+
+	g_return_if_fail(PKA_IS_SOURCE_SIMPLE(source));
+
+	priv = PKA_SOURCE_SIMPLE(source)->priv;
+	/*
+	 * TODO: Allow simple sources to have a callback func for reset.
+	 */
 }
 
 /**
@@ -737,6 +750,7 @@ pka_source_simple_class_init (PkaSourceSimpleClass *klass) /* IN */
 	OVERRIDE(stopped);
 	OVERRIDE(muted);
 	OVERRIDE(unmuted);
+	OVERRIDE(reset);
 	#undef OVERRIDE
 
 	/**
