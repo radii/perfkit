@@ -46,15 +46,16 @@ namespace Ppg {
 
 		public override void toggled () {
 			if (_session != null && !_block) {
-				try {
-					debug("Pause action toggled");
-					if (_session.state == SessionState.PAUSED) {
-						_session.unpause();
-					} else {
-						_session.pause();
-					}
-				} catch (Error err) {
-					warning("%s", err.message);
+				if (active) {
+					var task = new PauseTask() {
+						session = _session
+					};
+					task.schedule();
+				} else {
+					var task = new UnpauseTask() {
+						session = _session
+					};
+					task.schedule();
 				}
 			}
 		}

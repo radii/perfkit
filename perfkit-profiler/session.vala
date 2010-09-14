@@ -120,14 +120,38 @@ namespace Ppg {
 			});
 		}
 
+		/* TODO: Same as above. */
 		public void pause () throws GLib.Error {
-			_state = SessionState.PAUSED;
-			state_changed(_state);
+			if (!connection.is_connected()) {
+				throw new SessionError.NOT_CONNECTED("Session not connected");
+			}
+
+			connection.channel_mute_async(channel, null, (_, res) => {
+				try {
+					connection.channel_mute_finish(res);
+					_state = SessionState.PAUSED;
+					state_changed(_state);
+				} catch (GLib.Error error) {
+					warning("Could not pause session: %s", error.message);
+				}
+			});
 		}
 
+		/* TODO: Same as above. */
 		public void unpause () throws GLib.Error {
-			_state = SessionState.STARTED;
-			state_changed(_state);
+			if (!connection.is_connected()) {
+				throw new SessionError.NOT_CONNECTED("Session not connected");
+			}
+
+			connection.channel_unmute_async(channel, null, (_, res) => {
+				try {
+					connection.channel_unmute_finish(res);
+					_state = SessionState.STARTED;
+					state_changed(_state);
+				} catch (GLib.Error error) {
+					warning("Could not pause session: %s", error.message);
+				}
+			});
 		}
 
 		public void teardown () {
