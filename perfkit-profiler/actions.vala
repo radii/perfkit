@@ -96,10 +96,10 @@ namespace Ppg {
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.QuitAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PerfkitAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ProfileAction), null);
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.StopAction), null);
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.PauseAction), null);
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RunAction), null);
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RestartAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.StopAction), "<Control>E");
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.PauseAction), "<Control>Z");
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RunAction), "<Control>B");
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.RestartAction), "<Control>R");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddSourceAction), "<Control>n");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.EditAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction), null);
