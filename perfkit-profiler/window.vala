@@ -190,6 +190,11 @@ namespace Ppg {
 			                         "position", 1,
 			                         null);
 
+			var target = new TargetToolButton();
+			target.set_expand(true);
+			toolbar.insert(target, -1);
+			target.show();
+
 			this.delete_event.connect((event) => {
 				window_count--;
 				if (window_count < 1) {

@@ -36,6 +36,9 @@ perfkit_profiler_SOURCES = \
 	widgets/cairo-util.vala \
 	widgets/header.vala \
 	widgets/ruler.vala \
+	widgets/spawn-process-dialog.vala \
+	widgets/target-tool-button.vala \
+	widgets/validation-box.vala \
 	$(NULL)
 
 perfkit_profiler_LDADD = \
