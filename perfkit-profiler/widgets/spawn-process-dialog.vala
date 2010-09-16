@@ -203,13 +203,13 @@ namespace Ppg {
 				if (!target_box.validate()) {
 					valid = false;
 					if (grab == null) {
-						grab = target_box;
+						grab = target_entry;
 					}
 				}
 				if (!args_box.validate()) {
 					valid = false;
 					if (grab == null) {
-						grab = args_box;
+						grab = args_entry;
 					}
 				}
 				if (!valid) {
