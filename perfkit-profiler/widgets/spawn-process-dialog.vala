@@ -57,6 +57,7 @@ namespace Ppg {
 			target_box.show();
 
 			target_entry = new Entry();
+			target_entry.activates_default = true;
 			target_box.add(target_entry);
 			l.mnemonic_widget = target_entry;
 			target_entry.show();
@@ -73,6 +74,7 @@ namespace Ppg {
 			args_box.show();
 
 			args_entry = new Entry();
+			args_entry.activates_default = true;
 			args_box.add(args_entry);
 			l.mnemonic_widget = args_entry;
 			args_entry.show();
