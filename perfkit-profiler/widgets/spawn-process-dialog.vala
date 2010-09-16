@@ -193,6 +193,10 @@ namespace Ppg {
 			this.response.connect((_, response) => {
 				bool valid = true;
 				Widget? grab = null;
+
+				if (response != ResponseType.OK) {
+					return;
+				}
 				
 				if (!target_box.validate()) {
 					valid = false;
