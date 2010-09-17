@@ -1924,7 +1924,7 @@ pk_connection_channel_set_args_cb (GObject      *source,    /* IN */
 gboolean
 pk_connection_channel_set_args (PkConnection  *connection, /* IN */
                                 gint           channel,    /* IN */
-                                gchar        **args,       /* IN */
+                                const gchar  **args,       /* IN */
                                 GError       **error)      /* OUT */
 {
 	PkConnectionSync sync;
@@ -1948,7 +1948,9 @@ pk_connection_channel_set_args (PkConnection  *connection, /* IN */
 
 /**
  * pk_connection_channel_set_args_async:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @channel: (in): The channel.
+ * @args: (in): A %NULL terminated list of args.
  *
  * Asynchronous implementation of the "channel_set_args_async" RPC.
  *
@@ -1961,7 +1963,7 @@ pk_connection_channel_set_args (PkConnection  *connection, /* IN */
 void
 pk_connection_channel_set_args_async (PkConnection         *connection,  /* IN */
                                       gint                  channel,     /* IN */
-                                      gchar               **args,        /* IN */
+                                      const gchar         **args,        /* IN */
                                       GCancellable         *cancellable, /* IN */
                                       GAsyncReadyCallback   callback,    /* IN */
                                       gpointer              user_data)   /* IN */
@@ -2040,6 +2042,8 @@ pk_connection_channel_set_env_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_channel_set_env:
  * @connection: A #PkConnection.
+ * @channel: (in): The channel
+ * @env: (in): A %NULL terminated string array of environtment variables.
  *
  * Synchronous implemenation of the "channel_set_env" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -2053,7 +2057,7 @@ pk_connection_channel_set_env_cb (GObject      *source,    /* IN */
 gboolean
 pk_connection_channel_set_env (PkConnection  *connection, /* IN */
                                gint           channel,    /* IN */
-                               gchar        **env,        /* IN */
+                               const gchar  **env,        /* IN */
                                GError       **error)      /* OUT */
 {
 	PkConnectionSync sync;
@@ -2090,7 +2094,7 @@ pk_connection_channel_set_env (PkConnection  *connection, /* IN */
 void
 pk_connection_channel_set_env_async (PkConnection         *connection,  /* IN */
                                      gint                  channel,     /* IN */
-                                     gchar               **env,         /* IN */
+                                     const gchar         **env,         /* IN */
                                      GCancellable         *cancellable, /* IN */
                                      GAsyncReadyCallback   callback,    /* IN */
                                      gpointer              user_data)   /* IN */

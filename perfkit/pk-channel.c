@@ -1652,7 +1652,7 @@ pk_channel_set_args (PkChannel  *channel, /* IN */
 	if (!(ret = pk_connection_channel_set_args(
 			priv->connection,
 			priv->id,
-			args,
+			(const gchar**)args,
 			error))) {
 		RETURN(FALSE);
 	}
@@ -1709,7 +1709,7 @@ pk_channel_set_args_async (PkChannel            *channel,     /* IN */
 	pk_connection_channel_set_args_async(
 			priv->connection,
 			priv->id,
-			args,
+			(const gchar**)args,
 			cancellable,
 			pk_channel_set_args_cb,
 			result);
@@ -1781,7 +1781,7 @@ pk_channel_set_env (PkChannel  *channel, /* IN */
 	if (!(ret = pk_connection_channel_set_env(
 			priv->connection,
 			priv->id,
-			env,
+			(const gchar**)env,
 			error))) {
 		RETURN(FALSE);
 	}
@@ -1838,7 +1838,7 @@ pk_channel_set_env_async (PkChannel            *channel,     /* IN */
 	pk_connection_channel_set_env_async(
 			priv->connection,
 			priv->id,
-			env,
+			(const gchar**)env,
 			cancellable,
 			pk_channel_set_env_cb,
 			result);

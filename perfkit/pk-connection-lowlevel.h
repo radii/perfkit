@@ -194,11 +194,11 @@ gboolean      pk_connection_channel_mute_finish               (PkConnection     
                                                                GError               **error);
 gboolean      pk_connection_channel_set_args                  (PkConnection          *connection,
                                                                gint                   channel,
-                                                               gchar                **args,
+                                                               const gchar          **args,
                                                                GError               **error);
 void          pk_connection_channel_set_args_async            (PkConnection          *connection,
                                                                gint                   channel,
-                                                               gchar                **args,
+                                                               const gchar          **args,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);
@@ -207,11 +207,11 @@ gboolean      pk_connection_channel_set_args_finish           (PkConnection     
                                                                GError               **error);
 gboolean      pk_connection_channel_set_env                   (PkConnection          *connection,
                                                                gint                   channel,
-                                                               gchar                **env,
+                                                               const gchar          **env,
                                                                GError               **error);
 void          pk_connection_channel_set_env_async             (PkConnection          *connection,
                                                                gint                   channel,
-                                                               gchar                **env,
+                                                               const gchar          **env,
                                                                GCancellable          *cancellable,
                                                                GAsyncReadyCallback    callback,
                                                                gpointer               user_data);

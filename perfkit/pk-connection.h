@@ -200,7 +200,7 @@ struct _PkConnectionClass
 	                                                     GError               **error);
 	void          (*channel_set_args_async)             (PkConnection          *connection,
 	                                                     gint                   channel,
-	                                                     gchar                **args,
+	                                                     const gchar          **args,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);
@@ -209,7 +209,7 @@ struct _PkConnectionClass
 	                                                     GError               **error);
 	void          (*channel_set_env_async)              (PkConnection          *connection,
 	                                                     gint                   channel,
-	                                                     gchar                **env,
+	                                                     const gchar          **env,
 	                                                     GCancellable          *cancellable,
 	                                                     GAsyncReadyCallback    callback,
 	                                                     gpointer               user_data);

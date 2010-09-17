@@ -3041,7 +3041,7 @@ finish:
 static void
 pk_connection_dbus_channel_set_args_async (PkConnection         *connection,  /* IN */
                                            gint                  channel,     /* IN */
-                                           gchar               **args,        /* IN */
+                                           const gchar         **args,        /* IN */
                                            GCancellable         *cancellable, /* IN */
                                            GAsyncReadyCallback   callback,    /* IN */
                                            gpointer              user_data)   /* IN */
@@ -3179,7 +3179,7 @@ finish:
 static void
 pk_connection_dbus_channel_set_env_async (PkConnection         *connection,  /* IN */
                                           gint                  channel,     /* IN */
-                                          gchar               **env,         /* IN */
+                                          const gchar         **env,         /* IN */
                                           GCancellable         *cancellable, /* IN */
                                           GAsyncReadyCallback   callback,    /* IN */
                                           gpointer              user_data)   /* IN */
