@@ -34,6 +34,10 @@ namespace Ppg {
 		TreeViewColumn key_column;
 		TreeViewColumn value_column;
 
+		public string target {
+			get { return target_entry.text; }
+		}
+
 		construct {
 			this.border_width = 6;
 			this.default_width = 350;

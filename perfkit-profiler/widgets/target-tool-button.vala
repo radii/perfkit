@@ -119,6 +119,7 @@ namespace Ppg {
 			dialog.transient_for = (Window)this.get_toplevel();
 
 			if (dialog.run() == ResponseType.OK) {
+				label.label = dialog.target;
 			}
 
 			dialog.destroy();
