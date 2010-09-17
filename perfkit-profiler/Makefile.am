@@ -32,6 +32,7 @@ perfkit_profiler_SOURCES = \
 	tasks/unpause-task.vala \
 	tasks/start-task.vala \
 	tasks/remove-source-task.vala \
+	tasks/edit-channel-task.vala \
 	tasks/stop-task.vala \
 	widgets/cairo-util.vala \
 	widgets/header.vala \
@@ -61,7 +62,7 @@ run: perfkit-profiler
 	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
 	libtool --mode=execute $(builddir)/perfkit-profiler
 
-debug:
+debug: perfkit-profiler
 	@PPG_DATA_DIR=$(top_builddir)/data \
 	PERFKIT_CONNECTIONS_DIR=$(top_builddir)/perfkit/connections/.libs \
 	libtool --mode=execute gdb $(builddir)/perfkit-profiler

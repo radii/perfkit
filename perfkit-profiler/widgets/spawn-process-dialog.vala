@@ -217,6 +217,20 @@ namespace Ppg {
 						grab.grab_focus();
 					}
 					Signal.stop_emission_by_name(this, "response");
+				} else {
+					string[] argv;
+
+					var task = new EditChannelTask() {
+						session = ((Ppg.Window)this.transient_for).session,
+						target = target_entry.text
+					};
+
+					if (args_entry.text.length > 0) {
+						Shell.parse_argv(args_entry.text, out argv);
+						task.args = argv;
+					}
+
+					task.schedule();
 				}
 			});
 
