@@ -40,6 +40,7 @@ perfkit_profiler_SOURCES = \
 	widgets/spawn-process-dialog.vala \
 	widgets/target-tool-button.vala \
 	widgets/validation-box.vala \
+	widgets/timer.vala \
 	$(NULL)
 
 perfkit_profiler_LDADD = \

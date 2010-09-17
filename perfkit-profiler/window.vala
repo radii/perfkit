@@ -190,6 +190,20 @@ namespace Ppg {
 			                         "position", 1,
 			                         null);
 
+			var tool_item = new ToolItem();
+			tool_item.set_expand(true);
+			toolbar.insert(tool_item, -1);
+			tool_item.show();
+
+			var timer = new Timer();
+			timer.set_size_request(200, -1);
+			tool_item = new ToolItem();
+			tool_item.add(timer);
+			toolbar.insert(tool_item, -1);
+			tool_item.show();
+			timer.show();
+
+
 			var target = new TargetToolButton();
 			target.set_expand(true);
 			toolbar.insert(target, -1);
