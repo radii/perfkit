@@ -52,8 +52,13 @@ namespace Ppg {
 			vbox.pack_start(l, false, true, 0);
 			l.show();
 
+			var align = new Alignment(0.5f, 0.5f, 1.0f, 1.0f);
+			align.left_padding = 12;
+			vbox.pack_start(align, false, true, 0);
+			align.show();
+
 			target_box = new ValidationBox();
-			vbox.pack_start(target_box, false, true, 0);
+			align.add(target_box);
 			target_box.show();
 
 			target_entry = new Entry();
@@ -69,8 +74,13 @@ namespace Ppg {
 			vbox.pack_start(l, false, true, 0);
 			l.show();
 
+			align = new Alignment(0.5f, 0.5f, 1.0f, 1.0f);
+			align.left_padding = 12;
+			vbox.pack_start(align, false, true, 0);
+			align.show();
+
 			args_box = new ValidationBox();
-			vbox.pack_start(args_box, false, true, 0);
+			align.add(args_box);
 			args_box.show();
 
 			args_entry = new Entry();
