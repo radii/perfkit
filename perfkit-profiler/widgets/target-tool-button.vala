@@ -44,6 +44,7 @@ namespace Ppg {
 
 			label = new Label(_("No target process"));
 			label.xalign = 0.0f;
+			label.ellipsize = Pango.EllipsizeMode.MIDDLE;
 			hbox.pack_start(label, true, true, 3);
 			label.show();
 
