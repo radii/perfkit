@@ -56,8 +56,9 @@ namespace Ppg {
 			arrow.show();
 
 			menu = new Menu();
-			menu.hide.connect(() => {
+			menu.deactivate.connect(() => {
 				button.active = false;
+				((Gtk.Window)button.get_toplevel()).set_focus(null);
 			});
 
 			var menu_item = new MenuItem();
