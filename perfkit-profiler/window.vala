@@ -30,6 +30,7 @@ namespace Ppg {
 		Session _session = new Session();
 		GenericArray<Row> rows = new GenericArray<Row>();
 
+		Timer      timer;
 		Embed      embed;
 		Statusbar  statusbar;
 		MenuBar    menubar;
@@ -195,7 +196,7 @@ namespace Ppg {
 			toolbar.insert(tool_item, -1);
 			tool_item.show();
 
-			var timer = new Timer();
+			timer = new Timer();
 			timer.set_size_request(200, -1);
 			tool_item = new ToolItem();
 			tool_item.add(timer);
