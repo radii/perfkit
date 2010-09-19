@@ -159,7 +159,7 @@ cpu_new (GError **error) /* OUT */
 
 const PkaPluginInfo pka_plugin_info = {
 	.id          = "Cpu",
-	.name        = "CPU Usage sampling",
+	.name        = "CPU usage",
 	.description = "This source provides general CPU usage information "
 	               "about the running machine",
 	.version     = "0.1.1",

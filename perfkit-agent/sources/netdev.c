@@ -205,7 +205,7 @@ netdev_new (GError **error) /* OUT */
 
 const PkaPluginInfo pka_plugin_info = {
 	.id          = "NetDev",
-	.name        = "Network usage sampling",
+	.name        = "Network usage",
 	.description = "This source provides network usage of a given network interface.",
 	.version     = "0.1.1",
 	.copyright   = "2010 Andrew Stiegmann",

@@ -305,7 +305,7 @@ sched_new (GError **error)
 
 const PkaPluginInfo pka_plugin_info = {
 	.id          = "Scheduler",
-	.name        = "Process Scheduler",
+	.name        = "Process scheduler",
 	.description = "Process scheduler statistics.",
 	.version     = "0.1.0",
 	.plugin_type = PKA_PLUGIN_SOURCE,
