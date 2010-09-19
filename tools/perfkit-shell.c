@@ -1232,7 +1232,7 @@ pk_shell_channel_set_args (EggLine  *line,   /* IN */
 	async_task_init(&task);
 	pk_connection_channel_set_args_async(conn,
 	                             channel,
-	                             args,
+	                             (const gchar**)args,
 	                             NULL,
 	                             pk_shell_channel_set_args_cb,
 	                             &task);
@@ -1306,7 +1306,7 @@ pk_shell_channel_set_env (EggLine  *line,   /* IN */
 	async_task_init(&task);
 	pk_connection_channel_set_env_async(conn,
 	                             channel,
-	                             env,
+	                             (const gchar**)env,
 	                             NULL,
 	                             pk_shell_channel_set_env_cb,
 	                             &task);
