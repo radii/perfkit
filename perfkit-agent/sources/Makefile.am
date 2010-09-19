@@ -2,7 +2,15 @@
 # Data source plugins.
 #
 
-source_LTLIBRARIES = memory.la sched.la netdev.la cpu.la
+gtkmodule_LTLIBRARIES = libgdkevent-module.la
+source_LTLIBRARIES =		\
+	memory.la		\
+	sched.la		\
+	netdev.la		\
+	cpu.la			\
+	$(NULL)
+
+gtkmoduledir = $(libdir)/gtk-2.0/modules
 sourcedir = $(libdir)/perfkit-agent/plugins
 
 WARNINGS =								\
@@ -41,8 +49,6 @@ AM_CPPFLAGS =								\
 	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(NULL)
 
-# AM_CPPFLAGS += -DDISABLE_TRACE
-
 AM_LDFLAGS =								\
 	-export-dynamic							\
 	-module								\
@@ -52,3 +58,7 @@ memory_la_SOURCES = memory.c
 sched_la_SOURCES = sched.c
 netdev_la_SOURCES = netdev.c src-utils.c src-utils.h
 cpu_la_SOURCES = cpu.c src-utils.c src-utils.h
+
+libgdkevent_module_la_SOURCES = gdkevent-module.c
+libgdkevent_module_la_CPPFLAGS = $(GTK_CFLAGS)
+libgdkevent_module_la_LIBADD = $(GTK_LIBS)

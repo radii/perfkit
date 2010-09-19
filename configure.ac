@@ -75,6 +75,7 @@ PKG_CHECK_MODULES(PERFKIT_PROFILER, [gobject-2.0      >= 2.20
                                      gtk+-2.0         >= 2.18
                                      clutter-gtk-0.10 >= 0.10.4])
 PKG_CHECK_MODULES(DBUS,             [dbus-glib-1      >= 0.80])
+PKG_CHECK_MODULES(GTK,              [gtk+-2.0         >= 2.20])
 
 
 dnl ************************************************************************
