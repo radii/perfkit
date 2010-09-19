@@ -21,47 +21,57 @@ using Gtk;
 
 namespace Ppg {
 	public class Timer: DrawingArea {
-		public override bool expose_event (Gdk.EventExpose expose) {
+		Pango.FontDescription font_desc;
+		Button button;
+
+		public uint hour { get; set; }
+		public uint minute { get; set; }
+		public uint second { get; set; }
+		public uint ten_thousandth { get; set; }
+
+		construct
+		{
+			font_desc = new Pango.FontDescription();
+			font_desc.set_family("Monospace");
+			font_desc.set_size(Pango.SCALE * 16);
+			button = new Button();
+			button.show();
+		}
+
+		public override bool expose_event (Gdk.EventExpose expose)
+		{
+			Gtk.Allocation alloc;
+
+			get_allocation(out alloc);
+
 			var cr = Gdk.cairo_create(expose.window);
 			Gdk.cairo_rectangle(cr, expose.area);
 			cr.clip();
 
-			draw_background(cr);
-			draw_foreground(cr);
+			Gtk.paint_box(style,
+			              expose.window,
+			              StateType.NORMAL,
+			              ShadowType.ETCHED_IN,
+			              expose.area,
+			              button,
+			              "button",
+			              0,
+			              0,
+			              alloc.width,
+			              alloc.height);
+
+			int width;
+			int height;
+
+			var layout = Pango.cairo_create_layout(cr);
+			Gdk.cairo_set_source_color(cr, style.fg[StateType.NORMAL]);
+			layout.set_font_description(font_desc);
+			layout.set_text("%02u:%02u:%02u.%02u".printf(hour, minute, second, ten_thousandth / 100), -1);
+			layout.get_pixel_size(out width, out height);
+			cr.move_to((alloc.width - width) / 2, (alloc.height - height) / 2);
+			Pango.cairo_show_layout(cr, layout);
 
 			return false;
-		}
-
-		void draw_background (Cairo.Context cr) {
-			Gtk.Allocation alloc;
-
-			this.get_allocation(out alloc);
-
-			CairoUtil.rounded_rectangle(cr, 0, 0, alloc.width, alloc.height,
-			                            6, 6, CairoUtil.CornerType.ALL);
-
-			var dark = style.dark[StateType.NORMAL];
-			var light = style.light[StateType.NORMAL];
-			var d = new CairoUtil.Color.from_gdk(dark);
-			var c = new CairoUtil.Color.from_gdk(light);
-
-			d.shade(0.95);
-			c.shade(1.1);
-
-			var p = new Cairo.Pattern.linear(0, 0, 0, alloc.height);
-			CairoUtil.add_color_stop(p, -0.2f, c);
-			CairoUtil.add_color_stop(p, 0.9f, d);
-			CairoUtil.add_color_stop(p, 0.0f, c);
-			cr.set_source(p);
-
-			cr.fill_preserve();
-
-			d.shade(0.9);
-			CairoUtil.set_source_color(cr, d);
-			cr.stroke();
-		}
-
-		void draw_foreground (Cairo.Context cr) {
 		}
 	}
 }
