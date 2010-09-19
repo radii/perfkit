@@ -240,8 +240,12 @@ namespace Ppg {
 					};
 
 					if (args_entry.text.length > 0) {
-						Shell.parse_argv(args_entry.text, out argv);
-						task.args = argv;
+						try {
+							Shell.parse_argv(args_entry.text, out argv);
+							task.args = argv;
+						} catch (GLib.Error error) {
+							warning("Invalid argv: %s", args_entry.text);
+						}
 					}
 
 					task.schedule();
