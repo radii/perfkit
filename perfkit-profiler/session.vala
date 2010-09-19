@@ -32,6 +32,7 @@ namespace Ppg {
 	}
 
 	public class Session: GLib.Object {
+		GLib.Timer _timer;
 		SessionState _state = SessionState.STOPPED;
 		Perfkit.Connection _conn;
 		int _channel = -1;
@@ -41,6 +42,10 @@ namespace Ppg {
 		public signal void disconnected ();
 		public signal void source_added (int source);
 		public signal void source_removed (int source);
+
+		public GLib.Timer timer {
+			get { return _timer; }
+		}
 
 		public SessionState state {
 			get { return _state; }
@@ -93,6 +98,7 @@ namespace Ppg {
 			connection.channel_start_async(channel, null, (_, res) => {
 				try {
 					connection.channel_start_finish(res);
+					_timer = new GLib.Timer();
 					_state = SessionState.STARTED;
 					state_changed(_state);
 				} catch (GLib.Error error) {
@@ -112,6 +118,7 @@ namespace Ppg {
 			connection.channel_stop_async(channel, null, (_, res) => {
 				try {
 					connection.channel_stop_finish(res);
+					_timer.stop();
 					_state = SessionState.STOPPED;
 					state_changed(_state);
 				} catch (GLib.Error error) {

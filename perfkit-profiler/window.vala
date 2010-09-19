@@ -197,6 +197,7 @@ namespace Ppg {
 			tool_item.show();
 
 			timer = new Timer();
+			timer.session = _session;
 			timer.set_size_request(200, -1);
 			tool_item = new ToolItem();
 			tool_item.add(timer);
