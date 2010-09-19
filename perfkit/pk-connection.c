@@ -5111,6 +5111,8 @@ pk_connection_plugin_get_name_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_plugin_get_name:
  * @connection: A #PkConnection.
+ * @plugin: (in): The plugin id.
+ * @name: (out) (type utf8): A location for the plugin name.
  *
  * Synchronous implemenation of the "plugin_get_name" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -5148,6 +5150,7 @@ pk_connection_plugin_get_name (PkConnection  *connection, /* IN */
 /**
  * pk_connection_plugin_get_name_async:
  * @connection: A #PkConnection.
+ * @plugin: (in): The plugin id.
  *
  * Asynchronous implementation of the "plugin_get_name_async" RPC.
  *
@@ -5178,6 +5181,7 @@ pk_connection_plugin_get_name_async (PkConnection        *connection,  /* IN */
 /**
  * pk_connection_plugin_get_name_finish:
  * @connection: A #PkConnection.
+ * @name: (out) (type utf8): A location for the plugin name.
  *
  * Completion of an asynchronous call to the "plugin_get_name_finish" RPC.
  *
