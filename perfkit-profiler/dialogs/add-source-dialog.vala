@@ -130,7 +130,7 @@ namespace Ppg {
 			filter = new TreeModelFilter(model, null);
 			filter.set_visible_column(4);
 			icon_view.model = filter;
-			icon_view.set_text_column(0);
+			icon_view.set_text_column(2);
 			icon_view.set_pixbuf_column(3);
 			icon_view.selection_changed.connect(() => {
 				var items = icon_view.get_selected_items();
@@ -185,11 +185,17 @@ namespace Ppg {
 			try {
 				conn.manager_get_plugins(out sources);
 				for (i = 0; sources[i] != null; i++) {
+					string name;
+					string fulltext;
+
+					conn.plugin_get_name(sources[i], out name);
+					fulltext = "%s %s".printf(sources[i].down(), name.down());
+
 					model.append(out iter);
 					model.set(iter,
 					          0, sources[i],
-					          1, sources[i].down(),
-					          2, sources[i],
+					          1, fulltext,
+					          2, name,
 					          3, pixbuf,
 					          4, true,
 					          -1);
