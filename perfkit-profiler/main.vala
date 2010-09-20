@@ -27,6 +27,8 @@ static int main (string[] args) {
 	var theme = Gtk.IconTheme.get_default();
 	theme.append_search_path(Ppg.Paths.get_icon_dir());
 
+	Gtk.Window.set_default_icon_name("clock");
+
 	var welcome = new Ppg.Welcome();
 	welcome.delete_event.connect((event) => {
 		if (Ppg.Window.count_windows() < 1) {
