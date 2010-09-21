@@ -13,6 +13,7 @@ perfkit_profiler_SOURCES = \
 	welcome.vala \
 	actions.vala \
 	paths.vala \
+	ppg-log.c \
 	actions/edit-action.vala \
 	actions/preferences-action.vala \
 	actions/add-source-action.vala \
@@ -55,6 +56,7 @@ perfkit_profiler_VALAFLAGS = \
 	--pkg=gdkkeysyms \
 	--pkg=Perfkit-1.0 \
 	--pkg=config \
+	--pkg=ppg-log \
 	--vapidir=$(srcdir)/vapi \
 	$(NULL)
 

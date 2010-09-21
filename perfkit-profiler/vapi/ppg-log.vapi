@@ -1,4 +1,4 @@
-/* main.vala
+/* ppg-log.vapi
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -17,30 +17,9 @@
  */
 
 using GLib;
-using Gtk;
-using GtkClutter;
 
-static int main (string[] args) {
-	GtkClutter.init(ref args);
-
-	Ppg.Log.init(true, null);
-
-	Ppg.Actions.initialize();
-
-	var theme = Gtk.IconTheme.get_default();
-	theme.append_search_path(Ppg.Paths.get_icon_dir());
-
-	Gtk.Window.set_default_icon_name("clock");
-
-	var welcome = new Ppg.Welcome();
-	welcome.delete_event.connect((event) => {
-		if (Ppg.Window.count_windows() < 1) {
-			Gtk.main_quit();
-		}
-		return false;
-	});
-	welcome.show();
-
-	Gtk.main();
-	return 0;
+[CCode(cheader_filename="ppg-log.h", cheader_prefix="ppg_log_")]
+namespace Ppg.Log {
+	public static void init (bool stdout_, string? filename);
+	public static void shutdown ();
 }
