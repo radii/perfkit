@@ -32,6 +32,7 @@ namespace Ppg {
 		double _lower = 0.0;
 		double _upper = 0.0;
 		double _pos = 100.0;
+		bool _dirty = false;
 
 		construct {
 			this.add_events(Gdk.EventMask.POINTER_MOTION_MASK);
@@ -45,6 +46,7 @@ namespace Ppg {
 			get { return _lower; }
 			set {
 				_lower = value;
+				_dirty = true;
 				this.queue_draw();
 			}
 		}
@@ -53,6 +55,7 @@ namespace Ppg {
 			get { return _upper; }
 			set {
 				_upper = value;
+				_dirty = true;
 				this.queue_draw();
 			}
 		}
@@ -81,6 +84,7 @@ namespace Ppg {
 			this._lower = lower;
 			this._upper = upper;
 			this._pos = position;
+			this._dirty = true;
 			this.queue_draw();
 		}
 
@@ -98,6 +102,12 @@ namespace Ppg {
 			this.get_allocation(out alloc);
 
 			base.expose_event(event);
+
+			if (_dirty) {
+				var cr = Gdk.cairo_create(this.ruler);
+				draw_ruler(cr);
+				_dirty = false;
+			}
 
 			var cr = Gdk.cairo_create(event.window);
 
