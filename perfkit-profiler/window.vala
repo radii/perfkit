@@ -175,7 +175,7 @@ namespace Ppg {
 			vbox.pack_start(statusbar, false, true, 0);
 			statusbar.show();
 
-			position_label = new Label(null);
+			position_label = new Label("<span size=\"smaller\">00:00:00.0000</span>");
 			position_label.show();
 			position_label.use_markup = true;
 			statusbar.pack_start(position_label, false, true, 0);
@@ -585,11 +585,11 @@ namespace Ppg {
 		}
 
 		string format_time (double time) {
-			return "%02d:%02d:%02d.%f".printf(
+			return "%02d:%02d:%02d.%04d".printf(
 				(int)(time / 3600.0),
 				(int)((time % 3600.0) / 60.0),
 				(int)(time % 60.0),
-				(time % 1.0));
+				(int)((time % 1.0) * 10000));
 		}
 	}
 
