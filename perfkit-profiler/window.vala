@@ -512,6 +512,7 @@ namespace Ppg {
 			stage.add_actor(bg_stripe);
 
 			pos_actor = new Clutter.Rectangle.with_color(black);
+			pos_actor.hide();
 			pos_actor.set_size(1, 200);
 			pos_actor.set_position(201, 0);
 			stage.add_actor(pos_actor);
