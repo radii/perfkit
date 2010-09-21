@@ -69,6 +69,7 @@ namespace Ppg {
 				 *      One for old position, one for new position.
 				 */
 				this.queue_draw();
+				this.notify_property("position");
 			}
 		}
 
