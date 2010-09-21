@@ -24,6 +24,8 @@ namespace Ppg {
 		static const int ARROW_WIDTH = 17;
 		static const int ARROW_HEIGHT = 17;
 
+		Pango.FontDescription font_desc;
+
 		Gdk.Pixmap arrow;
 		Gdk.Pixmap ruler;
 
@@ -33,6 +35,10 @@ namespace Ppg {
 
 		construct {
 			this.add_events(Gdk.EventMask.POINTER_MOTION_MASK);
+
+			font_desc = new Pango.FontDescription();
+			font_desc.set_family("Monospace");
+			font_desc.set_size(Pango.SCALE * 10);
 		}
 
 		public double lower {
@@ -172,9 +178,18 @@ namespace Ppg {
 			}
 		}
 
+		void update_markup (Pango.Layout l, double t) {
+			var s = "<span size=\"smaller\">%02d:%02d:%02d</span>".printf(
+				(int)(t / 3600.0),
+				(int)((t % 3600.0) / 60.0),
+				(int)(t % 60));
+			l.set_markup(s, -1);
+		}
+
 		void draw_ruler (Cairo.Context cr) {
 			Allocation alloc;
 			int text_height;
+			int text_width;
 
 			this.get_allocation(out alloc);
 			var style = this.get_style();
@@ -189,7 +204,6 @@ namespace Ppg {
 			var lighter = color.copy();
 			color.shade(0.5);
 			lighter.shade(0.75);
-
 			cr.set_line_width(1.0);
 			CairoUtil.set_source_color(cr, color);
 
@@ -197,22 +211,38 @@ namespace Ppg {
 			 * Create layout for cairo text.
 			 */
 			var layout = Pango.cairo_create_layout(cr);
-			layout.set_markup("<span size=\"smaller\">00:00:00</span>", -1);
-			layout.get_pixel_size(null, out text_height);
+			layout.set_font_description(font_desc);
+			layout.set_markup("00:00:00", -1);
+			layout.get_pixel_size(out text_width, out text_height);
 
-			/*
-			 * Draw the base line.
-			 */
-			cr.move_to(1, alloc.height - 0.5);
-			cr.line_to(alloc.width - 2, alloc.height - 0.5);
-			CairoUtil.set_source_color(cr, lighter);
-			cr.stroke();
+			double every = 1;
+			text_width += 5;
+			var n_seconds = _upper - _lower;
 
-			CairoUtil.set_source_color(cr, color);
+			if ((alloc.width / n_seconds) < text_width) {
+				every = Math.ceil(text_width / (alloc.width / n_seconds));
+			}
+
+			double v;
+			int x;
+
+			for (v = Math.ceil(_lower); v < _upper; v += every) {
+				CairoUtil.set_source_color(cr, color);
+				x = get_x_offset(v);
+				cr.move_to(x + 0.5, alloc.height - 1.5);
+				cr.line_to(x + 0.5, 0.5);
+				cr.stroke();
+
+				cr.move_to(x + 1.5, 1.5);
+				update_markup(layout, v);
+				cr.set_source_rgb(0, 0, 0);
+				Pango.cairo_show_layout(cr, layout);
+			}
 
 			/*
 			 * XXX: Draw some lines.
 			 */
+			/*
 			for (int i = 0; i < alloc.width; i += 20) {
 				cr.move_to(i + 0.5, alloc.height - 1.5);
 				cr.line_to(i + 0.5, text_height + 1);
@@ -228,8 +258,32 @@ namespace Ppg {
 			 	cr.move_to(i + 0.5, alloc.height - 1.5);
 				cr.line_to(i + 0.5, text_height + 1 + 3);
 			 }
-
 			 cr.stroke();
+			 */
+
+			/*
+			 * Draw the base line.
+			 */
+			cr.move_to(1, alloc.height - 0.5);
+			cr.line_to(alloc.width - 2, alloc.height - 0.5);
+			CairoUtil.set_source_color(cr, lighter);
+			cr.stroke();
+		}
+
+		public int get_x_offset (double value) {
+			Gtk.Allocation alloc;
+
+			get_allocation(out alloc);
+
+			if (value < _lower) {
+				return 0;
+			} else if (value > _upper) {
+				return alloc.width;
+			}
+
+			var a = _upper - _lower;
+			var b = value - _lower;
+			return (int)((b / a) * alloc.width);
 		}
 
 		void draw_arrow (Cairo.Context cr,
