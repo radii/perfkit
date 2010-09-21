@@ -63,6 +63,10 @@ namespace Ppg {
 			}
 		}
 
+		public bool contains (double value) {
+			return (value >= _lower && value <= _upper);
+		}
+
 		public void set_range(double lower,
 		                      double upper,
 		                      double position,

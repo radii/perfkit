@@ -45,6 +45,8 @@ namespace Ppg {
 		Row selected;
 		int selected_offset = -1;
 
+		uint pos_tracker_id;
+
 		bool in_move;
 
 		Adjustment hadj;
@@ -68,6 +70,8 @@ namespace Ppg {
 			hadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 			vadj = new Adjustment(0.0f, 0.0f, 1.0f, 5.0f, 1.0f, 1.0f);
 			zadj = new Adjustment(1.0f, 0.0f, 2.0f, 0.025f, 0.5f, 0.0f);
+
+			_session.state_changed.connect(this.on_state_changed);
 
 			var vbox = new VBox(false, 0);
 			this.add(vbox);
@@ -205,7 +209,6 @@ namespace Ppg {
 			tool_item.show();
 			timer.show();
 
-
 			var target = new TargetToolButton();
 			target.set_expand(true);
 			toolbar.insert(target, -1);
@@ -328,6 +331,7 @@ namespace Ppg {
 				vadj.page_size = embed_alloc.height;
 				bg_actor.height = embed_alloc.height;
 				bg_stripe.height = embed_alloc.height;
+				pos_actor.height = embed_alloc.height;
 				rows.foreach((data) => {
 					Row row = (Row)data;
 					row.update_size(embed);
@@ -362,6 +366,53 @@ namespace Ppg {
 			return retval;
 		}
 
+		void on_state_changed (SessionState state) {
+			switch (state) {
+			case SessionState.STARTED:
+				enable_pos_tracker();
+				break;
+			case SessionState.PAUSED:
+				disable_pos_tracker();
+				break;
+			case SessionState.STOPPED:
+				disable_pos_tracker();
+				break;
+			default:
+				break;
+			}
+		}
+
+		void enable_pos_tracker () {
+			pos_tracker_id = Timeout.add((1000 / 20), () => {
+				if (_session.timer != null) {
+					ulong usec;
+					var seconds = _session.timer.elapsed(out usec);
+
+					if (ruler.contains(seconds)) {
+						Gtk.Allocation alloc;
+						embed.get_allocation(out alloc);
+
+						var width = alloc.width - 200;
+						var offset = width / (ruler.upper - ruler.lower);
+						var x = (seconds - ruler.lower) * offset;
+
+						pos_actor.x = 200.0f + (float)x;
+						pos_actor.show();
+					} else {
+						pos_actor.hide();
+					}
+				}
+				return true;
+			});
+		}
+
+		void disable_pos_tracker () {
+			if (pos_tracker_id != 0) {
+				Source.remove(pos_tracker_id);
+				pos_tracker_id = 0;
+			}
+		}
+
 		bool embed_motion_notity (Gdk.EventMotion motion) {
 			Gtk.Allocation alloc;
 			double offset;
@@ -370,6 +421,7 @@ namespace Ppg {
 				embed.get_allocation(out alloc);
 				offset = (motion.x - 200.0f) / (alloc.width - 200.0f);
 				ruler.position = ruler.lower + ((ruler.upper - ruler.lower) * offset);
+				//pos_actor.x = (float)motion.x - 1;
 			} else {
 				ruler.position = ruler.lower;
 			}
@@ -458,7 +510,14 @@ namespace Ppg {
 			bg_stripe.set_size(1, 200);
 			bg_stripe.set_position(200, 0);
 			stage.add_actor(bg_stripe);
+
+			pos_actor = new Clutter.Rectangle.with_color(black);
+			pos_actor.set_size(1, 200);
+			pos_actor.set_position(201, 0);
+			stage.add_actor(pos_actor);
 		}
+
+		Clutter.Actor pos_actor;
 
 		public override void destroy () {
 			base.destroy();
