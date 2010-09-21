@@ -42,5 +42,8 @@ static int main (string[] args) {
 	welcome.show();
 
 	Gtk.main();
+
+	Ppg.Log.shutdown();
+
 	return 0;
 }
