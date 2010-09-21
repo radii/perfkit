@@ -22,6 +22,7 @@ using Perfkit;
 
 namespace Ppg {
 	public enum SessionState {
+		INVALID = 0,
 		STOPPED = 1,
 		STARTED = 2,
 		PAUSED  = 3,
