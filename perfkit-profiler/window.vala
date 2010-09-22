@@ -175,13 +175,16 @@ namespace Ppg {
 			vbox.pack_start(statusbar, false, true, 0);
 			statusbar.show();
 
-			position_label = new Label("<span size=\"smaller\">00:00:00.0000</span>");
+			position_label = new Label("00:00:00.0000");
 			position_label.show();
 			position_label.use_markup = true;
 			statusbar.pack_start(position_label, false, true, 0);
+			var attrlist = new Pango.AttrList();
+			attrlist.insert(Pango.attr_family_new("Monospace"));
+			attrlist.insert(new Pango.AttrSize(8 * Pango.SCALE));
+			position_label.set_attributes(attrlist);
 			ruler.notify["position"].connect(() => {
-				position_label.label = "<span size=\"smaller\">%s</span>"
-					.printf(format_time(ruler.position));
+				position_label.label = format_time(ruler.position);
 			});
 
 			var action_group = new ActionGroup("PpgWindow");
