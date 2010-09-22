@@ -105,6 +105,7 @@ namespace Ppg {
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.RemoveSourceAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ViewAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.FullscreenAction), "F11");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomInAction), "<Control>equal");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomOutAction), "<Control>minus");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomOneAction), "<Control>0");

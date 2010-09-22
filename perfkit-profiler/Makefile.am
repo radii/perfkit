@@ -23,6 +23,7 @@ perfkit_profiler_SOURCES = \
 	actions/zoom-in-action.vala \
 	actions/zoom-out-action.vala \
 	actions/zoom-one-action.vala \
+	actions/fullscreen-action.vala \
 	actions/view-action.vala \
 	actions/profile-action.vala \
 	actions/stop-action.vala \

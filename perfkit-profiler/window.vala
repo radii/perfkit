@@ -33,8 +33,8 @@ namespace Ppg {
 		Timer      timer;
 		Embed      embed;
 		Statusbar  statusbar;
-		MenuBar    menubar;
-		Toolbar    toolbar;
+		MenuBar    _menubar;
+		Toolbar    _toolbar;
 		UIManager  ui_manager;
 		Ppg.Ruler  ruler;
 		Label      position_label;
@@ -196,21 +196,21 @@ namespace Ppg {
 			} catch (Error err) {
 				assert_not_reached();
 			}
-			menubar = (MenuBar)ui_manager.get_widget("/Menubar");
-			toolbar = (Toolbar)ui_manager.get_widget("/Toolbar");
+			_menubar = (MenuBar)ui_manager.get_widget("/Menubar");
+			_toolbar = (Toolbar)ui_manager.get_widget("/Toolbar");
 
-			vbox.add_with_properties(menubar,
+			vbox.add_with_properties(_menubar,
 			                         "expand", false,
 			                         "position", 0,
 			                         null);
-			vbox.add_with_properties(toolbar,
+			vbox.add_with_properties(_toolbar,
 			                         "expand", false,
 			                         "position", 1,
 			                         null);
 
 			var tool_item = new ToolItem();
 			tool_item.set_expand(true);
-			toolbar.insert(tool_item, -1);
+			_toolbar.insert(tool_item, -1);
 			tool_item.show();
 
 			timer = new Timer();
@@ -218,13 +218,13 @@ namespace Ppg {
 			timer.set_size_request(200, -1);
 			tool_item = new ToolItem();
 			tool_item.add(timer);
-			toolbar.insert(tool_item, -1);
+			_toolbar.insert(tool_item, -1);
 			tool_item.show();
 			timer.show();
 
 			var target = new TargetToolButton();
 			target.set_expand(true);
-			toolbar.insert(target, -1);
+			_toolbar.insert(target, -1);
 			target.show();
 
 			this.delete_event.connect((event) => {
@@ -247,6 +247,14 @@ namespace Ppg {
 
 		public Gtk.Adjustment zoom {
 			get { return zadj; }
+		}
+
+		public Toolbar toolbar {
+			get { return _toolbar; }
+		}
+
+		public MenuBar menubar {
+			get { return _menubar; }
 		}
 
 		void source_added (int source) {
@@ -731,6 +739,7 @@ namespace Ppg {
    <menuitem action="ZoomOutAction"/>
    <menuitem action="ZoomOneAction"/>
    <separator/>
+   <menuitem action="FullscreenAction"/>
   </menu>
  </menubar>
  <toolbar name="Toolbar">
