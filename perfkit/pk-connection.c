@@ -382,6 +382,7 @@ pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_channel_get_args:
  * @connection: A #PkConnection.
+ * @args: (out) (array zero-terminated=1) (element-type utf8): A location for process args.
  *
  * Synchronous implemenation of the "channel_get_args" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -636,6 +637,7 @@ pk_connection_channel_get_env_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_channel_get_env:
  * @connection: A #PkConnection.
+ * @env: (out) (array zero-terminated=1) (element-type utf8): A location for process env.
  *
  * Synchronous implemenation of the "channel_get_env" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -1533,6 +1535,7 @@ pk_connection_channel_get_target_cb (GObject      *source,    /* IN */
 /**
  * pk_connection_channel_get_target:
  * @connection: A #PkConnection.
+ * @target: (out) (type utf8): A location for the target.
  *
  * Synchronous implemenation of the "channel_get_target" RPC.  Using
  * synchronous RPCs is generally frowned upon.
