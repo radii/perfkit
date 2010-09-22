@@ -98,9 +98,9 @@ gdkevent_new (GError **error)
 
 const PkaPluginInfo pka_plugin_info = {
 	.id          = "GdkEvent",
-	.name        = "GDK event loop",
+	.name        = "Gtk+ events",
 	.description = "This source provides information about the events "
-	               "processed by the GDK main loop.",
+	               "processed by the Gtk+ main loop.",
 	.version     = "0.1.1",
 	.copyright   = "Christian Hergert",
 	.factory     = gdkevent_new,
