@@ -198,12 +198,13 @@ namespace Ppg {
 		}
 
 		void draw_ruler (Cairo.Context cr) {
+			var state = StateType.NORMAL;
 			Allocation alloc;
 			int text_height;
 			int text_width;
 
 			this.get_allocation(out alloc);
-			var style = this.get_style();
+			var style = get_style();
 
 			cr.save();
 			cr.set_operator(Cairo.Operator.CLEAR);
@@ -211,12 +212,11 @@ namespace Ppg {
 			cr.fill();
 			cr.restore();
 
-			var color = new CairoUtil.Color.from_gdk(style.dark[StateType.NORMAL]);
-			var lighter = color.copy();
-			color.shade(0.5);
+			var text = new CairoUtil.Color.from_gdk(style.fg[state]);
+			var lighter = new CairoUtil.Color.from_gdk(style.dark[state]);
 			lighter.shade(0.75);
 			cr.set_line_width(1.0);
-			CairoUtil.set_source_color(cr, color);
+			CairoUtil.set_source_color(cr, text);
 
 			/*
 			 * Create layout for cairo text.
@@ -238,7 +238,7 @@ namespace Ppg {
 			int x;
 
 			for (v = Math.ceil(_lower); v < _upper; v += every) {
-				CairoUtil.set_source_color(cr, color);
+				CairoUtil.set_source_color(cr, text);
 				x = get_x_offset(v);
 				cr.move_to(x + 0.5, alloc.height - 1.5);
 				cr.line_to(x + 0.5, 0.5);
@@ -261,31 +261,8 @@ namespace Ppg {
 
 				cr.move_to(x + 1.5, 1.5);
 				update_markup(layout, v);
-				cr.set_source_rgb(0, 0, 0);
 				Pango.cairo_show_layout(cr, layout);
 			}
-
-			/*
-			 * XXX: Draw some lines.
-			 */
-			/*
-			for (int i = 0; i < alloc.width; i += 20) {
-				cr.move_to(i + 0.5, alloc.height - 1.5);
-				cr.line_to(i + 0.5, text_height + 1);
-
-				if ((i / 10) % 10 == 0) {
-					cr.line_to(i + 0.5, 0);
-
-					cr.move_to(i + 0.5, 0);
-					Pango.cairo_show_layout(cr, layout);
-				}
-			 }
-			 for (int i = 10; i < alloc.width; i += 20) {
-			 	cr.move_to(i + 0.5, alloc.height - 1.5);
-				cr.line_to(i + 0.5, text_height + 1 + 3);
-			 }
-			 cr.stroke();
-			 */
 
 			/*
 			 * Draw the base line.
