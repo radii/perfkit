@@ -175,10 +175,16 @@ namespace Ppg {
 			vbox.pack_start(statusbar, false, true, 0);
 			statusbar.show();
 
+			var frame = new Gtk.Frame(null);
+			frame.shadow = ShadowType.ETCHED_IN;
+			statusbar.pack_start(frame, false, true, 0);
+			frame.show();
+
 			position_label = new Label("00:00:00.0000");
 			position_label.show();
 			position_label.use_markup = true;
-			statusbar.pack_start(position_label, false, true, 0);
+			position_label.xpad = 3;
+			frame.add(position_label);
 			var attrlist = new Pango.AttrList();
 			attrlist.insert(Pango.attr_family_new("Monospace"));
 			attrlist.insert(new Pango.AttrSize(8 * Pango.SCALE));
