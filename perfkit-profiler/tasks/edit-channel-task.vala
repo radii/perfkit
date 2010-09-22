@@ -155,10 +155,8 @@ namespace Ppg {
 		void handle_success () {
 			if (AtomicInt.dec_and_test(ref ops)) {
 				if (errcount == 0) {
-					debug("DOING FINISH");
 					finish();
 				} else {
-					debug("DOING FINISH ERROR");
 					finish_with_error();
 				}
 			}

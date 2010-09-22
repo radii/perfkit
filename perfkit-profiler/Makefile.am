@@ -33,6 +33,7 @@ perfkit_profiler_SOURCES = \
 	dialogs/add-source-dialog.vala \
 	dialogs/preferences-dialog.vala \
 	tasks/task.vala \
+	tasks/get-channel-task.vala \
 	tasks/add-source-task.vala \
 	tasks/pause-task.vala \
 	tasks/unpause-task.vala \

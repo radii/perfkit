@@ -118,7 +118,10 @@ namespace Ppg {
 
 		void run_spawn_dialog () {
 			var dialog = new SpawnProcessDialog();
-			dialog.transient_for = (Window)this.get_toplevel();
+			var window = (Ppg.Window)this.get_toplevel();
+
+			dialog.transient_for = window;
+			dialog.session = window.session;
 
 			if (dialog.run() == ResponseType.OK) {
 				label.label = dialog.target;

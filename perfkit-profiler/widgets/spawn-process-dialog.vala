@@ -34,6 +34,8 @@ namespace Ppg {
 		TreeViewColumn key_column;
 		TreeViewColumn value_column;
 
+		Ppg.Session _session;
+
 		public string target {
 			get { return target_entry.text; }
 		}
@@ -271,6 +273,25 @@ namespace Ppg {
 			this.add_button(STOCK_CANCEL, ResponseType.CANCEL);
 			this.add_button(STOCK_OK, ResponseType.OK);
 			this.set_default_response(ResponseType.OK);
+		}
+
+		public Ppg.Session session {
+			get { return _session; }
+			set {
+				_session = value;
+
+				var task = new GetChannelTask() {
+					session = _session
+				};
+				task.cancel_on_delete(this);
+				task.finished.connect((_, success, error) => {
+					if (success) {
+						this.target_entry.text = task.target;
+						this.args_entry.text = string.joinv(" ", task.args);
+					}
+				});
+				task.schedule();
+			}
 		}
 	}
 }
