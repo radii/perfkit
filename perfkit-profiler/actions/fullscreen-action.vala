@@ -42,9 +42,11 @@ namespace Ppg {
 			if (active) {
 				window.fullscreen();
 				window.menubar.hide();
+				window.statusbar.hide();
 			} else {
 				window.unfullscreen();
 				window.menubar.show();
+				window.statusbar.show();
 			}
 		}
 	}

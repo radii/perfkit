@@ -32,7 +32,7 @@ namespace Ppg {
 
 		Timer      timer;
 		Embed      embed;
-		Statusbar  statusbar;
+		Statusbar  _statusbar;
 		MenuBar    _menubar;
 		Toolbar    _toolbar;
 		UIManager  ui_manager;
@@ -170,14 +170,14 @@ namespace Ppg {
 			zin.show();
 			hbox.pack_start(zin, false, true, 6);
 
-			statusbar = new Statusbar();
-			statusbar.push(0, "Ready");
-			vbox.pack_start(statusbar, false, true, 0);
-			statusbar.show();
+			_statusbar = new Statusbar();
+			_statusbar.push(0, "Ready");
+			vbox.pack_start(_statusbar, false, true, 0);
+			_statusbar.show();
 
 			var frame = new Gtk.Frame(null);
 			frame.shadow = ShadowType.ETCHED_IN;
-			statusbar.pack_start(frame, false, true, 0);
+			_statusbar.pack_start(frame, false, true, 0);
 			frame.show();
 
 			position_label = new Label("00:00:00.0000");
@@ -261,6 +261,10 @@ namespace Ppg {
 
 		public MenuBar menubar {
 			get { return _menubar; }
+		}
+
+		public Statusbar statusbar {
+			get { return _statusbar; }
 		}
 
 		void source_added (int source) {
