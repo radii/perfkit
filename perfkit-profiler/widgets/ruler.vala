@@ -242,6 +242,21 @@ namespace Ppg {
 				x = get_x_offset(v);
 				cr.move_to(x + 0.5, alloc.height - 1.5);
 				cr.line_to(x + 0.5, 0.5);
+
+				double p;
+				int z = 0;
+
+				for (p = v; p < v + every; p += (every / 10)) {
+					int xx = get_x_offset(p);
+					cr.move_to(xx + 0.5, alloc.height - 1.5);
+					if (z % 2 == 0) {
+						cr.line_to(xx + 0.5, text_height + 8.5);
+					} else {
+						cr.line_to(xx + 0.5, text_height + 5.5);
+					}
+					z++;
+				}
+
 				cr.stroke();
 
 				cr.move_to(x + 1.5, 1.5);
