@@ -544,7 +544,10 @@ namespace Ppg {
 			var conn = _session.connection;
 
 			try {
-				conn.source_get_plugin(source, out title);
+				string plugin;
+
+				conn.source_get_plugin(source, out plugin);
+				conn.plugin_get_name(plugin, out title);
 			} catch (Error err) {
 				warning("Failed to get plugin name for source: %d", source);
 				return;
