@@ -39,7 +39,7 @@ namespace Ppg {
 
 			font_desc = new Pango.FontDescription();
 			font_desc.set_family("Monospace");
-			font_desc.set_size(Pango.SCALE * 10);
+			font_desc.set_size(Pango.SCALE * 8);
 		}
 
 		public double lower {
@@ -190,11 +190,11 @@ namespace Ppg {
 		}
 
 		void update_markup (Pango.Layout l, double t) {
-			var s = "<span size=\"smaller\">%02d:%02d:%02d</span>".printf(
+			var s = "%02d:%02d:%02d".printf(
 				(int)(t / 3600.0),
 				(int)((t % 3600.0) / 60.0),
 				(int)(t % 60));
-			l.set_markup(s, -1);
+			l.set_text(s, -1);
 		}
 
 		void draw_ruler (Cairo.Context cr) {
