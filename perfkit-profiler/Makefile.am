@@ -20,6 +20,10 @@ perfkit_profiler_SOURCES = \
 	actions/remove-source-action.vala \
 	actions/quit-action.vala \
 	actions/perfkit-action.vala \
+	actions/zoom-in-action.vala \
+	actions/zoom-out-action.vala \
+	actions/zoom-one-action.vala \
+	actions/view-action.vala \
 	actions/profile-action.vala \
 	actions/stop-action.vala \
 	actions/pause-action.vala \

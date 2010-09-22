@@ -245,6 +245,10 @@ namespace Ppg {
 			embed.grab_focus();
 		}
 
+		public Gtk.Adjustment zoom {
+			get { return zadj; }
+		}
+
 		void source_added (int source) {
 			add_row(source);
 		}
@@ -720,6 +724,12 @@ namespace Ppg {
    <menuitem action="PauseAction"/>
    <menuitem action="RunAction"/>
    <menuitem action="RestartAction"/>
+   <separator/>
+  </menu>
+  <menu action="ViewAction">
+   <menuitem action="ZoomInAction"/>
+   <menuitem action="ZoomOutAction"/>
+   <menuitem action="ZoomOneAction"/>
    <separator/>
   </menu>
  </menubar>
