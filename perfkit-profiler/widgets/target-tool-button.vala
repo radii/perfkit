@@ -124,7 +124,7 @@ namespace Ppg {
 			dialog.session = window.session;
 
 			if (dialog.run() == ResponseType.OK) {
-				label.label = dialog.target;
+				label.label = dialog.target + " " + string.joinv(" ", dialog.parse_args());
 			}
 
 			dialog.destroy();

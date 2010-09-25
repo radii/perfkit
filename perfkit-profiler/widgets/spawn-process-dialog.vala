@@ -40,6 +40,18 @@ namespace Ppg {
 			get { return target_entry.text; }
 		}
 
+		public string[] parse_args()
+		{
+			try {
+				string[] str;
+
+				Shell.parse_argv(args_entry.text, out str);
+				return str;
+			} catch (GLib.Error err) {
+				return new string[] {};
+			}
+		}
+
 		construct {
 			this.border_width = 6;
 			this.default_width = 350;
