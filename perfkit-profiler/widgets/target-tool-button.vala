@@ -48,10 +48,6 @@ namespace Ppg {
 			hbox.pack_start(label, true, true, 3);
 			label.show();
 
-			var sep = new VSeparator();
-			hbox.pack_start(sep, false, true, 0);
-			sep.show();
-
 			var arrow = new Arrow(ArrowType.DOWN, ShadowType.NONE);
 			hbox.pack_start(arrow, false, true, 0);
 			arrow.show();
