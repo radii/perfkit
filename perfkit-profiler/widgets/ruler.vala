@@ -245,8 +245,17 @@ namespace Ppg {
 
 				double p;
 				int z = 0;
+				int n;
 
-				for (p = v; p < v + every; p += (every / 10)) {
+				for (p = v, n = 0;
+				     p < v + every;
+				     p += (every / 10), n++)
+				{
+					if (n == 0 || n == 10) {
+						/* first and last have epoch lines */
+						continue;
+					}
+
 					int xx = get_x_offset(p);
 					cr.move_to(xx + 0.5, alloc.height - 1.5);
 					if (z % 2 == 0) {

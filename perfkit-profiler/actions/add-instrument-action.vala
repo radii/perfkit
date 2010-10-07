@@ -1,4 +1,4 @@
-/* main.vala
+/* add-instrument-action.vala
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -18,32 +18,25 @@
 
 using GLib;
 using Gtk;
-using GtkClutter;
 
-static int main (string[] args) {
-	GtkClutter.init(ref args);
+namespace Ppg {
+	public class AddInstrumentAction: Gtk.Action {
+		public Widget widget { get; set; }
 
-	Ppg.Log.init(true, null);
-
-	Ppg.Actions.initialize();
-
-	var theme = Gtk.IconTheme.get_default();
-	theme.append_search_path(Ppg.Paths.get_icon_dir());
-
-	Gtk.Window.set_default_icon_name("clock");
-
-	var welcome = new Ppg.Welcome();
-	welcome.delete_event.connect((event) => {
-		if (Ppg.Window.get_window_count() < 1) {
-			Gtk.main_quit();
+		construct {
+			set("icon-name", STOCK_ADD,
+			    "label", _("Add Instrument"),
+				"name", "AddInstrumentAction",
+			    "tooltip", _("Add an instrument to the current session"),
+			    null);
 		}
-		return false;
-	});
-	welcome.show();
 
-	Gtk.main();
-
-	Ppg.Log.shutdown();
-
-	return 0;
+		public override void activate () {
+			var dialog = new AddInstrumentDialog();
+			dialog.transient_for = (Gtk.Window)widget;
+			dialog.load_instruments(((Ppg.Window)widget).session);
+			dialog.run();
+			dialog.destroy();
+		}
+	}
 }

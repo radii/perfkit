@@ -1,4 +1,4 @@
-/* main.vala
+/* visualizer.vala
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -16,34 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+using Clutter;
 using GLib;
 using Gtk;
-using GtkClutter;
 
-static int main (string[] args) {
-	GtkClutter.init(ref args);
-
-	Ppg.Log.init(true, null);
-
-	Ppg.Actions.initialize();
-
-	var theme = Gtk.IconTheme.get_default();
-	theme.append_search_path(Ppg.Paths.get_icon_dir());
-
-	Gtk.Window.set_default_icon_name("clock");
-
-	var welcome = new Ppg.Welcome();
-	welcome.delete_event.connect((event) => {
-		if (Ppg.Window.get_window_count() < 1) {
-			Gtk.main_quit();
-		}
-		return false;
-	});
-	welcome.show();
-
-	Gtk.main();
-
-	Ppg.Log.shutdown();
-
-	return 0;
+namespace Ppg {
+	public abstract class Visualizer: GLib.Object {
+		public abstract Clutter.Actor actor { get; }
+		public string title { get; set; }
+		public Instrument instrument { get; set; }
+	}
 }

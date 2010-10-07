@@ -29,7 +29,6 @@ namespace Ppg {
 	}
 
 	public class Welcome: Gtk.Window {
-
 		Button local_button;
 		Button remote_button;
 		Button open_button;

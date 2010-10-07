@@ -27,36 +27,43 @@ namespace Ppg {
 	static int window_count = 0;
 
 	public class Window: Gtk.Window {
-		Session _session = new Session();
-		GenericArray<Row> rows = new GenericArray<Row>();
+		Session _session;
+		GenericArray<RowGroup> _row_groups;
 
-		Timer      timer;
-		Embed      embed;
-		Statusbar  _statusbar;
-		MenuBar    _menubar;
-		Toolbar    _toolbar;
-		UIManager  ui_manager;
-		Ppg.Ruler  ruler;
-		Label      position_label;
+		/* Gtk widgets */
+		UIManager        _ui_manager;
+		Ppg.Timer        _timer;
+		GtkClutter.Embed _embed;
+		Gtk.Statusbar    _statusbar;
+		Gtk.MenuBar      _menubar;
+		Gtk.Toolbar      _toolbar;
+		Ppg.Ruler        _ruler;
+		Gtk.Label        _pointer_label;
+		Gtk.Adjustment   _hadj;
+		Gtk.Adjustment   _vadj;
+		Gtk.Adjustment   _zadj;
 
-		Clutter.Rectangle bg_actor;
-		Clutter.Rectangle bg_stripe;
-		Clutter.Box       rows_box;
+		/* Clutter actors */
+		Clutter.Actor     _pos_actor;
+		Clutter.Rectangle _bg_actor;
+		Clutter.Rectangle _bg_stripe;
+		Clutter.Box       _row_groups_box;
 
-		Row selected;
-		int selected_offset = -1;
+		/* Current row selection */
+		RowGroup _selected_row_group;
+		int _selected_offset = -1;
 
-		uint pos_tracker_id;
+		/* GLib timeouts */
+		uint _update_pos_handler;
 
-		bool in_move;
+		/* grab state */
+		bool _in_move;
 
-		Adjustment hadj;
-		Adjustment vadj;
-		Adjustment zadj;
+		/* track window sizing */
+		int _last_width;
+		int _last_height;
 
-		int last_width;
-		int last_height;
-
+		/* signals */
 		public signal void row_changed ();
 
 		construct {
@@ -68,11 +75,16 @@ namespace Ppg {
 			    "window-position", WindowPosition.CENTER,
 			    null);
 
-			hadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-			vadj = new Adjustment(0.0f, 0.0f, 1.0f, 5.0f, 1.0f, 1.0f);
-			zadj = new Adjustment(1.0f, 0.0f, 2.0f, 0.025f, 0.5f, 0.0f);
+			_session = new Session();
+			_row_groups = new GenericArray<RowGroup>();
 
-			_session.state_changed.connect(this.on_state_changed);
+			_hadj = new Adjustment(0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+			_vadj = new Adjustment(0.0f, 0.0f, 1.0f, 5.0f, 1.0f, 1.0f);
+			_zadj = new Adjustment(1.0f, 0.0f, 2.0f, 0.025f, 0.5f, 0.0f);
+
+			_session.state_changed.connect(on_state_changed);
+			_session.instrument_added.connect(on_instrument_added);
+			_session.instrument_removed.connect(on_instrument_removed);
 
 			var vbox = new VBox(false, 0);
 			this.add(vbox);
@@ -94,10 +106,10 @@ namespace Ppg {
 			                          "x-options", AttachOptions.FILL,
 			                          null);
 
-			ruler = new Ppg.Ruler();
-			ruler.corners = CairoUtil.CornerType.TOP_RIGHT;
-			ruler.show();
-			table.add_with_properties(ruler,
+			_ruler = new Ppg.Ruler();
+			_ruler.corners = CairoUtil.CornerType.TOP_RIGHT;
+			_ruler.show();
+			table.add_with_properties(_ruler,
 			                          "left-attach", 1,
 			                          "right-attach", 2,
 			                          "top-attach", 0,
@@ -105,7 +117,7 @@ namespace Ppg {
 			                          "y-options", AttachOptions.FILL,
 			                          null);
 
-			var vscrollbar = new VScrollbar(vadj);
+			var vscrollbar = new VScrollbar(_vadj);
 			vscrollbar.show();
 			table.add_with_properties(vscrollbar,
 			                          "left-attach", 2,
@@ -125,18 +137,24 @@ namespace Ppg {
 			                          "y-options", AttachOptions.FILL,
 			                          null);
 
-			var hscrollbar = new HScrollbar(hadj);
+			var hscrollbar = new HScrollbar(_hadj);
 			hscrollbar.show();
 			halign.add(hscrollbar);
 
-			embed = new Embed();
+			_embed = new GtkClutter.Embed();
+			_embed.can_focus = true;
+			_embed.add_events(Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK);
+			_embed.key_press_event.connect(on_embed_key_press);
+			_embed.motion_notify_event.connect(on_embed_motion_notity);
+			_embed.show();
 			create_actors();
-			embed.can_focus = true;
-			embed.add_events(Gdk.EventMask.KEY_PRESS_MASK | Gdk.EventMask.POINTER_MOTION_MASK);
-			embed.key_press_event.connect(embed_key_press);
-			embed.motion_notify_event.connect(embed_motion_notity);
-			embed.show();
-			table.add_with_properties(embed,
+			_embed.size_allocate.connect((_, alloc) => {
+				_row_groups.foreach((data) => {
+					var group = (RowGroup)data;
+					group.update_width(_embed);
+				});
+			});
+			table.add_with_properties(_embed,
 			                          "left-attach", 0,
 			                          "right-attach", 2,
 			                          "top-attach", 1,
@@ -159,7 +177,7 @@ namespace Ppg {
 			zout.show();
 			hbox.pack_start(zout, false, true, 6);
 
-			var hscale = new HScale(zadj);
+			var hscale = new HScale(_zadj);
 			hscale.draw_value = false;
 			hscale.digits = 3;
 			hscale.add_mark(1.0, PositionType.BOTTOM, null);
@@ -177,33 +195,33 @@ namespace Ppg {
 
 			var frame = new Gtk.Frame(null);
 			frame.shadow = ShadowType.ETCHED_IN;
-			_statusbar.pack_start(frame, false, true, 0);
 			frame.show();
+			_statusbar.pack_start(frame, false, true, 0);
 
-			position_label = new Label("00:00:00.0000");
-			position_label.show();
-			position_label.use_markup = true;
-			position_label.xpad = 3;
-			frame.add(position_label);
+			_pointer_label = new Label("00:00:00.0000");
+			_pointer_label.use_markup = true;
+			_pointer_label.xpad = 3;
 			var attrlist = new Pango.AttrList();
 			attrlist.insert(Pango.attr_family_new("Monospace"));
 			attrlist.insert(new Pango.AttrSize(8 * Pango.SCALE));
-			position_label.set_attributes(attrlist);
-			ruler.notify["position"].connect(() => {
-				position_label.label = format_time(ruler.position);
+			_pointer_label.set_attributes(attrlist);
+			_ruler.notify["position"].connect(() => {
+				_pointer_label.label = format_time(_ruler.position);
 			});
+			_pointer_label.show();
+			frame.add(_pointer_label);
 
 			var action_group = new ActionGroup("PpgWindow");
 			Actions.load(this, action_group);
-			ui_manager = new UIManager();
-			ui_manager.insert_action_group(action_group, 0);
+			_ui_manager = new UIManager();
+			_ui_manager.insert_action_group(action_group, 0);
 			try {
-				ui_manager.add_ui_from_string(ui_data, -1);
+				_ui_manager.add_ui_from_string(ui_data, -1);
 			} catch (Error err) {
 				assert_not_reached();
 			}
-			_menubar = (MenuBar)ui_manager.get_widget("/Menubar");
-			_toolbar = (Toolbar)ui_manager.get_widget("/Toolbar");
+			_menubar = (Gtk.MenuBar)_ui_manager.get_widget("/Menubar");
+			_toolbar = (Gtk.Toolbar)_ui_manager.get_widget("/Toolbar");
 
 			vbox.add_with_properties(_menubar,
 			                         "expand", false,
@@ -219,14 +237,14 @@ namespace Ppg {
 			_toolbar.insert(tool_item, -1);
 			tool_item.show();
 
-			timer = new Timer();
-			timer.session = _session;
-			timer.set_size_request(200, -1);
+			_timer = new Timer();
+			_timer.session = _session;
+			_timer.set_size_request(200, -1);
 			tool_item = new ToolItem();
-			tool_item.add(timer);
+			tool_item.add(_timer);
 			_toolbar.insert(tool_item, -1);
 			tool_item.show();
-			timer.show();
+			_timer.show();
 
 			var target = new TargetToolButton();
 			target.set_expand(true);
@@ -241,18 +259,19 @@ namespace Ppg {
 				return false;
 			});
 
-			this.zadj.value_changed.connect(zoom_changed);
-			this.vadj.value_changed.connect(vadj_changed);
-			this.rows_box.notify["allocation"].connect(box_allocation_notify);
+			_zadj.value_changed.connect(on_zoom_changed);
+			_vadj.value_changed.connect(on_vadj_changed);
+			_row_groups_box.notify["allocation"].connect(box_allocation_notify);
 
-			_session.source_added.connect(this.source_added);
-			_session.source_removed.connect(this.source_removed);
-
-			embed.grab_focus();
+			/*
+			 * Gtk likes to select tool items as the main focus. Go ahead
+			 * and force the focus on the clutter widget.
+			 */
+			_embed.grab_focus();
 		}
 
 		public Gtk.Adjustment zoom {
-			get { return zadj; }
+			get { return _zadj; }
 		}
 
 		public Toolbar toolbar {
@@ -267,34 +286,25 @@ namespace Ppg {
 			get { return _statusbar; }
 		}
 
-		void source_added (int source) {
-			add_row(source);
-		}
-
-		void source_removed (int source) {
-			remove_row(source);
-		}
-
 		public Stage stage {
 			get {
-				return (Stage)embed.get_stage();
+				return (Stage)_embed.get_stage();
 			}
+		}
+
+		public int selected_row {
+			get { return this._selected_offset; }
 		}
 
 		public Session session {
 			get { return _session; }
 		}
 
-		public static int count_windows () {
+		public static int get_window_count () {
 			return window_count;
 		}
 
-		public int get_selected_source () {
-			int row = this.get_selected_row();
-			return (row >= 0) ? rows.get(row).source : -1;
-		}
-
-		void zoom_changed (Adjustment zoom) {
+		void on_zoom_changed (Adjustment zoom) {
 			Gtk.Allocation alloc;
 			double upper;
 			double lower;
@@ -310,13 +320,13 @@ namespace Ppg {
 
 			upper = (alloc.width - 200.0) / (scale * PIXELS_PER_SECOND);
 			lower = 0.0f; /* FIXME */
-			ruler.set_range(lower, upper, lower, 0);
+			_ruler.set_range(lower, upper, lower, 0);
 		}
 
-		void vadj_changed (Adjustment adj) {
-			in_move = true;
-			rows_box.y = -(int)adj.value;
-			in_move = false;
+		void on_vadj_changed (Adjustment adj) {
+			_in_move = true;
+			_row_groups_box.y = -(int)adj.value;
+			_in_move = false;
 		}
 
 		void box_allocation_notify () {
@@ -324,11 +334,11 @@ namespace Ppg {
 			double upper;
 			double value;
 
-			if (!in_move) {
-				rows_box.get_allocation_box(out box);
+			if (!_in_move) {
+				_row_groups_box.get_allocation_box(out box);
 				upper = box.get_height();
 				value = -(int)box.y1;
-				vadj.set("upper", upper,
+				_vadj.set("upper", upper,
 				         "value", value,
 				         null);
 			}
@@ -346,12 +356,12 @@ namespace Ppg {
 			GtkClutter.get_mid_color(this, StateType.NORMAL, out mid);
 
 			stage.color = light;
-			bg_actor.color = mid;
-			bg_stripe.color = dark;
+			_bg_actor.color = mid;
+			_bg_stripe.color = dark;
 
-			rows.foreach((data) => {
-				Row row = (Row)data;
-				row.paint(embed);
+			_row_groups.foreach((data) => {
+				var group = (RowGroup)data;
+				group.style = this.style;
 			});
 		}
 
@@ -360,38 +370,39 @@ namespace Ppg {
 
 			base.size_allocate(alloc);
 
-			if (last_width != alloc.width || last_height != alloc.height) {
-				embed.get_allocation(out embed_alloc);
-				zoom_changed(this.zadj);
-				vadj.page_size = embed_alloc.height;
-				bg_actor.height = embed_alloc.height;
-				bg_stripe.height = embed_alloc.height;
-				pos_actor.height = embed_alloc.height;
-				rows.foreach((data) => {
-					Row row = (Row)data;
-					row.update_size(embed);
+			if (_last_width != alloc.width || _last_height != alloc.height) {
+				_embed.get_allocation(out embed_alloc);
+				on_zoom_changed(this._zadj);
+				_vadj.page_size = embed_alloc.height;
+				_bg_actor.height = embed_alloc.height;
+				_bg_stripe.height = embed_alloc.height;
+				_pos_actor.height = embed_alloc.height;
+
+				_row_groups.foreach((data) => {
+					RowGroup group = (RowGroup)data;
+					group.width = embed_alloc.width;
 				});
 			}
 
-			last_width = alloc.width;
-			last_height = alloc.height;
+			_last_width = alloc.width;
+			_last_height = alloc.height;
 		}
 
-		bool embed_key_press (Gdk.EventKey event) {
+		bool on_embed_key_press (Gdk.EventKey event) {
 			bool retval = true;
 
 			switch (event.keyval) {
 			case Gdk.KeySym.Down:
-				select_next(1);
+				move_next();
 				break;
 			case Gdk.KeySym.Page_Down:
-				select_next(5);
+				move_next_group();
 				break;
 			case Gdk.KeySym.Up:
-				select_previous(1);
+				move_previous();
 				break;
 			case Gdk.KeySym.Page_Up:
-				select_previous(5);
+				move_previous_group();
 				break;
 			default:
 				retval = false;
@@ -418,23 +429,22 @@ namespace Ppg {
 		}
 
 		void enable_pos_tracker () {
-			pos_tracker_id = Timeout.add((1000 / 20), () => {
+			_update_pos_handler = Timeout.add((1000 / 20), () => {
 				if (_session.timer != null) {
 					ulong usec;
 					var seconds = _session.timer.elapsed(out usec);
 
-					if (ruler.contains(seconds)) {
+					if (_ruler.contains(seconds)) {
 						Gtk.Allocation alloc;
-						embed.get_allocation(out alloc);
 
+						_embed.get_allocation(out alloc);
 						var width = alloc.width - 200;
-						var offset = width / (ruler.upper - ruler.lower);
-						var x = (seconds - ruler.lower) * offset;
-
-						pos_actor.x = 200.0f + (float)x;
-						pos_actor.show();
+						var offset = width / (_ruler.upper - _ruler.lower);
+						var x = (seconds - _ruler.lower) * offset;
+						_pos_actor.x = 200.0f + (float)x;
+						_pos_actor.show();
 					} else {
-						pos_actor.hide();
+						_pos_actor.hide();
 					}
 				}
 				return true;
@@ -442,95 +452,69 @@ namespace Ppg {
 		}
 
 		void disable_pos_tracker () {
-			if (pos_tracker_id != 0) {
-				Source.remove(pos_tracker_id);
-				pos_tracker_id = 0;
+			if (_update_pos_handler != 0) {
+				GLib.Source.remove(_update_pos_handler);
+				_update_pos_handler = 0;
 			}
 		}
 
-		bool embed_motion_notity (Gdk.EventMotion motion) {
+		bool on_embed_motion_notity (Gdk.EventMotion motion) {
 			Gtk.Allocation alloc;
 			double offset;
 
 			if (motion.x > 200) {
-				embed.get_allocation(out alloc);
+				_embed.get_allocation(out alloc);
 				offset = (motion.x - 200.0f) / (alloc.width - 200.0f);
-				ruler.position = ruler.lower + ((ruler.upper - ruler.lower) * offset);
-				//pos_actor.x = (float)motion.x - 1;
+				_ruler.position = _ruler.lower + ((_ruler.upper - _ruler.lower) * offset);
 			} else {
-				ruler.position = ruler.lower;
+				_ruler.position = _ruler.lower;
 			}
 			return false;
 		}
 
-		void select_row (Row? row) {
-			if (row == this.selected) {
-				return;
-			}
-
-			if (this.selected != null) {
-				this.selected.selected = false;
-				this.selected.paint(embed);
-			}
-
-			this.selected = row;
-			this.selected_offset = -1;
-
-			if (this.selected != null) {
-				this.selected.selected = true;
-				this.selected.paint(embed);
-				for (int i = 0; i < rows.length; i++) {
-					if (rows.get(i) == row) {
-						this.selected_offset = i;
-					}
-				}
-				scroll_to_row(this.selected);
-			}
-
-			row_changed();
-		}
-
-		void scroll_to_row (Row row) {
+		public void scroll_to_row (RowGroup row_group,
+		                           Row? row)
+		{
 			Gtk.Allocation alloc;
-			float y = row.group.y;
-			float h = row.group.height;
-			float box_y = rows_box.y;
+			float y = row != null ? row.y : row_group.y;
+			float h = row != null ? row.height : row_group.height;
+			float box_y = _row_groups_box.y;
 
-			embed.get_allocation(out alloc);
+			/*
+			 * FIXME: Try to fit the entire rowgroup into view if possible.
+			 */
+
+			_embed.get_allocation(out alloc);
 
 			if (box_y < -y) {
-				rows_box.y = -y;
+				_row_groups_box.y = -y;
 			} else if ((y + h + box_y) > alloc.height) {
-				rows_box.y = -(y + h - alloc.height);
+				_row_groups_box.y = -(y + h - alloc.height);
 			}
 		}
 
-		public int get_selected_row () {
-			return this.selected_offset;
+		public bool move_next_group () {
+			return false;
 		}
 
-		void select_next (int count) {
-			if ((selected_offset + count) < rows.length) {
-				select_row(rows.get(selected_offset + count));
-			} else if (rows.length > 0) {
-				select_row(rows.get(rows.length - 1));
-			}
+		public bool move_previous_group () {
+			return false;
 		}
 
-		void select_previous (int count) {
-			if ((selected_offset - count) >= 0) {
-				select_row(rows.get(selected_offset - count));
-			} else if (rows.length > 0) {
-				select_row(rows.get(0));
-			}
+		public bool move_next () {
+			return false;
+		}
+
+		public bool move_previous () {
+			return false;
 		}
 
 		void create_actors () {
 			Clutter.Color black = Clutter.Color.from_string("#000");
 
-			bg_actor = new Clutter.Rectangle.with_color(black);
-			bg_actor.set_size(200, 100);
-			stage.add_actor(bg_actor);
+			_bg_actor = new Clutter.Rectangle.with_color(black);
+			_bg_actor.set_size(200, 100);
+			stage.add_actor(_bg_actor);
 
 			var layout = new Clutter.BoxLayout();
 			layout.easing_duration = 250;
@@ -538,189 +522,75 @@ namespace Ppg {
 			layout.pack_start = false;
 			layout.use_animations = true;
 			layout.vertical = true;
-			rows_box = new Clutter.Box(layout);
-			stage.add_actor(rows_box);
+			_row_groups_box = new Clutter.Box(layout);
+			stage.add_actor(_row_groups_box);
 
-			bg_stripe = new Clutter.Rectangle.with_color(black);
-			bg_stripe.set_size(1, 200);
-			bg_stripe.set_position(200, 0);
-			stage.add_actor(bg_stripe);
+			_bg_stripe = new Clutter.Rectangle.with_color(black);
+			_bg_stripe.set_size(1, 200);
+			_bg_stripe.set_position(200, 0);
+			stage.add_actor(_bg_stripe);
 
-			pos_actor = new Clutter.Rectangle.with_color(black);
-			pos_actor.hide();
-			pos_actor.set_size(1, 200);
-			pos_actor.set_position(201, 0);
-			stage.add_actor(pos_actor);
+			_pos_actor = new Clutter.Rectangle.with_color(black);
+			_pos_actor.hide();
+			_pos_actor.set_size(1, 200);
+			_pos_actor.set_position(201, 0);
+			stage.add_actor(_pos_actor);
 		}
-
-		Clutter.Actor pos_actor;
 
 		public override void destroy () {
-			base.destroy();
 			this._session.teardown();
+			base.destroy();
 		}
 
-		void add_row (int source) {
-			string title;
+		static string format_time (double time) {
+			return "%02d:%02d:%02d.%04d".printf((int)(time / 3600.0),
+			                                    (int)((time % 3600.0) / 60.0),
+			                                    (int)(time % 60.0),
+			                                    (int)((time % 1.0) * 10000));
+		}
 
-			var conn = _session.connection;
+		void on_instrument_added (Instrument instrument) {
+			var group = new RowGroup() {
+				instrument = instrument,
+				style = this.style
+			};
 
-			try {
-				string plugin;
+			group.button_press_event.connect((event) => {
+				_embed.grab_focus();
 
-				conn.source_get_plugin(source, out plugin);
-				conn.plugin_get_name(plugin, out title);
-			} catch (Error err) {
-				warning("Failed to get plugin name for source: %d", source);
-				return;
-			}
-
-			var row = new Row();
-			row.source = source;
-			row.title = title;
-			row.update_size(embed);
-
-			row.group.button_press_event.connect((event) => {
-				embed.grab_focus();
 				if (event.button == 1) {
 					if (event.click_count == 1) {
 						if ((event.modifier_state & ModifierType.CONTROL_MASK) != 0) {
-							this.select_row(null);
+							this.select_row_group(null);
 						} else {
-							this.select_row(row);
+							this.select_row_group(group);
 						}
 					}
 				}
+
 				return false;
 			});
 
-			row.attach(rows_box);
-			rows.add(row);
+			group.update_width(_embed);
+			_row_groups.add(group);
+			_row_groups_box.pack(group, false, true, true,
+			                     BoxAlignment.START,
+			                     BoxAlignment.START);
 		}
 
-		void remove_row (int source) {
-			int i;
-
-			for (i = 0; i < rows.length; i++) {
-				var row = rows.get(i);
-
-				if (row.source == source) {
-					rows_box.remove(row.group);
-					rows.remove_index(i);
-					break;
-				}
-			}
+		void on_instrument_removed (Instrument instrument) {
 		}
 
-		string format_time (double time) {
-			return "%02d:%02d:%02d.%04d".printf(
-				(int)(time / 3600.0),
-				(int)((time % 3600.0) / 60.0),
-				(int)(time % 60.0),
-				(int)((time % 1.0) * 10000));
-		}
-	}
-
-	class Row {
-		public Clutter.Group group;
-		public int source;
-
-		Clutter.CairoTexture hdr_bg;
-		Clutter.Text         hdr_text;
-		Clutter.Rectangle    data_bg;
-		Clutter.CairoTexture data_fg;
-
-		public Row () {
-			group = new Clutter.Group();
-			group.reactive = true;
-			hdr_bg = new Clutter.CairoTexture(200, (uint)ROW_HEIGHT);
-			hdr_text = new Clutter.Text();
-			hdr_text.x = 15.0f;
-			data_bg = new Clutter.Rectangle();
-			data_bg.height = 1.0f;
-			data_bg.x = 200.0f;
-			data_bg.y = ROW_HEIGHT - 1.0f;
-			data_fg = new Clutter.CairoTexture(1, 1);
-			data_fg.height = ROW_HEIGHT - 1.0f;
-			data_fg.x = 200.0f;
-			group.add(hdr_bg, hdr_text, data_bg, data_fg);
-		}
-
-		public void attach (Clutter.Box box) {
-			BoxLayout layout = (BoxLayout)box.layout_manager;
-
-			layout.pack(this.group, true, true, false,
-			            BoxAlignment.START,
-			            BoxAlignment.START);
-		}
-
-		public void paint (Widget widget) {
-			StateType state = StateType.NORMAL;
-			Clutter.Color mid;
-			Clutter.Color dark;
-			Clutter.Color text;
-			Gtk.Allocation alloc;
-
-			/*
-			 * FIXME: This is totally inefficient for adjusting a bunch of rows
-			 *        during a theme change.  But there is a lot of that type
-			 *        of code in this gui.
-			 */
-
-			if (this.selected) {
-				state = StateType.SELECTED;
+		public void select_row_group (RowGroup? row_group) {
+			if (_selected_row_group != null) {
+				_selected_row_group.state = StateType.NORMAL;
+				_selected_row_group = null;
 			}
 
-			widget.get_allocation(out alloc);
-			GtkClutter.get_dark_color(widget, state, out dark);
-			GtkClutter.get_mid_color(widget, state, out mid);
-			GtkClutter.get_fg_color(widget, state, out text);
-
-			var dark_ = new CairoUtil.Color.from_clutter(dark);
-			dark_.shade(0.8);
-
-			var cr = hdr_bg.create();
-			var p = new Cairo.Pattern.linear(0, 0, 0, group.height);
-			add_color_stop(p, 0.0, mid);
-			//add_color_stop(p, 1.0, dark);
-			CairoUtil.add_color_stop(p, 1.0, dark_);
-			cr.rectangle(0, 0, group.width, group.height);
-			cr.set_source(p);
-			cr.fill();
-
-			this.hdr_text.color = text;
-			data_bg.color = mid;
-		}
-
-		void add_color_stop (Cairo.Pattern pattern,
-		                     double offset,
-		                     Clutter.Color color) {
-			pattern.add_color_stop_rgb(offset,
-			                           color.red / 255.0f,
-			                           color.green / 255.0f,
-			                           color.blue / 255.0f);
-		}
-
-		public string title {
-			set {
-				hdr_text.text = value;
-				hdr_text.y = (float)Math.floor((ROW_HEIGHT - hdr_text.height) / 2.0f);
+			if (row_group != null) {
+				_selected_row_group = row_group;
+				_selected_row_group.state = StateType.SELECTED;
 			}
-			get {
-				return hdr_text.text;
-			}
-		}
-
-		public bool selected { get; set; }
-
-		public void update_size (Widget widget) {
-			Gtk.Allocation alloc;
-
-			widget.get_allocation(out alloc);
-			data_bg.width = alloc.width - 200.0f;
-			data_fg.width = alloc.width - 200.0f;
-			data_fg.set_surface_size((uint)data_fg.width, (uint)data_fg.height);
-			this.paint(widget);
 		}
 	}
 
@@ -734,22 +604,24 @@ namespace Ppg {
   <menu action="EditAction">
    <menuitem action="PreferencesAction"/>
   </menu>
-  <menu action="ProfileAction">
-   <menuitem action="AddSourceAction"/>
-   <menuitem action="RemoveSourceAction"/>
-   <separator/>
-   <menuitem action="StopAction"/>
-   <menuitem action="PauseAction"/>
-   <menuitem action="RunAction"/>
-   <menuitem action="RestartAction"/>
-   <separator/>
-  </menu>
   <menu action="ViewAction">
    <menuitem action="ZoomInAction"/>
    <menuitem action="ZoomOutAction"/>
    <menuitem action="ZoomOneAction"/>
    <separator/>
    <menuitem action="FullscreenAction"/>
+  </menu>
+  <menu action="ProfileAction">
+   <menuitem action="StopAction"/>
+   <menuitem action="PauseAction"/>
+   <menuitem action="RunAction"/>
+   <menuitem action="RestartAction"/>
+   <separator/>
+  </menu>
+  <menu action="InstrumentsAction">
+   <menuitem action="AddInstrumentAction"/>
+   <menuitem action="RemoveInstrumentAction"/>
+   <separator/>
   </menu>
  </menubar>
  <toolbar name="Toolbar">

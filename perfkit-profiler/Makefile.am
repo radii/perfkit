@@ -4,20 +4,32 @@ AM_CFLAGS = \
 	$(PERFKIT_PROFILER_CFLAGS) \
 	-DGETTEXT_PACKAGE="\"Perfkit\"" \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
+	-DG_LOG_DOMAIN=\""Profiler"\" \
 	$(NULL)
 
 perfkit_profiler_SOURCES = \
 	main.vala \
 	window.vala \
 	session.vala \
+	visualizer.vala \
+	visualizers/line-visualizer.vala \
+	visualizers/column-visualizer.vala \
 	welcome.vala \
 	actions.vala \
 	paths.vala \
+	selection.vala \
 	ppg-log.c \
+	widgets/row.vala \
+	widgets/row-group.vala \
+	instruments/instrument.vala \
+	instruments/instruments.vala \
+	instruments/memory-instrument.vala \
+	instruments/cpu-instrument.vala \
+	instruments/instrument-factory.vala \
+	actions/instruments-action.vala \
+	actions/add-instrument-action.vala \
 	actions/edit-action.vala \
 	actions/preferences-action.vala \
-	actions/add-source-action.vala \
-	actions/remove-source-action.vala \
 	actions/quit-action.vala \
 	actions/perfkit-action.vala \
 	actions/zoom-in-action.vala \
@@ -30,7 +42,7 @@ perfkit_profiler_SOURCES = \
 	actions/pause-action.vala \
 	actions/run-action.vala \
 	actions/restart-action.vala \
-	dialogs/add-source-dialog.vala \
+	dialogs/add-instrument-dialog.vala \
 	dialogs/preferences-dialog.vala \
 	tasks/task.vala \
 	tasks/get-channel-task.vala \

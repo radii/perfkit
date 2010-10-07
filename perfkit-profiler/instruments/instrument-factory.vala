@@ -1,4 +1,4 @@
-/* main.vala
+/* instrument-factory.vala
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -17,33 +17,15 @@
  */
 
 using GLib;
-using Gtk;
-using GtkClutter;
 
-static int main (string[] args) {
-	GtkClutter.init(ref args);
+namespace Ppg {
+	public class InstrumentFactory: GLib.Object {
+		public Type type;
+		public string id;
+		public string title;
 
-	Ppg.Log.init(true, null);
-
-	Ppg.Actions.initialize();
-
-	var theme = Gtk.IconTheme.get_default();
-	theme.append_search_path(Ppg.Paths.get_icon_dir());
-
-	Gtk.Window.set_default_icon_name("clock");
-
-	var welcome = new Ppg.Welcome();
-	welcome.delete_event.connect((event) => {
-		if (Ppg.Window.get_window_count() < 1) {
-			Gtk.main_quit();
+		public Instrument create () throws GLib.Error {
+			return (Instrument)GLib.Object.new(type, null);
 		}
-		return false;
-	});
-	welcome.show();
-
-	Gtk.main();
-
-	Ppg.Log.shutdown();
-
-	return 0;
+	}
 }

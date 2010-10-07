@@ -1,4 +1,4 @@
-/* actions/add-source-action.vala
+/* instruments-action.vala
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
  * 
@@ -20,35 +20,11 @@ using GLib;
 using Gtk;
 
 namespace Ppg {
-	public class AddSourceAction: Gtk.Action {
-		Widget _widget;
-
+	public class InstrumentsAction: Gtk.Action {
 		construct {
-			set("name", "AddSourceAction",
-			    "label", _("Add source"),
-			    "icon-name", STOCK_ADD,
-			    "tooltip", _("Add a source to this profiling session"),
+			set("name", "InstrumentsAction",
+			    "label", _("_Instrument"),
 			    null);
-		}
-
-		public Widget widget {
-			set {
-				if (value.get_type().is_a(typeof(Ppg.Window))) {
-					_widget = value;
-				}
-			}
-		}
-
-		public override void activate () {
-			if (_widget != null) {
-				var dialog = new AddSourceDialog();
-				dialog.transient_for = (Window)_widget;
-				dialog.load_sources(((Ppg.Window)_widget).session);
-				dialog.response.connect((response) => {
-					dialog.destroy();
-				});
-				dialog.show();
-			}
 		}
 	}
 }

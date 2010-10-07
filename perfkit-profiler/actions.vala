@@ -100,15 +100,15 @@ namespace Ppg {
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PauseAction), "<Control>Z");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.RunAction), "<Control>B");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.RestartAction), "<Control>R");
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddSourceAction), "<Control>N");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.EditAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.PreferencesAction), null);
-			Actions.register(typeof(Ppg.Window), typeof(Ppg.RemoveSourceAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ViewAction), null);
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.FullscreenAction), "F11");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomInAction), "<Control>equal");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomOutAction), "<Control>minus");
 			Actions.register(typeof(Ppg.Window), typeof(Ppg.ZoomOneAction), "<Control>0");
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.InstrumentsAction), null);
+			Actions.register(typeof(Ppg.Window), typeof(Ppg.AddInstrumentAction), "<Control>N");
 		}
 	}
 }

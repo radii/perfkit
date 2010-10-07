@@ -43,6 +43,8 @@ namespace Ppg {
 		public signal void disconnected ();
 		public signal void source_added (int source);
 		public signal void source_removed (int source);
+		public signal void instrument_added (Instrument instrument);
+		public signal void instrument_removed (Instrument instrument);
 
 		public GLib.Timer timer {
 			get { return _timer; }
@@ -173,6 +175,17 @@ namespace Ppg {
 			}
 		}
 
+		public bool has_plugin (string id) {
+			try {
+				/* do a simple rpc to test id */
+				string name;
+				_conn.plugin_get_name(id, out name);
+				return true;
+			} catch (GLib.Error error) {
+				return false;
+			}
+		}
+
 		public string get_source_name (int source) {
 			try {
 				string name;
@@ -192,42 +205,25 @@ namespace Ppg {
 			}
 		}
 
-		public void add_source_plugin (string type) {
+		public int add_source_plugin (string type) throws GLib.Error {
 			if (!_conn.is_connected()) {
-				warning("Request to add plugin %s while not connected.", type);
-				return;
+				throw new SessionError.NOT_CONNECTED("Request to add plugin %s while not connected.", type);
 			}
 
-			try {
-				int source;
+			int source;
 
-				_conn.manager_add_source(type, out source);
-				_conn.channel_add_source(this.channel, source);
-			} catch (Error err) {
-				warning("Error adding source: %s: %s", type, err.message);
+			_conn.manager_add_source(type, out source);
+			_conn.channel_add_source(this.channel, source);
+			return source;
+		}
+
+		public void add_instrument (InstrumentFactory factory) throws GLib.Error {
+			var instrument = factory.create();
+			if (instrument.is_supported(this)) {
+				message("Adding instrument %s", instrument.title);
+				instrument.load(this);
+				instrument_added(instrument);
 			}
-
-/*
-			_conn.manager_add_source_async(type, null, (_, res) => {
-				try {
-					int source;
-
-					_conn.manager_add_source_finish(res, out source);
-
-					_conn.channel_add_source_async(channel, source, null, (_, res2) => {
-						try {
-							_conn.channel_add_source_finish(res2);
-							message("Added source %d to channel %d", source, channel);
-						} catch (Error err2) {
-							warning("Failed to add source %d to channel %d: %s",
-							        source, channel, err2.message);
-						}
-					});
-				} catch (Error err) {
-					warning("Failed to add source %s: %s", type, err.message);
-				}
-			});
-*/
 		}
 	}
 }
