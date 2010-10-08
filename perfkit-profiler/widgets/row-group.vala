@@ -76,6 +76,7 @@ namespace Ppg {
 					_header_bg.set_surface_size((uint)_header_bg.width,
 					                            (uint)_data_box.height);
 					debug("Height %f", _data_box.height);
+					_update_size();
 					paint_header();
 					return false;
 				});
@@ -102,15 +103,12 @@ namespace Ppg {
 					var actor = visual.actor;
 					_visualizers.add(visual);
 					assert(actor != null);
-					actor.width = _data_box.width;
 					_box_layout.pack(actor, true, true, true,
 					                 BoxAlignment.START,
 					                 BoxAlignment.START);
 				}
 
-				_data_box.height = float.max(45.0f, _visualizers.length * 30.0f + _visualizers.length);
-				_data_bg.height = _data_box.height + 1.0f;
-				_header_text.y = (_data_box.height - _header_text.height) / 2.0f;
+				_update_size();
 			}
 		}
 
@@ -135,12 +133,24 @@ namespace Ppg {
 			}
 		}
 
-		public void update_width (Gtk.Widget embed) {
-			Gtk.Allocation alloc;
+		void _update_size () {
+			var stage = this.get_stage();
 
-			embed.get_allocation(out alloc);
-			_data_bg.width = alloc.width - 200.0f;
-			_data_box.width = alloc.width - 200.0f;
+			if (stage == null) {
+				return;
+			}
+
+			_data_box.height = float.max(45.0f, _visualizers.length * 30.0f + _visualizers.length);
+			_data_bg.height = _data_box.height + 1.0f;
+			_header_text.y = (_data_box.height - _header_text.height) / 2.0f;
+
+			var width = stage.width - 200.0f;
+			_data_bg.width = width;
+			_data_box.width = width;
+		}
+
+		public void update_width (Gtk.Widget embed) {
+			_update_size();
 		}
 
 		void paint_header () {
