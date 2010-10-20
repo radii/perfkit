@@ -74,6 +74,7 @@ INST_H_FILES =								\
 	ppg-timer-tool-item.h						\
 	ppg-util.h							\
 	ppg-visualizer.h						\
+	ppg-visualizer-menu.h						\
 	ppg-welcome-dialog.h						\
 	ppg-window.h							\
 	$(NULL)
@@ -111,6 +112,7 @@ perfkit_profiler_SOURCES =						\
 	ppg-timer-tool-item.c						\
 	ppg-util.c							\
 	ppg-visualizer.c						\
+	ppg-visualizer-menu.c						\
 	ppg-welcome-dialog.c						\
 	ppg-window.c							\
 	ppg-window-ui.h							\

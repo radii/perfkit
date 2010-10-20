@@ -77,6 +77,9 @@ static char ppg_window_ui[] =
 	"  <popup name=\"instrument-popup\">"
 	"    <menuitem action=\"add-instrument\"/>"
 	"    <separator/>"
+	"    <menu action=\"visualizers\">"
+	"    </menu>"
+	"    <separator/>"
 	"    <menuitem action=\"configure-instrument\"/>"
 	"  </popup>"
 	"</ui>";

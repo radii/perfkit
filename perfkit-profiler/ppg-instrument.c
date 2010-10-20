@@ -206,7 +206,7 @@ ppg_instrument_get_visualizer_entries (PpgInstrument *instrument)
 
 	for (i = 0; i < priv->factories->len; i++) {
 		factory = &g_array_index(priv->factories, PpgVisualizerFactory, i);
-		list = g_list_prepend(list, factory);
+		list = g_list_prepend(list, factory->entry);
 	}
 
 	return list;

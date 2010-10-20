@@ -37,6 +37,7 @@
 #include "ppg-status-actor.h"
 #include "ppg-timer-tool-item.h"
 #include "ppg-util.h"
+#include "ppg-visualizer-menu.h"
 #include "ppg-window.h"
 #include "ppg-window-ui.h"
 
@@ -70,6 +71,7 @@ struct _PpgWindowPrivate
 	GtkWidget *ruler;
 	GtkWidget *settings_dialog;
 	GtkWidget *instrument_popup;
+	GtkWidget *visualizers_menu;
 
 	GtkAdjustment *hadj;
 	GtkAdjustment *vadj;
@@ -149,6 +151,7 @@ GtkActionEntry action_entries[] = {
 	  G_CALLBACK(ppg_window_add_instrument_activate) },
 	{ "configure-instrument", NULL, N_("_Configure"), NULL,
 	  N_("Configure the selected instrument") },
+	{ "visualizers", NULL, N_("_Visualizers") },
 
 	{ "target-spawn", NULL, N_("Spawn a new process"), NULL, NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
 	{ "target-existing", NULL, N_("Select an existing process"), NULL, NULL, NULL },
@@ -637,6 +640,7 @@ ppg_window_select_row (PpgWindow *window,
                        PpgRow    *row)
 {
 	PpgWindowPrivate *priv;
+	PpgInstrument *instrument;
 	GtkAction *action;
 
 	g_return_if_fail(PPG_IS_WINDOW(window));
@@ -660,6 +664,14 @@ ppg_window_select_row (PpgWindow *window,
 		g_object_set(action,
 					 "sensitive", TRUE,
 					 NULL);
+
+		g_object_get(priv->selected,
+		             "instrument", &instrument,
+		             NULL);
+		g_object_set(priv->visualizers_menu,
+		             "instrument", instrument,
+		             NULL);
+		g_object_unref(instrument);
 	}
 }
 
@@ -1086,6 +1098,7 @@ ppg_window_init (PpgWindow *window)
 	GtkWidget *target_menu;
 	GtkWidget *status_vbox;
 	GtkWidget *status_hbox;
+	GtkWidget *visualizers;
 
 	instances ++;
 
@@ -1105,6 +1118,7 @@ ppg_window_init (PpgWindow *window)
 	                 "/toolbar", &priv->toolbar,
 	                 "/target-popup", &target_menu,
 	                 "/instrument-popup", &priv->instrument_popup,
+	                 "/instrument-popup/visualizers", &visualizers,
 	                 NULL);
 
 #define SET_ACTION_INSENSITIVE(n) \
@@ -1421,6 +1435,12 @@ ppg_window_init (PpgWindow *window)
 	g_signal_connect(priv->settings_dialog, "delete-event",
 	                 G_CALLBACK(gtk_widget_hide_on_delete),
 	                 NULL);
+
+	priv->visualizers_menu = g_object_new(PPG_TYPE_VISUALIZER_MENU, NULL);
+	g_object_set(visualizers,
+	             "submenu", priv->visualizers_menu,
+	             "visible", TRUE,
+	             NULL);
 
 	gtk_widget_grab_focus(priv->clutter_embed);
 }
