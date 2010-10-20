@@ -21,7 +21,6 @@
 #endif
 
 #include <glib/gi18n.h>
-#include <gdatetime.h>
 
 #include "pkg-closures.h"
 #include "pkg-log.h"
@@ -197,8 +196,8 @@ pkg_subscription_page_get_created_at_cb (GObject      *object,    /* IN */
 		g_error_free(error);
 		EXIT;
 	}
-	dt = g_date_time_new_from_timeval(&tv);
-	dtstr = g_date_time_format_for_display(dt);
+	dt = g_date_time_new_from_timeval_local(&tv);
+	dtstr = g_date_time_format(dt, "%x %X");
 	markup = g_markup_printf_escaped("<span size=\"smaller\">%s</span>",
 	                                 dtstr);
 	gtk_label_set_markup(GTK_LABEL(priv->created_at), markup);

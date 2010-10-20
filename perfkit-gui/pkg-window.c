@@ -20,7 +20,6 @@
 #include "config.h"
 #endif
 
-#include <gdatetime.h>
 #include <glib/gi18n.h>
 #include <perfkit/perfkit.h>
 
@@ -432,8 +431,8 @@ pkg_window_connection_channel_get_created_at_cb (GObject      *object,    /* IN 
 	                                       call->channel)) {
 		GOTO(iter_not_found);
 	}
-	dt = g_date_time_new_from_timeval(&tv);
-	subtitle = g_date_time_printf(dt, _("Created on %x at %X"));
+	dt = g_date_time_new_from_timeval_local(&tv);
+	subtitle = g_date_time_format(dt, _("Created on %x at %X"));
 	g_date_time_unref(dt);
 	gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, subtitle, -1);
   iter_not_found:
@@ -616,8 +615,8 @@ pkg_window_connection_subscription_get_created_at_cb (GObject      *object,    /
 	                                       call->subscription)) {
 		GOTO(iter_not_found);
 	}
-	dt = g_date_time_new_from_timeval(&tv);
-	subtitle = g_date_time_printf(dt, _("Created on %x at %X"));
+	dt = g_date_time_new_from_timeval_local(&tv);
+	subtitle = g_date_time_format(dt, _("Created on %x at %X"));
 	g_date_time_unref(dt);
 	gtk_tree_store_set(priv->model, &child, COLUMN_SUBTITLE, subtitle, -1);
   iter_not_found:

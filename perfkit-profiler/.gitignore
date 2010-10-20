@@ -1,3 +1,2 @@
-*.stamp
-*.c
 perfkit-profiler
+ppg-version.h

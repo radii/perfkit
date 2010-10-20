@@ -1,1 +1,1 @@
-SUBDIRS = ui
+SUBDIRS = ui settings

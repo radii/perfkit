@@ -1,0 +1,76 @@
+#ifndef __PPG_VERSION_H__
+#define __PPG_VERSION_H__
+
+/**
+ * SECTION:ppg-version
+ * @title: Versioning API
+ * @short_description: compile-time version checking
+ *
+ * provides some API and definitions for compile-time version checking.
+ */
+
+/**
+ * PPG_MAJOR_VERSION:
+ *
+ * Major version of Ppg, e.g. 1 in "1.2.3"
+ */
+#define PPG_MAJOR_VERSION (@PPG_MAJOR_VERSION@)
+
+/**
+ * PPG_MINOR_VERSION:
+ *
+ * Minor version of Ppg, e.g. 2 in "1.2.3"
+ */
+#define PPG_MINOR_VERSION (@PPG_MINOR_VERSION@)
+
+/**
+ * PPG_MICRO_VERSION:
+ *
+ * Micro version of Ppg, e.g. 3 in "1.2.3"
+ */
+#define PPG_MICRO_VERSION (@PPG_MICRO_VERSION@)
+
+/**
+ * PPG_API_VERSION_S:
+ *
+ * Version of the API of Ppg
+ */
+#define PPG_API_VERSION_S "@PPG_API_VERSION@"
+
+/**
+ * PPG_VERSION_S:
+ *
+ * Stringified version of Ppg, e.g. "1.2.3".
+ *
+ * Useful for display.
+ */
+#define PPG_VERSION_S "@PPG_VERSION@"
+
+/**
+ * PPG_VERSION_HEX:
+ *
+ * Hexadecimally encoded version of Ppg, e.g. 0x01020300"
+ *
+ * Useful for comparisons.
+ */
+#define PPG_VERSION_HEX (PPG_MAJOR_VERSION << 24 | PPG_MINOR_VERSION << 16 | PPG_MICRO_VERSION << 8)
+
+/**
+ * PPG_CHECK_VERSION:
+ * @major: major component of the version to check
+ * @minor: minor component of the version to check
+ * @micro: micro component of the version to check
+ *
+ * Checks whether the decomposed version (@major, @minor, @micro) is
+ * bigger than the version of Ppg. This is a compile-time
+ * check only.
+ */
+#define PPG_CHECK_VERSION(major,minor,micro)   \
+        (PPG_MAJOR_VERSION >= (major) ||       \
+         (PPG_MAJOR_VERSION == (major) &&      \
+          PPG_MINOR_VERSION > (minor)) ||      \
+         (PPG_MAJOR_VERSION == (major) &&      \
+          PPG_MINOR_VERSION == (minor) &&      \
+          PPG_MICRO_VERSION >= (micro)))
+
+#endif /* __PPG_VERSION_H__ */

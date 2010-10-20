@@ -122,7 +122,7 @@ static gsize         protocol_init        = FALSE;
 
 /**
  * pk_connection_sync_init:
- * @sync: A #PkConnectionSync.
+ * @sync: (in): A #PkConnectionSync.
  *
  * Initializes a #PkConnectionSync allocated on the stack.
  *
@@ -130,7 +130,7 @@ static gsize         protocol_init        = FALSE;
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_init (PkConnectionSync *sync) /* IN */
+pk_connection_sync_init (PkConnectionSync *sync)
 {
 	memset(sync, 0, sizeof(*sync));
 
@@ -144,7 +144,7 @@ pk_connection_sync_init (PkConnectionSync *sync) /* IN */
 
 /**
  * pk_connection_sync_destroy:
- * @sync: A #PkConnectionSync.
+ * @sync: (in): A #PkConnectionSync.
  *
  * Cleans up dynamically allocated data within the structure.
  *
@@ -152,7 +152,7 @@ pk_connection_sync_init (PkConnectionSync *sync) /* IN */
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_destroy (PkConnectionSync *sync) /* IN */
+pk_connection_sync_destroy (PkConnectionSync *sync)
 {
 	g_mutex_unlock(sync->mutex);
 	g_mutex_free(sync->mutex);
@@ -161,7 +161,7 @@ pk_connection_sync_destroy (PkConnectionSync *sync) /* IN */
 
 /**
  * pk_connection_sync_wait:
- * @sync: A #PkConnectionSync.
+ * @sync: (in): A #PkConnectionSync.
  *
  * Waits for an sync operation in a secondary thread to complete.
  *
@@ -169,7 +169,7 @@ pk_connection_sync_destroy (PkConnectionSync *sync) /* IN */
  * Side effects: None.
  */
 static void
-pk_connection_sync_wait (PkConnectionSync *sync) /* IN */
+pk_connection_sync_wait (PkConnectionSync *sync)
 {
 	GMainContext *context;
 
@@ -199,7 +199,7 @@ pk_connection_sync_wait (PkConnectionSync *sync) /* IN */
 
 /**
  * pk_connection_sync_signal:
- * @sync: A #PkConnectionSync.
+ * @sync: (in): A #PkConnectionSync.
  *
  * Signals a thread blocked in pk_connection_sync_wait() that an sync
  * operation has completed.
@@ -208,7 +208,7 @@ pk_connection_sync_wait (PkConnectionSync *sync) /* IN */
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
+pk_connection_sync_signal (PkConnectionSync *sync)
 {
 	g_mutex_lock(sync->mutex);
 	g_atomic_int_set(&sync->completed, TRUE);
@@ -218,9 +218,9 @@ pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
 
 /**
  * pk_connection_channel_add_source_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #GAsyncResult.
+ * @source: (in): A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @user_data: (in): A #GAsyncResult.
  *
  * Callback to notify a synchronous call to the "channel_add_source" RPC that it
  * has completed.
@@ -229,9 +229,9 @@ pk_connection_sync_signal (PkConnectionSync *sync) /* IN */
  * Side effects: None.
  */
 static void
-pk_connection_channel_add_source_cb (GObject      *source,    /* IN */
-                                     GAsyncResult *result,    /* IN */
-                                     gpointer      user_data) /* IN */
+pk_connection_channel_add_source_cb (GObject      *source,
+                                     GAsyncResult *result,
+                                     gpointer      user_data)
 {
 	PkConnectionSync *sync = user_data;
 
@@ -248,7 +248,10 @@ pk_connection_channel_add_source_cb (GObject      *source,    /* IN */
 
 /**
  * pk_connection_channel_add_source:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @channel: (in): The channel.
+ * @source: (in): The source.
+ * @error: Return location for a #GError, or %NULL.
  *
  * Synchronous implemenation of the "channel_add_source" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -261,10 +264,10 @@ pk_connection_channel_add_source_cb (GObject      *source,    /* IN */
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_add_source (PkConnection  *connection, /* IN */
-                                  gint           channel,    /* IN */
-                                  gint           source,     /* IN */
-                                  GError       **error)      /* OUT */
+pk_connection_channel_add_source (PkConnection  *connection,
+                                  gint           channel,
+                                  gint           source,
+                                  GError       **error)
 {
 	PkConnectionSync sync;
 
@@ -287,7 +290,12 @@ pk_connection_channel_add_source (PkConnection  *connection, /* IN */
 
 /**
  * pk_connection_channel_add_source_async:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @channel: (in): The channel.
+ * @source: (in): The source.
+ * @cancellable: (in): A cancellable to cancel the asynchronous RPC.
+ * @callback: (in): A callback to execute upon completion.
+ * @user_data: (in): User data for @callback.
  *
  * Asynchronous implementation of the "channel_add_source_async" RPC.
  *
@@ -299,12 +307,12 @@ pk_connection_channel_add_source (PkConnection  *connection, /* IN */
  * Side effects: None.
  */
 void
-pk_connection_channel_add_source_async (PkConnection        *connection,  /* IN */
-                                        gint                 channel,     /* IN */
-                                        gint                 source,      /* IN */
-                                        GCancellable        *cancellable, /* IN */
-                                        GAsyncReadyCallback  callback,    /* IN */
-                                        gpointer             user_data)   /* IN */
+pk_connection_channel_add_source_async (PkConnection        *connection,
+                                        gint                 channel,
+                                        gint                 source,
+                                        GCancellable        *cancellable,
+                                        GAsyncReadyCallback  callback,
+                                        gpointer             user_data)
 {
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 	g_return_if_fail(callback != NULL);
@@ -321,7 +329,9 @@ pk_connection_channel_add_source_async (PkConnection        *connection,  /* IN 
 
 /**
  * pk_connection_channel_add_source_finish:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @error: Return location for a #GError, or %NULL.
  *
  * Completion of an asynchronous call to the "channel_add_source_finish" RPC.
  *
@@ -333,9 +343,9 @@ pk_connection_channel_add_source_async (PkConnection        *connection,  /* IN 
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_add_source_finish (PkConnection  *connection, /* IN */
-                                         GAsyncResult  *result,     /* IN */
-                                         GError       **error)      /* OUT */
+pk_connection_channel_add_source_finish (PkConnection  *connection,
+                                         GAsyncResult  *result,
+                                         GError       **error)
 {
 	gboolean ret;
 
@@ -350,9 +360,9 @@ pk_connection_channel_add_source_finish (PkConnection  *connection, /* IN */
 
 /**
  * pk_connection_channel_get_args_cb:
- * @source: A #PkConnection.
- * @result: A #GAsyncResult.
- * @user_data: A #GAsyncResult.
+ * @source: (in): A #PkConnection.
+ * @result: (in): A #GAsyncResult.
+ * @user_data: (in): A #GAsyncResult.
  *
  * Callback to notify a synchronous call to the "channel_get_args" RPC that it
  * has completed.
@@ -361,9 +371,9 @@ pk_connection_channel_add_source_finish (PkConnection  *connection, /* IN */
  * Side effects: None.
  */
 static void
-pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
-                                   GAsyncResult *result,    /* IN */
-                                   gpointer      user_data) /* IN */
+pk_connection_channel_get_args_cb (GObject      *source,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
 {
 	PkConnectionSync *sync = user_data;
 
@@ -381,8 +391,10 @@ pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
 
 /**
  * pk_connection_channel_get_args:
- * @connection: A #PkConnection.
+ * @connection: (in): A #PkConnection.
+ * @channel: (in): The channel.
  * @args: (out) (array zero-terminated=1) (element-type utf8): A location for process args.
+ * @error: Return location for a #GError, or %NULL.
  *
  * Synchronous implemenation of the "channel_get_args" RPC.  Using
  * synchronous RPCs is generally frowned upon.
@@ -393,10 +405,10 @@ pk_connection_channel_get_args_cb (GObject      *source,    /* IN */
  * Side effects: None.
  */
 gboolean
-pk_connection_channel_get_args (PkConnection   *connection, /* IN */
-                                gint            channel,    /* IN */
-                                gchar        ***args,       /* OUT */
-                                GError        **error)      /* OUT */
+pk_connection_channel_get_args (PkConnection   *connection,
+                                gint            channel,
+                                gchar        ***args,
+                                GError        **error)
 {
 	PkConnectionSync sync;
 
@@ -420,6 +432,10 @@ pk_connection_channel_get_args (PkConnection   *connection, /* IN */
 /**
  * pk_connection_channel_get_args_async:
  * @connection: A #PkConnection.
+ * @channel: (in): The channel.
+ * @cancellable: (in): A cancellable for the async RPC.
+ * @callback: (scope async) (in): A callback to execute upon completion.
+ * @user_data: (closure) (in): User data for @callback.
  *
  * Asynchronous implementation of the "channel_get_args_async" RPC.
  *
@@ -429,11 +445,11 @@ pk_connection_channel_get_args (PkConnection   *connection, /* IN */
  * Side effects: None.
  */
 void
-pk_connection_channel_get_args_async (PkConnection        *connection,  /* IN */
-                                      gint                 channel,     /* IN */
-                                      GCancellable        *cancellable, /* IN */
-                                      GAsyncReadyCallback  callback,    /* IN */
-                                      gpointer             user_data)   /* IN */
+pk_connection_channel_get_args_async (PkConnection        *connection,
+                                      gint                 channel,
+                                      GCancellable        *cancellable,
+                                      GAsyncReadyCallback  callback,
+                                      gpointer             user_data)
 {
 	g_return_if_fail(PK_IS_CONNECTION(connection));
 	g_return_if_fail(callback != NULL);

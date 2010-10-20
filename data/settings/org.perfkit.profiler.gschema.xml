@@ -1,0 +1,13 @@
+<schemalist>
+  <schema id="org.perfkit.profiler.project" path="/projects/" gettext-domain="perfkit">
+
+    <key name="default-dir" type="s">
+      <default l10n="messages">"Projects/"</default>
+      <summary>Default project directory</summary>
+      <description>
+        The path of a directory to contain profiling projects.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>

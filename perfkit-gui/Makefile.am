@@ -62,7 +62,6 @@ NOINST_H_FILES =							\
 libperfkit_gui_la_SOURCES =						\
 	$(INST_H_FILES)							\
 	$(NOINST_H_FILES)						\
-	$(top_srcdir)/cut-n-paste/gdatetime.c				\
 	pkg-channel-page.c						\
 	pkg-channels-page.c						\
 	pkg-closures.c							\
