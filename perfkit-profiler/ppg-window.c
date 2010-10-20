@@ -1099,6 +1099,7 @@ ppg_window_init (PpgWindow *window)
 	GtkWidget *status_vbox;
 	GtkWidget *status_hbox;
 	GtkWidget *visualizers;
+	GtkWidget *mb_visualizers;
 
 	instances ++;
 
@@ -1115,6 +1116,7 @@ ppg_window_init (PpgWindow *window)
 
 	ppg_util_load_ui(GTK_WIDGET(window), &priv->actions, ppg_window_ui,
 	                 "/menubar", &priv->menubar,
+	                 "/menubar/instrument/visualizers", &mb_visualizers,
 	                 "/toolbar", &priv->toolbar,
 	                 "/target-popup", &target_menu,
 	                 "/instrument-popup", &priv->instrument_popup,
@@ -1438,6 +1440,10 @@ ppg_window_init (PpgWindow *window)
 
 	priv->visualizers_menu = g_object_new(PPG_TYPE_VISUALIZER_MENU, NULL);
 	g_object_set(visualizers,
+	             "submenu", priv->visualizers_menu,
+	             "visible", TRUE,
+	             NULL);
+	g_object_set(mb_visualizers,
 	             "submenu", priv->visualizers_menu,
 	             "visible", TRUE,
 	             NULL);
