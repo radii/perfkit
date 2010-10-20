@@ -130,16 +130,16 @@ static gsize         protocol_init        = FALSE;
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_init (PkConnectionSync *sync)
+pk_connection_sync_init (PkConnectionSync *async)
 {
 	memset(sync, 0, sizeof(*sync));
 
-	sync->completed = FALSE;
-	sync->result = FALSE;
-	sync->error = NULL;
-	sync->mutex = g_mutex_new();
-	sync->cond = g_cond_new();
-	g_mutex_lock(sync->mutex);
+	async->completed = FALSE;
+	async->result = FALSE;
+	async->error = NULL;
+	async->mutex = g_mutex_new();
+	async->cond = g_cond_new();
+	g_mutex_lock(async->mutex);
 }
 
 /**
@@ -152,11 +152,11 @@ pk_connection_sync_init (PkConnectionSync *sync)
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_destroy (PkConnectionSync *sync)
+pk_connection_sync_destroy (PkConnectionSync *async)
 {
-	g_mutex_unlock(sync->mutex);
-	g_mutex_free(sync->mutex);
-	g_cond_free(sync->cond);
+	g_mutex_unlock(async->mutex);
+	g_mutex_free(async->mutex);
+	g_cond_free(async->cond);
 }
 
 /**
@@ -169,7 +169,7 @@ pk_connection_sync_destroy (PkConnectionSync *sync)
  * Side effects: None.
  */
 static void
-pk_connection_sync_wait (PkConnectionSync *sync)
+pk_connection_sync_wait (PkConnectionSync *async)
 {
 	GMainContext *context;
 
@@ -183,17 +183,17 @@ pk_connection_sync_wait (PkConnectionSync *sync)
 	 * another thread owns it and it is safe to block on the condition.
 	 */
 	if (g_main_context_acquire(context)) {
-		g_mutex_unlock(sync->mutex);
+		g_mutex_unlock(async->mutex);
 		do {
 			g_main_context_iteration(context, TRUE);
-		} while (!g_atomic_int_get(&sync->completed));
-		g_mutex_lock(sync->mutex);
+		} while (!g_atomic_int_get(&async->completed));
+		g_mutex_lock(async->mutex);
 		g_main_context_release(context);
 	} else {
 		/*
 		 * Block on the condition which will be signaled by the main thread.
 		 */
-		g_cond_wait(sync->cond, sync->mutex);
+		g_cond_wait(async->cond, async->mutex);
 	}
 }
 
@@ -208,12 +208,12 @@ pk_connection_sync_wait (PkConnectionSync *sync)
  * Side effects: None.
  */
 static inline void
-pk_connection_sync_signal (PkConnectionSync *sync)
+pk_connection_sync_signal (PkConnectionSync *async)
 {
-	g_mutex_lock(sync->mutex);
-	g_atomic_int_set(&sync->completed, TRUE);
-	g_cond_signal(sync->cond);
-	g_mutex_unlock(sync->mutex);
+	g_mutex_lock(async->mutex);
+	g_atomic_int_set(&async->completed, TRUE);
+	g_cond_signal(async->cond);
+	g_mutex_unlock(async->mutex);
 }
 
 /**
@@ -233,16 +233,16 @@ pk_connection_channel_add_source_cb (GObject      *source,
                                      GAsyncResult *result,
                                      gpointer      user_data)
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_add_source_finish(PK_CONNECTION(source),
-	                                                       result,
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_add_source_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -269,23 +269,23 @@ pk_connection_channel_add_source (PkConnection  *connection,
                                   gint           source,
                                   GError       **error)
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_add_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_add_source_async(connection,
 	                                       channel,
 	                                       source,
 	                                       NULL,
 	                                       pk_connection_channel_add_source_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -375,17 +375,17 @@ pk_connection_channel_get_args_cb (GObject      *source,
                                    GAsyncResult *result,
                                    gpointer      user_data)
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_args_finish(PK_CONNECTION(source),
-	                                                     result,
-	                                                     sync->params[0],
-	                                                     sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_args_finish(PK_CONNECTION(source),
+	                                                      result,
+	                                                      async->params[0],
+	                                                      async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -410,23 +410,23 @@ pk_connection_channel_get_args (PkConnection   *connection,
                                 gchar        ***args,
                                 GError        **error)
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_args);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = args;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = args;
 	pk_connection_channel_get_args_async(connection,
 	                                     channel,
 	                                     NULL,
 	                                     pk_connection_channel_get_args_cb,
-	                                     &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                     &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -509,17 +509,17 @@ pk_connection_channel_get_created_at_cb (GObject      *source,    /* IN */
                                          GAsyncResult *result,    /* IN */
                                          gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_created_at_finish(PK_CONNECTION(source),
-	                                                           result,
-	                                                           sync->params[0],
-	                                                           sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_created_at_finish(PK_CONNECTION(source),
+	                                                            result,
+	                                                            async->params[0],
+	                                                            async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -541,23 +541,23 @@ pk_connection_channel_get_created_at (PkConnection  *connection, /* IN */
                                       GTimeVal      *tv,         /* OUT */
                                       GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_created_at);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = tv;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = tv;
 	pk_connection_channel_get_created_at_async(connection,
 	                                           channel,
 	                                           NULL,
 	                                           pk_connection_channel_get_created_at_cb,
-	                                           &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                           &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -636,17 +636,17 @@ pk_connection_channel_get_env_cb (GObject      *source,    /* IN */
                                   GAsyncResult *result,    /* IN */
                                   gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_env_finish(PK_CONNECTION(source),
-	                                                    result,
-	                                                    sync->params[0],
-	                                                    sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_env_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     async->params[0],
+	                                                     async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -669,23 +669,23 @@ pk_connection_channel_get_env (PkConnection   *connection, /* IN */
                                gchar        ***env,        /* OUT */
                                GError        **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_env);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = env;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = env;
 	pk_connection_channel_get_env_async(connection,
 	                                    channel,
 	                                    NULL,
 	                                    pk_connection_channel_get_env_cb,
-	                                    &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                    &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -764,17 +764,17 @@ pk_connection_channel_get_exit_status_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_exit_status_finish(PK_CONNECTION(source),
-	                                                            result,
-	                                                            sync->params[0],
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_exit_status_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             async->params[0],
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -797,23 +797,23 @@ pk_connection_channel_get_exit_status (PkConnection  *connection,  /* IN */
                                        gint          *exit_status, /* OUT */
                                        GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_exit_status);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = exit_status;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = exit_status;
 	pk_connection_channel_get_exit_status_async(connection,
 	                                            channel,
 	                                            NULL,
 	                                            pk_connection_channel_get_exit_status_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -894,17 +894,17 @@ pk_connection_channel_get_kill_pid_cb (GObject      *source,    /* IN */
                                        GAsyncResult *result,    /* IN */
                                        gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_kill_pid_finish(PK_CONNECTION(source),
-	                                                         result,
-	                                                         sync->params[0],
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_kill_pid_finish(PK_CONNECTION(source),
+	                                                          result,
+	                                                          async->params[0],
+	                                                          async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -926,23 +926,23 @@ pk_connection_channel_get_kill_pid (PkConnection  *connection, /* IN */
                                     gboolean      *kill_pid,   /* OUT */
                                     GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_kill_pid);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = kill_pid;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = kill_pid;
 	pk_connection_channel_get_kill_pid_async(connection,
 	                                         channel,
 	                                         NULL,
 	                                         pk_connection_channel_get_kill_pid_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                         &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1021,17 +1021,17 @@ pk_connection_channel_get_pid_cb (GObject      *source,    /* IN */
                                   GAsyncResult *result,    /* IN */
                                   gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_pid_finish(PK_CONNECTION(source),
-	                                                    result,
-	                                                    sync->params[0],
-	                                                    sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_pid_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     async->params[0],
+	                                                     async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1053,23 +1053,23 @@ pk_connection_channel_get_pid (PkConnection  *connection, /* IN */
                                gint          *pid,        /* OUT */
                                GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_pid);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = pid;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = pid;
 	pk_connection_channel_get_pid_async(connection,
 	                                    channel,
 	                                    NULL,
 	                                    pk_connection_channel_get_pid_cb,
-	                                    &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                    &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1148,17 +1148,17 @@ pk_connection_channel_get_pid_set_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_pid_set_finish(PK_CONNECTION(source),
-	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_pid_set_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         async->params[0],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1180,23 +1180,23 @@ pk_connection_channel_get_pid_set (PkConnection  *connection, /* IN */
                                    gboolean      *pid_set,    /* OUT */
                                    GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_pid_set);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = pid_set;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = pid_set;
 	pk_connection_channel_get_pid_set_async(connection,
 	                                        channel,
 	                                        NULL,
 	                                        pk_connection_channel_get_pid_set_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1275,18 +1275,18 @@ pk_connection_channel_get_sources_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_sources_finish(PK_CONNECTION(source),
-	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->params[1],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_sources_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         async->params[0],
+	                                                         async->params[1],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1309,24 +1309,24 @@ pk_connection_channel_get_sources (PkConnection  *connection,  /* IN */
                                    gsize         *sources_len, /* OUT */
                                    GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_sources);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = sources;
-	sync.params[1] = sources_len;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = sources;
+	async.params[1] = sources_len;
 	pk_connection_channel_get_sources_async(connection,
 	                                        channel,
 	                                        NULL,
 	                                        pk_connection_channel_get_sources_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1407,17 +1407,17 @@ pk_connection_channel_get_state_cb (GObject      *source,    /* IN */
                                     GAsyncResult *result,    /* IN */
                                     gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_state_finish(PK_CONNECTION(source),
-	                                                      result,
-	                                                      sync->params[0],
-	                                                      sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_state_finish(PK_CONNECTION(source),
+	                                                       result,
+	                                                       async->params[0],
+	                                                       async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1439,23 +1439,23 @@ pk_connection_channel_get_state (PkConnection  *connection, /* IN */
                                  gint          *state,      /* OUT */
                                  GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_state);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = state;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = state;
 	pk_connection_channel_get_state_async(connection,
 	                                      channel,
 	                                      NULL,
 	                                      pk_connection_channel_get_state_cb,
-	                                      &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                      &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1534,17 +1534,17 @@ pk_connection_channel_get_target_cb (GObject      *source,    /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_target_finish(PK_CONNECTION(source),
-	                                                       result,
-	                                                       sync->params[0],
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_target_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        async->params[0],
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1567,23 +1567,23 @@ pk_connection_channel_get_target (PkConnection  *connection, /* IN */
                                   gchar        **target,     /* OUT */
                                   GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_target);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = target;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = target;
 	pk_connection_channel_get_target_async(connection,
 	                                       channel,
 	                                       NULL,
 	                                       pk_connection_channel_get_target_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1662,17 +1662,17 @@ pk_connection_channel_get_working_dir_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_get_working_dir_finish(PK_CONNECTION(source),
-	                                                            result,
-	                                                            sync->params[0],
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_get_working_dir_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             async->params[0],
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1694,23 +1694,23 @@ pk_connection_channel_get_working_dir (PkConnection  *connection,  /* IN */
                                        gchar        **working_dir, /* OUT */
                                        GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_get_working_dir);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = working_dir;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = working_dir;
 	pk_connection_channel_get_working_dir_async(connection,
 	                                            channel,
 	                                            NULL,
 	                                            pk_connection_channel_get_working_dir_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1789,16 +1789,16 @@ pk_connection_channel_mute_cb (GObject      *source,    /* IN */
                                GAsyncResult *result,    /* IN */
                                gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_mute_finish(PK_CONNECTION(source),
-	                                                 result,
-	                                                 sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_mute_finish(PK_CONNECTION(source),
+	                                                  result,
+	                                                  async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1820,22 +1820,22 @@ pk_connection_channel_mute (PkConnection  *connection, /* IN */
                             gint           channel,    /* IN */
                             GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_mute);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_mute_async(connection,
 	                                 channel,
 	                                 NULL,
 	                                 pk_connection_channel_mute_cb,
-	                                 &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                 &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -1914,16 +1914,16 @@ pk_connection_channel_set_args_cb (GObject      *source,    /* IN */
                                    GAsyncResult *result,    /* IN */
                                    gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_args_finish(PK_CONNECTION(source),
-	                                                     result,
-	                                                     sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_args_finish(PK_CONNECTION(source),
+	                                                      result,
+	                                                      async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -1946,23 +1946,23 @@ pk_connection_channel_set_args (PkConnection  *connection, /* IN */
                                 const gchar  **args,       /* IN */
                                 GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_args);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_args_async(connection,
 	                                     channel,
 	                                     args,
 	                                     NULL,
 	                                     pk_connection_channel_set_args_cb,
-	                                     &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                     &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2045,16 +2045,16 @@ pk_connection_channel_set_env_cb (GObject      *source,    /* IN */
                                   GAsyncResult *result,    /* IN */
                                   gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_env_finish(PK_CONNECTION(source),
-	                                                    result,
-	                                                    sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_env_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2079,23 +2079,23 @@ pk_connection_channel_set_env (PkConnection  *connection, /* IN */
                                const gchar  **env,        /* IN */
                                GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_env);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_env_async(connection,
 	                                    channel,
 	                                    env,
 	                                    NULL,
 	                                    pk_connection_channel_set_env_cb,
-	                                    &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                    &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2176,16 +2176,16 @@ pk_connection_channel_set_kill_pid_cb (GObject      *source,    /* IN */
                                        GAsyncResult *result,    /* IN */
                                        gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_kill_pid_finish(PK_CONNECTION(source),
-	                                                         result,
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_kill_pid_finish(PK_CONNECTION(source),
+	                                                          result,
+	                                                          async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2207,23 +2207,23 @@ pk_connection_channel_set_kill_pid (PkConnection  *connection, /* IN */
                                     gboolean       kill_pid,   /* IN */
                                     GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_kill_pid);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_kill_pid_async(connection,
 	                                         channel,
 	                                         kill_pid,
 	                                         NULL,
 	                                         pk_connection_channel_set_kill_pid_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                         &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2302,16 +2302,16 @@ pk_connection_channel_set_pid_cb (GObject      *source,    /* IN */
                                   GAsyncResult *result,    /* IN */
                                   gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_pid_finish(PK_CONNECTION(source),
-	                                                    result,
-	                                                    sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_pid_finish(PK_CONNECTION(source),
+	                                                     result,
+	                                                     async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2334,23 +2334,23 @@ pk_connection_channel_set_pid (PkConnection  *connection, /* IN */
                                gint           pid,        /* IN */
                                GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_pid);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_pid_async(connection,
 	                                    channel,
 	                                    pid,
 	                                    NULL,
 	                                    pk_connection_channel_set_pid_cb,
-	                                    &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                    &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2431,16 +2431,16 @@ pk_connection_channel_set_target_cb (GObject      *source,    /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_target_finish(PK_CONNECTION(source),
-	                                                       result,
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_target_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2463,23 +2463,23 @@ pk_connection_channel_set_target (PkConnection  *connection, /* IN */
                                   const gchar   *target,     /* IN */
                                   GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_target);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_target_async(connection,
 	                                       channel,
 	                                       target,
 	                                       NULL,
 	                                       pk_connection_channel_set_target_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2560,16 +2560,16 @@ pk_connection_channel_set_working_dir_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_set_working_dir_finish(PK_CONNECTION(source),
-	                                                            result,
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_set_working_dir_finish(PK_CONNECTION(source),
+	                                                             result,
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2592,23 +2592,23 @@ pk_connection_channel_set_working_dir (PkConnection  *connection,  /* IN */
                                        const gchar   *working_dir, /* IN */
                                        GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_set_working_dir);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_set_working_dir_async(connection,
 	                                            channel,
 	                                            working_dir,
 	                                            NULL,
 	                                            pk_connection_channel_set_working_dir_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2689,16 +2689,16 @@ pk_connection_channel_start_cb (GObject      *source,    /* IN */
                                 GAsyncResult *result,    /* IN */
                                 gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_start_finish(PK_CONNECTION(source),
-	                                                  result,
-	                                                  sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_start_finish(PK_CONNECTION(source),
+	                                                   result,
+	                                                   async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2719,22 +2719,22 @@ pk_connection_channel_start (PkConnection  *connection, /* IN */
                              gint           channel,    /* IN */
                              GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_start);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_start_async(connection,
 	                                  channel,
 	                                  NULL,
 	                                  pk_connection_channel_start_cb,
-	                                  &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                  &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2811,16 +2811,16 @@ pk_connection_channel_stop_cb (GObject      *source,    /* IN */
                                GAsyncResult *result,    /* IN */
                                gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_stop_finish(PK_CONNECTION(source),
-	                                                 result,
-	                                                 sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_stop_finish(PK_CONNECTION(source),
+	                                                  result,
+	                                                  async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2841,22 +2841,22 @@ pk_connection_channel_stop (PkConnection  *connection, /* IN */
                             gint           channel,    /* IN */
                             GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_stop);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_stop_async(connection,
 	                                 channel,
 	                                 NULL,
 	                                 pk_connection_channel_stop_cb,
-	                                 &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                 &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -2933,16 +2933,16 @@ pk_connection_channel_unmute_cb (GObject      *source,    /* IN */
                                  GAsyncResult *result,    /* IN */
                                  gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_channel_unmute_finish(PK_CONNECTION(source),
-	                                                   result,
-	                                                   sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_channel_unmute_finish(PK_CONNECTION(source),
+	                                                    result,
+	                                                    async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -2963,22 +2963,22 @@ pk_connection_channel_unmute (PkConnection  *connection, /* IN */
                               gint           channel,    /* IN */
                               GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(channel_unmute);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_channel_unmute_async(connection,
 	                                   channel,
 	                                   NULL,
 	                                   pk_connection_channel_unmute_cb,
-	                                   &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                   &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3055,17 +3055,17 @@ pk_connection_encoder_get_plugin_cb (GObject      *source,    /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_encoder_get_plugin_finish(PK_CONNECTION(source),
-	                                                       result,
-	                                                       sync->params[0],
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_encoder_get_plugin_finish(PK_CONNECTION(source),
+	                                                        result,
+	                                                        async->params[0],
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3087,23 +3087,23 @@ pk_connection_encoder_get_plugin (PkConnection  *connection, /* IN */
                                   gchar        **plugin,     /* OUT */
                                   GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(encoder_get_plugin);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = plugin;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = plugin;
 	pk_connection_encoder_get_plugin_async(connection,
 	                                       encoder,
 	                                       NULL,
 	                                       pk_connection_encoder_get_plugin_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3182,17 +3182,17 @@ pk_connection_manager_add_channel_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_add_channel_finish(PK_CONNECTION(source),
-	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_manager_add_channel_finish(PK_CONNECTION(source),
+	                                                         result,
+	                                                         async->params[0],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3215,22 +3215,22 @@ pk_connection_manager_add_channel (PkConnection  *connection, /* IN */
                                    gint          *channel,    /* OUT */
                                    GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_add_channel);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = channel;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = channel;
 	pk_connection_manager_add_channel_async(connection,
 	                                        NULL,
 	                                        pk_connection_manager_add_channel_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3307,17 +3307,17 @@ pk_connection_manager_add_source_cb (GObject      *source,    /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_add_source_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_add_source_finish(PK_CONNECTION(source),
 	                                                       result,
-	                                                       sync->params[0],
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	                                                       async->params[0],
+	                                                       async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3339,23 +3339,23 @@ pk_connection_manager_add_source (PkConnection  *connection, /* IN */
                                   gint          *source,     /* OUT */
                                   GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_add_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = source;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = source;
 	pk_connection_manager_add_source_async(connection,
 	                                       plugin,
 	                                       NULL,
 	                                       pk_connection_manager_add_source_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3437,17 +3437,17 @@ pk_connection_manager_add_subscription_cb (GObject      *source,    /* IN */
                                            GAsyncResult *result,    /* IN */
                                            gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_add_subscription_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_add_subscription_finish(PK_CONNECTION(source),
 	                                                             result,
-	                                                             sync->params[0],
-	                                                             sync->error);
-	pk_connection_sync_signal(sync);
+	                                                             async->params[0],
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3478,24 +3478,24 @@ pk_connection_manager_add_subscription (PkConnection  *connection,   /* IN */
                                         gint          *subscription, /* OUT */
                                         GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_add_subscription);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = subscription;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = subscription;
 	pk_connection_manager_add_subscription_async(connection,
 	                                             buffer_size,
 	                                             timeout,
 	                                             NULL,
 	                                             pk_connection_manager_add_subscription_cb,
-	                                             &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                             &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3592,18 +3592,18 @@ pk_connection_manager_get_channels_cb (GObject      *source,    /* IN */
                                        GAsyncResult *result,    /* IN */
                                        gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_channels_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_channels_finish(PK_CONNECTION(source),
 	                                                         result,
-	                                                         sync->params[0],
-	                                                         sync->params[1],
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
+	                                                         async->params[0],
+	                                                         async->params[1],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3625,23 +3625,23 @@ pk_connection_manager_get_channels (PkConnection  *connection,   /* IN */
                                     gsize         *channels_len, /* OUT */
                                     GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_channels);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = channels;
-	sync.params[1] = channels_len;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = channels;
+	async.params[1] = channels_len;
 	pk_connection_manager_get_channels_async(connection,
 	                                         NULL,
 	                                         pk_connection_manager_get_channels_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                         &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3720,17 +3720,17 @@ pk_connection_manager_get_hostname_cb (GObject      *source,    /* IN */
                                        GAsyncResult *result,    /* IN */
                                        gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_hostname_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_hostname_finish(PK_CONNECTION(source),
 	                                                         result,
-	                                                         sync->params[0],
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
+	                                                         async->params[0],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3751,22 +3751,22 @@ pk_connection_manager_get_hostname (PkConnection  *connection, /* IN */
                                     gchar        **hostname,   /* OUT */
                                     GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_hostname);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = hostname;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = hostname;
 	pk_connection_manager_get_hostname_async(connection,
 	                                         NULL,
 	                                         pk_connection_manager_get_hostname_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                         &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3843,17 +3843,17 @@ pk_connection_manager_get_plugins_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_plugins_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_plugins_finish(PK_CONNECTION(source),
 	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	                                                        async->params[0],
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -3878,22 +3878,22 @@ pk_connection_manager_get_plugins (PkConnection   *connection, /* IN */
                                    gchar        ***plugins,    /* OUT */
                                    GError        **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_plugins);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = plugins;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = plugins;
 	pk_connection_manager_get_plugins_async(connection,
 	                                        NULL,
 	                                        pk_connection_manager_get_plugins_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -3975,18 +3975,18 @@ pk_connection_manager_get_sources_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_sources_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_sources_finish(PK_CONNECTION(source),
 	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->params[1],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	                                                        async->params[0],
+	                                                        async->params[1],
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4008,23 +4008,23 @@ pk_connection_manager_get_sources (PkConnection  *connection,  /* IN */
                                    gsize         *sources_len, /* OUT */
                                    GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_sources);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = sources;
-	sync.params[1] = sources_len;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = sources;
+	async.params[1] = sources_len;
 	pk_connection_manager_get_sources_async(connection,
 	                                        NULL,
 	                                        pk_connection_manager_get_sources_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4108,18 +4108,18 @@ pk_connection_manager_get_subscriptions_cb (GObject      *source,    /* IN */
                                             GAsyncResult *result,    /* IN */
                                             gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_subscriptions_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_subscriptions_finish(PK_CONNECTION(source),
 	                                                              result,
-	                                                              sync->params[0],
-	                                                              sync->params[1],
-	                                                              sync->error);
-	pk_connection_sync_signal(sync);
+	                                                              async->params[0],
+	                                                              async->params[1],
+	                                                              async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4141,23 +4141,23 @@ pk_connection_manager_get_subscriptions (PkConnection  *connection,        /* IN
                                          gsize         *subscriptions_len, /* OUT */
                                          GError       **error)             /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_subscriptions);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = subscriptions;
-	sync.params[1] = subscriptions_len;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = subscriptions;
+	async.params[1] = subscriptions_len;
 	pk_connection_manager_get_subscriptions_async(connection,
 	                                              NULL,
 	                                              pk_connection_manager_get_subscriptions_cb,
-	                                              &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                              &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4236,17 +4236,17 @@ pk_connection_manager_get_version_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_get_version_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_get_version_finish(PK_CONNECTION(source),
 	                                                        result,
-	                                                        sync->params[0],
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	                                                        async->params[0],
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4267,22 +4267,22 @@ pk_connection_manager_get_version (PkConnection  *connection, /* IN */
                                    gchar        **version,    /* OUT */
                                    GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_get_version);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = version;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = version;
 	pk_connection_manager_get_version_async(connection,
 	                                        NULL,
 	                                        pk_connection_manager_get_version_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4359,17 +4359,17 @@ pk_connection_manager_ping_cb (GObject      *source,    /* IN */
                                GAsyncResult *result,    /* IN */
                                gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_ping_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_ping_finish(PK_CONNECTION(source),
 	                                                 result,
-	                                                 sync->params[0],
-	                                                 sync->error);
-	pk_connection_sync_signal(sync);
+	                                                 async->params[0],
+	                                                 async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4390,22 +4390,22 @@ pk_connection_manager_ping (PkConnection  *connection, /* IN */
                             GTimeVal      *tv,         /* OUT */
                             GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_ping);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = tv;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = tv;
 	pk_connection_manager_ping_async(connection,
 	                                 NULL,
 	                                 pk_connection_manager_ping_cb,
-	                                 &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                 &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4482,17 +4482,17 @@ pk_connection_manager_remove_channel_cb (GObject      *source,    /* IN */
                                          GAsyncResult *result,    /* IN */
                                          gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_remove_channel_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_remove_channel_finish(PK_CONNECTION(source),
 	                                                           result,
-	                                                           sync->params[0],
-	                                                           sync->error);
-	pk_connection_sync_signal(sync);
+	                                                           async->params[0],
+	                                                           async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4514,23 +4514,23 @@ pk_connection_manager_remove_channel (PkConnection  *connection, /* IN */
                                       gboolean      *removed,    /* OUT */
                                       GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_remove_channel);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = removed;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = removed;
 	pk_connection_manager_remove_channel_async(connection,
 	                                           channel,
 	                                           NULL,
 	                                           pk_connection_manager_remove_channel_cb,
-	                                           &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                           &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4610,16 +4610,16 @@ pk_connection_manager_remove_source_cb (GObject      *source,    /* IN */
                                         GAsyncResult *result,    /* IN */
                                         gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_remove_source_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_remove_source_finish(PK_CONNECTION(source),
 	                                                          result,
-	                                                          sync->error);
-	pk_connection_sync_signal(sync);
+	                                                          async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4640,22 +4640,22 @@ pk_connection_manager_remove_source (PkConnection  *connection, /* IN */
                                      gint           source,     /* IN */
                                      GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_remove_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_manager_remove_source_async(connection,
 	                                          source,
 	                                          NULL,
 	                                          pk_connection_manager_remove_source_cb,
-	                                          &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                          &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4732,17 +4732,17 @@ pk_connection_manager_remove_subscription_cb (GObject      *source,    /* IN */
                                               GAsyncResult *result,    /* IN */
                                               gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_manager_remove_subscription_finish(PK_CONNECTION(source),
+	async->result = pk_connection_manager_remove_subscription_finish(PK_CONNECTION(source),
 	                                                                result,
-	                                                                sync->params[0],
-	                                                                sync->error);
-	pk_connection_sync_signal(sync);
+	                                                                async->params[0],
+	                                                                async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4764,23 +4764,23 @@ pk_connection_manager_remove_subscription (PkConnection  *connection,   /* IN */
                                            gboolean      *removed,      /* OUT */
                                            GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(manager_remove_subscription);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = removed;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = removed;
 	pk_connection_manager_remove_subscription_async(connection,
 	                                                subscription,
 	                                                NULL,
 	                                                pk_connection_manager_remove_subscription_cb,
-	                                                &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                                &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4859,17 +4859,17 @@ pk_connection_plugin_get_copyright_cb (GObject      *source,    /* IN */
                                        GAsyncResult *result,    /* IN */
                                        gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_plugin_get_copyright_finish(PK_CONNECTION(source),
+	async->result = pk_connection_plugin_get_copyright_finish(PK_CONNECTION(source),
 	                                                         result,
-	                                                         sync->params[0],
-	                                                         sync->error);
-	pk_connection_sync_signal(sync);
+	                                                         async->params[0],
+	                                                         async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -4891,23 +4891,23 @@ pk_connection_plugin_get_copyright (PkConnection  *connection, /* IN */
                                     gchar        **copyright,  /* OUT */
                                     GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(plugin_get_copyright);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = copyright;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = copyright;
 	pk_connection_plugin_get_copyright_async(connection,
 	                                         plugin,
 	                                         NULL,
 	                                         pk_connection_plugin_get_copyright_cb,
-	                                         &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                         &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -4986,17 +4986,17 @@ pk_connection_plugin_get_description_cb (GObject      *source,    /* IN */
                                          GAsyncResult *result,    /* IN */
                                          gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_plugin_get_description_finish(PK_CONNECTION(source),
+	async->result = pk_connection_plugin_get_description_finish(PK_CONNECTION(source),
 	                                                           result,
-	                                                           sync->params[0],
-	                                                           sync->error);
-	pk_connection_sync_signal(sync);
+	                                                           async->params[0],
+	                                                           async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5018,23 +5018,23 @@ pk_connection_plugin_get_description (PkConnection  *connection,  /* IN */
                                       gchar        **description, /* OUT */
                                       GError       **error)       /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(plugin_get_description);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = description;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = description;
 	pk_connection_plugin_get_description_async(connection,
 	                                           plugin,
 	                                           NULL,
 	                                           pk_connection_plugin_get_description_cb,
-	                                           &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                           &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5113,17 +5113,17 @@ pk_connection_plugin_get_name_cb (GObject      *source,    /* IN */
                                   GAsyncResult *result,    /* IN */
                                   gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_plugin_get_name_finish(PK_CONNECTION(source),
+	async->result = pk_connection_plugin_get_name_finish(PK_CONNECTION(source),
 	                                                    result,
-	                                                    sync->params[0],
-	                                                    sync->error);
-	pk_connection_sync_signal(sync);
+	                                                    async->params[0],
+	                                                    async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5147,23 +5147,23 @@ pk_connection_plugin_get_name (PkConnection  *connection, /* IN */
                                gchar        **name,       /* OUT */
                                GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(plugin_get_name);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = name;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = name;
 	pk_connection_plugin_get_name_async(connection,
 	                                    plugin,
 	                                    NULL,
 	                                    pk_connection_plugin_get_name_cb,
-	                                    &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                    &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5244,17 +5244,17 @@ pk_connection_plugin_get_plugin_type_cb (GObject      *source,    /* IN */
                                          GAsyncResult *result,    /* IN */
                                          gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_plugin_get_plugin_type_finish(PK_CONNECTION(source),
+	async->result = pk_connection_plugin_get_plugin_type_finish(PK_CONNECTION(source),
 	                                                           result,
-	                                                           sync->params[0],
-	                                                           sync->error);
-	pk_connection_sync_signal(sync);
+	                                                           async->params[0],
+	                                                           async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5276,23 +5276,23 @@ pk_connection_plugin_get_plugin_type (PkConnection  *connection, /* IN */
                                       gint          *type,       /* OUT */
                                       GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(plugin_get_plugin_type);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = type;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = type;
 	pk_connection_plugin_get_plugin_type_async(connection,
 	                                           plugin,
 	                                           NULL,
 	                                           pk_connection_plugin_get_plugin_type_cb,
-	                                           &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                           &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5371,17 +5371,17 @@ pk_connection_plugin_get_version_cb (GObject      *source,    /* IN */
                                      GAsyncResult *result,    /* IN */
                                      gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_plugin_get_version_finish(PK_CONNECTION(source),
+	async->result = pk_connection_plugin_get_version_finish(PK_CONNECTION(source),
 	                                                       result,
-	                                                       sync->params[0],
-	                                                       sync->error);
-	pk_connection_sync_signal(sync);
+	                                                       async->params[0],
+	                                                       async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5403,23 +5403,23 @@ pk_connection_plugin_get_version (PkConnection  *connection, /* IN */
                                   gchar        **version,    /* OUT */
                                   GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(plugin_get_version);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = version;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = version;
 	pk_connection_plugin_get_version_async(connection,
 	                                       plugin,
 	                                       NULL,
 	                                       pk_connection_plugin_get_version_cb,
-	                                       &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                       &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5498,17 +5498,17 @@ pk_connection_source_get_plugin_cb (GObject      *source,    /* IN */
                                     GAsyncResult *result,    /* IN */
                                     gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_source_get_plugin_finish(PK_CONNECTION(source),
+	async->result = pk_connection_source_get_plugin_finish(PK_CONNECTION(source),
 	                                                      result,
-	                                                      sync->params[0],
-	                                                      sync->error);
-	pk_connection_sync_signal(sync);
+	                                                      async->params[0],
+	                                                      async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5533,23 +5533,23 @@ pk_connection_source_get_plugin (PkConnection  *connection, /* IN */
                                  gchar        **plugin,     /* OUT */
                                  GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(source_get_plugin);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = plugin;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = plugin;
 	pk_connection_source_get_plugin_async(connection,
 	                                      source,
 	                                      NULL,
 	                                      pk_connection_source_get_plugin_cb,
-	                                      &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                      &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5630,16 +5630,16 @@ pk_connection_subscription_add_channel_cb (GObject      *source,    /* IN */
                                            GAsyncResult *result,    /* IN */
                                            gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_add_channel_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_add_channel_finish(PK_CONNECTION(source),
 	                                                             result,
-	                                                             sync->error);
-	pk_connection_sync_signal(sync);
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5666,24 +5666,24 @@ pk_connection_subscription_add_channel (PkConnection  *connection,   /* IN */
                                         gboolean       monitor,      /* IN */
                                         GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_add_channel);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_add_channel_async(connection,
 	                                             subscription,
 	                                             channel,
 	                                             monitor,
 	                                             NULL,
 	                                             pk_connection_subscription_add_channel_cb,
-	                                             &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                             &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5772,16 +5772,16 @@ pk_connection_subscription_add_source_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_add_source_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_add_source_finish(PK_CONNECTION(source),
 	                                                            result,
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	                                                            async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5804,23 +5804,23 @@ pk_connection_subscription_add_source (PkConnection  *connection,   /* IN */
                                        gint           source,       /* IN */
                                        GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_add_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_add_source_async(connection,
 	                                            subscription,
 	                                            source,
 	                                            NULL,
 	                                            pk_connection_subscription_add_source_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -5901,18 +5901,18 @@ pk_connection_subscription_get_buffer_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_get_buffer_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_get_buffer_finish(PK_CONNECTION(source),
 	                                                            result,
-	                                                            sync->params[0],
-	                                                            sync->params[1],
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	                                                            async->params[0],
+	                                                            async->params[1],
+	                                                            async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -5939,24 +5939,24 @@ pk_connection_subscription_get_buffer (PkConnection  *connection,   /* IN */
                                        gint          *size,         /* OUT */
                                        GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_get_buffer);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = timeout;
-	sync.params[1] = size;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = timeout;
+	async.params[1] = size;
 	pk_connection_subscription_get_buffer_async(connection,
 	                                            subscription,
 	                                            NULL,
 	                                            pk_connection_subscription_get_buffer_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6045,17 +6045,17 @@ pk_connection_subscription_get_created_at_cb (GObject      *source,    /* IN */
                                               GAsyncResult *result,    /* IN */
                                               gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_get_created_at_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_get_created_at_finish(PK_CONNECTION(source),
 	                                                                result,
-	                                                                sync->params[0],
-	                                                                sync->error);
-	pk_connection_sync_signal(sync);
+	                                                                async->params[0],
+	                                                                async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6077,23 +6077,23 @@ pk_connection_subscription_get_created_at (PkConnection  *connection,   /* IN */
                                            GTimeVal      *tv,           /* OUT */
                                            GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_get_created_at);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = tv;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = tv;
 	pk_connection_subscription_get_created_at_async(connection,
 	                                                subscription,
 	                                                NULL,
 	                                                pk_connection_subscription_get_created_at_cb,
-	                                                &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                                &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6172,18 +6172,18 @@ pk_connection_subscription_get_sources_cb (GObject      *source,    /* IN */
                                            GAsyncResult *result,    /* IN */
                                            gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_get_sources_finish(PK_CONNECTION(source),
-	                                                             result,
-	                                                             sync->params[0],
-	                                                             sync->params[1],
-	                                                             sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_subscription_get_sources_finish(PK_CONNECTION(source),
+	                                                              result,
+	                                                              async->params[0],
+	                                                              async->params[1],
+	                                                              async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6206,24 +6206,24 @@ pk_connection_subscription_get_sources (PkConnection  *connection,   /* IN */
                                         gsize         *sources_len,  /* OUT */
                                         GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_get_sources);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
-	sync.params[0] = sources;
-	sync.params[1] = sources_len;
+	pk_connection_sync_init(&async);
+	async.error = error;
+	async.params[0] = sources;
+	async.params[1] = sources_len;
 	pk_connection_subscription_get_sources_async(connection,
 	                                             subscription,
 	                                             NULL,
 	                                             pk_connection_subscription_get_sources_cb,
-	                                             &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                             &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6304,16 +6304,16 @@ pk_connection_subscription_mute_cb (GObject      *source,    /* IN */
                                     GAsyncResult *result,    /* IN */
                                     gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_mute_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_mute_finish(PK_CONNECTION(source),
 	                                                      result,
-	                                                      sync->error);
-	pk_connection_sync_signal(sync);
+	                                                      async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6336,23 +6336,23 @@ pk_connection_subscription_mute (PkConnection  *connection,   /* IN */
                                  gboolean       drain,        /* IN */
                                  GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_mute);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_mute_async(connection,
 	                                      subscription,
 	                                      drain,
 	                                      NULL,
 	                                      pk_connection_subscription_mute_cb,
-	                                      &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                      &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6433,16 +6433,16 @@ pk_connection_subscription_remove_channel_cb (GObject      *source,    /* IN */
                                               GAsyncResult *result,    /* IN */
                                               gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_remove_channel_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_remove_channel_finish(PK_CONNECTION(source),
 	                                                                result,
-	                                                                sync->error);
-	pk_connection_sync_signal(sync);
+	                                                                async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6465,23 +6465,23 @@ pk_connection_subscription_remove_channel (PkConnection  *connection,   /* IN */
                                            gint           channel,      /* IN */
                                            GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_remove_channel);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_remove_channel_async(connection,
 	                                                subscription,
 	                                                channel,
 	                                                NULL,
 	                                                pk_connection_subscription_remove_channel_cb,
-	                                                &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                                &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6562,16 +6562,16 @@ pk_connection_subscription_remove_source_cb (GObject      *source,    /* IN */
                                              GAsyncResult *result,    /* IN */
                                              gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_remove_source_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_remove_source_finish(PK_CONNECTION(source),
 	                                                               result,
-	                                                               sync->error);
-	pk_connection_sync_signal(sync);
+	                                                               async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6594,23 +6594,23 @@ pk_connection_subscription_remove_source (PkConnection  *connection,   /* IN */
                                           gint           source,       /* IN */
                                           GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_remove_source);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_remove_source_async(connection,
 	                                               subscription,
 	                                               source,
 	                                               NULL,
 	                                               pk_connection_subscription_remove_source_cb,
-	                                               &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                               &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6691,16 +6691,16 @@ pk_connection_subscription_set_buffer_cb (GObject      *source,    /* IN */
                                           GAsyncResult *result,    /* IN */
                                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_set_buffer_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_set_buffer_finish(PK_CONNECTION(source),
 	                                                            result,
-	                                                            sync->error);
-	pk_connection_sync_signal(sync);
+	                                                            async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6727,24 +6727,24 @@ pk_connection_subscription_set_buffer (PkConnection  *connection,   /* IN */
                                        gint           size,         /* IN */
                                        GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_set_buffer);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_set_buffer_async(connection,
 	                                            subscription,
 	                                            timeout,
 	                                            size,
 	                                            NULL,
 	                                            pk_connection_subscription_set_buffer_cb,
-	                                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6833,16 +6833,16 @@ pk_connection_subscription_set_encoder_cb (GObject      *source,    /* IN */
                                            GAsyncResult *result,    /* IN */
                                            gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_set_encoder_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_set_encoder_finish(PK_CONNECTION(source),
 	                                                             result,
-	                                                             sync->error);
-	pk_connection_sync_signal(sync);
+	                                                             async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6865,23 +6865,23 @@ pk_connection_subscription_set_encoder (PkConnection  *connection,   /* IN */
                                         gint           encoder,      /* IN */
                                         GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_set_encoder);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_set_encoder_async(connection,
 	                                             subscription,
 	                                             encoder,
 	                                             NULL,
 	                                             pk_connection_subscription_set_encoder_cb,
-	                                             &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                             &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -6960,16 +6960,16 @@ pk_connection_subscription_set_handlers_cb (GObject      *source,    /* IN */
                                             GAsyncResult *result,    /* IN */
                                             gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_set_handlers_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_set_handlers_finish(PK_CONNECTION(source),
 	                                                              result,
-	                                                              sync->error);
-	pk_connection_sync_signal(sync);
+	                                                              async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -6993,14 +6993,14 @@ pk_connection_subscription_set_handlers (PkConnection    *connection,       /* I
                                          GDestroyNotify   sample_destroy,   /* IN */
                                          GError         **error)            /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_set_handlers);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_set_handlers_async(connection,
 	                                              subscription,
 	                                              manifest_func,
@@ -7011,10 +7011,10 @@ pk_connection_subscription_set_handlers (PkConnection    *connection,       /* I
 	                                              sample_destroy,
 	                                              NULL,
 	                                              pk_connection_subscription_set_handlers_cb,
-	                                              &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                              &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -7102,16 +7102,16 @@ pk_connection_subscription_unmute_cb (GObject      *source,    /* IN */
                                       GAsyncResult *result,    /* IN */
                                       gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(sync != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_subscription_unmute_finish(PK_CONNECTION(source),
+	async->result = pk_connection_subscription_unmute_finish(PK_CONNECTION(source),
 	                                                        result,
-	                                                        sync->error);
-	pk_connection_sync_signal(sync);
+	                                                        async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -7132,22 +7132,22 @@ pk_connection_subscription_unmute (PkConnection  *connection,   /* IN */
                                    gint           subscription, /* IN */
                                    GError       **error)        /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
 	CHECK_FOR_RPC(subscription_unmute);
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_subscription_unmute_async(connection,
 	                                        subscription,
 	                                        NULL,
 	                                        pk_connection_subscription_unmute_cb,
-	                                        &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                                        &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -7275,15 +7275,15 @@ pk_connection_connect_cb (GObject      *source,    /* IN */
                           GAsyncResult *result,    /* IN */
                           gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(user_data != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_connect_finish(PK_CONNECTION(source),
-	                                            result, sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_connect_finish(PK_CONNECTION(source),
+	                                            result, async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -7301,19 +7301,19 @@ gboolean
 pk_connection_connect (PkConnection  *connection, /* IN */
                        GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_connect_async(connection, NULL,
 	                            pk_connection_connect_cb,
-	                            &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                            &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**
@@ -7385,15 +7385,15 @@ pk_connection_disconnect_cb (GObject      *source,    /* IN */
                              GAsyncResult *result,    /* IN */
                              gpointer      user_data) /* IN */
 {
-	PkConnectionSync *sync = user_data;
+	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
 	g_return_if_fail(user_data != NULL);
 
 	ENTRY;
-	sync->result = pk_connection_disconnect_finish(PK_CONNECTION(source),
-	                                               result, sync->error);
-	pk_connection_sync_signal(sync);
+	async->result = pk_connection_disconnect_finish(PK_CONNECTION(source),
+	                                                result, async->error);
+	pk_connection_sync_signal(async);
 	EXIT;
 }
 
@@ -7411,19 +7411,19 @@ gboolean
 pk_connection_disconnect (PkConnection  *connection, /* IN */
                           GError       **error)      /* OUT */
 {
-	PkConnectionSync sync;
+	PkConnectionSync async;
 
 	g_return_val_if_fail(PK_IS_CONNECTION(connection), FALSE);
 
 	ENTRY;
-	pk_connection_sync_init(&sync);
-	sync.error = error;
+	pk_connection_sync_init(&async);
+	async.error = error;
 	pk_connection_disconnect_async(connection, NULL,
 	                               pk_connection_disconnect_cb,
-	                               &sync);
-	pk_connection_sync_wait(&sync);
-	pk_connection_sync_destroy(&sync);
-	RETURN(sync.result);
+	                               &async);
+	pk_connection_sync_wait(&async);
+	pk_connection_sync_destroy(&async);
+	RETURN(async.result);
 }
 
 /**

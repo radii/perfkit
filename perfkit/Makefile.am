@@ -29,9 +29,8 @@ WARNINGS =								\
 	-Wundef								\
 	-Waggregate-return						\
 	-Wmissing-format-attribute					\
-	-Wnested-externs
-
-#	-Wshadow
+	-Wnested-externs						\
+	-Wshadow
 
 BUILD_SOURCES = pk-version.h
 
