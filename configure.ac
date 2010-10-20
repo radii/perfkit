@@ -25,12 +25,9 @@ AC_CONFIG_MACRO_DIR([build/m4])
 AM_MAINTAINER_MODE
 AC_ISC_POSIX
 AC_PROG_CC
-# AC_PROG_CC_STDC
-# AC_HEADER_STDC
 AM_PATH_GLIB_2_0
 AM_PROG_CC_C_O
 AM_PROG_VALAC([0.9.2])
-GOBJECT_INTROSPECTION_CHECK([0.6.7])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES])
 AS_AM_REALLY_SILENT
 
@@ -63,10 +60,6 @@ PKG_CHECK_MODULES(PERFKIT_TOOLS,    [gobject-2.0      >= 2.26
 PKG_CHECK_MODULES(PERFKIT,          [gobject-2.0      >= 2.26
                                      gthread-2.0      >= 2.26
                                      gio-2.0          >= 2.26])
-PKG_CHECK_MODULES(PERFKIT_CHART,    [gobject-2.0      >= 2.26
-                                     gthread-2.0      >= 2.26
-                                     gio-2.0          >= 2.26
-                                     gtk+-2.0         >= 2.20])
 PKG_CHECK_MODULES(PERFKIT_GUI,      [gobject-2.0      >= 2.26
                                      gthread-2.0      >= 2.26
                                      gtk+-2.0         >= 2.20])
@@ -172,10 +165,6 @@ AC_OUTPUT([
 	perfkit-agent/encoders/Makefile
 	perfkit-agent/listeners/Makefile
 	perfkit-agent/pka-version.h
-
-	perfkit-chart/Makefile
-	perfkit-chart/pkc-version.h
-	perfkit-chart/perfkit-chart-1.0.pc
 
 	perfkit-gui/Makefile
 	perfkit-gui/pkg-version.h
