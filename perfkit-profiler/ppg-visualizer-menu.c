@@ -50,6 +50,56 @@ ppg_visualizer_menu_add_dummy (PpgVisualizerMenu *menu)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 }
 
+static gboolean
+ppg_visualizer_menu_get_active (PpgVisualizerMenu  *menu,
+                                PpgVisualizerEntry *entry)
+{
+	PpgVisualizerMenuPrivate *priv;
+	gchar *name;
+	GList *list;
+	GList *iter;
+
+	g_return_val_if_fail(PPG_IS_VISUALIZER_MENU(menu), FALSE);
+	g_return_val_if_fail(menu->priv->instrument, FALSE);
+
+	priv = menu->priv;
+
+	list = ppg_instrument_get_visualizers(priv->instrument);
+
+	for (iter = list; iter; iter = iter->next) {
+		g_object_get(iter->data, "name", &name, NULL);
+		if (!g_strcmp0(name, entry->name)) {
+			g_free(name);
+			return TRUE;
+		}
+		g_free(name);
+	}
+
+	return FALSE;
+}
+
+static void
+ppg_visualizer_menu_activate (GtkCheckMenuItem  *item,
+                              PpgVisualizerMenu *menu)
+{
+	PpgVisualizerMenuPrivate *priv;
+	const gchar *name;
+	gboolean active;
+
+	g_return_if_fail(PPG_IS_VISUALIZER_MENU(menu));
+
+	priv = menu->priv;
+
+	g_object_get(item, "active", &active, NULL);
+	name = g_object_get_data(G_OBJECT(item), "visualizer.name");
+
+	if (active) {
+		ppg_instrument_add_visualizer(priv->instrument, name);
+	} else {
+		ppg_instrument_remove_visualizer_named(priv->instrument, name);
+	}
+}
+
 static void
 ppg_visualizer_menu_set_instrument (PpgVisualizerMenu *menu,
                                     PpgInstrument     *instrument)
@@ -57,6 +107,7 @@ ppg_visualizer_menu_set_instrument (PpgVisualizerMenu *menu,
 	PpgVisualizerMenuPrivate *priv;
 	PpgVisualizerEntry *entry;
 	GtkWidget *menu_item;
+	gboolean active;
 	GList *list;
 	GList *iter;
 
@@ -64,6 +115,7 @@ ppg_visualizer_menu_set_instrument (PpgVisualizerMenu *menu,
 	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
 
 	priv = menu->priv;
+	priv->instrument = instrument;
 
 	g_debug("%s():%d", G_STRFUNC, __LINE__);
 
@@ -89,13 +141,18 @@ ppg_visualizer_menu_set_instrument (PpgVisualizerMenu *menu,
 	 */
 	for (iter = list; iter; iter = iter->next) {
 		entry = iter->data;
+		active = ppg_visualizer_menu_get_active(menu, entry);
 		menu_item = g_object_new(GTK_TYPE_CHECK_MENU_ITEM,
-		                         "active", TRUE, /* FIXME: Lookup state */
+		                         "active", active,
 		                         "label", entry->title,
 		                         "visible", TRUE,
 		                         NULL);
+		g_object_set_data_full(G_OBJECT(menu_item), "visualizer.name",
+		                       g_strdup(entry->name), g_free);
+		g_signal_connect(menu_item, "activate",
+		                 G_CALLBACK(ppg_visualizer_menu_activate),
+		                 menu);
 		gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
-		                         
 	}
 	g_list_free(list);
 }

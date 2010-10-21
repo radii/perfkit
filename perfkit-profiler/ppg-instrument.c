@@ -176,6 +176,8 @@ ppg_instrument_add_visualizer (PpgInstrument *instrument,
 	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
 	g_return_if_fail(name != NULL);
 
+	g_debug("%s():%d", G_STRFUNC, __LINE__);
+
 	priv = instrument->priv;
 
 	for (i = 0; i < priv->factories->len; i++) {
@@ -189,6 +191,54 @@ ppg_instrument_add_visualizer (PpgInstrument *instrument,
 
 	if (visualizer) {
 		g_signal_emit(instrument, signals[VISUALIZER_ADDED], 0, visualizer);
+	}
+}
+
+void
+ppg_instrument_remove_visualizer (PpgInstrument *instrument,
+                                  PpgVisualizer *visualizer)
+{
+	PpgInstrumentPrivate *priv;
+
+	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+
+	g_debug("%s():%d", G_STRFUNC, __LINE__);
+
+	priv = instrument->priv;
+
+	if (!g_list_find(priv->visualizers, visualizer)) {
+		g_critical("Instrument does not contain visualizer instance!");
+		return;
+	}
+
+	priv->visualizers = g_list_remove(priv->visualizers, visualizer);
+	g_signal_emit(instrument, signals[VISUALIZER_REMOVED], 0, visualizer);
+}
+
+void
+ppg_instrument_remove_visualizer_named (PpgInstrument *instrument,
+                                        const gchar   *name)
+{
+	PpgInstrumentPrivate *priv;
+	GList *iter;
+	gchar *iter_name;
+
+	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
+	g_return_if_fail(name != NULL);
+
+	g_debug("%s():%d", G_STRFUNC, __LINE__);
+
+	priv = instrument->priv;
+
+	for (iter = priv->visualizers; iter; iter = iter->next) {
+		g_object_get(iter->data, "name", &iter_name, NULL);
+		if (!g_strcmp0(name, iter_name)) {
+			ppg_instrument_remove_visualizer(instrument, iter->data);
+			g_free(iter_name);
+			return;
+		}
+		g_free(iter_name);
 	}
 }
 

@@ -40,6 +40,7 @@ struct _PpgSpawnProcessDialogPrivate
 
 	GtkWidget    *target_entry;
 	GtkWidget    *args_entry;
+	GtkWidget    *dir_button;
 	GtkWidget    *env_treeview;
 	GtkWidget    *ok_button;
 	GtkListStore *env_model;
@@ -275,7 +276,7 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	             "default-width", 350,
 	             "default-height", 400,
 	             "has-separator", FALSE,
-	             "title", _("Spawn process"),
+	             "title", _("Spawn a new process"),
 	             NULL);
 
 	content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -300,7 +301,7 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 
 	table = g_object_new(GTK_TYPE_TABLE,
 	                     "n-columns", 3,
-	                     "n-rows", 5,
+	                     "n-rows", 6,
 	                     "row-spacing", 3,
 	                     "visible", TRUE,
 	                     NULL);
@@ -366,7 +367,7 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	                 dialog);
 
 	l = g_object_new(GTK_TYPE_LABEL,
-	                 "label", _("Arguments:"),
+	                 "label", _("_Arguments:"),
 	                 "mnemonic-widget", priv->args_entry,
 	                 "use-underline", TRUE,
 	                 "visible", TRUE,
@@ -382,6 +383,38 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	                                  "x-options", GTK_FILL,
 	                                  NULL);
 
+	/*
+	 * FIXME: Remote profiling should use a GtkEntry here.
+	 */
+	priv->dir_button = g_object_new(GTK_TYPE_FILE_CHOOSER_BUTTON,
+	                                "action", GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
+	                                "visible", TRUE,
+	                                NULL);
+	gtk_container_add_with_properties(GTK_CONTAINER(table), priv->dir_button,
+	                                  "bottom-attach", 4,
+	                                  "left-attach", 1,
+	                                  "right-attach", 2,
+	                                  "top-attach", 3,
+	                                  "y-options", GTK_FILL,
+	                                  NULL);
+
+	l = g_object_new(GTK_TYPE_LABEL,
+	                 "label", _("Working _Directory:"),
+	                 "mnemonic-widget", priv->dir_button,
+	                 "use-underline", TRUE,
+	                 "visible", TRUE,
+	                 "xalign", 1.0f,
+	                 "xpad", 12,
+	                 NULL);
+	gtk_container_add_with_properties(GTK_CONTAINER(table), l,
+	                                  "bottom-attach", 4,
+	                                  "left-attach", 0,
+	                                  "right-attach", 1,
+	                                  "top-attach", 3,
+	                                  "y-options", GTK_FILL,
+	                                  "x-options", GTK_FILL,
+	                                  NULL);
+
 	l = g_object_new(GTK_TYPE_LABEL,
 	                 "use-markup", TRUE,
 	                 "label", _("<b>Environment</b>"),
@@ -390,10 +423,10 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	                 "ypad", 3,
 	                 NULL);
 	gtk_container_add_with_properties(GTK_CONTAINER(table), l,
-	                                  "bottom-attach", 4,
+	                                  "bottom-attach", 5,
 	                                  "left-attach", 0,
 	                                  "right-attach", 2,
-	                                  "top-attach", 3,
+	                                  "top-attach", 4,
 	                                  "y-options", GTK_FILL,
 	                                  NULL);
 
@@ -402,10 +435,10 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	                     "left-padding", 12,
 	                     NULL);
 	gtk_container_add_with_properties(GTK_CONTAINER(table), align,
-	                                  "bottom-attach", 5,
+	                                  "bottom-attach", 6,
 	                                  "left-attach", 0,
 	                                  "right-attach", 2,
-	                                  "top-attach", 4,
+	                                  "top-attach", 5,
 	                                  NULL);
 
 	scroller = g_object_new(GTK_TYPE_SCROLLED_WINDOW,

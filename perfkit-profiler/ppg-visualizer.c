@@ -23,6 +23,7 @@ G_DEFINE_ABSTRACT_TYPE(PpgVisualizer, ppg_visualizer, G_TYPE_INITIALLY_UNOWNED)
 struct _PpgVisualizerPrivate
 {
 	gchar   *title;
+	gchar   *name;
 	gdouble  begin;
 	gdouble  end;
 };
@@ -32,6 +33,7 @@ enum
 	PROP_0,
 	PROP_BEGIN,
 	PROP_END,
+	PROP_NAME,
 	PROP_TITLE,
 };
 
@@ -74,6 +76,9 @@ ppg_visualizer_get_property (GObject    *object,
 		break;
 	case PROP_END:
 		break;
+	case PROP_NAME:
+		g_value_set_string(value, visualizer->priv->name);
+		break;
 	case PROP_TITLE:
 		g_value_set_string(value, visualizer->priv->title);
 		break;
@@ -104,7 +109,12 @@ ppg_visualizer_set_property (GObject      *object,
 		break;
 	case PROP_END:
 		break;
+	case PROP_NAME:
+		/* construct only */
+		visualizer->priv->name = g_value_dup_string(value);
+		break;
 	case PROP_TITLE:
+		/* construct only */
 		visualizer->priv->title = g_value_dup_string(value);
 		break;
 	default:
@@ -137,6 +147,14 @@ ppg_visualizer_class_init (PpgVisualizerClass *klass)
 	                                g_param_spec_string("title",
 	                                                    "title",
 	                                                    "title",
+	                                                    NULL,
+	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(object_class,
+	                                PROP_NAME,
+	                                g_param_spec_string("name",
+	                                                    "name",
+	                                                    "name",
 	                                                    NULL,
 	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 

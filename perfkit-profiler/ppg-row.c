@@ -290,13 +290,59 @@ ppg_row_hide_tooltip (PpgRow *row,
 	return FALSE;
 }
 
+static void
+ppg_row_visualizer_added (PpgRow *row,
+                          PpgVisualizer *visualizer,
+                          PpgInstrument *instrument)
+{
+	PpgRowPrivate *priv;
+	ClutterActor *actor;
+
+	g_return_if_fail(PPG_IS_ROW(row));
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
+
+	priv = row->priv;
+	g_ptr_array_add(priv->rows, visualizer);
+
+	actor = ppg_visualizer_get_actor(visualizer);
+	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(priv->box_layout),
+	                        actor, TRUE, TRUE, TRUE,
+	                        CLUTTER_BOX_ALIGNMENT_START,
+	                        CLUTTER_BOX_ALIGNMENT_START);
+	clutter_actor_set_reactive(actor, TRUE);
+	g_signal_connect_swapped(actor, "enter-event",
+	                         G_CALLBACK(ppg_row_show_tooltip),
+	                         row);
+	g_signal_connect_swapped(actor, "leave-event",
+	                         G_CALLBACK(ppg_row_hide_tooltip),
+	                         row);
+}
+
+static void
+ppg_row_visualizer_removed (PpgRow *row,
+                            PpgVisualizer *visualizer,
+                            PpgInstrument *instrument)
+{
+	PpgRowPrivate *priv;
+	ClutterActor *actor;
+
+	g_return_if_fail(PPG_IS_ROW(row));
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
+
+	priv = row->priv;
+	g_ptr_array_remove(priv->rows, visualizer);
+
+	actor = ppg_visualizer_get_actor(visualizer);
+	clutter_container_remove(CLUTTER_CONTAINER(priv->rows_box), actor, NULL);
+}
 
 static void
 ppg_row_set_instrument (PpgRow *row,
                         PpgInstrument *instrument)
 {
 	PpgRowPrivate *priv;
-	ClutterActor *actor;
 	GList *list;
 	GList *iter;
 	gchar *name;
@@ -321,27 +367,15 @@ ppg_row_set_instrument (PpgRow *row,
 	 */
 	list = ppg_instrument_get_visualizers(instrument);
 	for (iter = list; iter; iter = iter->next) {
-		/*
-		 * Pack row content.
-		 */
-		actor = ppg_visualizer_get_actor(iter->data);
-		g_ptr_array_add(priv->rows, iter->data);
-		clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(priv->box_layout),
-		                        actor, TRUE, TRUE, TRUE,
-		                        CLUTTER_BOX_ALIGNMENT_START,
-		                        CLUTTER_BOX_ALIGNMENT_START);
-		clutter_actor_set_reactive(actor, TRUE);
-		g_signal_connect_swapped(actor, "enter-event",
-		                         G_CALLBACK(ppg_row_show_tooltip),
-		                         row);
-		g_signal_connect_swapped(actor, "leave-event",
-		                         G_CALLBACK(ppg_row_hide_tooltip),
-		                         row);
+		ppg_row_visualizer_added(row, iter->data, instrument);
 	}
 
-	/*
-	 * XXX: Hook into new visualizers created.
-	 */
+	g_signal_connect_swapped(instrument, "visualizer-added",
+	                         G_CALLBACK(ppg_row_visualizer_added),
+	                         row);
+	g_signal_connect_swapped(instrument, "visualizer-removed",
+	                         G_CALLBACK(ppg_row_visualizer_removed),
+	                         row);
 
 	g_object_notify(G_OBJECT(row), "instrument");
 }

@@ -132,7 +132,7 @@ static gsize         protocol_init        = FALSE;
 static inline void
 pk_connection_sync_init (PkConnectionSync *async)
 {
-	memset(sync, 0, sizeof(*sync));
+	memset(async, 0, sizeof(*async));
 
 	async->completed = FALSE;
 	async->result = FALSE;
@@ -236,7 +236,7 @@ pk_connection_channel_add_source_cb (GObject      *source,
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_add_source_finish(PK_CONNECTION(source),
@@ -378,7 +378,7 @@ pk_connection_channel_get_args_cb (GObject      *source,
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_args_finish(PK_CONNECTION(source),
@@ -512,7 +512,7 @@ pk_connection_channel_get_created_at_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_created_at_finish(PK_CONNECTION(source),
@@ -639,7 +639,7 @@ pk_connection_channel_get_env_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_env_finish(PK_CONNECTION(source),
@@ -767,7 +767,7 @@ pk_connection_channel_get_exit_status_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_exit_status_finish(PK_CONNECTION(source),
@@ -897,7 +897,7 @@ pk_connection_channel_get_kill_pid_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_kill_pid_finish(PK_CONNECTION(source),
@@ -1024,7 +1024,7 @@ pk_connection_channel_get_pid_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_pid_finish(PK_CONNECTION(source),
@@ -1151,7 +1151,7 @@ pk_connection_channel_get_pid_set_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_pid_set_finish(PK_CONNECTION(source),
@@ -1278,7 +1278,7 @@ pk_connection_channel_get_sources_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_sources_finish(PK_CONNECTION(source),
@@ -1410,7 +1410,7 @@ pk_connection_channel_get_state_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_state_finish(PK_CONNECTION(source),
@@ -1537,7 +1537,7 @@ pk_connection_channel_get_target_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_target_finish(PK_CONNECTION(source),
@@ -1665,7 +1665,7 @@ pk_connection_channel_get_working_dir_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_get_working_dir_finish(PK_CONNECTION(source),
@@ -1792,7 +1792,7 @@ pk_connection_channel_mute_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_mute_finish(PK_CONNECTION(source),
@@ -1917,7 +1917,7 @@ pk_connection_channel_set_args_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_args_finish(PK_CONNECTION(source),
@@ -2048,7 +2048,7 @@ pk_connection_channel_set_env_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_env_finish(PK_CONNECTION(source),
@@ -2179,7 +2179,7 @@ pk_connection_channel_set_kill_pid_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_kill_pid_finish(PK_CONNECTION(source),
@@ -2305,7 +2305,7 @@ pk_connection_channel_set_pid_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_pid_finish(PK_CONNECTION(source),
@@ -2434,7 +2434,7 @@ pk_connection_channel_set_target_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_target_finish(PK_CONNECTION(source),
@@ -2563,7 +2563,7 @@ pk_connection_channel_set_working_dir_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_set_working_dir_finish(PK_CONNECTION(source),
@@ -2692,7 +2692,7 @@ pk_connection_channel_start_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_start_finish(PK_CONNECTION(source),
@@ -2814,7 +2814,7 @@ pk_connection_channel_stop_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_stop_finish(PK_CONNECTION(source),
@@ -2936,7 +2936,7 @@ pk_connection_channel_unmute_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_channel_unmute_finish(PK_CONNECTION(source),
@@ -3058,7 +3058,7 @@ pk_connection_encoder_get_plugin_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_encoder_get_plugin_finish(PK_CONNECTION(source),
@@ -3185,7 +3185,7 @@ pk_connection_manager_add_channel_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_add_channel_finish(PK_CONNECTION(source),
@@ -3310,7 +3310,7 @@ pk_connection_manager_add_source_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_add_source_finish(PK_CONNECTION(source),
@@ -3440,7 +3440,7 @@ pk_connection_manager_add_subscription_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_add_subscription_finish(PK_CONNECTION(source),
@@ -3595,7 +3595,7 @@ pk_connection_manager_get_channels_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_channels_finish(PK_CONNECTION(source),
@@ -3723,7 +3723,7 @@ pk_connection_manager_get_hostname_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_hostname_finish(PK_CONNECTION(source),
@@ -3846,7 +3846,7 @@ pk_connection_manager_get_plugins_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_plugins_finish(PK_CONNECTION(source),
@@ -3978,7 +3978,7 @@ pk_connection_manager_get_sources_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_sources_finish(PK_CONNECTION(source),
@@ -4111,7 +4111,7 @@ pk_connection_manager_get_subscriptions_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_subscriptions_finish(PK_CONNECTION(source),
@@ -4239,7 +4239,7 @@ pk_connection_manager_get_version_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_get_version_finish(PK_CONNECTION(source),
@@ -4362,7 +4362,7 @@ pk_connection_manager_ping_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_ping_finish(PK_CONNECTION(source),
@@ -4485,7 +4485,7 @@ pk_connection_manager_remove_channel_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_remove_channel_finish(PK_CONNECTION(source),
@@ -4613,7 +4613,7 @@ pk_connection_manager_remove_source_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_remove_source_finish(PK_CONNECTION(source),
@@ -4735,7 +4735,7 @@ pk_connection_manager_remove_subscription_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_manager_remove_subscription_finish(PK_CONNECTION(source),
@@ -4862,7 +4862,7 @@ pk_connection_plugin_get_copyright_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_plugin_get_copyright_finish(PK_CONNECTION(source),
@@ -4989,7 +4989,7 @@ pk_connection_plugin_get_description_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_plugin_get_description_finish(PK_CONNECTION(source),
@@ -5116,7 +5116,7 @@ pk_connection_plugin_get_name_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_plugin_get_name_finish(PK_CONNECTION(source),
@@ -5247,7 +5247,7 @@ pk_connection_plugin_get_plugin_type_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_plugin_get_plugin_type_finish(PK_CONNECTION(source),
@@ -5374,7 +5374,7 @@ pk_connection_plugin_get_version_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_plugin_get_version_finish(PK_CONNECTION(source),
@@ -5501,7 +5501,7 @@ pk_connection_source_get_plugin_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_source_get_plugin_finish(PK_CONNECTION(source),
@@ -5633,7 +5633,7 @@ pk_connection_subscription_add_channel_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_add_channel_finish(PK_CONNECTION(source),
@@ -5775,7 +5775,7 @@ pk_connection_subscription_add_source_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_add_source_finish(PK_CONNECTION(source),
@@ -5904,7 +5904,7 @@ pk_connection_subscription_get_buffer_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_get_buffer_finish(PK_CONNECTION(source),
@@ -6048,7 +6048,7 @@ pk_connection_subscription_get_created_at_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_get_created_at_finish(PK_CONNECTION(source),
@@ -6175,7 +6175,7 @@ pk_connection_subscription_get_sources_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_get_sources_finish(PK_CONNECTION(source),
@@ -6307,7 +6307,7 @@ pk_connection_subscription_mute_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_mute_finish(PK_CONNECTION(source),
@@ -6436,7 +6436,7 @@ pk_connection_subscription_remove_channel_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_remove_channel_finish(PK_CONNECTION(source),
@@ -6565,7 +6565,7 @@ pk_connection_subscription_remove_source_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_remove_source_finish(PK_CONNECTION(source),
@@ -6694,7 +6694,7 @@ pk_connection_subscription_set_buffer_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_set_buffer_finish(PK_CONNECTION(source),
@@ -6836,7 +6836,7 @@ pk_connection_subscription_set_encoder_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_set_encoder_finish(PK_CONNECTION(source),
@@ -6963,7 +6963,7 @@ pk_connection_subscription_set_handlers_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_set_handlers_finish(PK_CONNECTION(source),
@@ -7105,7 +7105,7 @@ pk_connection_subscription_unmute_cb (GObject      *source,    /* IN */
 	PkConnectionSync *async = user_data;
 
 	g_return_if_fail(PK_IS_CONNECTION(source));
-	g_return_if_fail(sync != NULL);
+	g_return_if_fail(async != NULL);
 
 	ENTRY;
 	async->result = pk_connection_subscription_unmute_finish(PK_CONNECTION(source),

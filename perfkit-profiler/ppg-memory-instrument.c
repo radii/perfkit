@@ -38,7 +38,8 @@ create_used_visualizer (PpgMemoryInstrument *instrument)
 	priv = instrument->priv;
 
 	viz = g_object_new(PPG_TYPE_LINE_VISUALIZER,
-	                   "title", "Used",
+	                   "name", "used",
+	                   "title", _("Used"),
 	                   NULL);
 	gdk_color_parse("#2e3436", &color);
 	ppg_line_visualizer_append(viz, "Used", &color, TRUE, priv->model, 0);
@@ -56,7 +57,8 @@ create_free_visualizer (PpgMemoryInstrument *instrument)
 	priv = instrument->priv;
 
 	viz = g_object_new(PPG_TYPE_LINE_VISUALIZER,
-	                   "title", "Free",
+	                   "name", "free",
+	                   "title", _("Free"),
 	                   NULL);
 	gdk_color_parse("#2e3436", &color);
 	ppg_line_visualizer_append(viz, "Free", &color, TRUE, priv->model, 0);
@@ -74,7 +76,8 @@ create_cache_visualizer (PpgMemoryInstrument *instrument)
 	priv = instrument->priv;
 
 	viz = g_object_new(PPG_TYPE_LINE_VISUALIZER,
-	                   "title", "Cache",
+	                   "name", "cached",
+	                   "title", _("Cache Size"),
 	                   NULL);
 	gdk_color_parse("#2e3436", &color);
 	ppg_line_visualizer_append(viz, "Cache", &color, TRUE, priv->model, 0);
@@ -92,7 +95,8 @@ create_combined_visualizer (PpgMemoryInstrument *instrument)
 	priv = instrument->priv;
 
 	viz = g_object_new(PPG_TYPE_LINE_VISUALIZER,
-	                   "title", "Combined",
+	                   "name", "combined",
+	                   "title", _("Combined"),
 	                   NULL);
 	gdk_color_parse("#2e3436", &color);
 	ppg_line_visualizer_append(viz, "Free", &color, FALSE, priv->model, 0);

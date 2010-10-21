@@ -61,20 +61,22 @@ struct _PpgInstrumentClass
 	                                PpgVisualizer *visualizer);
 };
 
-GType  ppg_instrument_get_type               (void) G_GNUC_CONST;
-void   ppg_instrument_register_visualizer    (PpgInstrument      *instrument,
-                                              PpgVisualizerEntry *entry,
-                                              gpointer            user_data);
-void   ppg_instrument_register_visualizers   (PpgInstrument      *instrument,
-                                              PpgVisualizerEntry *entries,
-                                              guint               n_entries,
-                                              gpointer            user_data);
-GList* ppg_instrument_get_visualizer_entries (PpgInstrument      *instrument);
-GList* ppg_instrument_get_visualizers        (PpgInstrument      *instrument);
-void   ppg_instrument_add_visualizer         (PpgInstrument      *instrument,
-                                              const gchar        *name);
-void   ppg_instrument_remove_visualizer      (PpgInstrument      *instrument,
-                                              PpgVisualizer      *visualizer);
+GType  ppg_instrument_get_type                (void) G_GNUC_CONST;
+void   ppg_instrument_register_visualizer     (PpgInstrument      *instrument,
+                                               PpgVisualizerEntry *entry,
+                                               gpointer            user_data);
+void   ppg_instrument_register_visualizers    (PpgInstrument      *instrument,
+                                               PpgVisualizerEntry *entries,
+                                               guint               n_entries,
+                                               gpointer            user_data);
+GList* ppg_instrument_get_visualizer_entries  (PpgInstrument      *instrument);
+GList* ppg_instrument_get_visualizers         (PpgInstrument      *instrument);
+void   ppg_instrument_add_visualizer          (PpgInstrument      *instrument,
+                                               const gchar        *name);
+void   ppg_instrument_remove_visualizer       (PpgInstrument      *instrument,
+                                               PpgVisualizer      *visualizer);
+void   ppg_instrument_remove_visualizer_named (PpgInstrument      *instrument,
+                                               const gchar        *name);
 
 G_END_DECLS
 
