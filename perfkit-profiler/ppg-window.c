@@ -597,33 +597,21 @@ ppg_window_size_allocate (GtkWidget     *widget,
 		widget_class->size_allocate(widget, alloc);
 	}
 
-	if (priv->last_width != alloc->width ||
-	    priv->last_height != alloc->height) {
+	if (priv->last_width != alloc->width || priv->last_height != alloc->height) {
 		gtk_widget_get_allocation(priv->clutter_embed, &embed_alloc);
-		g_object_get(priv->add_instrument_actor,
-		             "height", &height,
-		             "width", &width,
-		             NULL);
 
-		g_object_set(priv->add_instrument_actor,
-		             "x", 200.0f + (gfloat)floor((embed_alloc.width - 200.0f - width) / 2),
-		             "y", (gfloat)floor((embed_alloc.height - height) / 2),
-		             NULL);
-		g_object_set(priv->header_bg,
-		             "height", (gfloat)embed_alloc.height,
-		             NULL);
-		g_object_set(priv->header_sep,
-		             "height", (gfloat)embed_alloc.height,
-		             NULL);
-		g_object_set(priv->rows_box,
-		             "width", (gfloat)embed_alloc.width,
-		             NULL);
-		g_object_set(priv->timer_sep,
-		             "height", (gfloat)embed_alloc.height,
-		             NULL);
-		g_object_set(priv->status_actor,
-		             "y", (gfloat)(embed_alloc.height - clutter_actor_get_height(priv->status_actor)),
-		             NULL);
+		clutter_actor_get_size(priv->add_instrument_actor, &width, &height);
+		clutter_actor_set_x(priv->add_instrument_actor,
+		                    200.0f + floor((embed_alloc.width - 200.0f - width) / 2));
+		clutter_actor_set_y(priv->add_instrument_actor,
+		                    floor((embed_alloc.height - height) / 2));
+
+		clutter_actor_set_height(priv->header_bg, embed_alloc.height);
+		clutter_actor_set_height(priv->header_sep, embed_alloc.height);
+		clutter_actor_set_width(priv->rows_box, embed_alloc.width);
+		clutter_actor_set_height(priv->timer_sep, embed_alloc.height);
+		clutter_actor_set_y(priv->status_actor,
+		                    embed_alloc.height - clutter_actor_get_height(priv->status_actor));
 
 		ppg_window_zoom_value_changed(priv->zadj, window);
 	}
@@ -682,8 +670,8 @@ ppg_window_select_row (PpgWindow *window,
 
 		action = ppg_window_get_action(window, "configure-instrument");
 		g_object_set(action,
-					 "sensitive", TRUE,
-					 NULL);
+		             "sensitive", TRUE,
+		             NULL);
 
 		g_object_get(priv->selected,
 		             "instrument", &instrument,
