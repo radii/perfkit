@@ -48,6 +48,7 @@ INST_H_FILES =								\
 	ppg-about-dialog.h						\
 	ppg-actions.h							\
 	ppg-add-instrument-dialog.h					\
+	ppg-configure-instrument-dialog.h				\
 	ppg-edit-channel-task.h						\
 	ppg-header.h							\
 	ppg-instrument.h						\
@@ -85,6 +86,7 @@ perfkit_profiler_SOURCES =						\
 	main.c								\
 	ppg-about-dialog.c						\
 	ppg-actions.c							\
+	ppg-configure-instrument-dialog.c				\
 	ppg-add-instrument-dialog.c					\
 	ppg-edit-channel-task.c						\
 	ppg-header.c							\

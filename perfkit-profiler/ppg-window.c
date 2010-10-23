@@ -23,6 +23,7 @@
 #include "ppg-about-dialog.h"
 #include "ppg-add-instrument-dialog.h"
 #include "ppg-actions.h"
+#include "ppg-configure-instrument-dialog.h"
 #include "ppg-header.h"
 #include "ppg-instrument.h"
 #include "ppg-menu-tool-item.h"
@@ -115,6 +116,8 @@ static void ppg_window_about_activate          (GtkAction *action,
                                                 PpgWindow *window);
 static void ppg_window_add_instrument_activate (GtkAction *action,
                                                 PpgWindow *window);
+static void ppg_window_configure_instrument_activate (GtkAction *action,
+                                                      PpgWindow *window);
 static void ppg_window_preferences_activate    (GtkAction *action,
                                                 PpgWindow *window);
 static void ppg_window_settings_activate       (GtkAction *action,
@@ -154,7 +157,8 @@ GtkActionEntry action_entries[] = {
 	  N_("Add an instrument to the current profiling session"),
 	  G_CALLBACK(ppg_window_add_instrument_activate) },
 	{ "configure-instrument", NULL, N_("_Configure"), NULL,
-	  N_("Configure the selected instrument") },
+	  N_("Configure the selected instrument"),
+	  G_CALLBACK(ppg_window_configure_instrument_activate) },
 	{ "visualizers", NULL, N_("_Visualizers") },
 
 	{ "target-spawn", NULL, N_("Spawn a new process"), NULL, NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
@@ -425,6 +429,36 @@ ppg_window_add_instrument_activate (GtkAction *action,
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+static void
+ppg_window_configure_instrument_activate (GtkAction *action,
+                                          PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	PpgInstrument *instrument;
+	GtkDialog *dialog;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	if (!priv->selected) {
+		g_critical("%s() called without active selection", G_STRFUNC);
+		return;
+	}
+
+	g_object_get(priv->selected,
+	             "instrument", &instrument,
+	             NULL);
+	dialog = g_object_new(PPG_TYPE_CONFIGURE_INSTRUMENT_DIALOG,
+	                      "session", priv->session,
+	                      "instrument", instrument,
+	                      "transient-for", window,
+	                      NULL);
+	gtk_dialog_run(dialog);
+	gtk_widget_destroy(GTK_WIDGET(dialog));
+	g_object_unref(instrument);
+}
+
 /**
  * ppg_window_delete_event:
  * @window: (in): A #PpgWindow.
@@ -638,9 +672,7 @@ ppg_window_unselect_row (PpgWindow *window)
 	}
 
 	action = ppg_window_get_action(window, "configure-instrument");
-	g_object_set(action,
-	             "sensitive", FALSE,
-	             NULL);
+	g_object_set(action, "sensitive", FALSE, NULL);
 }
 
 static void
@@ -1143,6 +1175,7 @@ ppg_window_init (PpgWindow *window)
 	SET_ACTION_INSENSITIVE("cut");
 	SET_ACTION_INSENSITIVE("copy");
 	SET_ACTION_INSENSITIVE("paste");
+	SET_ACTION_INSENSITIVE("configure-instrument");
 
 	vbox = g_object_new(GTK_TYPE_VBOX,
 	                    "visible", TRUE,
