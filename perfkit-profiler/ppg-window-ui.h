@@ -20,6 +20,7 @@ static char ppg_window_ui[] =
 	"<ui>"
 	"  <menubar name=\"menubar\">"
 	"    <menu action=\"file\">"
+	"      <menuitem action=\"close\"/>"
 	"      <menuitem action=\"quit\"/>"
 	"    </menu>"
 	"    <menu action=\"edit\">"

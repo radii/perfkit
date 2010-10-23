@@ -97,6 +97,8 @@ enum
 	PROP_STATUS_LABEL,
 };
 
+static void ppg_window_close_activate          (GtkAction *action,
+                                                PpgWindow *window);
 static void ppg_window_restart_activate        (GtkAction *action,
                                                 PpgWindow *window);
 static void ppg_window_stop_activate           (GtkAction *action,
@@ -127,6 +129,8 @@ static void ppg_window_zoom_one_activate       (GtkAction *action,
 GtkActionEntry action_entries[] = {
 	{ "file", NULL, N_("Per_fkit") },
 	{ "quit", GTK_STOCK_QUIT, NULL, NULL, NULL, ppg_runtime_quit },
+	{ "close", GTK_STOCK_CLOSE, N_("_Close Window"), NULL, NULL,
+	  G_CALLBACK(ppg_window_close_activate) },
 
 	{ "edit", GTK_STOCK_EDIT },
 	{ "cut", GTK_STOCK_CUT },
@@ -466,6 +470,22 @@ ppg_window_target_notify (PpgSession *session,
 	g_object_get(session, "target", &target, NULL);
 	g_object_set(priv->target_tool_item, "label", target, NULL);
 	g_free(target);
+}
+
+static void
+ppg_window_close_activate (GtkAction *action,
+                           PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+	g_return_if_fail(GTK_IS_ACTION(action));
+
+	priv = window->priv;
+
+	instances--;
+	gtk_widget_destroy(GTK_WIDGET(window));
+	ppg_runtime_try_quit();
 }
 
 static void
