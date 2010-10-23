@@ -306,10 +306,13 @@ ppg_row_visualizer_added (PpgRow *row,
 	g_ptr_array_add(priv->rows, visualizer);
 
 	actor = ppg_visualizer_get_actor(visualizer);
-	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(priv->box_layout),
-	                        actor, TRUE, TRUE, TRUE,
-	                        CLUTTER_BOX_ALIGNMENT_START,
-	                        CLUTTER_BOX_ALIGNMENT_START);
+	clutter_box_pack(CLUTTER_BOX(priv->rows_box), actor,
+	                 "x-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "y-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "x-fill", TRUE,
+	                 "y-fill", TRUE,
+	                 "expand", FALSE,
+	                 NULL);
 	clutter_actor_set_reactive(actor, TRUE);
 	g_signal_connect_swapped(actor, "enter-event",
 	                         G_CALLBACK(ppg_row_show_tooltip),
@@ -600,10 +603,13 @@ ppg_row_init (PpgRow *row)
 	                               "surface-height", (gint)DEFAULT_HEIGHT,
 	                               "width", 200.0f,
 	                               NULL);
-	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(priv->hbox_layout),
-	                        priv->header_bg, FALSE, TRUE, TRUE,
-	                        CLUTTER_BOX_ALIGNMENT_START,
-	                        CLUTTER_BOX_ALIGNMENT_START);
+	clutter_box_pack(CLUTTER_BOX(priv->hbox), priv->header_bg,
+	                 "x-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "y-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "x-fill", FALSE,
+	                 "y-fill", TRUE,
+	                 "expand", TRUE,
+	                 NULL);
 	priv->header_text = g_object_new(CLUTTER_TYPE_TEXT,
 	                                 "color", &black,
 	                                 "ellipsize", PANGO_ELLIPSIZE_END,
@@ -629,10 +635,13 @@ ppg_row_init (PpgRow *row)
 	                             "width", 200.0f,
 	                             "x", 200.0f,
 	                             NULL);
-	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(priv->hbox_layout),
-	                        priv->rows_box, TRUE, TRUE, TRUE,
-	                        CLUTTER_BOX_ALIGNMENT_START,
-	                        CLUTTER_BOX_ALIGNMENT_START);
+	clutter_box_pack(CLUTTER_BOX(priv->hbox), priv->rows_box,
+	                 "x-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "y-align", CLUTTER_BOX_ALIGNMENT_START,
+	                 "x-fill", TRUE,
+	                 "y-fill", TRUE,
+	                 "expand", TRUE,
+	                 NULL);
 	clutter_container_add(CLUTTER_CONTAINER(row),
 	                      priv->data_bg,
 	                      priv->hbox,
