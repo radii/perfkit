@@ -104,6 +104,7 @@ ppg_spawn_process_dialog_get_task (PpgSpawnProcessDialog *dialog)
 	PpgSpawnProcessDialogPrivate *priv;
 	const gchar *target;
 	const gchar *args;
+	const gchar *working_dir;
 	gchar **argv = NULL;
 	gint argc = 0;
 	gboolean empty;
@@ -115,15 +116,17 @@ ppg_spawn_process_dialog_get_task (PpgSpawnProcessDialog *dialog)
 	target = gtk_entry_get_text(GTK_ENTRY(priv->target_entry));
 	args = gtk_entry_get_text(GTK_ENTRY(priv->args_entry));
 	empty = !args || !args[0];
+	working_dir = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(priv->dir_button));
 
 	if (!empty && !g_shell_parse_argv(args, &argc, &argv, NULL)) {
 		return NULL;
 	}
 
 	task = g_object_new(PPG_TYPE_EDIT_CHANNEL_TASK,
+	                    "args", argv,
 	                    "session", priv->session,
 	                    "target", target,
-	                    "args", argv,
+	                    "working-dir", working_dir,
 	                    NULL);
 
 	/*
