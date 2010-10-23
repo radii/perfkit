@@ -758,6 +758,7 @@ ppg_window_row_button_press (ClutterActor       *actor,
 		break;
 	case 3:
 		if (event->click_count == 1) {
+			ppg_window_select_row(window, PPG_ROW(actor));
 			gtk_menu_popup(GTK_MENU(priv->instrument_popup), NULL, NULL,
 			               NULL, NULL, 3, event->time);
 		}
