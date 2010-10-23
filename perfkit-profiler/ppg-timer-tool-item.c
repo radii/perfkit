@@ -16,7 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ppg-session.h"
 #include "ppg-timer-tool-item.h"
+
+#define MAX_TIMER_CHARS 11
 
 G_DEFINE_TYPE(PpgTimerToolItem, ppg_timer_tool_item, GTK_TYPE_TOOL_ITEM)
 
@@ -25,6 +28,12 @@ struct _PpgTimerToolItemPrivate
 	GtkWidget *button;
 	GtkWidget *ebox;
 	GtkWidget *label;
+};
+
+enum
+{
+	PROP_0,
+	PROP_SESSION,
 };
 
 static gboolean
@@ -65,6 +74,65 @@ ppg_timer_tool_item_ebox_expose (GtkWidget        *ebox,
 	return FALSE;
 }
 
+static void
+ppg_timer_tool_item_format (gchar *formatted,
+                            gsize n,
+                            gdouble position)
+{
+	gint h;
+	gint m;
+	gint s;
+	gint hu;
+
+	h = position / 3600.0;
+	position -= h * 3600.0;
+
+	m = position / 60.0;
+	position -= m * 60.0;
+
+	s = position;
+	position -= s;
+
+	hu = position * 100;
+
+	g_snprintf(formatted, n, "%02d:%02d:%02d.%02d", h, m, s, hu);
+	formatted[n - 1] = '\0';
+}
+
+static void
+ppg_timer_tool_item_notify_position (PpgSession *session,
+                                     GParamSpec *pspec,
+                                     PpgTimerToolItem *item)
+{
+	PpgTimerToolItemPrivate *priv;
+	gchar formatted[MAX_TIMER_CHARS + 1];
+	gdouble position;
+
+	g_return_if_fail(PPG_IS_TIMER_TOOL_ITEM(item));
+
+	priv = item->priv;
+
+	position = ppg_session_get_position(session);
+	ppg_timer_tool_item_format(formatted, sizeof(formatted), position);
+	gtk_label_set_label(GTK_LABEL(priv->label), formatted);
+}
+
+static void
+ppg_timer_tool_item_set_session (PpgTimerToolItem *item,
+                                 PpgSession *session)
+{
+	PpgTimerToolItemPrivate *priv;
+
+	g_return_if_fail(PPG_IS_TIMER_TOOL_ITEM(item));
+
+	priv = item->priv;
+
+	g_signal_connect(session,
+	                 "notify::position",
+	                 G_CALLBACK(ppg_timer_tool_item_notify_position),
+	                 item);
+}
+
 /**
  * ppg_timer_tool_item_finalize:
  * @object: (in): A #PpgTimerToolItem.
@@ -79,6 +147,32 @@ static void
 ppg_timer_tool_item_finalize (GObject *object)
 {
 	G_OBJECT_CLASS(ppg_timer_tool_item_parent_class)->finalize(object);
+}
+
+/**
+ * ppg_timer_tool_item_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (in): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Set a given #GObject property.
+ */
+static void
+ppg_timer_tool_item_set_property (GObject      *object,
+                                  guint         prop_id,
+                                  const GValue *value,
+                                  GParamSpec   *pspec)
+{
+	PpgTimerToolItem *item = PPG_TIMER_TOOL_ITEM(object);
+
+	switch (prop_id) {
+	case PROP_SESSION:
+		ppg_timer_tool_item_set_session(item, g_value_get_object(value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
 }
 
 /**
@@ -97,7 +191,16 @@ ppg_timer_tool_item_class_init (PpgTimerToolItemClass *klass)
 
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = ppg_timer_tool_item_finalize;
+	object_class->set_property = ppg_timer_tool_item_set_property;
 	g_type_class_add_private(object_class, sizeof(PpgTimerToolItemPrivate));
+
+	g_object_class_install_property(object_class,
+	                                PROP_SESSION,
+	                                g_param_spec_object("session",
+	                                                    "session",
+	                                                    "session",
+	                                                    PPG_TYPE_SESSION,
+	                                                    G_PARAM_WRITABLE));
 }
 
 /**

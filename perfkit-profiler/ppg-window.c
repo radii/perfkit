@@ -234,6 +234,12 @@ static void
 ppg_window_stop_activate (GtkAction *action,
                           PpgWindow *window)
 {
+	PpgWindowPrivate *priv;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
 	BEGIN_ACTION_UPDATE;
 
 	g_object_set(ppg_window_get_action(window, "run"),
@@ -253,12 +259,23 @@ ppg_window_stop_activate (GtkAction *action,
 	             NULL);
 
 	END_ACTION_UPDATE;
+
+	ppg_session_stop(priv->session);
 }
 
 static void
 ppg_window_pause_activate (GtkAction *action,
                            PpgWindow *window)
 {
+	gboolean active;
+
+	g_object_get(action, "active", &active, NULL);
+
+	if (active) {
+		ppg_session_pause(window->priv->session);
+	} else {
+		ppg_session_unpause(window->priv->session);
+	}
 }
 
 static void
@@ -295,6 +312,8 @@ ppg_window_run_activate (GtkAction *action,
 	             NULL);
 
 	END_ACTION_UPDATE;
+
+	ppg_session_start(priv->session);
 }
 
 static void
@@ -876,6 +895,44 @@ ppg_window_style_set (GtkWidget *widget,
 	                          gtk_widget_get_style(widget));
 }
 
+static void
+ppg_window_position_notify (PpgSession *session,
+                            GParamSpec *pspec,
+                            PpgWindow  *window)
+{
+	PpgWindowPrivate *priv;
+	gdouble position;
+	gdouble lower;
+	gdouble upper;
+	gdouble ratio;
+	gfloat width;
+	gfloat x;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	g_object_get(priv->ruler,
+	             "lower", &lower,
+	             "upper", &upper,
+	             NULL);
+	position = ppg_session_get_position(session);
+	g_object_get(priv->rows_box, "width", &width, NULL);
+	width -= 200.0f;
+
+	upper -= lower;
+	position -= lower;
+
+	if (position < 0 || position > upper) {
+		/* FIXME: need to adjust hadjustment */
+	}
+
+	ratio = (position / upper);
+	x = 200.0f + (ratio * width);
+
+	g_object_set(priv->timer_sep, "x", x, NULL);
+}
+
 /**
  * ppg_window_set_uri:
  * @window: (in): A #PpgWindow.
@@ -911,6 +968,13 @@ ppg_window_set_uri (PpgWindow   *window,
 	g_signal_connect(priv->session, "instrument-added",
 	                 G_CALLBACK(ppg_window_instrument_added),
 	                 window);
+	g_signal_connect(priv->session, "notify::position",
+	                 G_CALLBACK(ppg_window_position_notify),
+	                 window);
+
+	g_object_set(priv->timer_tool_item,
+	             "session", priv->session,
+	             NULL);
 }
 
 static gboolean

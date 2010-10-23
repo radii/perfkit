@@ -26,6 +26,8 @@ struct _PpgSessionPrivate
 	PkConnection *conn;
 	gint          channel;
 	gchar        *target;
+	GTimer       *timer;
+	guint         position_handler;
 };
 
 enum
@@ -33,6 +35,7 @@ enum
 	PROP_0,
 	PROP_CHANNEL,
 	PROP_CONNECTION,
+	PROP_POSITION,
 	PROP_TARGET,
 	PROP_URI,
 };
@@ -51,19 +54,38 @@ enum
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
+static GParamSpec *position_pspec = NULL;
 
-/**
- * ppg_session_new:
- *
- * Creates a new instance of #PpgSession.
- *
- * Returns: the newly created instance of #PpgSession.
- * Side effects: None.
- */
-PpgSession*
-ppg_session_new (void)
+static gboolean
+ppg_session_notify_position (gpointer user_data)
 {
-	return g_object_new(PPG_TYPE_SESSION, NULL);
+	g_object_notify_by_pspec(user_data, position_pspec);
+	return TRUE;
+}
+
+static void
+ppg_session_start_position_notifier (PpgSession *session)
+{
+	PpgSessionPrivate *priv = session->priv;
+
+	if (priv->position_handler) {
+		g_source_remove(priv->position_handler);
+	}
+
+	priv->position_handler = g_timeout_add((1000 / 13),
+	                                       ppg_session_notify_position,
+	                                       session);
+}
+
+static void
+ppg_session_stop_position_notifier (PpgSession *session)
+{
+	PpgSessionPrivate *priv = session->priv;
+
+	if (priv->position_handler) {
+		g_source_remove(priv->position_handler);
+		priv->position_handler = 0;
+	}
 }
 
 static void
@@ -94,6 +116,28 @@ ppg_session_get_target (PpgSession *session)
 {
 	g_return_val_if_fail(PPG_IS_SESSION(session), NULL);
 	return session->priv->target;
+}
+
+static inline gdouble
+ppg_session_get_position_fast (PpgSession *session)
+{
+	return g_timer_elapsed(session->priv->timer, NULL);
+}
+
+gdouble
+ppg_session_get_position (PpgSession *session)
+{
+	PpgSessionPrivate *priv;
+
+	g_return_val_if_fail(PPG_IS_SESSION(session), 0.0);
+
+	priv = session->priv;
+
+	if (priv->timer) {
+		return ppg_session_get_position_fast(session);
+	}
+
+	return 0.0;
 }
 
 /**
@@ -193,10 +237,20 @@ ppg_session_channel_stopped (GObject *object,
 		ppg_session_report_error(session, G_STRFUNC, error);
 		g_error_free(error);
 		return;
+
+		/*
+		 * FIXME: We need to make sure we handle this gracefully and stop
+		 *        updating the UI. This goes for the rest of the states.
+		 */
 	}
+
+	g_timer_stop(priv->timer);
+
+	ppg_session_stop_position_notifier(session);
 
 	g_signal_emit(session, signals[STOPPED], 0);
 }
+
 
 /**
  * ppg_session_channel_started:
@@ -227,6 +281,12 @@ ppg_session_channel_started (GObject *object,
 		g_error_free(error);
 		return;
 	}
+
+	priv->timer = g_timer_new();
+
+	ppg_session_start_position_notifier(session);
+
+	g_message("Channel %d started.", priv->channel);
 
 	g_signal_emit(session, signals[STARTED], 0);
 }
@@ -261,6 +321,13 @@ ppg_session_channel_muted (GObject *object,
 		return;
 	}
 
+	/*
+	 * XXX: How do we deal with timer skew?
+	 */
+	g_timer_stop(priv->timer);
+
+	ppg_session_stop_position_notifier(session);
+
 	g_signal_emit(session, signals[PAUSED], 0);
 }
 
@@ -293,6 +360,13 @@ ppg_session_channel_unmuted (GObject *object,
 		g_error_free(error);
 		return;
 	}
+
+	/*
+	 * XXX: What do we do here for timer? Add adjust variable?
+	 */
+	g_timer_start(priv->timer);
+
+	ppg_session_start_position_notifier(session);
 
 	g_signal_emit(session, signals[UNPAUSED], 0);
 }
@@ -342,6 +416,7 @@ ppg_session_start (PpgSession *session)
 
 	priv = session->priv;
 
+	g_message("Starting channel %d", priv->channel);
 	pk_connection_channel_start_async(priv->conn, priv->channel, NULL,
 	                                  ppg_session_channel_started,
 	                                  session);
@@ -449,6 +524,13 @@ ppg_session_set_uri (PpgSession  *session,
 static void
 ppg_session_finalize (GObject *object)
 {
+	PpgSessionPrivate *priv = PPG_SESSION(object)->priv;
+
+	if (priv->timer) {
+		g_timer_destroy(priv->timer);
+		priv->timer = NULL;
+	}
+
 	G_OBJECT_CLASS(ppg_session_parent_class)->finalize(object);
 }
 
@@ -478,6 +560,9 @@ ppg_session_get_property (GObject    *object,  /* IN */
 		break;
 	case PROP_TARGET:
 		g_value_set_string(value, ppg_session_get_target(session));
+		break;
+	case PROP_POSITION:
+		g_value_set_double(value, ppg_session_get_position(session));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -566,6 +651,16 @@ ppg_session_class_init (PpgSessionClass *klass)
 	                                                    "target",
 	                                                    NULL,
 	                                                    G_PARAM_READWRITE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_POSITION,
+	                                position_pspec = g_param_spec_double("position",
+	                                                                     "position",
+	                                                                     "position",
+	                                                                     0.0,
+	                                                                     G_MAXDOUBLE,
+	                                                                     0.0,
+	                                                                     G_PARAM_READABLE));
 
 	signals[READY] = g_signal_new("ready",
 	                              PPG_TYPE_SESSION,

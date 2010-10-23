@@ -54,6 +54,7 @@ void        ppg_session_pause          (PpgSession    *session);
 void        ppg_session_start          (PpgSession    *session);
 void        ppg_session_stop           (PpgSession    *session);
 void        ppg_session_unpause        (PpgSession    *session);
+gdouble     ppg_session_get_position   (PpgSession    *session);
 
 G_END_DECLS
 
