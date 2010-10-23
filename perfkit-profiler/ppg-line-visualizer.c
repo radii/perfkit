@@ -317,7 +317,7 @@ ppg_line_visualizer_init (PpgLineVisualizer *visualizer)
 	priv->actor = g_object_new(CLUTTER_TYPE_CAIRO_TEXTURE,
 	                           "surface-width", 1,
 	                           "surface-height", 1,
-	                           "min-height", 32.0f,
+	                           "natural-height", 32.0f,
 	                           NULL);
 
 	g_signal_connect_after(priv->actor, "notify::allocation",
