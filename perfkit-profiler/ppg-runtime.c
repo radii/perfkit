@@ -29,13 +29,12 @@
 #include "ppg-welcome-dialog.h"
 #include "ppg-window.h"
 
-static gint     exit_code   = 0;
-
 /*
  * FIXME: Add command line options.
  */
 static gboolean  use_stdount  = TRUE;
 static gchar    *log_filename = NULL;
+static gint      exit_code    = 0;
 
 static GOptionEntry option_entries[] = {
 	{ NULL }
