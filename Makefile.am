@@ -3,6 +3,7 @@ SUBDIRS =			\
 	perfkit-agent		\
 	perfkit			\
 	tools			\
+	uber			\
 	perfkit-gui		\
 	perfkit-profiler	\
 	bindings		\

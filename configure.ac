@@ -169,6 +169,8 @@ AC_OUTPUT([
 	perfkit-gui/Makefile
 	perfkit-gui/pkg-version.h
 
+	uber/Makefile
+
 	perfkit-profiler/Makefile
 	perfkit-profiler/ppg-version.h
 
