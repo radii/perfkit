@@ -165,7 +165,10 @@ ppg_edit_channel_task_run (PpgTask *task)
 		                                            task);
 	}
 
-	g_object_set(session, "target", priv->target, NULL);
+	g_object_set(session,
+	             "args", priv->args,
+	             "target", priv->target,
+	             NULL);
 
 	g_object_unref(conn);
 }

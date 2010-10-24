@@ -92,10 +92,33 @@ static void
 ppg_spawn_process_dialog_set_session (PpgSpawnProcessDialog *dialog,
                                       PpgSession            *session)
 {
+	PpgSpawnProcessDialogPrivate *priv;
+	gchar **args;
+	gchar *args_str;
+	gchar *target;
+
 	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
 	g_return_if_fail(PPG_IS_SESSION(session));
 
-	dialog->priv->session = session;
+	priv = dialog->priv;
+	priv->session = session;
+
+	g_object_get(priv->session,
+	             "args", &args,
+	             "target", &target,
+	             NULL);
+
+	if (target) {
+		gtk_entry_set_text(GTK_ENTRY(priv->target_entry), target);
+		g_free(target);
+	}
+
+	if (args) {
+		args_str = g_strjoinv(" ", args);
+		gtk_entry_set_text(GTK_ENTRY(priv->args_entry), args_str);
+		g_free(args_str);
+		g_strfreev(args);
+	}
 }
 
 static PpgTask*

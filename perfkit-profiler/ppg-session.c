@@ -23,16 +23,18 @@ G_DEFINE_TYPE(PpgSession, ppg_session, G_TYPE_INITIALLY_UNOWNED)
 
 struct _PpgSessionPrivate
 {
-	PkConnection *conn;
-	gint          channel;
-	gchar        *target;
-	GTimer       *timer;
-	guint         position_handler;
+	PkConnection  *conn;
+	gint           channel;
+	gchar         *target;
+	gchar        **args;
+	GTimer        *timer;
+	guint          position_handler;
 };
 
 enum
 {
 	PROP_0,
+	PROP_ARGS,
 	PROP_CHANNEL,
 	PROP_CONNECTION,
 	PROP_POSITION,
@@ -109,6 +111,21 @@ ppg_session_set_target (PpgSession  *session,
 	g_free(priv->target);
 	priv->target = g_strdup(target);
 	g_object_notify(G_OBJECT(session), "target");
+}
+
+static void
+ppg_session_set_args (PpgSession  *session,
+                      gchar      **args)
+{
+	PpgSessionPrivate *priv;
+
+	g_return_if_fail(PPG_IS_SESSION(session));
+
+	priv = session->priv;
+
+	g_strfreev(priv->args);
+	priv->args = g_strdupv(args);
+	g_object_notify(G_OBJECT(session), "args");
 }
 
 static const gchar *
@@ -552,6 +569,9 @@ ppg_session_get_property (GObject    *object,  /* IN */
 	PpgSession *session = PPG_SESSION(object);
 
 	switch (prop_id) {
+	case PROP_ARGS:
+		g_value_set_boxed(value, session->priv->args);
+		break;
 	case PROP_CONNECTION:
 		g_value_set_object(value, session->priv->conn);
 		break;
@@ -592,6 +612,9 @@ ppg_session_set_property (GObject      *object,
 		break;
 	case PROP_TARGET:
 		ppg_session_set_target(session, g_value_get_string(value));
+		break;
+	case PROP_ARGS:
+		ppg_session_set_args(session, g_value_get_boxed(value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -651,6 +674,14 @@ ppg_session_class_init (PpgSessionClass *klass)
 	                                                    "target",
 	                                                    NULL,
 	                                                    G_PARAM_READWRITE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_ARGS,
+	                                g_param_spec_boxed("args",
+	                                                   "args",
+	                                                   "args",
+	                                                   G_TYPE_STRV,
+	                                                   G_PARAM_READWRITE));
 
 	g_object_class_install_property(object_class,
 	                                PROP_POSITION,
