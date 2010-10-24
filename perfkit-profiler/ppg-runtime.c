@@ -21,8 +21,10 @@
 #include <gtk/gtk.h>
 
 #include "ppg-actions.h"
+#include "ppg-color.h"
 #include "ppg-instruments.h"
 #include "ppg-log.h"
+#include "ppg-monitor.h"
 #include "ppg-paths.h"
 #include "ppg-prefs.h"
 #include "ppg-runtime.h"
@@ -74,6 +76,8 @@ ppg_runtime_init (gint   *argc,
 	ppg_log_init(use_stdount, log_filename);
 	ppg_paths_init();
 	ppg_prefs_init(NULL, NULL); /* FIXME: */
+	ppg_color_init();
+	ppg_monitor_init();
 	gtk_window_set_default_icon_name("clock");
 	gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(),
 	                                  ppg_paths_get_icon_dir());

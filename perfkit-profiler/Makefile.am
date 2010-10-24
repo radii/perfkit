@@ -33,6 +33,7 @@ AM_CFLAGS =								\
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\"				\
 	-DG_LOG_DOMAIN=\""Profiler"\"					\
 	-I$(top_srcdir)/perfkit-profiler/				\
+	-I$(top_srcdir)/uber/						\
 	$(WARNINGS)							\
 	$(NULL)
 
@@ -48,6 +49,7 @@ INST_H_FILES =								\
 	ppg-about-dialog.h						\
 	ppg-actions.h							\
 	ppg-add-instrument-dialog.h					\
+	ppg-color.h							\
 	ppg-configure-instrument-dialog.h				\
 	ppg-edit-channel-task.h						\
 	ppg-header.h							\
@@ -58,6 +60,7 @@ INST_H_FILES =								\
 	ppg-memory-instrument.h						\
 	ppg-menu-tool-item.h						\
 	ppg-model.h							\
+	ppg-monitor.h							\
 	ppg-paths.h							\
 	ppg-prefs.h							\
 	ppg-prefs-dialog.h						\
@@ -86,6 +89,7 @@ perfkit_profiler_SOURCES =						\
 	main.c								\
 	ppg-about-dialog.c						\
 	ppg-actions.c							\
+	ppg-color.c							\
 	ppg-configure-instrument-dialog.c				\
 	ppg-add-instrument-dialog.c					\
 	ppg-edit-channel-task.c						\
@@ -97,6 +101,7 @@ perfkit_profiler_SOURCES =						\
 	ppg-memory-instrument.c						\
 	ppg-menu-tool-item.c						\
 	ppg-model.c							\
+	ppg-monitor.c							\
 	ppg-paths.c							\
 	ppg-prefs.c							\
 	ppg-prefs-dialog.c						\
@@ -122,6 +127,7 @@ perfkit_profiler_SOURCES =						\
 
 perfkit_profiler_LDADD =						\
 	$(top_builddir)/perfkit/libperfkit-1.0.la			\
+	$(top_builddir)/uber/libuber.la					\
 	$(NULL);
 
 run: perfkit-profiler

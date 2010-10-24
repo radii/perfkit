@@ -19,6 +19,7 @@
 #include <clutter-gtk/clutter-gtk.h>
 #include <glib/gi18n.h>
 #include <math.h>
+#include <uber.h>
 
 #include "ppg-about-dialog.h"
 #include "ppg-add-instrument-dialog.h"
@@ -27,6 +28,7 @@
 #include "ppg-header.h"
 #include "ppg-instrument.h"
 #include "ppg-menu-tool-item.h"
+#include "ppg-monitor.h"
 #include "ppg-prefs-dialog.h"
 #include "ppg-restart-task.h"
 #include "ppg-row.h"
@@ -46,6 +48,7 @@
 #define COLUMN_WIDTH_INT  ((gint)COLUMN_WIDTH)
 #define PIXELS_PER_SECOND (20.0)
 #define LARGER(_s)        ("<span size=\"larger\">" _s "</span>")
+#define BOLD(_s)          ("<span weight=\"bold\">" _s "</span>")
 
 G_DEFINE_TYPE(PpgWindow, ppg_window, GTK_TYPE_WINDOW)
 
@@ -128,6 +131,10 @@ static void ppg_window_zoom_out_activate       (GtkAction *action,
                                                 PpgWindow *window);
 static void ppg_window_zoom_one_activate       (GtkAction *action,
                                                 PpgWindow *window);
+static void ppg_window_monitor_cpu_activate    (GtkAction *action,
+                                                PpgWindow *window);
+static void ppg_window_monitor_mem_activate    (GtkAction *action,
+                                                PpgWindow *window);
 
 GtkActionEntry action_entries[] = {
 	{ "file", NULL, N_("Per_fkit") },
@@ -164,6 +171,13 @@ GtkActionEntry action_entries[] = {
 	{ "target-spawn", NULL, N_("Spawn a new process"), NULL, NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
 	{ "target-existing", NULL, N_("Select an existing process"), NULL, NULL, NULL },
 	{ "target-none", NULL, N_("No target"), NULL, NULL, NULL },
+
+	{ "tools", NULL, N_("_Tools") },
+	{ "monitor", NULL, N_("Monitor") },
+	{ "monitor-cpu", NULL, N_("CPU Usage"), NULL, NULL,
+	  G_CALLBACK(ppg_window_monitor_cpu_activate) },
+	{ "monitor-mem", NULL, N_("Memory Usage"), NULL, NULL,
+	  G_CALLBACK(ppg_window_monitor_mem_activate) },
 
 	{ "view", NULL, N_("_View") },
 	{ "zoom-in", GTK_STOCK_ZOOM_IN, N_("Zoom In"), "<control>equal", NULL,
@@ -476,6 +490,66 @@ ppg_window_configure_instrument_activate (GtkAction *action,
 	gtk_dialog_run(dialog);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 	g_object_unref(instrument);
+}
+
+static void
+ppg_window_show_graph (const gchar *title,
+                       GtkWidget   *graph,
+                       GtkWindow   *parent)
+{
+	GtkWidget *window;
+	GtkWidget *vbox;
+	GtkWidget *labels;
+
+	window = g_object_new(GTK_TYPE_WINDOW,
+	                      "border-width", 12,
+	                      "default-height", 300,
+	                      "default-width", 640,
+	                      "title", title,
+	                      "transient-for", parent,
+	                      NULL);
+	vbox = g_object_new(GTK_TYPE_VBOX,
+	                    "spacing", 6,
+	                    "visible", TRUE,
+	                    NULL);
+	gtk_container_add(GTK_CONTAINER(window), vbox);
+	gtk_container_add(GTK_CONTAINER(vbox), graph);
+	labels = uber_graph_get_labels(UBER_GRAPH(graph));
+	gtk_container_add_with_properties(GTK_CONTAINER(vbox), labels,
+	                                  "expand", FALSE,
+	                                  NULL);
+	gtk_widget_show(labels);
+	gtk_window_present(GTK_WINDOW(window));
+}
+
+static void
+ppg_window_monitor_cpu_activate (GtkAction *action,
+                                 PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	GtkWidget *graph;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	graph = ppg_monitor_cpu_new();
+	ppg_window_show_graph(_("CPU Usage"), graph, GTK_WINDOW(window));
+}
+
+static void
+ppg_window_monitor_mem_activate (GtkAction *action,
+                                 PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	GtkWidget *graph;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	graph = ppg_monitor_mem_new();
+	ppg_window_show_graph(_("Memory Usage"), graph, GTK_WINDOW(window));
 }
 
 /**
