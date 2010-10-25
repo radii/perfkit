@@ -1013,7 +1013,7 @@ ppg_window_position_notify (PpgSession *session,
 	}
 
 	ratio = (position / upper);
-	x = 200.0f + (ratio * width);
+	x = (gint)(200.0f + (ratio * width));
 
 	g_object_set(priv->timer_sep, "x", x, NULL);
 }
