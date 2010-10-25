@@ -17,20 +17,12 @@
  */
 
 #include <glib/gi18n.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "ppg-edit-channel-task.h"
 #include "ppg-session.h"
 #include "ppg-spawn-process-dialog.h"
 #include "ppg-task.h"
-
-#define APPEND_DUMMY_ROW(m)                                \
-    G_STMT_START {                                         \
-        GtkTreeIter iter;                                  \
-        gtk_list_store_append((m), &iter);                 \
-        gtk_list_store_set((m), &iter,                     \
-                           0, _("Click to add variable"),  \
-                           -1);                            \
-    } G_STMT_END
 
 G_DEFINE_TYPE(PpgSpawnProcessDialog, ppg_spawn_process_dialog, GTK_TYPE_DIALOG)
 
@@ -52,6 +44,170 @@ enum
 	PROP_SESSION,
 	PROP_TASK,
 };
+
+static gchar **
+ppg_spawn_process_dialog_build_env (PpgSpawnProcessDialog *dialog)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GPtrArray *ar;
+	gboolean is_dummy;
+	gchar **ret;
+	gchar *key;
+	gchar *value;
+	gchar *item;
+
+	g_return_val_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog), NULL);
+
+	priv = dialog->priv;
+
+	model = GTK_TREE_MODEL(priv->env_model);
+	ar = g_ptr_array_new();
+
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			gtk_tree_model_get(model, &iter, 2, &is_dummy, -1);
+			if (is_dummy) {
+				break;
+			}
+
+			gtk_tree_model_get(model, &iter,
+			                   0, &key,
+			                   1, &value,
+			                   -1);
+
+			item = g_strdup_printf("%s=%s", key, value);
+			g_ptr_array_add(ar, item);
+
+			g_free(key);
+			g_free(value);
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+
+	g_ptr_array_add(ar, NULL);
+	ret = (gchar **)ar->pdata;
+	g_ptr_array_free(ar, FALSE);
+
+	return ret;
+}
+
+static void
+ppg_spawn_process_dialog_try_append_dummy (PpgSpawnProcessDialog *dialog)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeIter iter;
+	GtkTreeModel *model;
+	gboolean is_dummy;
+
+	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
+
+	priv = dialog->priv;
+	model = GTK_TREE_MODEL(priv->env_model);
+
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			gtk_tree_model_get(model, &iter, 2, &is_dummy, -1);
+			if (is_dummy) {
+				return;
+			}
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+
+	gtk_list_store_append(priv->env_model, &iter);
+	gtk_list_store_set(priv->env_model, &iter,
+	                   0, _("Click to add variable"),
+	                   2, TRUE,
+                       -1);
+}
+
+static void
+ppg_spawn_process_dialog_key_edited (GtkCellRendererText *cell,
+                                     gchar *path,
+                                     gchar *new_text,
+                                     PpgSpawnProcessDialog *dialog)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkTreePath *tree_path;
+	gchar *old_text;
+	GtkTreeViewColumn *column;
+
+	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
+
+	priv = dialog->priv;
+	model = GTK_TREE_MODEL(priv->env_model);
+	tree_path = gtk_tree_path_new_from_string(path);
+
+	if (gtk_tree_model_get_iter(model, &iter, tree_path)) {
+		gtk_tree_model_get(model, &iter,
+		                   0, &old_text,
+		                   -1);
+
+		if (!g_strcmp0(old_text, new_text) || (!old_text && !new_text[0])) {
+			goto cleanup;
+		}
+
+		g_strdelimit(new_text, " -", '_');
+
+		gtk_list_store_set(priv->env_model, &iter,
+		                   0, new_text,
+		                   2, FALSE,
+		                   -1);
+
+		/* move to next column */
+		column = gtk_tree_view_get_column(GTK_TREE_VIEW(priv->env_treeview), 1);
+		gtk_tree_view_set_cursor(GTK_TREE_VIEW(priv->env_treeview), tree_path,
+		                         column, TRUE);
+
+	  cleanup:
+		g_free(old_text);
+	}
+
+	gtk_tree_path_free(tree_path);
+	ppg_spawn_process_dialog_try_append_dummy(dialog);
+}
+
+static void
+ppg_spawn_process_dialog_value_edited (GtkCellRendererText *cell,
+                                       gchar *path,
+                                       gchar *new_text,
+                                       PpgSpawnProcessDialog *dialog)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkTreePath *tree_path;
+	gchar *old_text;
+
+	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
+
+	priv = dialog->priv;
+	model = GTK_TREE_MODEL(priv->env_model);
+	tree_path = gtk_tree_path_new_from_string(path);
+
+	if (gtk_tree_model_get_iter(model, &iter, tree_path)) {
+		gtk_tree_model_get(model, &iter,
+		                   1, &old_text,
+		                   -1);
+
+		if (!g_strcmp0(old_text, new_text) || (!old_text && !new_text[0])) {
+			g_free(old_text);
+			return;
+		}
+		g_free(old_text);
+
+		gtk_list_store_set(priv->env_model, &iter,
+		                   1, new_text,
+		                   2, FALSE,
+		                   -1);
+	}
+
+	gtk_tree_path_free(tree_path);
+
+	ppg_spawn_process_dialog_try_append_dummy(dialog);
+}
 
 static void
 ppg_spawn_process_dialog_args_changed (GtkWidget             *entry,
@@ -129,6 +285,7 @@ ppg_spawn_process_dialog_get_task (PpgSpawnProcessDialog *dialog)
 	const gchar *args;
 	const gchar *working_dir;
 	gchar **argv = NULL;
+	gchar **env = NULL;
 	gint argc = 0;
 	gboolean empty;
 	PpgTask *task;
@@ -145,20 +302,56 @@ ppg_spawn_process_dialog_get_task (PpgSpawnProcessDialog *dialog)
 		return NULL;
 	}
 
+	env = ppg_spawn_process_dialog_build_env(dialog);
+
 	task = g_object_new(PPG_TYPE_EDIT_CHANNEL_TASK,
 	                    "args", argv,
 	                    "session", priv->session,
 	                    "target", target,
 	                    "working-dir", working_dir,
+	                    "env", env,
 	                    NULL);
 
 	/*
 	 * FIXME: Environment variables.
 	 */
 
+	g_strfreev(env);
 	g_strfreev(argv);
 
 	return task;
+}
+
+static gboolean
+tree_view_key_press (GtkTreeView *tree_view,
+                     GdkEventKey *key,
+                     PpgSpawnProcessDialog *dialog)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeSelection *selection;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gboolean is_dummy;
+
+	g_return_val_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog), FALSE);
+
+	priv = dialog->priv;
+
+	switch (key->keyval) {
+	case GDK_KEY_Delete:
+		selection = gtk_tree_view_get_selection(tree_view);
+		if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+			gtk_tree_model_get(model, &iter, 2, &is_dummy, -1);
+			if (!is_dummy) {
+				gtk_list_store_remove(priv->env_model, &iter);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+
+	return FALSE;
 }
 
 /**
@@ -475,14 +668,20 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	                        NULL);
 	gtk_container_add(GTK_CONTAINER(align), scroller);
 
-	priv->env_model = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
-	APPEND_DUMMY_ROW(priv->env_model);
+	priv->env_model = gtk_list_store_new(3,
+	                                     G_TYPE_STRING,
+	                                     G_TYPE_STRING,
+	                                     G_TYPE_BOOLEAN);
+	ppg_spawn_process_dialog_try_append_dummy(dialog);
 
 	priv->env_treeview = g_object_new(GTK_TYPE_TREE_VIEW,
 	                                  "model", priv->env_model,
 	                                  "visible", TRUE,
 	                                  NULL);
 	gtk_container_add(GTK_CONTAINER(scroller), priv->env_treeview);
+	g_signal_connect(priv->env_treeview, "key-press-event",
+	                 G_CALLBACK(tree_view_key_press),
+	                 dialog);
 
 	column = g_object_new(GTK_TYPE_TREE_VIEW_COLUMN,
 	                      "expand", TRUE,
@@ -495,6 +694,9 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(column), cell, TRUE);
 	gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(column), cell, "text", 0);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->env_treeview), column);
+	g_signal_connect(cell, "edited",
+	                 G_CALLBACK(ppg_spawn_process_dialog_key_edited),
+	                 dialog);
 
 	column = g_object_new(GTK_TYPE_TREE_VIEW_COLUMN,
 	                      "expand", TRUE,
@@ -507,6 +709,9 @@ ppg_spawn_process_dialog_init (PpgSpawnProcessDialog *dialog)
 	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(column), cell, TRUE);
 	gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(column), cell, "text", 1);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(priv->env_treeview), column);
+	g_signal_connect(cell, "edited",
+	                 G_CALLBACK(ppg_spawn_process_dialog_value_edited),
+	                 dialog);
 
 	gtk_dialog_add_button(GTK_DIALOG(dialog), GTK_STOCK_CANCEL,
 	                      GTK_RESPONSE_CANCEL);

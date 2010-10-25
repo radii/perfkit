@@ -23,11 +23,13 @@ G_DEFINE_TYPE(PpgEditChannelTask, ppg_edit_channel_task, PPG_TYPE_SESSION_TASK)
 struct _PpgEditChannelTaskPrivate
 {
 	gchar **args;
+	gchar **env;
 	gchar  *target;
 	gchar  *working_dir;
 
 	gboolean target_done;
 	gboolean args_done;
+	gboolean env_done;
 	gboolean dir_done;
 };
 
@@ -35,16 +37,17 @@ enum
 {
 	PROP_0,
 	PROP_ARGS,
+	PROP_ENV,
 	PROP_TARGET,
 	PROP_WORKING_DIR,
 };
 
-static inline void
+static void
 ppg_edit_channel_task_try_finish (PpgEditChannelTask *task)
 {
 	PpgEditChannelTaskPrivate *priv = task->priv;
 
-	if (priv->target_done && priv->args_done && priv->dir_done) {
+	if (priv->target_done && priv->args_done && priv->dir_done && priv->env_done) {
 		ppg_task_finish(PPG_TASK(task));
 	}
 }
@@ -116,6 +119,28 @@ ppg_edit_channel_task_args_set (GObject      *object,
 }
 
 static void
+ppg_edit_channel_task_env_set (GObject      *object,
+                               GAsyncResult *result,
+                               gpointer      user_data)
+{
+	PkConnection *conn = (PkConnection *)object;
+	PpgTask *task = (PpgTask *)user_data;
+	PpgEditChannelTaskPrivate *priv;
+	GError *error = NULL;
+
+	g_return_if_fail(PPG_IS_EDIT_CHANNEL_TASK(task));
+
+	priv = PPG_EDIT_CHANNEL_TASK(task)->priv;
+
+	if (!pk_connection_channel_set_env_finish(conn, result, &error)) {
+		ppg_task_finish_with_error(task, error);
+	}
+
+	priv->env_done = TRUE;
+	ppg_edit_channel_task_try_finish(PPG_EDIT_CHANNEL_TASK(task));
+}
+
+static void
 ppg_edit_channel_task_run (PpgTask *task)
 {
 	PpgEditChannelTask *edit = (PpgEditChannelTask *)task;
@@ -155,6 +180,16 @@ ppg_edit_channel_task_run (PpgTask *task)
 											 task);
 	} else {
 		priv->args_done = TRUE;
+		ppg_edit_channel_task_try_finish(edit);
+	}
+
+	if (priv->env) {
+		pk_connection_channel_set_env_async(conn, channel,
+											(const gchar **)priv->env, NULL,
+											ppg_edit_channel_task_env_set,
+											task);
+	} else {
+		priv->env_done = TRUE;
 		ppg_edit_channel_task_try_finish(edit);
 	}
 
@@ -212,6 +247,19 @@ ppg_edit_channel_task_set_args (PpgEditChannelTask  *task,
 	priv->args = g_strdupv(args);
 }
 
+static void
+ppg_edit_channel_task_set_env (PpgEditChannelTask  *task,
+                               gchar **env)
+{
+	PpgEditChannelTaskPrivate *priv;
+
+	g_return_if_fail(PPG_IS_EDIT_CHANNEL_TASK(task));
+
+	priv = task->priv;
+	g_strfreev(priv->env);
+	priv->env = g_strdupv(env);
+}
+
 /**
  * ppg_edit_channel_task_finalize:
  * @object: (in): A #PpgEditChannelTask.
@@ -254,6 +302,9 @@ ppg_edit_channel_task_set_property (GObject      *object,
 		break;
 	case PROP_ARGS:
 		ppg_edit_channel_task_set_args(task, g_value_get_boxed(value));
+		break;
+	case PROP_ENV:
+		ppg_edit_channel_task_set_env(task, g_value_get_boxed(value));
 		break;
 	default: G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
 	}
@@ -303,6 +354,14 @@ ppg_edit_channel_task_class_init (PpgEditChannelTaskClass *klass)
 	                                g_param_spec_boxed("args",
 	                                                   "args",
 	                                                   "args",
+	                                                   G_TYPE_STRV,
+	                                                   G_PARAM_WRITABLE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_ENV,
+	                                g_param_spec_boxed("env",
+	                                                   "env",
+	                                                   "env",
 	                                                   G_TYPE_STRV,
 	                                                   G_PARAM_WRITABLE));
 }
