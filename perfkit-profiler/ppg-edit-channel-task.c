@@ -202,6 +202,7 @@ ppg_edit_channel_task_run (PpgTask *task)
 
 	g_object_set(session,
 	             "args", priv->args,
+	             "env", priv->env,
 	             "target", priv->target,
 	             NULL);
 

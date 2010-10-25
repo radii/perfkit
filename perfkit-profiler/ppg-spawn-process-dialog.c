@@ -245,6 +245,57 @@ ppg_spawn_process_dialog_args_changed (GtkWidget             *entry,
 }
 
 static void
+ppg_spawn_process_dialog_add_env (PpgSpawnProcessDialog *dialog,
+                                  const gchar *key,
+                                  const gchar *value)
+{
+	PpgSpawnProcessDialogPrivate *priv;
+	GtkTreeIter iter;
+
+	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
+	g_return_if_fail(key != NULL);
+	g_return_if_fail(value != NULL);
+
+	priv = dialog->priv;
+
+	gtk_list_store_prepend(priv->env_model, &iter);
+	gtk_list_store_set(priv->env_model, &iter,
+	                   0, key,
+	                   1, value,
+	                   2, FALSE,
+	                   -1);
+}
+
+static void
+ppg_spawn_process_dialog_load_env (PpgSpawnProcessDialog *dialog,
+                                   gchar **env)
+{
+	gchar **kv;
+	gint len;
+	gint i;
+
+	for (i = 0; env[i]; i++) {
+		kv = g_strsplit(env[i], "=", 2);
+		len = g_strv_length(kv);
+
+		switch (len) {
+		case 0:
+			break;
+		case 1:
+			ppg_spawn_process_dialog_add_env(dialog, kv[0], "");
+			break;
+		case 2:
+			ppg_spawn_process_dialog_add_env(dialog, kv[0], kv[1]);
+			break;
+		default:
+			g_assert_not_reached();
+		}
+
+		g_strfreev(kv);
+	}
+}
+
+static void
 ppg_spawn_process_dialog_set_session (PpgSpawnProcessDialog *dialog,
                                       PpgSession            *session)
 {
@@ -252,6 +303,7 @@ ppg_spawn_process_dialog_set_session (PpgSpawnProcessDialog *dialog,
 	gchar **args;
 	gchar *args_str;
 	gchar *target;
+	gchar **env;
 
 	g_return_if_fail(PPG_IS_SPAWN_PROCESS_DIALOG(dialog));
 	g_return_if_fail(PPG_IS_SESSION(session));
@@ -261,6 +313,7 @@ ppg_spawn_process_dialog_set_session (PpgSpawnProcessDialog *dialog,
 
 	g_object_get(priv->session,
 	             "args", &args,
+	             "env", &env,
 	             "target", &target,
 	             NULL);
 
@@ -274,6 +327,11 @@ ppg_spawn_process_dialog_set_session (PpgSpawnProcessDialog *dialog,
 		gtk_entry_set_text(GTK_ENTRY(priv->args_entry), args_str);
 		g_free(args_str);
 		g_strfreev(args);
+	}
+
+	if (env) {
+		ppg_spawn_process_dialog_load_env(dialog, env);
+		g_strfreev(env);
 	}
 }
 

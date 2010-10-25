@@ -27,6 +27,7 @@ struct _PpgSessionPrivate
 	gint           channel;
 	gchar         *target;
 	gchar        **args;
+	gchar        **env;
 	GTimer        *timer;
 	guint          position_handler;
 };
@@ -37,6 +38,7 @@ enum
 	PROP_ARGS,
 	PROP_CHANNEL,
 	PROP_CONNECTION,
+	PROP_ENV,
 	PROP_POSITION,
 	PROP_TARGET,
 	PROP_URI,
@@ -126,6 +128,21 @@ ppg_session_set_args (PpgSession  *session,
 	g_strfreev(priv->args);
 	priv->args = g_strdupv(args);
 	g_object_notify(G_OBJECT(session), "args");
+}
+
+static void
+ppg_session_set_env (PpgSession  *session,
+                      gchar      **env)
+{
+	PpgSessionPrivate *priv;
+
+	g_return_if_fail(PPG_IS_SESSION(session));
+
+	priv = session->priv;
+
+	g_strfreev(priv->env);
+	priv->env = g_strdupv(env);
+	g_object_notify(G_OBJECT(session), "env");
 }
 
 static const gchar *
@@ -578,6 +595,9 @@ ppg_session_get_property (GObject    *object,  /* IN */
 	case PROP_CHANNEL:
 		g_value_set_int(value, session->priv->channel);
 		break;
+	case PROP_ENV:
+		g_value_set_boxed(value, session->priv->env);
+		break;
 	case PROP_TARGET:
 		g_value_set_string(value, ppg_session_get_target(session));
 		break;
@@ -615,6 +635,9 @@ ppg_session_set_property (GObject      *object,
 		break;
 	case PROP_ARGS:
 		ppg_session_set_args(session, g_value_get_boxed(value));
+		break;
+	case PROP_ENV:
+		ppg_session_set_env(session, g_value_get_boxed(value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
@@ -680,6 +703,14 @@ ppg_session_class_init (PpgSessionClass *klass)
 	                                g_param_spec_boxed("args",
 	                                                   "args",
 	                                                   "args",
+	                                                   G_TYPE_STRV,
+	                                                   G_PARAM_READWRITE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_ENV,
+	                                g_param_spec_boxed("env",
+	                                                   "env",
+	                                                   "env",
 	                                                   G_TYPE_STRV,
 	                                                   G_PARAM_READWRITE));
 
