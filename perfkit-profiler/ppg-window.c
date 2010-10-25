@@ -749,9 +749,9 @@ ppg_window_size_allocate (GtkWidget     *widget,
 		clutter_actor_set_height(priv->timer_sep, embed_alloc.height);
 		clutter_actor_set_y(priv->status_actor,
 		                    embed_alloc.height - clutter_actor_get_height(priv->status_actor));
-	}
 
-	ppg_window_zoom_value_changed(priv->zadj, window);
+		ppg_window_zoom_value_changed(priv->zadj, window);
+	}
 
 	priv->last_width = alloc->width;
 	priv->last_height = alloc->height;
@@ -1135,6 +1135,20 @@ ppg_window_embed_motion_notify (GtkWidget      *embed,
 	return FALSE;
 }
 
+static void
+ppg_window_show (GtkWidget *widget)
+{
+	PpgWindow *window = (PpgWindow *)widget;
+	PpgWindowPrivate *priv;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	GTK_WIDGET_CLASS(ppg_window_parent_class)->show(widget);
+
+	priv = window->priv;
+	ppg_window_zoom_value_changed(priv->zadj, window);
+}
+
 /**
  * ppg_window_finalize:
  * @object: (in): A #PpgWindow.
@@ -1229,6 +1243,7 @@ ppg_window_class_init (PpgWindowClass *klass)
 
 	widget_class = GTK_WIDGET_CLASS(klass);
 	widget_class->delete_event = ppg_window_delete_event;
+	widget_class->show = ppg_window_show;
 	widget_class->size_allocate = ppg_window_size_allocate;
 	widget_class->style_set = ppg_window_style_set;
 
