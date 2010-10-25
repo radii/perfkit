@@ -123,9 +123,12 @@ ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 	cairo_restore(cr);
 
 	cairo_set_line_width(cr, 1.0);
+
+#if 0
 	cairo_rectangle(cr, 0, 0, width, height);
 	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
 	cairo_fill(cr);
+#endif
 
 	for (i = 0; i < priv->lines->len; i++) {
 		line = &g_array_index(priv->lines, Line, i);
