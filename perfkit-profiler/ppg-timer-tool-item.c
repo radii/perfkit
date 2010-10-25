@@ -25,6 +25,7 @@ G_DEFINE_TYPE(PpgTimerToolItem, ppg_timer_tool_item, GTK_TYPE_TOOL_ITEM)
 
 struct _PpgTimerToolItemPrivate
 {
+	PpgSession *session;
 	GtkWidget *button;
 	GtkWidget *ebox;
 	GtkWidget *label;
@@ -44,6 +45,7 @@ ppg_timer_tool_item_ebox_expose (GtkWidget        *ebox,
 	PpgTimerToolItemPrivate *priv;
 	GtkAllocation alloc;
 	GtkStyle *style;
+	GdkColor color;
 
 	g_return_val_if_fail(GTK_IS_WIDGET(ebox), FALSE);
 	g_return_val_if_fail(expose != NULL, FALSE);
@@ -55,6 +57,26 @@ ppg_timer_tool_item_ebox_expose (GtkWidget        *ebox,
 	 * XXX: Hackety-hack (don't talk back).
 	 */
 	gtk_widget_show(priv->button);
+
+	switch (ppg_session_get_state(priv->session)) {
+	case PPG_SESSION_STOPPED:
+		gtk_widget_modify_bg(priv->button, GTK_STATE_NORMAL, NULL);
+		break;
+	case PPG_SESSION_STARTED:
+		gdk_color_parse("#cc6666", &color);
+		gtk_widget_modify_bg(priv->button, GTK_STATE_NORMAL, &color);
+		break;
+	case PPG_SESSION_PAUSED:
+		gdk_color_parse("#ee9a77", &color);
+		gtk_widget_modify_bg(priv->button, GTK_STATE_NORMAL, &color);
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
+	/*
+	 * XXX: Hackety-hack (don't talk back).
+	 */
 	style = gtk_widget_get_style(priv->button);
 	gtk_widget_hide(priv->button);
 
@@ -126,11 +148,24 @@ ppg_timer_tool_item_set_session (PpgTimerToolItem *item,
 	g_return_if_fail(PPG_IS_TIMER_TOOL_ITEM(item));
 
 	priv = item->priv;
+	priv->session = session;
 
 	g_signal_connect(session,
 	                 "notify::position",
 	                 G_CALLBACK(ppg_timer_tool_item_notify_position),
 	                 item);
+	g_signal_connect_swapped(session, "started",
+	                         G_CALLBACK(gtk_widget_queue_draw),
+	                         item);
+	g_signal_connect_swapped(session, "stopped",
+	                         G_CALLBACK(gtk_widget_queue_draw),
+	                         item);
+	g_signal_connect_swapped(session, "paused",
+	                         G_CALLBACK(gtk_widget_queue_draw),
+	                         item);
+	g_signal_connect_swapped(session, "unpaused",
+	                         G_CALLBACK(gtk_widget_queue_draw),
+	                         item);
 }
 
 /**
