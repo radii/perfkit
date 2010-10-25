@@ -749,9 +749,9 @@ ppg_window_size_allocate (GtkWidget     *widget,
 		clutter_actor_set_height(priv->timer_sep, embed_alloc.height);
 		clutter_actor_set_y(priv->status_actor,
 		                    embed_alloc.height - clutter_actor_get_height(priv->status_actor));
-
-		ppg_window_zoom_value_changed(priv->zadj, window);
 	}
+
+	ppg_window_zoom_value_changed(priv->zadj, window);
 
 	priv->last_width = alloc->width;
 	priv->last_height = alloc->height;
