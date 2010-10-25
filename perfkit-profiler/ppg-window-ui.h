@@ -64,6 +64,7 @@ static char ppg_window_ui[] =
 	"     <menu action=\"monitor\">"
 	"      <menuitem action=\"monitor-cpu\"/>"
 	"      <menuitem action=\"monitor-mem\"/>"
+	"      <menuitem action=\"monitor-net\"/>"
 	"     </menu>"
 	"    </menu>"
 	"    <menu action=\"help\">"

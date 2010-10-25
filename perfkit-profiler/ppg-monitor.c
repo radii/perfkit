@@ -44,8 +44,17 @@ typedef struct
 	gdouble swap_free;
 } MemInfo;
 
+typedef struct
+{
+	gdouble total_in;
+	gdouble total_out;
+	gdouble last_total_in;
+	gdouble last_total_out;
+} NetInfo;
+
 static CpuInfo  cpu_info = { 0 };
 static MemInfo  mem_info = { 0 };
+static NetInfo  net_info = { 0 };
 static gboolean shutdown = FALSE;
 
 static void
@@ -228,6 +237,61 @@ ppg_monitor_next_mem (void)
 	g_free(buf);
 }
 
+static void
+ppg_monitor_next_net (void)
+{
+	GError *error = NULL;
+	gulong total_in = 0;
+	gulong total_out = 0;
+	gulong bytes_in;
+	gulong bytes_out;
+	gulong dummy;
+	gchar *buf = NULL;
+	gchar iface[32] = { 0 };
+	gchar *line;
+	gsize len;
+	gint l = 0;
+	gint i;
+
+	if (!g_file_get_contents("/proc/net/dev", &buf, &len, &error)) {
+		g_printerr("%s", error->message);
+		g_error_free(error);
+		return;
+	}
+
+	line = buf;
+	for (i = 0; i < len; i++) {
+		if (buf[i] == ':') {
+			buf[i] = ' ';
+		} else if (buf[i] == '\n') {
+			buf[i] = '\0';
+			if (++l > 2) { /* ignore first two lines */
+				if (sscanf(line, "%31s %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+				           iface, &bytes_in,
+				           &dummy, &dummy, &dummy, &dummy,
+				           &dummy, &dummy, &dummy,
+				           &bytes_out) != 10) {
+					g_warning("Skipping invalid line: %s", line);
+				} else if (g_strcmp0(iface, "lo") != 0) {
+					total_in += bytes_in;
+					total_out += bytes_out;
+				}
+				line = NULL;
+			}
+			line = &buf[++i];
+		}
+	}
+
+	if ((net_info.last_total_in != 0.) && (net_info.last_total_out != 0.)) {
+		net_info.total_in = (total_in - net_info.last_total_in);
+		net_info.total_out = (total_out - net_info.last_total_out);
+	}
+
+	net_info.last_total_in = total_in;
+	net_info.last_total_out = total_out;
+	g_free(buf);
+}
+
 static gpointer
 ppg_monitor_thread (gpointer data)
 {
@@ -235,6 +299,7 @@ ppg_monitor_thread (gpointer data)
 		ppg_monitor_next_cpu();
 		ppg_monitor_next_cpu_freq();
 		ppg_monitor_next_mem();
+		ppg_monitor_next_net();
 		g_usleep(G_USEC_PER_SEC);
 	}
 	return NULL;
@@ -286,6 +351,26 @@ ppg_monitor_get_mem (UberLineGraph *graph,
 		break;
 	case 2:
 		*value = mem_info.swap_free;
+		break;
+	default:
+		g_assert_not_reached();
+	}
+
+	return TRUE;
+}
+
+static gboolean
+ppg_monitor_get_net (UberLineGraph *graph,
+                     guint          line,
+                     gdouble       *value,
+                     gpointer       user_data)
+{
+	switch (line) {
+	case 1:
+		*value = net_info.total_in;
+		break;
+	case 2:
+		*value = net_info.total_out;
 		break;
 	default:
 		g_assert_not_reached();
@@ -397,6 +482,40 @@ ppg_monitor_mem_new (void)
 	l = g_object_new(UBER_TYPE_LABEL,
 	                 "color", &iter.color,
 	                 "text", _("Swap Free"),
+	                 "visible", TRUE,
+	                 NULL);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(graph), &iter.color, l);
+
+	return graph;
+}
+
+GtkWidget*
+ppg_monitor_net_new (void)
+{
+	PpgColorIter iter;
+	GtkWidget *graph;
+	UberLabel *l;
+
+	graph = g_object_new(UBER_TYPE_LINE_GRAPH,
+	                     "format", UBER_GRAPH_FORMAT_DIRECT1024,
+	                     "visible", TRUE,
+	                     NULL);
+	uber_line_graph_set_data_func(UBER_LINE_GRAPH(graph),
+	                              ppg_monitor_get_net,
+	                              NULL, NULL);
+
+	ppg_color_iter_init(&iter);
+	l = g_object_new(UBER_TYPE_LABEL,
+	                 "color", &iter.color,
+	                 "text", _("Bytes In"),
+	                 "visible", TRUE,
+	                 NULL);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(graph), &iter.color, l);
+
+	ppg_color_iter_next(&iter);
+	l = g_object_new(UBER_TYPE_LABEL,
+	                 "color", &iter.color,
+	                 "text", _("Bytes Out"),
 	                 "visible", TRUE,
 	                 NULL);
 	uber_line_graph_add_line(UBER_LINE_GRAPH(graph), &iter.color, l);

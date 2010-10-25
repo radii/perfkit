@@ -135,6 +135,8 @@ static void ppg_window_monitor_cpu_activate    (GtkAction *action,
                                                 PpgWindow *window);
 static void ppg_window_monitor_mem_activate    (GtkAction *action,
                                                 PpgWindow *window);
+static void ppg_window_monitor_net_activate    (GtkAction *action,
+                                                PpgWindow *window);
 
 GtkActionEntry action_entries[] = {
 	{ "file", NULL, N_("Per_fkit") },
@@ -178,6 +180,8 @@ GtkActionEntry action_entries[] = {
 	  G_CALLBACK(ppg_window_monitor_cpu_activate) },
 	{ "monitor-mem", NULL, N_("Memory Usage"), NULL, NULL,
 	  G_CALLBACK(ppg_window_monitor_mem_activate) },
+	{ "monitor-net", NULL, N_("Network Usage"), NULL, NULL,
+	  G_CALLBACK(ppg_window_monitor_net_activate) },
 
 	{ "view", NULL, N_("_View") },
 	{ "zoom-in", GTK_STOCK_ZOOM_IN, N_("Zoom In"), "<control>equal", NULL,
@@ -526,12 +530,9 @@ static void
 ppg_window_monitor_cpu_activate (GtkAction *action,
                                  PpgWindow *window)
 {
-	PpgWindowPrivate *priv;
 	GtkWidget *graph;
 
 	g_return_if_fail(PPG_IS_WINDOW(window));
-
-	priv = window->priv;
 
 	graph = ppg_monitor_cpu_new();
 	ppg_window_show_graph(_("CPU Usage"), graph, GTK_WINDOW(window));
@@ -541,15 +542,24 @@ static void
 ppg_window_monitor_mem_activate (GtkAction *action,
                                  PpgWindow *window)
 {
-	PpgWindowPrivate *priv;
 	GtkWidget *graph;
 
 	g_return_if_fail(PPG_IS_WINDOW(window));
 
-	priv = window->priv;
-
 	graph = ppg_monitor_mem_new();
 	ppg_window_show_graph(_("Memory Usage"), graph, GTK_WINDOW(window));
+}
+
+static void
+ppg_window_monitor_net_activate (GtkAction *action,
+                                 PpgWindow *window)
+{
+	GtkWidget *graph;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	graph = ppg_monitor_net_new();
+	ppg_window_show_graph(_("Network Usage"), graph, GTK_WINDOW(window));
 }
 
 /**
