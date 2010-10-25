@@ -23,13 +23,14 @@ G_DEFINE_TYPE(PpgSession, ppg_session, G_TYPE_INITIALLY_UNOWNED)
 
 struct _PpgSessionPrivate
 {
-	PkConnection  *conn;
-	gint           channel;
-	gchar         *target;
-	gchar        **args;
-	gchar        **env;
-	GTimer        *timer;
-	guint          position_handler;
+	PkConnection *conn;
+	gint channel;
+	gchar *target;
+	gchar **args;
+	gchar **env;
+	GTimer *timer;
+	guint position_handler;
+	PpgSessionState state;
 };
 
 enum
@@ -174,6 +175,13 @@ ppg_session_get_position (PpgSession *session)
 	return 0.0;
 }
 
+PpgSessionState
+ppg_session_get_state (PpgSession *session)
+{
+	g_return_val_if_fail(PPG_IS_SESSION(session), 0);
+	return session->priv->state;
+}
+
 /**
  * ppg_session_channel_added:
  * @connection: (in): A #PkConnection.
@@ -278,6 +286,7 @@ ppg_session_channel_stopped (GObject *object,
 		 */
 	}
 
+	priv->state = PPG_SESSION_STOPPED;
 	g_timer_stop(priv->timer);
 
 	ppg_session_stop_position_notifier(session);
@@ -316,6 +325,7 @@ ppg_session_channel_started (GObject *object,
 		return;
 	}
 
+	priv->state = PPG_SESSION_STARTED;
 	priv->timer = g_timer_new();
 
 	ppg_session_start_position_notifier(session);
@@ -358,6 +368,7 @@ ppg_session_channel_muted (GObject *object,
 	/*
 	 * XXX: How do we deal with timer skew?
 	 */
+	priv->state = PPG_SESSION_PAUSED;
 	g_timer_stop(priv->timer);
 
 	ppg_session_stop_position_notifier(session);
@@ -398,6 +409,7 @@ ppg_session_channel_unmuted (GObject *object,
 	/*
 	 * XXX: What do we do here for timer? Add adjust variable?
 	 */
+	priv->state = PPG_SESSION_STARTED;
 	g_timer_start(priv->timer);
 
 	ppg_session_start_position_notifier(session);
