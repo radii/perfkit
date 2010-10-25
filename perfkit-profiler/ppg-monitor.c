@@ -268,7 +268,7 @@ ppg_monitor_get_cpu (UberLineGraph *graph,
 	if (line <= cpu_info.len) {
 		*value = cpu_info.total[line - 1];
 	} else {
-		*value = cpu_info.freq[line * 2 - 1];
+		*value = cpu_info.freq[(line / 2)- 1];
 	}
 
 	return TRUE;
@@ -338,7 +338,7 @@ ppg_monitor_cpu_new (void)
 	 */
 	ppg_color_iter_init(&iter);
 	for (i = 0; i < cpu_info.len; i++) {
-		title = g_strdup_printf("CPU%d %0.1f %%", i + 1, 0.0);
+		title = g_strdup_printf("CPU%d", i + 1);
 		l = g_object_new(UBER_TYPE_LABEL,
 		                 "color", &iter.color,
 		                 "text", title,
