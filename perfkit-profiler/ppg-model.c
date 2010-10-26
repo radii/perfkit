@@ -87,8 +87,8 @@ ppg_model_get (PpgModel *model,
 
 	g_return_if_fail(PPG_IS_MODEL(model));
 	g_return_if_fail(iter != NULL);
-	g_return_if_fail(row >= 0);
-	g_return_if_fail(row < model->priv->n_rows);
+	//g_return_if_fail(row >= 0);
+	//g_return_if_fail(row < model->priv->n_rows);
 	g_return_if_fail(value != NULL);
 
 	priv = model->priv;
