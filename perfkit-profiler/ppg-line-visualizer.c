@@ -79,18 +79,18 @@ static void
 ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 {
 	PpgLineVisualizerPrivate *priv;
-	PpgIter iter;
-	Line *line;
+	//PpgModelIter iter;
+	//Line *line;
 	gdouble begin;
 	gdouble end;
-	gdouble lower;
-	gdouble upper;
-	gdouble offset;
-	gdouble value;
+	//gdouble lower;
+	//gdouble upper;
+	//gdouble offset;
+	//gdouble value;
 	gfloat height;
 	gfloat width;
 	cairo_t *cr;
-	gint i;
+	//gint i;
 
 	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
 
@@ -130,20 +130,20 @@ ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 	cairo_fill(cr);
 #endif
 
+#if 0
 	for (i = 0; i < priv->lines->len; i++) {
 		line = &g_array_index(priv->lines, Line, i);
 		gdk_cairo_set_source_color(cr, &line->color);
 
-		if (!ppg_model_get_iter_at(line->model, &iter, begin, end,
-		                           PPG_RESOLUTION_FULL)) {
+		if (!ppg_model_get_iter_at(line->model, &iter, begin, end, PPG_RESOLUTION_FULL)) {
 			continue;
 		}
 
-		ppg_model_get_bounds(line->model, &iter, &lower, &upper);
+		//ppg_model_get_bounds(line->model, &iter, &lower, &upper);
 
 		do {
-			ppg_model_get(line->model, &iter, line->row, &offset, &value);
-			cairo_line_to(cr, offset, value);
+			//ppg_model_get(line->model, &iter, line->row, &offset, &value);
+			//cairo_line_to(cr, offset, value);
 		} while (ppg_model_iter_next(line->model, &iter));
 
 		if (line->fill) {
@@ -155,6 +155,7 @@ ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 
 		cairo_stroke(cr);
 	}
+#endif
 
 	cairo_destroy(cr);
 }
