@@ -27,6 +27,32 @@
 #endif
 
 /**
+ * timespec_compare:
+ * @ts1: A timespec.
+ * @ts2: A timespec.
+ *
+ * A qsort style compare function.
+ *
+ * Returns: greater than zero if @ts1 is greater than @ts2. less than one
+ *   if @ts2 is greater than @ts1. otherwise, zero.
+ * Side effects: None.
+ */
+static inline gint
+timespec_compare (const struct timespec *ts1, /* IN */
+                  const struct timespec *ts2) /* IN */
+{
+	if ((ts1->tv_sec == ts2->tv_sec) && (ts1->tv_nsec == ts2->tv_nsec)) {
+		return 0;
+	} else if ((ts1->tv_sec > ts2->tv_sec) ||
+	         ((ts1->tv_sec == ts2->tv_sec) &&
+	          (ts1->tv_nsec > ts2->tv_nsec))) {
+		return 1;
+	} else {
+		return -1;
+	}
+}
+
+/**
  * timespec_subtract:
  * @x: A struct timespec.
  *
