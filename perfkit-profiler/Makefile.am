@@ -34,6 +34,7 @@ AM_CFLAGS =								\
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\"				\
 	-DG_LOG_DOMAIN=\""Profiler"\"					\
 	-I$(top_srcdir)/perfkit-profiler/				\
+	-I$(top_srcdir)/cut-n-paste/					\
 	-I$(top_srcdir)/uber/						\
 	$(WARNINGS)							\
 	$(NULL)

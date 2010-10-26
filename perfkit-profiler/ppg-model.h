@@ -19,7 +19,7 @@
 #ifndef __PPG_MODEL_H__
 #define __PPG_MODEL_H__
 
-#include <glib-object.h>
+#include <perfkit/perfkit.h>
 
 G_BEGIN_DECLS
 
@@ -34,21 +34,19 @@ G_BEGIN_DECLS
 typedef struct _PpgModel        PpgModel;
 typedef struct _PpgModelClass   PpgModelClass;
 typedef struct _PpgModelPrivate PpgModelPrivate;
-typedef struct _PpgIter         PpgIter;
+typedef struct _PpgModelIter    PpgModelIter;
 typedef enum   _PpgResolution   PpgResolution;
 
-struct _PpgIter
+struct _PpgModelIter
 {
-	PpgModel *model;
-	gdouble   begin;
-	gdouble   end;
-	gdouble   pos;
-	gdouble   lower;
-	gdouble   upper;
+	guint32 stamp;
+	gdouble time;
 
-	gpointer  user_data;
-	gpointer  user_data1;
-	gpointer  user_data2;
+	/*< private >*/
+	gpointer user_data;
+	gpointer user_data2;
+	gpointer user_data3;
+	gpointer user_data4;
 };
 
 struct _PpgModel
@@ -72,23 +70,19 @@ enum _PpgResolution
 	PPG_RESOLUTION_MINUTE,
 };
 
-GType    ppg_model_get_type    (void) G_GNUC_CONST;
-gboolean ppg_model_get_iter_at (PpgModel      *model,
-                                PpgIter       *iter,
-                                gdouble        begin,
-                                gdouble        end,
-                                PpgResolution  resolution);
-gboolean ppg_model_iter_next   (PpgModel      *model,
-                                PpgIter       *iter);
-void     ppg_model_get         (PpgModel      *model,
-                                PpgIter       *iter,
-                                gint           row,
-                                gdouble       *offset,
-                                gdouble       *value);
-void     ppg_model_get_bounds  (PpgModel      *model,
-                                PpgIter       *iter,
-                                gdouble       *lower,
-                                gdouble       *upper);
+GType    ppg_model_get_type        (void) G_GNUC_CONST;
+gboolean ppg_model_get_iter_at     (PpgModel      *model,
+                                    PpgModelIter  *iter,
+                                    gdouble        begin,
+                                    gdouble        end,
+                                    PpgResolution  resolution);
+gboolean ppg_model_iter_next       (PpgModel      *model,
+                                    PpgModelIter  *iter);
+void     ppg_model_insert_manifest (PpgModel      *model,
+                                    PkManifest    *manifest);
+void     ppg_model_insert_sample   (PpgModel      *model,
+                                    PkManifest    *manifest,
+                                    PkSample      *sample);
 
 G_END_DECLS
 
