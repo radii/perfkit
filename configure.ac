@@ -94,7 +94,7 @@ AC_ARG_ENABLE([debug],
 AS_CASE([$enable_debug],
 	[yes], [
 		test "$cflags_set" = set || CFLAGS="$CFLAGS -g"
-		PERFKIT_DEBUG_CFLAGS="-DPERFKIT_TRACE"
+		PERFKIT_DEBUG_CFLAGS="-DPERFKIT_TRACE -DPERFKIT_DEBUG"
 	],
 	[minimum], [
 		PERFKIT_DEBUG_CFLAGS="-DG_DISABLE_CAST_CHECKS"
