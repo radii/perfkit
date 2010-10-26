@@ -27,14 +27,6 @@
 #include "pk-log.h"
 #include "pk-util.h"
 
-/**
- * SECTION:pk-manifest
- * @title: PkManifest
- * @short_description: 
- *
- * 
- */
-
 static gboolean decode (PkManifest *manifest, EggBuffer *buffer);
 
 struct _PkManifest
@@ -94,6 +86,27 @@ pk_manifest_get_source_id (PkManifest *manifest) /* IN */
 {
 	g_return_val_if_fail(manifest != NULL, -1);
 	return manifest->source_id;
+}
+
+gint
+pk_manifest_get_row_id (PkManifest  *manifest,
+                        const gchar *name)
+{
+	PkManifestRow *row;
+	gint i;
+
+	g_return_val_if_fail(manifest != NULL, -1);
+	g_return_val_if_fail(manifest->rows != NULL, -1);
+	g_return_val_if_fail(name != NULL, -1);
+
+	for (i = 0; i < manifest->rows->len; i++) {
+		row = &g_array_index(manifest->rows, PkManifestRow, i);
+		if (!g_strcmp0(name, row->name)) {
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 

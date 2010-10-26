@@ -44,19 +44,21 @@ typedef enum
 } PkResolution;
 
 GType           pk_manifest_get_type       (void) G_GNUC_CONST;
-PkManifest*     pk_manifest_new_from_data  (const guint8 *data,
-                                            gsize         length);
-PkManifest*     pk_manifest_ref            (PkManifest *manifest);
-void            pk_manifest_unref          (PkManifest *manifest);
-PkResolution    pk_manifest_get_resolution (PkManifest *manifest);
-gint            pk_manifest_get_n_rows     (PkManifest *manifest);
-GType           pk_manifest_get_row_type   (PkManifest *manifest,
-                                            gint        row);
-const gchar*    pk_manifest_get_row_name   (PkManifest *manifest,
-                                            gint        row);
+PkManifest*     pk_manifest_new_from_data  (const guint8    *data,
+                                            gsize            length);
+PkManifest*     pk_manifest_ref            (PkManifest      *manifest);
+void            pk_manifest_unref          (PkManifest      *manifest);
+PkResolution    pk_manifest_get_resolution (PkManifest      *manifest);
+gint            pk_manifest_get_n_rows     (PkManifest      *manifest);
+GType           pk_manifest_get_row_type   (PkManifest      *manifest,
+                                            gint             row);
+const gchar*    pk_manifest_get_row_name   (PkManifest      *manifest,
+                                            gint             row);
+gint            pk_manifest_get_row_id     (PkManifest      *manifest,
+                                            const gchar     *name);
 void            pk_manifest_get_timespec   (PkManifest      *manifest,
                                             struct timespec *ts);
-gint            pk_manifest_get_source_id  (PkManifest *manifest);
+gint            pk_manifest_get_source_id  (PkManifest      *manifest);
 
 G_END_DECLS
 
