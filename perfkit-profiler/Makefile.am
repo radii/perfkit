@@ -26,6 +26,7 @@ WARNINGS =								\
 	-Wshadow
 
 AM_CFLAGS =								\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(PERFKIT_PROFILER_CFLAGS)					\
 	-DPRODUCT_NAME="\"Perfkit Profiler\""				\
 	-DGETTEXT_PACKAGE="\"Perfkit\""					\
