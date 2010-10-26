@@ -31,6 +31,7 @@ typedef struct
 struct _PpgInstrumentPrivate
 {
 	PpgSession *session;
+	gboolean failed;
 	gchar *name;
 	GArray *factories;
 	GList  *visualizers;
@@ -39,6 +40,7 @@ struct _PpgInstrumentPrivate
 enum
 {
 	PROP_0,
+	PROP_FAILED,
 	PROP_NAME,
 	PROP_SESSION,
 };
@@ -78,13 +80,14 @@ ppg_instrument_set_session (PpgInstrument *instrument,
 
 	if (klass->load) {
 		if (!klass->load(instrument, session, &error)) {
-			g_critical("Failed to load %s: %s",
+			priv->failed = TRUE;
+			g_critical("Failed to load instrument %s: %s",
 			           g_type_name(G_TYPE_FROM_INSTANCE(instrument)),
 			           error->message);
-			g_error_free(error);
 			/*
-			 * FIXME: Mark instrument as failed.
+			 * XXX: Should we store the error?
 			 */
+			g_error_free(error);
 			return;
 		}
 	}
@@ -317,6 +320,9 @@ ppg_instrument_get_property (GObject    *object,
 	PpgInstrument *instrument = PPG_INSTRUMENT(object);
 
 	switch (prop_id) {
+	case PROP_FAILED:
+		g_value_set_boolean(value, instrument->priv->failed);
+		break;
 	case PROP_NAME:
 		g_value_set_string(value, instrument->priv->name);
 		break;
@@ -395,6 +401,14 @@ ppg_instrument_class_init (PpgInstrumentClass *klass)
 	                                                    "session",
 	                                                    PPG_TYPE_SESSION,
 	                                                    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(object_class,
+	                                PROP_FAILED,
+	                                g_param_spec_boolean("failed",
+	                                                     "failed",
+	                                                     "failed",
+	                                                     FALSE,
+	                                                     G_PARAM_READABLE));
 
 	signals[VISUALIZER_ADDED] = g_signal_new("visualizer-added",
 	                                         PPG_TYPE_INSTRUMENT,
