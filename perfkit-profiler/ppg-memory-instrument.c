@@ -124,7 +124,15 @@ static void
 ppg_memory_instrument_manifest_cb (PkManifest *manifest,
                                    gpointer    user_data)
 {
+	PpgMemoryInstrument *instrument = (PpgMemoryInstrument *)user_data;
+	PpgMemoryInstrumentPrivate *priv;
+
+	g_return_if_fail(PPG_IS_MEMORY_INSTRUMENT(instrument));
+
+	priv = instrument->priv;
+
 	g_debug("Received new manifest");
+	ppg_model_insert_manifest(priv->model, manifest);
 }
 
 /**
@@ -143,7 +151,15 @@ ppg_memory_instrument_sample_cb (PkManifest *manifest,
                                  PkSample   *sample,
                                  gpointer    user_data)
 {
+	PpgMemoryInstrument *instrument = (PpgMemoryInstrument *)user_data;
+	PpgMemoryInstrumentPrivate *priv;
+
+	g_return_if_fail(PPG_IS_MEMORY_INSTRUMENT(instrument));
+
+	priv = instrument->priv;
+
 	g_debug("Received new sample");
+	ppg_model_insert_sample(priv->model, manifest, sample);
 }
 
 /**
