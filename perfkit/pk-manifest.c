@@ -102,7 +102,7 @@ pk_manifest_get_row_id (PkManifest  *manifest,
 	for (i = 0; i < manifest->rows->len; i++) {
 		row = &g_array_index(manifest->rows, PkManifestRow, i);
 		if (!g_strcmp0(name, row->name)) {
-			return i;
+			return i + 1;
 		}
 	}
 
