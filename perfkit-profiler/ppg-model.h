@@ -71,18 +71,27 @@ enum _PpgResolution
 };
 
 GType    ppg_model_get_type        (void) G_GNUC_CONST;
+void     ppg_model_add_mapping     (PpgModel      *model,
+                                    gint           key,
+                                    const gchar   *field);
 gboolean ppg_model_get_iter_at     (PpgModel      *model,
                                     PpgModelIter  *iter,
                                     gdouble        begin,
                                     gdouble        end,
                                     PpgResolution  resolution);
-gboolean ppg_model_iter_next       (PpgModel      *model,
+gboolean ppg_model_get_iter_first  (PpgModel      *model,
                                     PpgModelIter  *iter);
+void     ppg_model_get_value       (PpgModel      *model,
+                                    PpgModelIter  *iter,
+                                    gint           key,
+                                    GValue        *value);
 void     ppg_model_insert_manifest (PpgModel      *model,
                                     PkManifest    *manifest);
 void     ppg_model_insert_sample   (PpgModel      *model,
                                     PkManifest    *manifest,
                                     PkSample      *sample);
+gboolean ppg_model_iter_next       (PpgModel      *model,
+                                    PpgModelIter  *iter);
 
 G_END_DECLS
 

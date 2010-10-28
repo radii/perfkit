@@ -139,8 +139,6 @@ ppg_model_insert_manifest (PpgModel   *model,
 {
 	PpgModelPrivate *priv;
 
-	ENTRY;
-
 	g_return_if_fail(PPG_IS_MODEL(model));
 	g_return_if_fail(manifest != NULL);
 
@@ -160,8 +158,6 @@ ppg_model_insert_manifest (PpgModel   *model,
 	priv->manifest = manifest;
 	priv->sample_count = 0;
 	g_ptr_array_add(priv->manifests, pk_manifest_ref(manifest));
-
-	EXIT;
 }
 
 void
@@ -170,8 +166,6 @@ ppg_model_insert_sample (PpgModel   *model,
                          PkSample   *sample)
 {
 	PpgModelPrivate *priv;
-
-	ENTRY;
 
 	g_return_if_fail(PPG_IS_MODEL(model));
 	g_return_if_fail(manifest != NULL);
@@ -185,8 +179,6 @@ ppg_model_insert_sample (PpgModel   *model,
 	 */
 	priv->sample_count++;
 	g_ptr_array_add(priv->samples, pk_sample_ref(sample));
-
-	EXIT;
 }
 
 void
@@ -220,8 +212,6 @@ ppg_model_get_value (PpgModel     *model,
 	Mapping *mapping;
 	gint row;
 
-	ENTRY;
-
 	g_return_if_fail(PPG_IS_MODEL(model));
 	g_return_if_fail(iter != NULL);
 	g_return_if_fail(value != NULL);
@@ -242,9 +232,12 @@ ppg_model_get_value (PpgModel     *model,
 	 * FIXME: Probably should cache these somewhere per manifest.
 	 */
 	row = pk_manifest_get_row_id(manifest, mapping->name);
-	pk_sample_get_value(sample, row, value);
-
-	EXIT;
+	if (!pk_sample_get_value(sample, row, value)) {
+		/*
+		 * FIXME: No value in this sample.
+		 */
+		g_debug("No value for row %d (%s) in this sample", row, mapping->name);
+	}
 }
 
 static inline gdouble
@@ -276,8 +269,6 @@ ppg_model_iter_next (PpgModel     *model,
 	struct timespec ts_sample;
 	gsize idx;
 
-	ENTRY;
-
 	g_return_val_if_fail(PPG_IS_MODEL(model), FALSE);
 	g_return_val_if_fail(iter != NULL, FALSE);
 
@@ -292,7 +283,7 @@ ppg_model_iter_next (PpgModel     *model,
 	 */
 	idx = GPOINTER_TO_INT(iter->user_data3) + 1;
 	if (G_UNLIKELY(idx >= priv->samples->len)) {
-		RETURN(FALSE);
+		return FALSE;
 	}
 
 	iter->user_data3 = GINT_TO_POINTER(idx);
@@ -313,7 +304,7 @@ ppg_model_iter_next (PpgModel     *model,
 		}
 	}
 
-	RETURN(TRUE);
+	return TRUE;
 }
 
 gboolean
@@ -322,8 +313,6 @@ ppg_model_get_iter_first (PpgModel     *model,
 {
 	PpgModelPrivate *priv;
 
-	ENTRY;
-
 	g_return_val_if_fail(PPG_IS_MODEL(model), FALSE);
 	g_return_val_if_fail(iter != NULL, FALSE);
 
@@ -331,14 +320,38 @@ ppg_model_get_iter_first (PpgModel     *model,
 
 	if (priv->manifests->len) {
 		if (priv->samples->len) {
+			memset(iter, 0, sizeof *iter);
 			iter->stamp = priv->stamp;
 			iter->user_data = g_ptr_array_index(priv->manifests, 0);
 			iter->user_data2 = g_ptr_array_index(priv->samples, 0);
 			iter->user_data3 = 0;
 			iter->time = ppg_model_make_relative(model, iter->user_data2);
-			RETURN(TRUE);
+			return TRUE;
 		}
 	}
 
-	RETURN(FALSE);
+	return FALSE;
+}
+
+gboolean
+ppg_model_get_iter_at (PpgModel      *model,
+                       PpgModelIter  *iter,
+                       gdouble        begin,
+                       gdouble        end,
+                       PpgResolution  resolution) /* UNUSED */
+{
+	g_return_val_if_fail(PPG_IS_MODEL(model), FALSE);
+	g_return_val_if_fail(iter != NULL, FALSE);
+	g_return_val_if_fail(begin >= 0.0, FALSE);
+	g_return_val_if_fail(end >= 0.0, FALSE);
+
+	if ((begin == 0.0) && (end == 0.0)) {
+		return ppg_model_get_iter_first(model, iter);
+	}
+
+	/*
+	 * TODO: Binary search for begin time.
+	 */
+
+	return FALSE;
 }

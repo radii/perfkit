@@ -361,6 +361,10 @@ ppg_memory_instrument_init (PpgMemoryInstrument *instrument)
 	                                    G_N_ELEMENTS(visualizer_entries),
 	                                    instrument);
 
-	priv->model = g_object_new(PPG_TYPE_MODEL,
-	                           NULL);
+	priv->model = g_object_new(PPG_TYPE_MODEL, NULL);
+	ppg_model_add_mapping(priv->model, COLUMN_SIZE, "size");
+	ppg_model_add_mapping(priv->model, COLUMN_RESIDENT, "resident");
+	ppg_model_add_mapping(priv->model, COLUMN_SHARE, "share");
+	ppg_model_add_mapping(priv->model, COLUMN_TEXT, "text");
+	ppg_model_add_mapping(priv->model, COLUMN_DATA, "data");
 }

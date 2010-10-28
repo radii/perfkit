@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ppg-color.h"
 #include "ppg-line-visualizer.h"
 
 G_DEFINE_TYPE(PpgLineVisualizer, ppg_line_visualizer, PPG_TYPE_VISUALIZER)
 
 typedef struct
 {
-	gint      row;
+	gint      key;
 	PpgModel *model;
 	gchar    *title;
 	GdkColor  color;
@@ -31,12 +32,10 @@ typedef struct
 
 struct _PpgLineVisualizerPrivate
 {
-	GArray *lines;
-
+	GArray       *lines;
 	ClutterActor *actor;
-
-	guint paint_handler;
-	guint resize_handler;
+	guint         paint_handler;
+	guint         resize_handler;
 };
 
 void
@@ -45,7 +44,7 @@ ppg_line_visualizer_append (PpgLineVisualizer *visualizer,
                             GdkColor *color,
                             gboolean fill,
                             PpgModel *model,
-                            gint row)
+                            gint key)
 {
 	PpgLineVisualizerPrivate *priv;
 	Line line = { 0 };
@@ -62,7 +61,7 @@ ppg_line_visualizer_append (PpgLineVisualizer *visualizer,
 
 	line.title = g_strdup(name);
 	line.model = model;
-	line.row = row;
+	line.key = key;
 	line.fill = fill;
 
 	g_array_append_val(priv->lines, line);
@@ -114,6 +113,7 @@ ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 	begin = 0.0;
 	end = clutter_actor_get_width(priv->actor);
 
+	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(priv->actor));
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(priv->actor));
 
 	cairo_save(cr);
@@ -142,7 +142,7 @@ ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
 		//ppg_model_get_bounds(line->model, &iter, &lower, &upper);
 
 		do {
-			//ppg_model_get(line->model, &iter, line->row, &offset, &value);
+			//ppg_model_get(line->model, &iter, line->key, &offset, &value);
 			//cairo_line_to(cr, offset, value);
 		} while (ppg_model_iter_next(line->model, &iter));
 
@@ -182,6 +182,8 @@ ppg_line_visualizer_queue_paint (PpgLineVisualizer *visualizer)
 	PpgLineVisualizerPrivate *priv;
 
 	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
+
+	return; /* XXX */
 
 	priv = visualizer->priv;
 
@@ -255,6 +257,104 @@ ppg_line_visualizer_notify_allocation (ClutterActor *actor,
 	ppg_line_visualizer_queue_resize(visualizer);
 }
 
+static inline gdouble
+get_x_offset (gdouble begin,
+              gdouble end,
+              gdouble width,
+              gdouble value)
+{
+	return (value - begin) / (end - begin) * width;
+}
+
+static inline gdouble
+get_y_offset (gdouble lower,
+              gdouble upper,
+              gdouble height,
+              gdouble value)
+{
+	return height - ((value - lower) / (upper - lower) * height);
+}
+
+static void
+ppg_line_visualizer_draw (PpgVisualizer *visualizer)
+{
+	PpgLineVisualizerPrivate *priv;
+	PpgModelIter iter;
+	Line *line;
+	PpgColorIter color;
+	cairo_t *cr;
+	GValue value = { 0 };
+	gfloat height;
+	gfloat width;
+	gdouble x;
+	gdouble y;
+	gdouble begin;
+	gdouble end;
+	gdouble lower;
+	gdouble upper;
+	gdouble val;
+	gint i;
+
+	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
+
+	priv = PPG_LINE_VISUALIZER(visualizer)->priv;
+
+	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(priv->actor));
+
+	g_object_get(visualizer,
+	             "begin", &begin,
+	             "end", &end,
+	             NULL);
+
+	g_object_get(priv->actor,
+	             "width", &width,
+	             "height", &height,
+	             NULL);
+
+	/* FIXME: */
+	lower = 0;
+	upper = 200;
+
+	ppg_color_iter_init(&color);
+
+	cairo_set_line_width(cr, 1.0);
+
+	for (i = 0; i < priv->lines->len; i++) {
+		line = &g_array_index(priv->lines, Line, i);
+		cairo_move_to(cr, 0, height);
+		gdk_cairo_set_source_color(cr, &color.color);
+
+		if (!ppg_model_get_iter_first(line->model, &iter)) {
+			goto next;
+		}
+
+		do {
+			ppg_model_get_value(line->model, &iter, line->key, &value);
+			if (G_VALUE_HOLDS(&value, G_TYPE_DOUBLE)) {
+				val = g_value_get_double(&value);
+			} else if (G_VALUE_HOLDS(&value, G_TYPE_INT)) {
+				val = g_value_get_int(&value);
+			} else if (G_VALUE_HOLDS(&value, G_TYPE_UINT)) {
+				val = g_value_get_uint(&value);
+			} else {
+				g_debug("HOLDS %s", g_type_name(value.g_type));
+				g_assert_not_reached();
+			}
+			x = get_x_offset(begin, end, width, iter.time);
+			y = get_y_offset(lower, upper, height, val);
+			cairo_line_to(cr, x, y);
+			g_value_unset(&value);
+		} while (ppg_model_iter_next(line->model, &iter));
+
+		cairo_stroke(cr);
+
+	  next:
+		ppg_color_iter_next(&color);
+	}
+
+	cairo_destroy(cr);
+}
+
 /**
  * ppg_line_visualizer_finalize:
  * @object: (in): A #PpgLineVisualizer.
@@ -296,6 +396,7 @@ ppg_line_visualizer_class_init (PpgLineVisualizerClass *klass)
 
 	visualizer_class = PPG_VISUALIZER_CLASS(klass);
 	visualizer_class->get_actor = ppg_line_visualizer_get_actor;
+	visualizer_class->draw = ppg_line_visualizer_draw;
 }
 
 /**
