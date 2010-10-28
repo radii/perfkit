@@ -299,6 +299,7 @@ ppg_line_visualizer_draw (PpgVisualizer *visualizer)
 
 	priv = PPG_LINE_VISUALIZER(visualizer)->priv;
 
+	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(priv->actor));
 	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(priv->actor));
 
 	g_object_get(visualizer,
