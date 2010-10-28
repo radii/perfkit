@@ -18,6 +18,7 @@
 
 #include <clutter-gtk/clutter-gtk.h>
 #include <glib/gi18n.h>
+#include <gobject/gvaluecollector.h>
 #include <math.h>
 #include <uber.h>
 
@@ -678,6 +679,79 @@ ppg_window_restart_activate (GtkAction *action,
 	}
 }
 
+static GList*
+ppg_window_get_visualizers (PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	PpgInstrument *instrument;
+	GList *visualizers = NULL;
+	GList *viz_list;
+	GList *rows;
+	GList *iter;
+
+	g_return_val_if_fail(PPG_IS_WINDOW(window), NULL);
+
+	priv = window->priv;
+
+	rows = clutter_container_get_children(CLUTTER_CONTAINER(priv->rows_box));
+	for (iter = rows; iter; iter = iter->next) {
+		instrument = ppg_row_get_instrument(PPG_ROW(iter->data));
+		viz_list = ppg_instrument_get_visualizers(instrument);
+		visualizers = g_list_concat(visualizers, g_list_copy(viz_list));
+	}
+
+	return visualizers;
+}
+
+static void
+ppg_window_visualizers_set (PpgWindow   *window,
+                            const gchar *first_property,
+                            ...)
+{
+	PpgWindowPrivate *priv;
+	const gchar *name = first_property;
+	GObjectClass *klass;
+	GParamSpec *pspec;
+	GValue value = { 0 };
+	va_list args;
+	gchar *error = NULL;
+	GList *list;
+	GList *iter;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+	g_return_if_fail(first_property != NULL);
+
+	priv = window->priv;
+	list = ppg_window_get_visualizers(window);
+
+	va_start(args, first_property);
+
+	do {
+		for (iter = list; iter; iter = iter->next) {
+			klass = G_OBJECT_GET_CLASS(iter->data);
+			pspec = g_object_class_find_property(klass, name);
+			if (!pspec) {
+				g_critical("Failed to find property %s of class %s", name,
+				           g_type_name(G_TYPE_FROM_INSTANCE(iter->data)));
+				return;
+			}
+			G_VALUE_COLLECT_INIT(&value, pspec->value_type, args, 0, &error);
+			if (error != NULL) {
+				g_critical("Failed to extract property %s from var_args: %s",
+				           name, error);
+				g_free(error);
+				return;
+			}
+			g_object_set_property(G_OBJECT(iter->data), name, &value);
+			g_value_unset(&value);
+		}
+
+		name = va_arg(args, const gchar*);
+	} while (name != NULL);
+
+	va_end(args);
+}
+
 static void
 ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
                                PpgWindow     *window)
@@ -712,6 +786,11 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 	priv->ignore_ruler = TRUE;
 	ppg_ruler_set_range(PPG_RULER(priv->ruler), lower, upper, lower);
 	priv->ignore_ruler = FALSE;
+
+	ppg_window_visualizers_set(window,
+	                           "begin", lower,
+	                           "end", upper,
+	                           NULL);
 }
 
 static void
