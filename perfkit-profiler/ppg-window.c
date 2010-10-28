@@ -50,6 +50,7 @@
 #define PIXELS_PER_SECOND (20.0)
 #define LARGER(_s)        ("<span size=\"larger\">" _s "</span>")
 #define BOLD(_s)          ("<span weight=\"bold\">" _s "</span>")
+#define UPDATE_TIMEOUT    1000
 
 G_DEFINE_TYPE(PpgWindow, ppg_window, GTK_TYPE_WINDOW)
 
@@ -1097,6 +1098,32 @@ ppg_window_position_notify (PpgSession *session,
 	g_object_set(priv->timer_sep, "x", x, NULL);
 }
 
+static gboolean
+force_redraw (gpointer data)
+{
+	PpgWindow *window = (PpgWindow *)data;
+	PpgWindowPrivate *priv = window->priv;
+	PpgInstrument *instrument;
+	GList *rows;
+	GList *iter;
+	GList *viz;
+	GList *viter;
+
+	rows = clutter_container_get_children(CLUTTER_CONTAINER(priv->rows_box));
+	for (iter = rows; iter; iter = iter->next) {
+		g_object_get(iter->data,
+		             "instrument", &instrument,
+		             NULL);
+		viz = ppg_instrument_get_visualizers(instrument);
+		for (viter = viz; viter; viter = viter->next) {
+			ppg_visualizer_queue_draw(viter->data);
+		}
+		g_object_unref(instrument);
+	}
+
+	return TRUE;
+}
+
 /**
  * ppg_window_set_uri:
  * @window: (in): A #PpgWindow.
@@ -1139,6 +1166,8 @@ ppg_window_set_uri (PpgWindow   *window,
 	g_object_set(priv->timer_tool_item,
 	             "session", priv->session,
 	             NULL);
+
+	g_timeout_add(UPDATE_TIMEOUT, force_redraw, window);
 }
 
 static gboolean
