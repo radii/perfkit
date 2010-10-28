@@ -341,6 +341,13 @@ ppg_row_visualizer_removed (PpgRow *row,
 	clutter_container_remove(CLUTTER_CONTAINER(priv->rows_box), actor, NULL);
 }
 
+PpgInstrument*
+ppg_row_get_instrument (PpgRow *row)
+{
+	g_return_val_if_fail(PPG_IS_ROW(row), NULL);
+	return row->priv->instrument;
+}
+
 static void
 ppg_row_set_instrument (PpgRow *row,
                         PpgInstrument *instrument)
@@ -459,7 +466,7 @@ ppg_row_get_property (GObject    *object,
 
 	switch (prop_id) {
 	case PROP_INSTRUMENT:
-		g_value_set_object(value, row->priv->instrument);
+		g_value_set_object(value, ppg_row_get_instrument(row));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);

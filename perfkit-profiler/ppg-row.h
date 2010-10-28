@@ -21,6 +21,8 @@
 
 #include <clutter/clutter.h>
 
+#include "ppg-instrument.h"
+
 G_BEGIN_DECLS
 
 #define PPG_TYPE_ROW            (ppg_row_get_type())
@@ -48,7 +50,8 @@ struct _PpgRowClass
 	ClutterGroupClass parent_class;
 };
 
-GType ppg_row_get_type (void) G_GNUC_CONST;
+GType          ppg_row_get_type       (void) G_GNUC_CONST;
+PpgInstrument* ppg_row_get_instrument (PpgRow *row);
 
 G_END_DECLS
 
