@@ -49,6 +49,7 @@ struct _PpgVisualizerClass
 	GInitiallyUnownedClass parent_class;
 
 	ClutterActor* (*get_actor) (PpgVisualizer *visualizer);
+	void          (*draw)      (PpgVisualizer *visualizer);
 };
 
 struct _PpgVisualizerEntry
@@ -59,8 +60,9 @@ struct _PpgVisualizerEntry
 	GCallback    callback;
 };
 
-GType         ppg_visualizer_get_type  (void) G_GNUC_CONST;
-ClutterActor* ppg_visualizer_get_actor (PpgVisualizer *visualizer);
+GType         ppg_visualizer_get_type   (void) G_GNUC_CONST;
+ClutterActor* ppg_visualizer_get_actor  (PpgVisualizer *visualizer);
+void          ppg_visualizer_queue_draw (PpgVisualizer *visualizer);
 
 G_END_DECLS
 

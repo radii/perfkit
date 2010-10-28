@@ -26,6 +26,7 @@ struct _PpgVisualizerPrivate
 	gchar   *name;
 	gdouble  begin;
 	gdouble  end;
+	guint    draw_handler;
 };
 
 enum
@@ -41,6 +42,66 @@ ClutterActor*
 ppg_visualizer_get_actor (PpgVisualizer *visualizer)
 {
 	return PPG_VISUALIZER_GET_CLASS(visualizer)->get_actor(visualizer);
+}
+
+static gboolean
+ppg_visualizer_draw_timeout (gpointer data)
+{
+	PpgVisualizer *visualizer = (PpgVisualizer *)data;
+	PpgVisualizerPrivate *priv;
+	PpgVisualizerClass *klass;
+
+	g_return_val_if_fail(PPG_IS_VISUALIZER(visualizer), FALSE);
+
+	priv = visualizer->priv;
+	klass = PPG_VISUALIZER_GET_CLASS(visualizer);
+
+	priv->draw_handler = 0;
+
+	if (klass->draw) {
+		klass->draw(visualizer);
+	}
+
+	return FALSE;
+}
+
+void
+ppg_visualizer_queue_draw (PpgVisualizer *visualizer)
+{
+	PpgVisualizerPrivate *priv;
+
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+
+	priv = visualizer->priv;
+
+	if (!priv->draw_handler) {
+		priv->draw_handler =
+			g_timeout_add(0, ppg_visualizer_draw_timeout, visualizer);
+	}
+}
+
+static void
+ppg_visualizer_set_begin (PpgVisualizer *visualizer,
+                          gdouble        begin)
+{
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+
+	g_debug("%s():%d", G_STRFUNC, __LINE__);
+
+	visualizer->priv->begin = begin;
+	ppg_visualizer_queue_draw(visualizer);
+}
+
+static void
+ppg_visualizer_set_end (PpgVisualizer *visualizer,
+                        gdouble        end)
+{
+	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
+
+	g_debug("%s():%d", G_STRFUNC, __LINE__);
+
+	visualizer->priv->end = end;
+	ppg_visualizer_queue_draw(visualizer);
 }
 
 static void
@@ -73,8 +134,10 @@ ppg_visualizer_get_property (GObject    *object,
 
 	switch (prop_id) {
 	case PROP_BEGIN:
+		g_value_set_double(value, visualizer->priv->begin);
 		break;
 	case PROP_END:
+		g_value_set_double(value, visualizer->priv->end);
 		break;
 	case PROP_NAME:
 		g_value_set_string(value, visualizer->priv->name);
@@ -106,8 +169,10 @@ ppg_visualizer_set_property (GObject      *object,
 
 	switch (prop_id) {
 	case PROP_BEGIN:
+		ppg_visualizer_set_begin(visualizer, g_value_get_double(value));
 		break;
 	case PROP_END:
+		ppg_visualizer_set_end(visualizer, g_value_get_double(value));
 		break;
 	case PROP_NAME:
 		/* construct only */
