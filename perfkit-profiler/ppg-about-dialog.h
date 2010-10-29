@@ -37,7 +37,7 @@ typedef struct _PpgAboutDialogPrivate PpgAboutDialogPrivate;
 
 struct _PpgAboutDialog
 {
-	GtkAboutDialog parent;
+	GtkWindow parent;
 
 	/*< private >*/
 	PpgAboutDialogPrivate *priv;
@@ -45,7 +45,7 @@ struct _PpgAboutDialog
 
 struct _PpgAboutDialogClass
 {
-	GtkAboutDialogClass parent_class;
+	GtkWindowClass parent_class;
 };
 
 GType ppg_about_dialog_get_type (void) G_GNUC_CONST;

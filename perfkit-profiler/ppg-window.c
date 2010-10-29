@@ -455,14 +455,12 @@ static void
 ppg_window_about_activate (GtkAction *action,
                            PpgWindow *window)
 {
-	GtkDialog *dialog;
+	GtkWidget *dialog;
 
 	dialog = g_object_new(PPG_TYPE_ABOUT_DIALOG,
 	                      "transient-for", window,
 	                      NULL);
-
-	gtk_dialog_run(dialog);
-	gtk_widget_destroy(GTK_WIDGET(dialog));
+	gtk_window_present(GTK_WINDOW(dialog));
 }
 
 /**
