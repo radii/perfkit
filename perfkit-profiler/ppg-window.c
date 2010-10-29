@@ -993,12 +993,24 @@ ppg_window_add_row (PpgWindow *window,
 	                 window);
 }
 
+/**
+ * ppg_window_instrument_added:
+ * @window: (in): A #PpgWindow.
+ *
+ * Handle the "instrument-added" event. Add the instruments visualizers to
+ * the data view.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_instrument_added (PpgSession *session,
                              PpgInstrument *instrument,
                              PpgWindow *window)
 {
 	PpgWindowPrivate *priv;
+	gdouble lower;
+	gdouble upper;
 	PpgRow *row;
 
 	g_return_if_fail(PPG_IS_SESSION(session));
@@ -1006,13 +1018,19 @@ ppg_window_instrument_added (PpgSession *session,
 	g_return_if_fail(PPG_IS_WINDOW(window));
 
 	priv = window->priv;
-
 	row = g_object_new(PPG_TYPE_ROW,
 	                   "instrument", instrument,
 	                   "window", window,
 	                   NULL);
 	ppg_window_add_row(window, row);
-
+	g_object_get(priv->ruler,
+	             "lower", &lower,
+	             "upper", &upper,
+	             NULL);
+	ppg_window_visualizers_set(window,
+	                           "begin", lower,
+	                           "end", upper,
+	                           NULL);
 	if (CLUTTER_ACTOR_IS_VISIBLE(priv->add_instrument_actor)) {
 		clutter_actor_hide(priv->add_instrument_actor);
 	}
