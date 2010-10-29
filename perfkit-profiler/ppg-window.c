@@ -704,6 +704,16 @@ ppg_window_get_visualizers (PpgWindow *window)
 	return visualizers;
 }
 
+/**
+ * ppg_window_visualizers_set:
+ * @window: (in): A #PpgWindow.
+ * @first_property: (in): first property name.
+ *
+ * Set properties on all visualizers in the window.
+ *
+ * Returns: None.
+ * Side effects: Properties set.
+ */
 static void
 ppg_window_visualizers_set (PpgWindow   *window,
                             const gchar *first_property,
@@ -724,34 +734,29 @@ ppg_window_visualizers_set (PpgWindow   *window,
 
 	priv = window->priv;
 	list = ppg_window_get_visualizers(window);
+	if (!(klass = g_type_class_peek(PPG_TYPE_VISUALIZER))) {
+		return;
+	}
 
 	va_start(args, first_property);
 
 	do {
-		klass = g_type_class_peek(PPG_TYPE_VISUALIZER);
-		if (!klass) {
-			goto cleanup;
-		}
-
 		pspec = g_object_class_find_property(klass, name);
 		if (!pspec) {
 			g_critical("Failed to find property %s of class %s", name,
 			           g_type_name(G_TYPE_FROM_INSTANCE(iter->data)));
 			return;
 		}
-
 		G_VALUE_COLLECT_INIT(&value, pspec->value_type, args, 0, &error);
 		if (error != NULL) {
 			g_critical("Failed to extract property %s from var_args: %s",
 			           name, error);
 			g_free(error);
-			return;
+			goto cleanup;
 		}
-
 		for (iter = list; iter; iter = iter->next) {
 			g_object_set_property(G_OBJECT(iter->data), name, &value);
 		}
-
 		g_value_unset(&value);
 	} while ((name = va_arg(args, const gchar*)));
 
