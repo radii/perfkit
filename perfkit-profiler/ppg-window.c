@@ -28,6 +28,7 @@
 #include "ppg-configure-instrument-dialog.h"
 #include "ppg-header.h"
 #include "ppg-instrument.h"
+#include "ppg-log.h"
 #include "ppg-menu-tool-item.h"
 #include "ppg-monitor.h"
 #include "ppg-prefs-dialog.h"
@@ -43,6 +44,7 @@
 #include "ppg-util.h"
 #include "ppg-visualizer-menu.h"
 #include "ppg-window.h"
+#include "ppg-window-actions.h"
 #include "ppg-window-ui.h"
 
 #define COLUMN_WIDTH      (200.0f)
@@ -51,6 +53,30 @@
 #define LARGER(_s)        ("<span size=\"larger\">" _s "</span>")
 #define BOLD(_s)          ("<span weight=\"bold\">" _s "</span>")
 #define UPDATE_TIMEOUT    1000
+#define SET_ACTION_INSENSITIVE(n)                        \
+    G_STMT_START {                                       \
+        g_object_set(ppg_window_get_action(window, (n)), \
+                     "sensitive", FALSE,                 \
+                     NULL);                              \
+    } G_STMT_END
+#define SET_ACTION_ACTIVE(n)                             \
+    G_STMT_START {                                       \
+        g_object_set(ppg_window_get_action(window, (n)), \
+                     "active", TRUE,                     \
+                     NULL);                              \
+    } G_STMT_END
+#define BEGIN_ACTION_UPDATE                              \
+	G_STMT_START {                                       \
+		if (window->priv->in_action_update) {            \
+			return;                                      \
+		}                                                \
+		window->priv->in_action_update = TRUE;           \
+	} G_STMT_END
+
+#define END_ACTION_UPDATE                                \
+	G_STMT_START {                                       \
+		window->priv->in_action_update = FALSE;          \
+	} G_STMT_END
 
 G_DEFINE_TYPE(PpgWindow, ppg_window, GTK_TYPE_WINDOW)
 
@@ -103,111 +129,6 @@ enum
 	PROP_STATUS_LABEL,
 };
 
-static void ppg_window_close_activate          (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_restart_activate        (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_stop_activate           (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_pause_activate          (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_run_activate            (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_target_spawn_activate   (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_fullscreen_activate     (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_about_activate          (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_add_instrument_activate (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_configure_instrument_activate (GtkAction *action,
-                                                      PpgWindow *window);
-static void ppg_window_preferences_activate    (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_settings_activate       (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_zoom_in_activate        (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_zoom_out_activate       (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_zoom_one_activate       (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_monitor_cpu_activate    (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_monitor_mem_activate    (GtkAction *action,
-                                                PpgWindow *window);
-static void ppg_window_monitor_net_activate    (GtkAction *action,
-                                                PpgWindow *window);
-
-GtkActionEntry action_entries[] = {
-	{ "file", NULL, N_("Per_fkit") },
-	{ "quit", GTK_STOCK_QUIT, NULL, NULL, NULL, ppg_runtime_quit },
-	{ "close", GTK_STOCK_CLOSE, N_("_Close Window"), NULL, NULL,
-	  G_CALLBACK(ppg_window_close_activate) },
-
-	{ "edit", GTK_STOCK_EDIT },
-	{ "cut", GTK_STOCK_CUT },
-	{ "copy", GTK_STOCK_COPY },
-	{ "paste", GTK_STOCK_PASTE },
-	{ "preferences", GTK_STOCK_PREFERENCES, NULL, "<control>comma",
-	  N_("Configure preferences for " PRODUCT_NAME),
-	  G_CALLBACK(ppg_window_preferences_activate) },
-
-	{ "profiler", NULL, N_("_Profiler") },
-	{ "target", NULL, N_("Target") },
-	{ "restart", GTK_STOCK_REFRESH, N_("Res_tart"), NULL,
-	  N_("Restart the current profiling session"),
-	  G_CALLBACK(ppg_window_restart_activate) },
-	{ "settings", NULL, N_("S_ettings"), "<control>d",
-	  N_("Adjust settings for the current profiling session"),
-	  G_CALLBACK(ppg_window_settings_activate) },
-
-	{ "instrument", NULL, N_("_Instrument") },
-	{ "add-instrument", GTK_STOCK_ADD, N_("_Add Instrument"), "<control><shift>n",
-	  N_("Add an instrument to the current profiling session"),
-	  G_CALLBACK(ppg_window_add_instrument_activate) },
-	{ "configure-instrument", NULL, N_("_Configure"), NULL,
-	  N_("Configure the selected instrument"),
-	  G_CALLBACK(ppg_window_configure_instrument_activate) },
-	{ "visualizers", NULL, N_("_Visualizers") },
-
-	{ "target-spawn", NULL, N_("Spawn a new process"), NULL, NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
-	{ "target-existing", NULL, N_("Select an existing process"), NULL, NULL, NULL },
-	{ "target-none", NULL, N_("No target"), NULL, NULL, NULL },
-
-	{ "tools", NULL, N_("_Tools") },
-	{ "monitor", NULL, N_("Monitor") },
-	{ "monitor-cpu", NULL, N_("CPU Usage"), NULL, NULL,
-	  G_CALLBACK(ppg_window_monitor_cpu_activate) },
-	{ "monitor-mem", NULL, N_("Memory Usage"), NULL, NULL,
-	  G_CALLBACK(ppg_window_monitor_mem_activate) },
-	{ "monitor-net", NULL, N_("Network Usage"), NULL, NULL,
-	  G_CALLBACK(ppg_window_monitor_net_activate) },
-
-	{ "view", NULL, N_("_View") },
-	{ "zoom-in", GTK_STOCK_ZOOM_IN, N_("Zoom In"), "<control>equal", NULL,
-	  G_CALLBACK(ppg_window_zoom_in_activate) },
-	{ "zoom-out", GTK_STOCK_ZOOM_OUT, N_("Zoom Out"), "<control>minus", NULL,
-	  G_CALLBACK(ppg_window_zoom_out_activate) },
-	{ "zoom-one", GTK_STOCK_ZOOM_100, N_("Normal Size"), "<control>0", NULL,
-	  G_CALLBACK(ppg_window_zoom_one_activate) },
-
-	{ "help", GTK_STOCK_HELP },
-	{ "about", GTK_STOCK_ABOUT, N_("About " PRODUCT_NAME), NULL, NULL, G_CALLBACK(ppg_window_about_activate) },
-};
-
-GtkToggleActionEntry toggle_action_entries[] = {
-	{ "stop", GTK_STOCK_MEDIA_STOP, N_("_Stop"), "<control>e", N_("Stop the current profiling session"),
-	  G_CALLBACK(ppg_window_stop_activate) },
-	{ "pause", GTK_STOCK_MEDIA_PAUSE, N_("_Pause"), "<control>z", N_("Pause the current profiling session"),
-	  G_CALLBACK(ppg_window_pause_activate) },
-	{ "run", "media-playback-start", N_("_Run"), "<control>b", N_("Run the current profiling session"),
-	  G_CALLBACK(ppg_window_run_activate) },
-	{ "fullscreen", GTK_STOCK_FULLSCREEN, NULL, "F11", NULL,
-	  G_CALLBACK(ppg_window_fullscreen_activate), FALSE },
-};
-
 static guint instances = 0;
 
 /**
@@ -224,6 +145,17 @@ ppg_window_count (void)
 	return instances;
 }
 
+/**
+ * ppg_window_get_action:
+ * @window: (in): A #PpgWindow.
+ * @name: (in): The actions name.
+ *
+ * Retrieves the first #GtkAction with a name matching @name. If no action
+ * can be found matching @name, then %NULL is returned.
+ *
+ * Returns: A #GtkAction if successful; otherwise %NULL.
+ * Side effects: None.
+ */
 GtkAction*
 ppg_window_get_action (PpgWindow   *window,
                        const gchar *name)
@@ -237,19 +169,16 @@ ppg_window_get_action (PpgWindow   *window,
 	return gtk_action_group_get_action(priv->actions, name);
 }
 
-#define BEGIN_ACTION_UPDATE \
-	G_STMT_START { \
-		if (window->priv->in_action_update) { \
-			return; \
-		} \
-		window->priv->in_action_update = TRUE; \
-	} G_STMT_END
-
-#define END_ACTION_UPDATE \
-	G_STMT_START { \
-		window->priv->in_action_update = FALSE; \
-	} G_STMT_END
-
+/**
+ * ppg_window_stop_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "stop" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_stop_activate (GtkAction *action,
                           PpgWindow *window)
@@ -283,6 +212,16 @@ ppg_window_stop_activate (GtkAction *action,
 	ppg_session_stop(priv->session);
 }
 
+/**
+ * ppg_window_pause_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "pause" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_pause_activate (GtkAction *action,
                            PpgWindow *window)
@@ -298,24 +237,31 @@ ppg_window_pause_activate (GtkAction *action,
 	}
 }
 
+/**
+ * ppg_window_run_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "run" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_run_activate (GtkAction *action,
                          PpgWindow *window)
 {
 	PpgWindowPrivate *priv;
 
-	g_debug("%s()", G_STRFUNC);
+	ENTRY;
 
 	g_return_if_fail(PPG_IS_WINDOW(window));
 
 	priv = window->priv;
-
 	g_object_set(priv->timer_sep,
 	             "visible", TRUE,
 	             NULL);
-
 	BEGIN_ACTION_UPDATE;
-
 	g_object_set(ppg_window_get_action(window, "run"),
 	             "sensitive", FALSE,
 	             NULL);
@@ -330,12 +276,21 @@ ppg_window_run_activate (GtkAction *action,
 	g_object_set(ppg_window_get_action(window, "restart"),
 	             "sensitive", TRUE,
 	             NULL);
-
 	END_ACTION_UPDATE;
-
 	ppg_session_start(priv->session);
+	EXIT;
 }
 
+/**
+ * ppg_window_zoom_in_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "zoom-in" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_zoom_in_activate (GtkAction *action,
                              PpgWindow *window)
@@ -352,11 +307,22 @@ ppg_window_zoom_in_activate (GtkAction *action,
 	             "step-increment", &step,
 	             "value", &value,
 	             NULL);
+	value += step;
 	g_object_set(priv->zadj,
-	             "value", value + step,
+	             "value", value,
 	             NULL);
 }
 
+/**
+ * ppg_window_zoom_out_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "zoom-out" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_zoom_out_activate (GtkAction *action,
                              PpgWindow *window)
@@ -373,19 +339,46 @@ ppg_window_zoom_out_activate (GtkAction *action,
 	             "step-increment", &step,
 	             "value", &value,
 	             NULL);
+	value -= step;
 	g_object_set(priv->zadj,
-	             "value", value - step,
+	             "value", value,
 	             NULL);
 }
 
+/**
+ * ppg_window_zoom_one_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "zoom-one" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_zoom_one_activate (GtkAction *action,
                              PpgWindow *window)
 {
+	PpgWindowPrivate *priv;
+
 	g_return_if_fail(PPG_IS_WINDOW(window));
-	g_object_set(window->priv->zadj, "value", 1.0, NULL);
+
+	priv = window->priv;
+	g_object_set(priv->zadj,
+	             "value", 1.0,
+	             NULL);
 }
 
+/**
+ * ppg_window_spawn_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "spawn" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_target_spawn_activate (GtkAction *action,
                                   PpgWindow *window)
@@ -415,6 +408,16 @@ ppg_window_target_spawn_activate (GtkAction *action,
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+/**
+ * ppg_window_fullscreen_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "fullscreen" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_fullscreen_activate (GtkAction *action,
                                 PpgWindow *window)
@@ -427,7 +430,9 @@ ppg_window_fullscreen_activate (GtkAction *action,
 
 	priv = window->priv;
 
-	g_object_get(action, "active", &active, NULL);
+	g_object_get(action,
+	             "active", &active,
+	             NULL);
 
 	if (active) {
 		gtk_window_fullscreen(GTK_WINDOW(window));
@@ -436,6 +441,16 @@ ppg_window_fullscreen_activate (GtkAction *action,
 	}
 }
 
+/**
+ * ppg_window_about_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "about" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_about_activate (GtkAction *action,
                            PpgWindow *window)
@@ -445,10 +460,21 @@ ppg_window_about_activate (GtkAction *action,
 	dialog = g_object_new(PPG_TYPE_ABOUT_DIALOG,
 	                      "transient-for", window,
 	                      NULL);
+
 	gtk_dialog_run(dialog);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+/**
+ * ppg_window_add_instrument_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "add-instrument" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_add_instrument_activate (GtkAction *action,
                                     PpgWindow *window)
@@ -464,10 +490,21 @@ ppg_window_add_instrument_activate (GtkAction *action,
 	                      "session", priv->session,
 	                      "transient-for", window,
 	                      NULL);
+
 	gtk_dialog_run(dialog);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 }
 
+/**
+ * ppg_window_configure_instrument_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "configure-instrument" #GtkAction.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_configure_instrument_activate (GtkAction *action,
                                           PpgWindow *window)
@@ -481,23 +518,36 @@ ppg_window_configure_instrument_activate (GtkAction *action,
 	priv = window->priv;
 
 	if (!priv->selected) {
-		g_critical("%s() called without active selection", G_STRFUNC);
+		CRITICAL(Window, "No selected instrument to configure");
 		return;
 	}
 
 	g_object_get(priv->selected,
 	             "instrument", &instrument,
 	             NULL);
+
 	dialog = g_object_new(PPG_TYPE_CONFIGURE_INSTRUMENT_DIALOG,
 	                      "session", priv->session,
 	                      "instrument", instrument,
 	                      "transient-for", window,
 	                      NULL);
+
 	gtk_dialog_run(dialog);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
 	g_object_unref(instrument);
 }
 
+/**
+ * ppg_window_show_graph:
+ * @title: (in): The title for the created window.
+ * @graph: (in): An #UberGraph.
+ * @parent: (in): The GtkWindow transient-for parent.
+ *
+ * Prepares the widgetry and shows a new GtkWindow containing the graph.
+ *
+ * Returns: None.
+ * Side effects: A new #GtkWindow is presented to the user.
+ */
 static void
 ppg_window_show_graph (const gchar *title,
                        GtkWidget   *graph,
@@ -528,6 +578,16 @@ ppg_window_show_graph (const gchar *title,
 	gtk_window_present(GTK_WINDOW(window));
 }
 
+/**
+ * ppg_window_monitor_cpu_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "monitor-cpu" action.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_monitor_cpu_activate (GtkAction *action,
                                  PpgWindow *window)
@@ -540,6 +600,16 @@ ppg_window_monitor_cpu_activate (GtkAction *action,
 	ppg_window_show_graph(_("CPU Usage"), graph, GTK_WINDOW(window));
 }
 
+/**
+ * ppg_window_monitor_mem_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "monitor-mem" action.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_monitor_mem_activate (GtkAction *action,
                                  PpgWindow *window)
@@ -552,6 +622,16 @@ ppg_window_monitor_mem_activate (GtkAction *action,
 	ppg_window_show_graph(_("Memory Usage"), graph, GTK_WINDOW(window));
 }
 
+/**
+ * ppg_window_monitor_net_activate:
+ * @action: (in): A #GtkAction.
+ * @window: (in): A #PpgWindow.
+ *
+ * Handles the "activate" signal for the "monitor-net" action.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
 ppg_window_monitor_net_activate (GtkAction *action,
                                  PpgWindow *window)
@@ -593,8 +673,20 @@ ppg_window_delete_event (GtkWidget   *widget,
 	return ret;
 }
 
+/**
+ * ppg_window_notify_target:
+ * @session: (in): A #PpgSssion.
+ * @pspec: (in): A #GParamSpec.
+ * @user_data: (in): A #PpgWindow.
+ *
+ * Handles the notification that the sessions "target" property has changed.
+ * The various widgets are updated to reflect this.
+ *
+ * Returns: None.
+ * Side effects: None.
+ */
 static void
-ppg_window_target_notify (PpgSession *session,
+ppg_window_notify_target (PpgSession *session,
                           GParamSpec *pspec,
                           gpointer    user_data)
 {
@@ -606,8 +698,12 @@ ppg_window_target_notify (PpgSession *session,
 
 	priv = window->priv;
 
-	g_object_get(session, "target", &target, NULL);
-	g_object_set(priv->target_tool_item, "label", target, NULL);
+	g_object_get(session,
+	             "target", &target,
+	             NULL);
+	g_object_set(priv->target_tool_item,
+	             "label", target,
+	             NULL);
 	g_free(target);
 }
 
@@ -1183,7 +1279,7 @@ ppg_window_set_uri (PpgWindow   *window,
 	 */
 
 	g_signal_connect(priv->session, "notify::target",
-	                 G_CALLBACK(ppg_window_target_notify),
+	                 G_CALLBACK(ppg_window_notify_target),
 	                 window);
 	g_signal_connect(priv->session, "instrument-added",
 	                 G_CALLBACK(ppg_window_instrument_added),
@@ -1408,10 +1504,13 @@ ppg_window_class_init (PpgWindowClass *klass)
 	                                                    NULL,
 	                                                    G_PARAM_WRITABLE));
 
-	ppg_actions_register_entries(PPG_TYPE_WINDOW, action_entries,
-	                             G_N_ELEMENTS(action_entries));
-	ppg_actions_register_toggle_entries(PPG_TYPE_WINDOW, toggle_action_entries,
-	                                    G_N_ELEMENTS(toggle_action_entries));
+	ppg_actions_register_entries(PPG_TYPE_WINDOW,
+	                             ppg_window_action_entries,
+	                             G_N_ELEMENTS(ppg_window_action_entries));
+
+	ppg_actions_register_toggle_entries(PPG_TYPE_WINDOW,
+	                                    ppg_window_toggle_action_entries,
+	                                    G_N_ELEMENTS(ppg_window_toggle_action_entries));
 }
 
 /**
@@ -1442,7 +1541,7 @@ ppg_window_init (PpgWindow *window)
 	GtkWidget *visualizers;
 	GtkWidget *mb_visualizers;
 
-	instances ++;
+	instances++;
 
 	window->priv = G_TYPE_INSTANCE_GET_PRIVATE(window, PPG_TYPE_WINDOW,
 	                                           PpgWindowPrivate);
@@ -1463,11 +1562,6 @@ ppg_window_init (PpgWindow *window)
 	                 "/instrument-popup", &priv->instrument_popup,
 	                 "/instrument-popup/visualizers", &visualizers,
 	                 NULL);
-
-#define SET_ACTION_INSENSITIVE(n) \
-	g_object_set(ppg_window_get_action(window, (n)), "sensitive", FALSE, NULL)
-#define SET_ACTION_ACTIVE(n) \
-	g_object_set(ppg_window_get_action(window, (n)), "active", TRUE, NULL)
 
 	SET_ACTION_ACTIVE("stop");
 	SET_ACTION_INSENSITIVE("stop");

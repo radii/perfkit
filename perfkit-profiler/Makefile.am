@@ -85,6 +85,11 @@ INST_H_FILES =								\
 	ppg-window.h							\
 	$(NULL)
 
+NOINST_H_FILES =							\
+	ppg-window-actions.h						\
+	ppg-window-ui.h							\
+	$(NULL)
+
 perfkit_profiler_SOURCES =						\
 	$(NOINST_H_FILES)						\
 	$(INST_H_FILES)							\
@@ -124,7 +129,6 @@ perfkit_profiler_SOURCES =						\
 	ppg-visualizer-menu.c						\
 	ppg-welcome-dialog.c						\
 	ppg-window.c							\
-	ppg-window-ui.h							\
 	$(NULL)
 
 perfkit_profiler_LDADD =						\
