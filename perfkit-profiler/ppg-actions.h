@@ -37,6 +37,7 @@ void ppg_actions_register_toggle_entries (GType                 widget_type,
                                           GtkToggleActionEntry *entries,
                                           guint                 n_entries);
 void ppg_actions_load                    (GtkWidget            *widget,
+                                          GtkAccelGroup        *accel_group,
                                           GtkActionGroup       *action_group);
 
 G_END_DECLS

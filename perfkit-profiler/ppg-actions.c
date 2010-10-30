@@ -79,10 +79,10 @@ ppg_action_factory_create (PpgActionFactory *factory,
 
 void
 ppg_actions_load (GtkWidget      *widget,
+                  GtkAccelGroup  *accel_group,
                   GtkActionGroup *action_group)
 {
 	PpgActionFactory *factory;
-	GtkAccelGroup *accel_group = NULL;
 	GType widget_type;
 	GList *list;
 	GList *iter;
@@ -94,29 +94,20 @@ ppg_actions_load (GtkWidget      *widget,
 
 	widget_type = G_TYPE_FROM_INSTANCE(widget);
 
-	if (g_type_is_a(widget_type, GTK_TYPE_WINDOW)) {
-		g_debug("Adding accel group to window");
-		accel_group = gtk_accel_group_new();
-		gtk_window_add_accel_group(GTK_WINDOW(widget), accel_group);
-	}
-
 	for (i = 0; i < factories->len; i++) {
 		factory = &g_array_index(factories, PpgActionFactory, i);
 		ppg_action_factory_create(factory, widget, action_group);
 	}
 
-	/*
-	 * FIXME: For some reason, accelerators don't seem to be activating.
-	 */
-
 	if (accel_group) {
-		list = gtk_action_group_list_actions(action_group);
-		for (iter = list; iter; iter = iter->next) {
-			gtk_action_set_accel_group(iter->data, accel_group);
-			if (gtk_accel_map_lookup_entry(gtk_action_get_accel_path(iter->data), NULL)) {
+		if (g_type_is_a(widget_type, GTK_TYPE_WINDOW)) {
+			list = gtk_action_group_list_actions(action_group);
+			for (iter = list; iter; iter = iter->next) {
+				gtk_action_set_accel_group(iter->data, accel_group);
 			}
+			g_list_free(list);
+			gtk_window_add_accel_group(GTK_WINDOW(widget), accel_group);
 		}
-		g_list_free(list);
 	}
 }
 

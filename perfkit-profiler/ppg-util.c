@@ -59,6 +59,7 @@ ppg_util_load_ui (GtkWidget       *widget,
 {
 	GtkUIManager *ui_manager;
 	GtkActionGroup *action_group;
+	GtkAccelGroup *accel_group;
 	const gchar *name;
 	GtkWidget **dst_widget;
 	GError *error = NULL;
@@ -75,8 +76,9 @@ ppg_util_load_ui (GtkWidget       *widget,
 	}
 
 	type = G_TYPE_FROM_INSTANCE(widget);
+	accel_group = gtk_ui_manager_get_accel_group(ui_manager);
 	action_group = gtk_action_group_new(g_type_name(type));
-	ppg_actions_load(widget, action_group);
+	ppg_actions_load(widget, accel_group, action_group);
 	gtk_ui_manager_insert_action_group(ui_manager, action_group, 0);
 
 	name = first_widget;
