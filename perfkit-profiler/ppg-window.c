@@ -209,7 +209,9 @@ ppg_window_stop_activate (GtkAction *action,
 
 	END_ACTION_UPDATE;
 
-	ppg_session_stop(priv->session);
+	if (priv->session) {
+		ppg_session_stop(priv->session);
+	}
 }
 
 /**
