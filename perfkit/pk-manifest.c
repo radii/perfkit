@@ -245,8 +245,7 @@ pk_manifest_get_row_type (PkManifest *manifest, /* IN */
 	g_return_val_if_fail(row > 0, G_TYPE_INVALID);
 	g_return_val_if_fail(row <= manifest->n_rows, G_TYPE_INVALID);
 
-	ENTRY;
-	RETURN(g_array_index(manifest->rows, PkManifestRow, --row).type);
+	return g_array_index(manifest->rows, PkManifestRow, --row).type;
 }
 
 /**
@@ -273,7 +272,7 @@ pk_manifest_get_row_name (PkManifest *manifest, /* IN */
 }
 
 /**
- * pk_manifest_get_timeval:
+ * pk_manifest_get_timespec:
  * @manifest: A #PkManifest.
  * @ts: A struct timespec.
  *

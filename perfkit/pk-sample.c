@@ -474,9 +474,7 @@ pk_sample_get_timespec (PkSample        *sample, /* IN */
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(ts != NULL);
 
-	ENTRY;
 	*ts = sample->ts;
-	EXIT;
 }
 
 void
