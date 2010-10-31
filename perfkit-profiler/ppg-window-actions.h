@@ -83,7 +83,7 @@ static GtkActionEntry ppg_window_action_entries[] = {
 	{ "configure-instrument", NULL, N_("_Configure"), NULL, N_("Configure the selected instrument"), G_CALLBACK(ppg_window_configure_instrument_activate) },
 	{ "visualizers", NULL, N_("_Visualizers") },
 
-	{ "target-spawn", NULL, N_("Spawn a new process"), NULL, NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
+	{ "target-spawn", NULL, N_("Spawn a new process"), "<control>t", NULL, G_CALLBACK(ppg_window_target_spawn_activate) },
 	{ "target-existing", NULL, N_("Select an existing process"), NULL, NULL, NULL },
 	{ "target-none", NULL, N_("No target"), NULL, NULL, NULL },
 
