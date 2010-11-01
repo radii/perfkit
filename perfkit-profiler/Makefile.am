@@ -53,6 +53,7 @@ INST_H_FILES =								\
 	ppg-add-instrument-dialog.h					\
 	ppg-color.h							\
 	ppg-configure-instrument-dialog.h				\
+	ppg-cpu-instrument.h						\
 	ppg-edit-channel-task.h						\
 	ppg-header.h							\
 	ppg-instrument.h						\
@@ -98,6 +99,7 @@ perfkit_profiler_SOURCES =						\
 	ppg-actions.c							\
 	ppg-color.c							\
 	ppg-configure-instrument-dialog.c				\
+	ppg-cpu-instrument.c						\
 	ppg-add-instrument-dialog.c					\
 	ppg-edit-channel-task.c						\
 	ppg-header.c							\

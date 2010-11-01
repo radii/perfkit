@@ -17,9 +17,9 @@
  */
 
 #include <glib/gi18n.h>
-
 #include <string.h>
 
+#include "ppg-cpu-instrument.h"
 #include "ppg-instrument.h"
 #include "ppg-instruments.h"
 #include "ppg-memory-instrument.h"
@@ -56,7 +56,7 @@ ppg_instruments_init (void)
 	ppg_instruments_register("perfkit-cpu",
 	                         _("CPU"),
 	                         NULL,
-	                         G_TYPE_NONE);
+	                         PPG_TYPE_CPU_INSTRUMENT);
 	ppg_instruments_register("perfkit-network",
 	                         _("Network"),
 	                         "network-wired",
