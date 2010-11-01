@@ -316,6 +316,9 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 		data += n_read;
 		key = pk_sample_get_source_id(sample);
 		manifest = g_tree_lookup(handler->manifests, &key);
+#if PERFKIT_DEBUG
+		g_assert_cmpint(pk_sample_get_source_id(sample), ==, key);
+#endif
 		g_value_init(&params[0], PK_TYPE_MANIFEST);
 		g_value_init(&params[1], PK_TYPE_SAMPLE);
 		g_value_set_boxed(&params[0], manifest);
@@ -8842,6 +8845,7 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 	priv = PK_CONNECTION_DBUS(connection)->priv;
 	handler = g_slice_new0(Handler);
 	handler->id = pk_connection_dbus_next_handler_id();
+	handler->subscription = subscription;
 	handler->manifest = g_cclosure_new(G_CALLBACK(manifest_func),
 	                                   manifest_data,
 	                                   (GClosureNotify)manifest_destroy);
@@ -8861,7 +8865,8 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 		path = g_strdup_printf("/Handler/%d", handler->subscription);
 		dbus_connection_register_object_path(priv->client, path,
 		                                     &handler_vtable, connection);
-		sub_path = g_strdup_printf("/org/perfkit/Agent/Subscription/%d", subscription);
+		sub_path = g_strdup_printf("/org/perfkit/Agent/Subscription/%d",
+		                           handler->subscription);
 		message = dbus_message_new_method_call("org.perfkit.Agent",
 		                                       sub_path,
 		                                       "org.perfkit.Agent.Subscription",
