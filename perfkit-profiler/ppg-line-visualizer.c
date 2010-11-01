@@ -75,127 +75,6 @@ ppg_line_visualizer_get_actor (PpgVisualizer *visualizer)
 }
 
 static void
-ppg_line_visualizer_paint (PpgLineVisualizer *visualizer)
-{
-	PpgLineVisualizerPrivate *priv;
-	//PpgModelIter iter;
-	//Line *line;
-	gdouble begin;
-	gdouble end;
-	//gdouble lower;
-	//gdouble upper;
-	//gdouble offset;
-	//gdouble value;
-	gfloat height;
-	gfloat width;
-	cairo_t *cr;
-	//gint i;
-
-	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
-
-	priv = visualizer->priv;
-
-	g_object_get(priv->actor,
-	             "height", &height,
-	             "width", &width,
-	             NULL);
-
-	/*
-	 * FIXME: Get real time range.
-	 */
-#if 0
-	g_object_get(visualizer,
-	             "begin", &begin,
-	             "end", &end,
-	             NULL);
-#endif
-
-	begin = 0.0;
-	end = clutter_actor_get_width(priv->actor);
-
-	clutter_cairo_texture_clear(CLUTTER_CAIRO_TEXTURE(priv->actor));
-	cr = clutter_cairo_texture_create(CLUTTER_CAIRO_TEXTURE(priv->actor));
-
-	cairo_save(cr);
-	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_fill(cr);
-	cairo_restore(cr);
-
-	cairo_set_line_width(cr, 1.0);
-
-#if 0
-	cairo_rectangle(cr, 0, 0, width, height);
-	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.95);
-	cairo_fill(cr);
-#endif
-
-#if 0
-	for (i = 0; i < priv->lines->len; i++) {
-		line = &g_array_index(priv->lines, Line, i);
-		gdk_cairo_set_source_color(cr, &line->color);
-
-		if (!ppg_model_get_iter_at(line->model, &iter, begin, end, PPG_RESOLUTION_FULL)) {
-			continue;
-		}
-
-		//ppg_model_get_bounds(line->model, &iter, &lower, &upper);
-
-		do {
-			//ppg_model_get(line->model, &iter, line->key, &offset, &value);
-			//cairo_line_to(cr, offset, value);
-		} while (ppg_model_iter_next(line->model, &iter));
-
-		if (line->fill) {
-			cairo_line_to(cr, offset, height);
-			cairo_line_to(cr, 0.0, height);
-			cairo_close_path(cr);
-			cairo_fill_preserve(cr);
-		}
-
-		cairo_stroke(cr);
-	}
-#endif
-
-	cairo_destroy(cr);
-}
-
-static gboolean
-ppg_line_visualizer_paint_timeout (gpointer user_data)
-{
-	PpgLineVisualizer *visualizer = (PpgLineVisualizer *)user_data;
-	PpgLineVisualizerPrivate *priv;
-
-	g_return_val_if_fail(PPG_IS_LINE_VISUALIZER(visualizer), FALSE);
-
-	priv = visualizer->priv;
-
-	priv->paint_handler = 0;
-	ppg_line_visualizer_paint(user_data);
-
-	return FALSE;
-}
-
-static void
-ppg_line_visualizer_queue_paint (PpgLineVisualizer *visualizer)
-{
-	PpgLineVisualizerPrivate *priv;
-
-	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
-
-	return; /* XXX */
-
-	priv = visualizer->priv;
-
-	if (priv->paint_handler) {
-		return;
-	}
-
-	priv->paint_handler =
-		g_timeout_add(0, ppg_line_visualizer_paint_timeout, visualizer);
-}
-
-static void
 ppg_line_visualizer_resize_surface (PpgLineVisualizer *visualizer)
 {
 	PpgLineVisualizerPrivate *priv;
@@ -215,8 +94,6 @@ ppg_line_visualizer_resize_surface (PpgLineVisualizer *visualizer)
 	             "surface-height", (gint)height,
 	             "surface-width", (gint)width,
 	             NULL);
-
-	ppg_line_visualizer_queue_paint(visualizer);
 }
 
 static gboolean
@@ -338,7 +215,7 @@ ppg_line_visualizer_draw (PpgVisualizer *visualizer)
 			} else if (G_VALUE_HOLDS(&value, G_TYPE_UINT)) {
 				val = g_value_get_uint(&value);
 			} else {
-				g_debug("HOLDS %s", g_type_name(value.g_type));
+				g_critical("HOLDS %s", g_type_name(value.g_type));
 				g_assert_not_reached();
 			}
 			x = get_x_offset(begin, end, width, iter.time);
@@ -429,6 +306,4 @@ ppg_line_visualizer_init (PpgLineVisualizer *visualizer)
 	g_signal_connect_after(priv->actor, "notify::allocation",
 	                       G_CALLBACK(ppg_line_visualizer_notify_allocation),
 	                       visualizer);
-
-	ppg_line_visualizer_queue_paint(visualizer);
 }
