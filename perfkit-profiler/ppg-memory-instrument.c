@@ -362,9 +362,9 @@ ppg_memory_instrument_init (PpgMemoryInstrument *instrument)
 	                                    instrument);
 
 	priv->model = g_object_new(PPG_TYPE_MODEL, NULL);
-	ppg_model_add_mapping(priv->model, COLUMN_SIZE, "size");
-	ppg_model_add_mapping(priv->model, COLUMN_RESIDENT, "resident");
-	ppg_model_add_mapping(priv->model, COLUMN_SHARE, "share");
-	ppg_model_add_mapping(priv->model, COLUMN_TEXT, "text");
-	ppg_model_add_mapping(priv->model, COLUMN_DATA, "data");
+	ppg_model_add_mapping(priv->model, COLUMN_SIZE, "size", G_TYPE_UINT);
+	ppg_model_add_mapping(priv->model, COLUMN_RESIDENT, "resident", G_TYPE_UINT);
+	ppg_model_add_mapping(priv->model, COLUMN_SHARE, "share", G_TYPE_UINT);
+	ppg_model_add_mapping(priv->model, COLUMN_TEXT, "text", G_TYPE_UINT);
+	ppg_model_add_mapping(priv->model, COLUMN_DATA, "data", G_TYPE_UINT);
 }
