@@ -17,6 +17,7 @@
  */
 
 #include <egg-time.h>
+#include <gobject/gvaluecollector.h>
 #include <math.h>
 #include <perfkit/perfkit.h>
 #include <string.h>
@@ -45,8 +46,11 @@ G_DEFINE_TYPE(PpgModel, ppg_model, G_TYPE_INITIALLY_UNOWNED)
 
 typedef struct
 {
-	gint   key;
+	gint key;
 	gchar *name;
+	GType expected_type;
+	PpgModelValueFunc func;
+	gpointer user_data;
 } Mapping;
 
 struct _PpgModelPrivate
@@ -60,6 +64,44 @@ struct _PpgModelPrivate
 	GHashTable *next_manifests;  /* Manifest->NextManifest mappings */
 	GPtrArray  *samples;         /* All samples */
 };
+
+static void
+mapping_get_value (Mapping *mapping,
+                   PpgModel *model,
+                   PpgModelIter *iter,
+                   PkManifest *manifest,
+                   PkSample *sample,
+                   GValue  *value)
+{
+	GType type;
+	gint row;
+
+	g_return_if_fail(mapping != NULL);
+	g_return_if_fail(manifest != NULL);
+	g_return_if_fail(sample != NULL);
+	g_return_if_fail(value != NULL);
+
+	if (mapping->func) {
+		mapping->func(model, iter, mapping->key, value, mapping->user_data);
+	} else {
+		/*
+		 * FIXME: Probably should cache these somewhere per manifest.
+		 */
+		row = pk_manifest_get_row_id(manifest, mapping->name);
+		if (mapping->expected_type) {
+			type = pk_manifest_get_row_type(manifest, row);
+			if (type != mapping->expected_type) {
+				g_critical("Incoming type %s does not match %s",
+				           g_type_name(type),
+				           g_type_name(mapping->expected_type));
+				return;
+			}
+		}
+		if (!pk_sample_get_value(sample, row, value)) {
+			g_value_init(value, pk_manifest_get_row_type(manifest, row));
+		}
+	}
+}
 
 /**
  * ppg_model_finalize:
@@ -172,6 +214,8 @@ ppg_model_insert_sample (PpgModel   *model,
 
 	priv = model->priv;
 
+	g_debug("manifest=%p priv->manifest=%p", manifest, priv->manifest);
+	g_debug("ID=%d ID=%d", pk_manifest_get_source_id(manifest), pk_manifest_get_source_id(priv->manifest));
 	g_assert(manifest == priv->manifest);
 
 	/*
@@ -184,7 +228,8 @@ ppg_model_insert_sample (PpgModel   *model,
 void
 ppg_model_add_mapping (PpgModel    *model,
                        gint         key,
-                       const gchar *field)
+                       const gchar *field,
+                       GType        expected_type)
 {
 	PpgModelPrivate *priv;
 	Mapping *mapping;
@@ -196,21 +241,102 @@ ppg_model_add_mapping (PpgModel    *model,
 	mapping = g_new0(Mapping, 1);
 	mapping->key = key;
 	mapping->name = g_strdup(field);
+	mapping->expected_type = expected_type;
 
 	g_hash_table_insert(priv->mappings, &mapping->key, mapping);
 }
 
 void
-ppg_model_get_value (PpgModel     *model,
-                     PpgModelIter *iter,
-                     gint          key,
-                     GValue       *value)
+ppg_model_add_mapping_func (PpgModel *model,
+                            gint key,
+                            PpgModelValueFunc func,
+                            gpointer user_data)
+{
+	PpgModelPrivate *priv;
+	Mapping *mapping;
+
+	g_return_if_fail(PPG_IS_MODEL(model));
+
+	priv = model->priv;
+
+	mapping = g_new0(Mapping, 1);
+	mapping->key = key;
+	mapping->func = func;
+	mapping->user_data = user_data;
+
+	g_hash_table_insert(priv->mappings, &mapping->key, mapping);
+}
+
+void
+ppg_model_get_valist (PpgModel *model,
+                      PpgModelIter *iter,
+                      gint first_key,
+                      va_list args)
 {
 	PpgModelPrivate *priv;
 	PkManifest *manifest;
 	PkSample *sample;
 	Mapping *mapping;
-	gint row;
+	GValue value = { 0 };
+	gchar *error = NULL;
+	gint key;
+
+	g_return_if_fail(PPG_IS_MODEL(model));
+	g_return_if_fail(iter != NULL);
+
+	priv = model->priv;
+	key = first_key;
+
+	do {
+		manifest = (PkManifest *)iter->user_data;
+		sample = (PkSample *)iter->user_data2;
+		mapping = g_hash_table_lookup(priv->mappings, &key);
+
+		if (!mapping) {
+			g_critical("Cannot find mapping for key %d. "
+			           "Make sure to include a -1 sentinel.",
+			           key);
+			return;
+		}
+
+		g_assert(manifest);
+		g_assert(sample);
+		g_assert(mapping);
+
+		mapping_get_value(mapping, model, iter, manifest, sample, &value);
+		G_VALUE_LCOPY(&value, args, 0, &error);
+		if (error) {
+			g_warning("%s:%s", G_STRFUNC, error);
+			g_free(error);
+			error = NULL;
+		}
+		g_value_unset(&value);
+	} while (-1 != (key = va_arg(args, gint)));
+}
+
+void
+ppg_model_get (PpgModel *model,
+               PpgModelIter *iter,
+               gint first_key,
+               ...)
+{
+	va_list args;
+
+	va_start(args, first_key);
+	ppg_model_get_valist(model, iter, first_key, args);
+	va_end(args);
+}
+
+void
+ppg_model_get_value (PpgModel *model,
+                     PpgModelIter *iter,
+                     gint key,
+                     GValue *value)
+{
+	PpgModelPrivate *priv;
+	PkManifest *manifest;
+	PkSample *sample;
+	Mapping *mapping;
 
 	g_return_if_fail(PPG_IS_MODEL(model));
 	g_return_if_fail(iter != NULL);
@@ -228,16 +354,7 @@ ppg_model_get_value (PpgModel     *model,
 	g_assert(sample);
 	g_assert(mapping);
 
-	/*
-	 * FIXME: Probably should cache these somewhere per manifest.
-	 */
-	row = pk_manifest_get_row_id(manifest, mapping->name);
-	if (!pk_sample_get_value(sample, row, value)) {
-		/*
-		 * FIXME: No value in this sample.
-		 */
-		g_debug("No value for row %d (%s) in this sample", row, mapping->name);
-	}
+	mapping_get_value(mapping, model, iter, manifest, sample, value);
 }
 
 static inline gdouble
