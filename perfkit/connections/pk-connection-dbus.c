@@ -8869,9 +8869,9 @@ pk_connection_dbus_subscription_set_handlers_async (PkConnection        *connect
 		if (!dbus_message_append_args(message,
 		                              DBUS_TYPE_OBJECT_PATH, &path,
 		                              DBUS_TYPE_INVALID)) {
-		    g_free(sub_path);
-		    g_free(path);
-		    GOTO(oom);
+			g_free(sub_path);
+			g_free(path);
+			GOTO(oom);
 		}
 		dbus_connection_send(priv->dbus, message, NULL);
 		dbus_message_unref(message);
