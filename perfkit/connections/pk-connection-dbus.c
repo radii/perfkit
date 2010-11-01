@@ -246,6 +246,11 @@ handler_manifest_lookup (gint         source_id, /* IN */
 
 	ENTRY;
 	*manifest = g_tree_lookup(handler->manifests, &source_id);
+#if PERFKIT_DEBUG
+	if (*manifest) {
+		g_assert_cmpint(pk_manifest_get_source_id(*manifest), ==, source_id);
+	}
+#endif
 	RETURN(*manifest != NULL);
 }
 
