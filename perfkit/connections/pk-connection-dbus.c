@@ -246,7 +246,7 @@ handler_manifest_lookup (gint         source_id, /* IN */
 
 	ENTRY;
 	*manifest = g_tree_lookup(handler->manifests, &source_id);
-#if PERFKIT_DEBUG
+#ifdef PERFKIT_DEBUG
 	if (*manifest) {
 		g_assert_cmpint(pk_manifest_get_source_id(*manifest), ==, source_id);
 	}
@@ -316,7 +316,7 @@ pk_connection_dbus_dispatch_sample (PkConnectionDBus  *connection,   /* IN */
 		data += n_read;
 		key = pk_sample_get_source_id(sample);
 		manifest = g_tree_lookup(handler->manifests, &key);
-#if PERFKIT_DEBUG
+#ifdef PERFKIT_DEBUG
 		g_assert_cmpint(pk_sample_get_source_id(sample), ==, key);
 #endif
 		g_value_init(&params[0], PK_TYPE_MANIFEST);
