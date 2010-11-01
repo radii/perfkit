@@ -117,8 +117,6 @@ ppg_visualizer_menu_set_instrument (PpgVisualizerMenu *menu,
 	priv = menu->priv;
 	priv->instrument = instrument;
 
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
-
 	/*
 	 * Remove all existing entries.
 	 */

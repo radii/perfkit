@@ -1300,7 +1300,6 @@ ppg_window_embed_key_press (GtkWidget   *embed,
                             GdkEventKey *key,
                             PpgWindow   *window)
 {
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
 	return FALSE;
 }
 

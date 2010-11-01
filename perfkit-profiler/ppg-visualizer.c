@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ppg-log.h"
 #include "ppg-visualizer.h"
 
 G_DEFINE_ABSTRACT_TYPE(PpgVisualizer, ppg_visualizer, G_TYPE_INITIALLY_UNOWNED)
@@ -86,10 +87,10 @@ ppg_visualizer_set_begin (PpgVisualizer *visualizer,
 {
 	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
 
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
-
+	ENTRY;
 	visualizer->priv->begin = begin;
 	ppg_visualizer_queue_draw(visualizer);
+	EXIT;
 }
 
 static void
@@ -98,10 +99,10 @@ ppg_visualizer_set_end (PpgVisualizer *visualizer,
 {
 	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
 
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
-
+	ENTRY;
 	visualizer->priv->end = end;
 	ppg_visualizer_queue_draw(visualizer);
+	EXIT;
 }
 
 static void
@@ -110,9 +111,13 @@ ppg_visualizer_finalize (GObject *object)
 	PpgVisualizer *visualizer = PPG_VISUALIZER(object);
 	PpgVisualizerPrivate *priv = visualizer->priv;
 
+	ENTRY;
+
 	g_free(priv->title);
 
 	G_OBJECT_CLASS(ppg_visualizer_parent_class)->dispose(object);
+
+	EXIT;
 }
 
 /**

@@ -106,7 +106,6 @@ ppg_cpu_instrument_manifest_cb (PkManifest *manifest,
 
 	priv = instrument->priv;
 
-	g_debug("Received new manifest");
 	ppg_model_insert_manifest(priv->model, manifest);
 }
 
@@ -138,7 +137,6 @@ ppg_cpu_instrument_sample_cb (PkManifest *manifest,
 	g_assert_cmpint(pk_manifest_get_source_id(manifest), ==, priv->source);
 #endif
 
-	g_debug("Received new sample");
 	ppg_model_insert_sample(priv->model, manifest, sample);
 }
 
@@ -295,8 +293,9 @@ ppg_cpu_instrument_calc_cpu (PpgModel *model,
 	              -1);
 
 	g_value_init(value, G_TYPE_DOUBLE);
-	percent = (gdouble)(user + nice_ + system) / (gdouble)(user + nice_ + system + idle) * 100.0;
-	g_debug("Percent: %f", percent);
+	percent = (gdouble)(user + nice_ + system) /
+	          (gdouble)(user + nice_ + system + idle) *
+	          100.0;
 	g_value_set_double(value, percent);
 }
 

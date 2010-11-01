@@ -179,8 +179,6 @@ ppg_instrument_add_visualizer (PpgInstrument *instrument,
 	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
 	g_return_if_fail(name != NULL);
 
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
-
 	priv = instrument->priv;
 
 	for (i = 0; i < priv->factories->len; i++) {
@@ -206,8 +204,6 @@ ppg_instrument_remove_visualizer (PpgInstrument *instrument,
 	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
 	g_return_if_fail(PPG_IS_VISUALIZER(visualizer));
 
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
-
 	priv = instrument->priv;
 
 	if (!g_list_find(priv->visualizers, visualizer)) {
@@ -229,8 +225,6 @@ ppg_instrument_remove_visualizer_named (PpgInstrument *instrument,
 
 	g_return_if_fail(PPG_IS_INSTRUMENT(instrument));
 	g_return_if_fail(name != NULL);
-
-	g_debug("%s():%d", G_STRFUNC, __LINE__);
 
 	priv = instrument->priv;
 

@@ -214,8 +214,6 @@ ppg_model_insert_sample (PpgModel   *model,
 
 	priv = model->priv;
 
-	g_debug("manifest=%p priv->manifest=%p", manifest, priv->manifest);
-	g_debug("ID=%d ID=%d", pk_manifest_get_source_id(manifest), pk_manifest_get_source_id(priv->manifest));
 	g_assert(manifest == priv->manifest);
 
 	/*
