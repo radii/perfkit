@@ -35,6 +35,7 @@ AM_CPPFLAGS =								\
 	-D_GNU_SOURCE							\
 	-I$(top_srcdir)/perfkit						\
 	$(WARNINGS)							\
+	$(PERFKIT_DEBUG_CFLAGS)						\
 	$(PERFKIT_CFLAGS)						\
 	$(DBUS_CFLAGS)							\
 	$(NULL)
