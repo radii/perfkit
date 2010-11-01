@@ -861,6 +861,44 @@ ppg_window_visualizers_set (PpgWindow   *window,
 }
 
 static void
+ppg_window_position_notify (PpgSession *session,
+                            GParamSpec *pspec,
+                            PpgWindow  *window)
+{
+	PpgWindowPrivate *priv;
+	gdouble position;
+	gdouble lower;
+	gdouble upper;
+	gdouble ratio;
+	gfloat width;
+	gfloat x;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	g_object_get(priv->ruler,
+	             "lower", &lower,
+	             "upper", &upper,
+	             NULL);
+	position = ppg_session_get_position(session);
+	g_object_get(priv->rows_box, "width", &width, NULL);
+	width -= 200.0f;
+
+	upper -= lower;
+	position -= lower;
+
+	if (position < 0 || position > upper) {
+		/* FIXME: need to adjust hadjustment */
+	}
+
+	ratio = (position / upper);
+	x = (gint)(200.0f + (ratio * width));
+
+	g_object_set(priv->timer_sep, "x", x, NULL);
+}
+
+static void
 ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
                                PpgWindow     *window)
 {
@@ -899,6 +937,8 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 	                           "begin", lower,
 	                           "end", upper,
 	                           NULL);
+
+	ppg_window_position_notify(priv->session, NULL, window);
 }
 
 static void
@@ -1183,44 +1223,6 @@ ppg_window_style_set (GtkWidget *widget,
 	clutter_container_foreach(CLUTTER_CONTAINER(priv->rows_box),
 	                          ppg_window_set_row_style,
 	                          gtk_widget_get_style(widget));
-}
-
-static void
-ppg_window_position_notify (PpgSession *session,
-                            GParamSpec *pspec,
-                            PpgWindow  *window)
-{
-	PpgWindowPrivate *priv;
-	gdouble position;
-	gdouble lower;
-	gdouble upper;
-	gdouble ratio;
-	gfloat width;
-	gfloat x;
-
-	g_return_if_fail(PPG_IS_WINDOW(window));
-
-	priv = window->priv;
-
-	g_object_get(priv->ruler,
-	             "lower", &lower,
-	             "upper", &upper,
-	             NULL);
-	position = ppg_session_get_position(session);
-	g_object_get(priv->rows_box, "width", &width, NULL);
-	width -= 200.0f;
-
-	upper -= lower;
-	position -= lower;
-
-	if (position < 0 || position > upper) {
-		/* FIXME: need to adjust hadjustment */
-	}
-
-	ratio = (position / upper);
-	x = (gint)(200.0f + (ratio * width));
-
-	g_object_set(priv->timer_sep, "x", x, NULL);
 }
 
 static gboolean
