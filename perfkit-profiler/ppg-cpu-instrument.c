@@ -133,7 +133,7 @@ ppg_cpu_instrument_sample_cb (PkManifest *manifest,
 
 	priv = instrument->priv;
 
-#if PERFKIT_DEBUG
+#ifdef PERFKIT_DEBUG
 	g_assert_cmpint(pk_sample_get_source_id(sample), ==, priv->source);
 	g_assert_cmpint(pk_manifest_get_source_id(manifest), ==, priv->source);
 #endif
