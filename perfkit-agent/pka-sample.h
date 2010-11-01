@@ -40,7 +40,7 @@ PkaSample*  pka_sample_ref            (PkaSample        *sample);
 void        pka_sample_unref          (PkaSample        *sample);
 void        pka_sample_get_data       (PkaSample        *sample,
                                        const guint8    **data,
-                                       gsize            *dapka_len);
+                                       gsize            *data_len);
 gint        pka_sample_get_source_id  (PkaSample        *sample) G_GNUC_PURE;
 void        pka_sample_get_timespec   (PkaSample        *sample,
                                        struct timespec  *ts);
