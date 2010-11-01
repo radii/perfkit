@@ -329,7 +329,9 @@ pka_source_simple_wait (PkaSourceSimple *source,     /* IN */
                         pthread_mutex_t *wait_mutex) /* IN */
 {
 	PkaSourceSimplePrivate *priv = source->priv;
+#ifdef PERFKIT_TRACE
 	struct timespec ts, sub;
+#endif
 
 	ENTRY;
 #ifdef PERFKIT_TRACE
