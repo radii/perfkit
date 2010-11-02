@@ -1383,6 +1383,19 @@ ppg_window_show (GtkWidget *widget)
 	ppg_window_zoom_value_changed(priv->zadj, window);
 }
 
+static void
+ppg_window_realize (GtkWidget *widget)
+{
+	GtkWidgetClass *klass;
+	GdkGeometry geom = { 640, 300 };
+
+	klass = GTK_WIDGET_CLASS(ppg_window_parent_class);
+	klass->realize(widget);
+
+	gtk_window_set_geometry_hints(GTK_WINDOW(widget), widget,
+	                              &geom, GDK_HINT_MIN_SIZE);
+}
+
 /**
  * ppg_window_finalize:
  * @object: (in): A #PpgWindow.
@@ -1477,6 +1490,7 @@ ppg_window_class_init (PpgWindowClass *klass)
 
 	widget_class = GTK_WIDGET_CLASS(klass);
 	widget_class->delete_event = ppg_window_delete_event;
+	widget_class->realize = ppg_window_realize;
 	widget_class->show = ppg_window_show;
 	widget_class->size_allocate = ppg_window_size_allocate;
 	widget_class->style_set = ppg_window_style_set;
