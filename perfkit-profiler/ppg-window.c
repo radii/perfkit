@@ -942,6 +942,22 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 }
 
 static void
+ppg_window_vadj_value_changed (GtkAdjustment *adj,
+                               PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	gfloat value;
+
+	g_return_if_fail(GTK_IS_ADJUSTMENT(adj));
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	value = gtk_adjustment_get_value(adj);
+	clutter_actor_set_y(priv->rows_box, -(gint)value);
+}
+
+static void
 ppg_window_size_allocate (GtkWidget     *widget,
                           GtkAllocation *alloc)
 {
@@ -976,6 +992,10 @@ ppg_window_size_allocate (GtkWidget     *widget,
 		clutter_actor_set_height(priv->timer_sep, embed_alloc.height);
 		clutter_actor_set_y(priv->status_actor,
 		                    embed_alloc.height - clutter_actor_get_height(priv->status_actor));
+
+		g_object_set(priv->vadj,
+		             "page-size", (gdouble)embed_alloc.height,
+		             NULL);
 
 		ppg_window_zoom_value_changed(priv->zadj, window);
 	}
@@ -1396,6 +1416,35 @@ ppg_window_realize (GtkWidget *widget)
 	                              &geom, GDK_HINT_MIN_SIZE);
 }
 
+static void
+ppg_window_rows_notify_allocation (ClutterActor *actor,
+                                   GParamSpec *pspec,
+                                   PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	gfloat height;
+	gfloat y;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	g_object_get(actor,
+	             "height", &height,
+	             "y", &y,
+	             NULL);
+
+	if (height > 0.0) {
+		g_object_set(priv->vadj,
+		             "upper", (gdouble)height,
+		             NULL);
+	}
+
+	g_object_set(priv->vadj,
+	             "value", (gdouble)-y,
+	             NULL);
+}
+
 /**
  * ppg_window_finalize:
  * @object: (in): A #PpgWindow.
@@ -1587,6 +1636,18 @@ ppg_window_init (PpgWindow *window)
 	SET_ACTION_INSENSITIVE("paste");
 	SET_ACTION_INSENSITIVE("configure-instrument");
 
+	priv->vadj = g_object_new(GTK_TYPE_ADJUSTMENT,
+	                          "lower", 0.0,
+	                          "page-size", 1.0,
+	                          "upper", 1.0,
+	                          "value", 0.0,
+	                          NULL);
+	g_signal_connect(priv->vadj, "value-changed",
+	                 G_CALLBACK(ppg_window_vadj_value_changed),
+	                 window);
+
+	priv->hadj = g_object_new(GTK_TYPE_ADJUSTMENT, NULL);
+
 	vbox = g_object_new(GTK_TYPE_VBOX,
 	                    "visible", TRUE,
 	                    NULL);
@@ -1636,6 +1697,7 @@ ppg_window_init (PpgWindow *window)
 	gtk_container_add(GTK_CONTAINER(priv->paned), table);
 
 	scroll = g_object_new(GTK_TYPE_VSCROLLBAR,
+	                      "adjustment", priv->vadj,
 	                      "visible", TRUE,
 	                      NULL);
 	gtk_container_add_with_properties(GTK_CONTAINER(table), scroll,
@@ -1851,6 +1913,9 @@ ppg_window_init (PpgWindow *window)
 	priv->rows_box = g_object_new(CLUTTER_TYPE_BOX,
 	                              "layout-manager", priv->box_layout,
 	                              NULL);
+	g_signal_connect(priv->rows_box, "notify::allocation",
+	                 G_CALLBACK(ppg_window_rows_notify_allocation),
+	                 window);
 	priv->add_instrument_actor = g_object_new(CLUTTER_TYPE_TEXT,
 	                                          "text", _(LARGER("Add an instrument to get started")),
 	                                          "use-markup", TRUE,
