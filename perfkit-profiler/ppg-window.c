@@ -17,6 +17,7 @@
  */
 
 #include <clutter-gtk/clutter-gtk.h>
+#include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
 #include <gobject/gvaluecollector.h>
 #include <math.h>
@@ -1317,11 +1318,103 @@ ppg_window_set_uri (PpgWindow   *window,
 	g_timeout_add(UPDATE_TIMEOUT, force_redraw, window);
 }
 
+static void
+ppg_window_select_next_row (PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	GList *list;
+	GList *iter;
+
+	g_return_if_fail(PPG_IS_WINDOW(window));
+
+	priv = window->priv;
+
+	/*
+	 * XXX: This is a totally shitty way to do this, because we iterate
+	 *      N children to get to the next pointer in the list. But for
+	 *      now, that is easier than keeping our own array + index.
+	 */
+
+	list = clutter_container_get_children(CLUTTER_CONTAINER(priv->rows_box));
+
+	if (!priv->selected) {
+		if (list) {
+			ppg_window_select_row(window, PPG_ROW(list->data));
+		}
+		goto finish;
+	}
+
+	for (iter = list; iter; iter = iter->next) {
+		if (iter->data == (gpointer)priv->selected) {
+			if (iter->next) {
+				ppg_window_select_row(window, PPG_ROW(iter->next->data));
+			}
+			break;
+		}
+	}
+
+  finish:
+	g_list_free(list);
+}
+
+static void
+ppg_window_select_previous_row (PpgWindow *window)
+{
+	PpgWindowPrivate *priv;
+	GList *list;
+	GList *iter;
+	
+	g_return_if_fail(PPG_IS_WINDOW(window));
+	
+	priv = window->priv;
+
+	/*
+	 * XXX: This is a totally shitty way to do this, because we iterate
+	 *      N children to get to the next pointer in the list. But for
+	 *      now, that is easier than keeping our own array + index.
+	 */
+
+	list = clutter_container_get_children(CLUTTER_CONTAINER(priv->rows_box));
+	list = g_list_reverse(list);
+
+	if (!priv->selected) {
+		if (list) {
+			ppg_window_select_row(window, PPG_ROW(list->data));
+		}
+		goto finish;
+	}
+
+	for (iter = list; iter; iter = iter->next) {
+		if (iter->data == (gpointer)priv->selected) {
+			if (iter->next) {
+				ppg_window_select_row(window, PPG_ROW(iter->next->data));
+			}
+			break;
+		}
+	}
+
+  finish:
+	g_list_free(list);
+}
+
 static gboolean
 ppg_window_embed_key_press (GtkWidget   *embed,
                             GdkEventKey *key,
                             PpgWindow   *window)
 {
+	switch (key->keyval) {
+	case GDK_KEY_j:
+	case GDK_KEY_Down:
+		ppg_window_select_next_row(window);
+		return TRUE;
+	case GDK_KEY_k:
+	case GDK_KEY_Up:
+		ppg_window_select_previous_row(window);
+		return TRUE;
+	default:
+		break;
+	}
+
 	return FALSE;
 }
 
