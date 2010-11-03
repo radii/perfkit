@@ -39,9 +39,10 @@ G_DEFINE_TYPE(PpgCpuInstrument, ppg_cpu_instrument, PPG_TYPE_INSTRUMENT)
 
 struct _PpgCpuInstrumentPrivate
 {
-	PpgModel *model;   /* Data model for storing statistics. */
-	gint      source;  /* Perfkit cpu source id. */
-	gint      sub;     /* Perfkit subscription id. */
+	GHashTable *models;  /* Models (one per cpu) */
+	gint        source;  /* Perfkit cpu source id. */
+	gint        sub;     /* Perfkit subscription id. */
+	GList      *cmb_viz; /* "combined" visualizers */
 };
 
 enum
@@ -55,12 +56,43 @@ enum
 	COLUMN_LAST
 };
 
+static void
+ppg_cpu_instrument_calc_cpu (PpgModel *model,
+                             PpgModelIter *iter,
+                             gint key,
+                             GValue *value,
+                             gpointer user_data)
+{
+	gint user;
+	gint nice_;
+	gint system;
+	gint idle;
+	gdouble percent;
+
+	ppg_model_get(model, iter,
+	              COLUMN_USER, &user,
+	              COLUMN_NICE, &nice_,
+	              COLUMN_SYSTEM, &system,
+	              COLUMN_IDLE, &idle,
+	              -1);
+
+	g_value_init(value, G_TYPE_DOUBLE);
+	percent = (gdouble)(user + nice_ + system) /
+	          (gdouble)(user + nice_ + system + idle) *
+	          100.0;
+	g_value_set_double(value, percent);
+}
+
 static PpgVisualizer*
 ppg_cpu_instrument_combined_cb (PpgCpuInstrument *instrument)
 {
 	PpgCpuInstrumentPrivate *priv;
 	PpgLineVisualizer *visualizer;
-	PpgColorIter iter;
+	PpgColorIter color;
+	GHashTableIter iter;
+	gpointer key;
+	gpointer value;
+	gchar *title;
 
 	g_return_val_if_fail(PPG_IS_CPU_INSTRUMENT(instrument), NULL);
 
@@ -71,9 +103,18 @@ ppg_cpu_instrument_combined_cb (PpgCpuInstrument *instrument)
 	                          "title", _("Combined Cpu Usage"),
 	                          NULL);
 
-	ppg_color_iter_init(&iter);
-	ppg_line_visualizer_append(visualizer, _("User"), &iter.color,
-	                           FALSE, priv->model, COLUMN_COOKED);
+	g_hash_table_iter_init(&iter, priv->models);
+	ppg_color_iter_init(&color);
+
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		title = g_strdup_printf(_("CPU %d"), *(gint *)key);
+		ppg_line_visualizer_append(visualizer, title, &color.color,
+								   FALSE, value, COLUMN_COOKED);
+		g_free(title);
+		ppg_color_iter_next(&color);
+	}
+
+	priv->cmb_viz = g_list_prepend(priv->cmb_viz, visualizer);
 
 	return PPG_VISUALIZER(visualizer);
 }
@@ -84,6 +125,53 @@ static PpgVisualizerEntry visualizer_entries[] = {
 	  NULL,
 	  G_CALLBACK(ppg_cpu_instrument_combined_cb) },
 };
+
+static PpgModel *
+get_model (PpgCpuInstrument *instrument,
+           PkManifest *manifest,
+           gint cpu)
+{
+	PpgCpuInstrumentPrivate *priv;
+	PpgModel *model;
+	GList *iter;
+	gint *key;
+
+	g_return_val_if_fail(PPG_IS_CPU_INSTRUMENT(instrument), NULL);
+
+	priv = instrument->priv;
+
+	if (!(model = g_hash_table_lookup(priv->models, &cpu))) {
+		model = g_object_new(PPG_TYPE_MODEL, NULL);
+
+		ppg_model_add_mapping(model, COLUMN_CPUNUM, "CPU Number", G_TYPE_INT, PPG_MODEL_RAW);
+		ppg_model_add_mapping(model, COLUMN_USER, "User", G_TYPE_INT, PPG_MODEL_COUNTER);
+		ppg_model_add_mapping(model, COLUMN_NICE, "Nice", G_TYPE_INT, PPG_MODEL_COUNTER);
+		ppg_model_add_mapping(model, COLUMN_SYSTEM, "System", G_TYPE_INT, PPG_MODEL_COUNTER);
+		ppg_model_add_mapping(model, COLUMN_IDLE, "Idle", G_TYPE_INT, PPG_MODEL_COUNTER);
+		ppg_model_add_mapping_func(model, COLUMN_COOKED, ppg_cpu_instrument_calc_cpu, instrument);
+
+		/* add current manifest */
+		ppg_model_insert_manifest(model, manifest);
+
+		key = g_new(gint, 1);
+		*key = cpu;
+		g_hash_table_insert(priv->models, key, model);
+
+		/* notify all the visualizers that there is a new cpu */
+		for (iter = priv->cmb_viz; iter; iter = iter->next) {
+			PpgColorIter color;
+			gchar *title;
+
+			ppg_color_iter_init(&color);
+			title = g_strdup_printf(_("CPU %d"), cpu);
+			ppg_line_visualizer_append(iter->data, title, &color.color,
+									   FALSE, model, COLUMN_COOKED);
+			g_free(title);
+		}
+	}
+
+	return model;
+}
 
 /**
  * ppg_cpu_instrument_manifest_cb:
@@ -98,16 +186,22 @@ static PpgVisualizerEntry visualizer_entries[] = {
  */
 static void
 ppg_cpu_instrument_manifest_cb (PkManifest *manifest,
-                                   gpointer    user_data)
+                                gpointer    user_data)
 {
 	PpgCpuInstrument *instrument = (PpgCpuInstrument *)user_data;
 	PpgCpuInstrumentPrivate *priv;
+	GHashTableIter iter;
+	gpointer key;
+	gpointer value;
 
 	g_return_if_fail(PPG_IS_CPU_INSTRUMENT(instrument));
 
 	priv = instrument->priv;
 
-	ppg_model_insert_manifest(priv->model, manifest);
+	g_hash_table_iter_init(&iter, priv->models);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		ppg_model_insert_manifest(value, manifest);
+	}
 }
 
 /**
@@ -128,6 +222,10 @@ ppg_cpu_instrument_sample_cb (PkManifest *manifest,
 {
 	PpgCpuInstrument *instrument = (PpgCpuInstrument *)user_data;
 	PpgCpuInstrumentPrivate *priv;
+	PpgModel *model;
+	GValue value = { 0 };
+	gint row;
+	gint cpu;
 
 	g_return_if_fail(PPG_IS_CPU_INSTRUMENT(instrument));
 
@@ -138,7 +236,12 @@ ppg_cpu_instrument_sample_cb (PkManifest *manifest,
 	g_assert_cmpint(pk_manifest_get_source_id(manifest), ==, priv->source);
 #endif
 
-	ppg_model_insert_sample(priv->model, manifest, sample);
+	row = pk_manifest_get_row_id(manifest, "CPU Number");
+	pk_sample_get_value(sample, row, &value);
+	cpu = g_value_get_int(&value);
+	model = get_model(instrument, manifest, cpu);
+
+	ppg_model_insert_sample(model, manifest, sample);
 }
 
 /**
@@ -274,38 +377,11 @@ ppg_cpu_instrument_unload (PpgInstrument  *instrument,
 }
 
 static void
-ppg_cpu_instrument_calc_cpu (PpgModel *model,
-                             PpgModelIter *iter,
-                             gint key,
-                             GValue *value,
-                             gpointer user_data)
-{
-	gint user;
-	gint nice_;
-	gint system;
-	gint idle;
-	gdouble percent;
-
-	ppg_model_get(model, iter,
-	              COLUMN_USER, &user,
-	              COLUMN_NICE, &nice_,
-	              COLUMN_SYSTEM, &system,
-	              COLUMN_IDLE, &idle,
-	              -1);
-
-	g_value_init(value, G_TYPE_DOUBLE);
-	percent = (gdouble)(user + nice_ + system) /
-	          (gdouble)(user + nice_ + system + idle) *
-	          100.0;
-	g_value_set_double(value, percent);
-}
-
-static void
 ppg_cpu_instrument_finalize (GObject *object)
 {
 	PpgCpuInstrumentPrivate *priv = PPG_CPU_INSTRUMENT(object)->priv;
 
-	g_object_unref(priv->model);
+	g_hash_table_destroy(priv->models);
 
 	G_OBJECT_CLASS(ppg_cpu_instrument_parent_class)->finalize(object);
 }
@@ -339,11 +415,6 @@ ppg_cpu_instrument_init (PpgCpuInstrument *instrument)
 	                                    G_N_ELEMENTS(visualizer_entries),
 	                                    instrument);
 
-	priv->model = g_object_new(PPG_TYPE_MODEL, NULL);
-	ppg_model_add_mapping(priv->model, COLUMN_CPUNUM, "CPU Number", G_TYPE_INT, PPG_MODEL_RAW);
-	ppg_model_add_mapping(priv->model, COLUMN_USER, "User", G_TYPE_INT, PPG_MODEL_COUNTER);
-	ppg_model_add_mapping(priv->model, COLUMN_NICE, "Nice", G_TYPE_INT, PPG_MODEL_COUNTER);
-	ppg_model_add_mapping(priv->model, COLUMN_SYSTEM, "System", G_TYPE_INT, PPG_MODEL_COUNTER);
-	ppg_model_add_mapping(priv->model, COLUMN_IDLE, "Idle", G_TYPE_INT, PPG_MODEL_COUNTER);
-	ppg_model_add_mapping_func(priv->model, COLUMN_COOKED, ppg_cpu_instrument_calc_cpu, instrument);
+	priv->models = g_hash_table_new_full(g_int_hash, g_int_equal,
+	                                     g_free, g_object_unref);
 }
