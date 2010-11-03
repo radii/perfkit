@@ -24,6 +24,7 @@
 #include <glib/gstdio.h>
 #include <perfkit-agent/perfkit-agent.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "src-utils.h"
 
@@ -46,9 +47,13 @@ gboolean
 parse_cpu_stat_line (gchar *str, /* IN */
                      gint *val) /* IN/OUT */
 {
-   return 10 == sscanf(str, "cpu%d %d %d %d %d %d %d %d %d %d",
-                       &val[0], &val[1], &val[2], &val[3], &val[4],
-                       &val[5], &val[6], &val[7], &val[8], &val[9]);
+	if (!strncmp(str, "cpu ", 4)) {
+		return FALSE;
+	}
+
+	return 10 == sscanf(str, "cpu%d %d %d %d %d %d %d %d %d %d",
+	                    &val[0], &val[1], &val[2], &val[3], &val[4],
+	                    &val[5], &val[6], &val[7], &val[8], &val[9]);
 } /* parse_cpu_stat_line */
 
 
