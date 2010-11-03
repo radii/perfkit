@@ -54,6 +54,7 @@
 #define LARGER(_s)        ("<span size=\"larger\">" _s "</span>")
 #define BOLD(_s)          ("<span weight=\"bold\">" _s "</span>")
 #define UPDATE_TIMEOUT    1000
+#define SHADOW_HEIGHT     (10.0f)
 #define SET_ACTION_INSENSITIVE(n)                        \
     G_STMT_START {                                       \
         g_object_set(ppg_window_get_action(window, (n)), \
@@ -118,6 +119,9 @@ struct _PpgWindowPrivate
 	ClutterActor *add_instrument_actor;
 	ClutterActor *timer_sep;
 	ClutterActor *status_actor;
+	ClutterActor *container;
+	ClutterActor *top_shadow;
+	ClutterActor *bottom_shadow;
 
 	ClutterLayoutManager *box_layout;
 };
@@ -942,20 +946,28 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 	ppg_window_position_notify(priv->session, NULL, window);
 }
 
+static gboolean
+ppg_window_vadj_value_changed_timeout (gpointer data)
+{
+	PpgWindow *window = (PpgWindow *)data;
+	PpgWindowPrivate *priv;
+	gfloat value;
+
+	g_return_val_if_fail(PPG_IS_WINDOW(window), FALSE);
+
+	priv = window->priv;
+
+	value = gtk_adjustment_get_value(priv->vadj);
+	clutter_actor_set_y(priv->container, -(gint)value);
+
+	return FALSE;
+}
+
 static void
 ppg_window_vadj_value_changed (GtkAdjustment *adj,
                                PpgWindow *window)
 {
-	PpgWindowPrivate *priv;
-	gfloat value;
-
-	g_return_if_fail(GTK_IS_ADJUSTMENT(adj));
-	g_return_if_fail(PPG_IS_WINDOW(window));
-
-	priv = window->priv;
-
-	value = gtk_adjustment_get_value(adj);
-	clutter_actor_set_y(priv->rows_box, -(gint)value);
+	g_timeout_add(0, ppg_window_vadj_value_changed_timeout, window);
 }
 
 static void
@@ -993,8 +1005,13 @@ ppg_window_size_allocate (GtkWidget     *widget,
 		clutter_actor_set_height(priv->timer_sep, embed_alloc.height);
 		clutter_actor_set_y(priv->status_actor,
 		                    embed_alloc.height - clutter_actor_get_height(priv->status_actor));
+		clutter_actor_set_y(priv->bottom_shadow,
+		                    embed_alloc.height - SHADOW_HEIGHT);
+		clutter_actor_set_width(priv->bottom_shadow, embed_alloc.width);
+		clutter_actor_set_width(priv->top_shadow, embed_alloc.width);
 
 		g_object_set(priv->vadj,
+		             "page-increment", (embed_alloc.height / 2.0),
 		             "page-size", (gdouble)embed_alloc.height,
 		             NULL);
 
@@ -1538,6 +1555,38 @@ ppg_window_rows_notify_allocation (ClutterActor *actor,
 	             NULL);
 }
 
+static ClutterActor*
+create_shadow (gboolean down)
+{
+	ClutterCairoTexture *texture;
+	cairo_pattern_t *p;
+	cairo_t *cr;
+
+	texture = g_object_new(CLUTTER_TYPE_CAIRO_TEXTURE,
+	                       "surface-width", 1,
+	                       "surface-height", (gint)SHADOW_HEIGHT,
+	                       "repeat-x", TRUE,
+	                       "width", 800.0f,
+	                       "height", SHADOW_HEIGHT,
+	                       NULL);
+
+	cr = clutter_cairo_texture_create(texture);
+	p = cairo_pattern_create_linear(0, 0, 0, SHADOW_HEIGHT);
+	if (down) {
+		cairo_pattern_add_color_stop_rgba(p, 0, .3, .3, .3, 0.4);
+		cairo_pattern_add_color_stop_rgba(p, 1, .3, .3, .3, 0.0);
+	} else {
+		cairo_pattern_add_color_stop_rgba(p, 0, .3, .3, .3, 0.0);
+		cairo_pattern_add_color_stop_rgba(p, 1, .3, .3, .3, 0.4);
+	}
+	cairo_set_source(cr, p);
+	cairo_rectangle(cr, 0, 0, 1, SHADOW_HEIGHT);
+	cairo_fill(cr);
+	cairo_destroy(cr);
+
+	return CLUTTER_ACTOR(texture);
+}
+
 /**
  * ppg_window_finalize:
  * @object: (in): A #PpgWindow.
@@ -1697,6 +1746,8 @@ ppg_window_init (PpgWindow *window)
 	GtkWidget *status_hbox;
 	GtkWidget *visualizers;
 	GtkWidget *mb_visualizers;
+	ClutterLayoutManager *outer_layout;
+	ClutterActor *bottom;
 
 	instances++;
 
@@ -1732,6 +1783,7 @@ ppg_window_init (PpgWindow *window)
 	priv->vadj = g_object_new(GTK_TYPE_ADJUSTMENT,
 	                          "lower", 0.0,
 	                          "page-size", 1.0,
+	                          "step-increment", 1.0,
 	                          "upper", 1.0,
 	                          "value", 0.0,
 	                          NULL);
@@ -1999,6 +2051,13 @@ ppg_window_init (PpgWindow *window)
 	                                "height", 1.0f,
 	                                "x", (COLUMN_WIDTH - 1.0f),
 	                                NULL);
+	outer_layout = g_object_new(CLUTTER_TYPE_BOX_LAYOUT,
+	                            "use-animations", FALSE,
+	                            "vertical", TRUE,
+	                            NULL);
+	priv->container = g_object_new(CLUTTER_TYPE_BOX,
+	                               "layout-manager", outer_layout,
+	                               NULL);
 	priv->box_layout = g_object_new(CLUTTER_TYPE_BOX_LAYOUT,
 	                                "use-animations", FALSE,
 	                                "vertical", TRUE,
@@ -2006,6 +2065,15 @@ ppg_window_init (PpgWindow *window)
 	priv->rows_box = g_object_new(CLUTTER_TYPE_BOX,
 	                              "layout-manager", priv->box_layout,
 	                              NULL);
+	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(outer_layout),
+	                        CLUTTER_ACTOR(priv->rows_box), TRUE, TRUE, FALSE,
+	                        CLUTTER_BOX_ALIGNMENT_START,
+	                        CLUTTER_BOX_ALIGNMENT_START);
+	bottom = create_shadow(TRUE);
+	clutter_box_layout_pack(CLUTTER_BOX_LAYOUT(outer_layout),
+	                        CLUTTER_ACTOR(bottom), TRUE, TRUE, FALSE,
+	                        CLUTTER_BOX_ALIGNMENT_START,
+	                        CLUTTER_BOX_ALIGNMENT_START);
 	g_signal_connect(priv->rows_box, "notify::allocation",
 	                 G_CALLBACK(ppg_window_rows_notify_allocation),
 	                 window);
@@ -2026,12 +2094,16 @@ ppg_window_init (PpgWindow *window)
 	                                  "opacity", 0,
 	                                  "y", 200.0f,
 	                                  NULL);
+	priv->top_shadow = create_shadow(TRUE);
+	priv->bottom_shadow = create_shadow(FALSE);
 
 	clutter_container_add(CLUTTER_CONTAINER(priv->stage),
 	                      priv->header_bg,
 	                      priv->header_sep,
-	                      priv->rows_box,
 	                      priv->add_instrument_actor,
+	                      priv->top_shadow,
+	                      priv->bottom_shadow,
+	                      priv->container,
 	                      priv->timer_sep,
 	                      priv->status_actor,
 	                      NULL);
