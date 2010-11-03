@@ -47,6 +47,7 @@ G_DEFINE_TYPE(PpgModel, ppg_model, G_TYPE_INITIALLY_UNOWNED)
 typedef struct
 {
 	gint key;
+	PpgModelType type;
 	gchar *name;
 	GType expected_type;
 	PpgModelValueFunc func;
@@ -65,6 +66,55 @@ struct _PpgModelPrivate
 	GPtrArray  *samples;         /* All samples */
 };
 
+static inline void
+_g_value_subtract (GValue *left,
+                   GValue *right)
+{
+	g_assert_cmpint(left->g_type, ==, right->g_type);
+
+	switch (left->g_type) {
+	case G_TYPE_INT: {
+		gint x = g_value_get_int(left);
+		gint y = g_value_get_int(right);
+		g_value_set_int(left, x - y);
+		break;
+	}
+	case G_TYPE_UINT: {
+		guint x = g_value_get_uint(left);
+		guint y = g_value_get_uint(right);
+		g_value_set_uint(left, x - y);
+		break;
+	}
+	case G_TYPE_LONG: {
+		glong x = g_value_get_long(left);
+		glong y = g_value_get_long(right);
+		g_value_set_long(left, x - y);
+		break;
+	}
+	case G_TYPE_ULONG: {
+		gulong x = g_value_get_ulong(left);
+		gulong y = g_value_get_ulong(right);
+		g_value_set_ulong(left, x - y);
+		break;
+	}
+	case G_TYPE_FLOAT: {
+		gfloat x = g_value_get_float(left);
+		gfloat y = g_value_get_float(right);
+		g_value_set_float(left, x - y);
+		break;
+	}
+	case G_TYPE_DOUBLE: {
+		gdouble x = g_value_get_double(left);
+		gdouble y = g_value_get_double(right);
+		g_value_set_double(left, x - y);
+		break;
+	}
+	default:
+		/* XXX: Add support for type. */
+		g_assert_not_reached();
+	}
+}
+
 static void
 mapping_get_value (Mapping *mapping,
                    PpgModel *model,
@@ -73,30 +123,62 @@ mapping_get_value (Mapping *mapping,
                    PkSample *sample,
                    GValue  *value)
 {
+	PpgModelPrivate *priv;
+	GValue last_value = { 0 };
+	PkSample *last;
 	GType type;
 	gint row;
+	gint idx;
 
 	g_return_if_fail(mapping != NULL);
 	g_return_if_fail(manifest != NULL);
 	g_return_if_fail(sample != NULL);
 	g_return_if_fail(value != NULL);
 
+	priv = model->priv;
+
 	if (mapping->func) {
 		mapping->func(model, iter, mapping->key, value, mapping->user_data);
-	} else {
-		/*
-		 * FIXME: Probably should cache these somewhere per manifest.
-		 */
-		row = pk_manifest_get_row_id(manifest, mapping->name);
-		if (mapping->expected_type) {
-			type = pk_manifest_get_row_type(manifest, row);
-			if (type != mapping->expected_type) {
-				g_critical("Incoming type %s does not match %s",
-				           g_type_name(type),
-				           g_type_name(mapping->expected_type));
-				return;
-			}
+		return;
+	}
+
+	/*
+	 * FIXME: Probably should cache these somewhere per manifest.
+	 */
+	row = pk_manifest_get_row_id(manifest, mapping->name);
+	if (mapping->expected_type) {
+		type = pk_manifest_get_row_type(manifest, row);
+		if (type != mapping->expected_type) {
+			g_critical("Incoming type %s does not match %s",
+			           g_type_name(type),
+			           g_type_name(mapping->expected_type));
+			return;
 		}
+	}
+
+	if (mapping->type == PPG_MODEL_COUNTER) {
+		/*
+		 * We need to get the last value and subtract it.
+		 */
+		idx = GPOINTER_TO_INT(iter->user_data3);
+		if (!idx) {
+			g_value_init(value, mapping->expected_type);
+			return;
+		}
+
+		last = g_ptr_array_index(priv->samples, idx - 1);
+		/*
+		 * FIXME: There is a (unlikely) chance that the last sample
+		 *        was not part of this manifest and the row id is
+		 *        different.
+		 */
+		if (!pk_sample_get_value(last, row, &last_value) ||
+		    !pk_sample_get_value(sample, row, value)) {
+			g_value_init(value, pk_manifest_get_row_type(manifest, row));
+		} else {
+			_g_value_subtract(value, &last_value);
+		}
+	} else {
 		if (!pk_sample_get_value(sample, row, value)) {
 			g_value_init(value, pk_manifest_get_row_type(manifest, row));
 		}
@@ -224,10 +306,11 @@ ppg_model_insert_sample (PpgModel   *model,
 }
 
 void
-ppg_model_add_mapping (PpgModel    *model,
-                       gint         key,
-                       const gchar *field,
-                       GType        expected_type)
+ppg_model_add_mapping (PpgModel     *model,
+                       gint          key,
+                       const gchar  *field,
+                       GType         expected_type,
+                       PpgModelType  type)
 {
 	PpgModelPrivate *priv;
 	Mapping *mapping;
@@ -240,6 +323,7 @@ ppg_model_add_mapping (PpgModel    *model,
 	mapping->key = key;
 	mapping->name = g_strdup(field);
 	mapping->expected_type = expected_type;
+	mapping->type = type;
 
 	g_hash_table_insert(priv->mappings, &mapping->key, mapping);
 }

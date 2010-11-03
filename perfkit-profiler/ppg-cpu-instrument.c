@@ -46,6 +46,7 @@ struct _PpgCpuInstrumentPrivate
 
 enum
 {
+	COLUMN_CPUNUM,
 	COLUMN_USER,
 	COLUMN_NICE,
 	COLUMN_SYSTEM,
@@ -339,11 +340,10 @@ ppg_cpu_instrument_init (PpgCpuInstrument *instrument)
 	                                    instrument);
 
 	priv->model = g_object_new(PPG_TYPE_MODEL, NULL);
-	ppg_model_add_mapping(priv->model, COLUMN_USER, "User", G_TYPE_INT);
-	ppg_model_add_mapping(priv->model, COLUMN_NICE, "Nice", G_TYPE_INT);
-	ppg_model_add_mapping(priv->model, COLUMN_SYSTEM, "System", G_TYPE_INT);
-	ppg_model_add_mapping(priv->model, COLUMN_IDLE, "Idle", G_TYPE_INT);
-	ppg_model_add_mapping_func(priv->model, COLUMN_COOKED,
-	                           ppg_cpu_instrument_calc_cpu,
-	                           instrument);
+	ppg_model_add_mapping(priv->model, COLUMN_CPUNUM, "CPU Number", G_TYPE_INT, PPG_MODEL_RAW);
+	ppg_model_add_mapping(priv->model, COLUMN_USER, "User", G_TYPE_INT, PPG_MODEL_COUNTER);
+	ppg_model_add_mapping(priv->model, COLUMN_NICE, "Nice", G_TYPE_INT, PPG_MODEL_COUNTER);
+	ppg_model_add_mapping(priv->model, COLUMN_SYSTEM, "System", G_TYPE_INT, PPG_MODEL_COUNTER);
+	ppg_model_add_mapping(priv->model, COLUMN_IDLE, "Idle", G_TYPE_INT, PPG_MODEL_COUNTER);
+	ppg_model_add_mapping_func(priv->model, COLUMN_COOKED, ppg_cpu_instrument_calc_cpu, instrument);
 }

@@ -35,6 +35,7 @@ typedef struct _PpgModel        PpgModel;
 typedef struct _PpgModelClass   PpgModelClass;
 typedef struct _PpgModelPrivate PpgModelPrivate;
 typedef struct _PpgModelIter    PpgModelIter;
+typedef enum   _PpgModelType    PpgModelType;
 typedef enum   _PpgResolution   PpgResolution;
 
 typedef void (*PpgModelValueFunc) (PpgModel     *model,
@@ -76,11 +77,20 @@ enum _PpgResolution
 	PPG_RESOLUTION_MINUTE,
 };
 
+enum _PpgModelType
+{
+	PPG_MODEL_RAW,
+	PPG_MODEL_COUNTER,
+
+	PPG_MODEL_DEFAULT = PPG_MODEL_RAW,
+};
+
 GType    ppg_model_get_type         (void) G_GNUC_CONST;
 void     ppg_model_add_mapping      (PpgModel          *model,
                                      gint               key,
                                      const gchar       *field,
-                                     GType              expected_type);
+                                     GType              expected_type,
+                                     PpgModelType       type);
 void     ppg_model_add_mapping_func (PpgModel          *model,
                                      gint               key,
                                      PpgModelValueFunc  func,
