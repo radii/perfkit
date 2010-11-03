@@ -901,6 +901,10 @@ ppg_window_position_notify (PpgSession *session,
 	x = (gint)(200.0f + (ratio * width));
 
 	g_object_set(priv->timer_sep, "x", x, NULL);
+
+	g_object_set(priv->hadj,
+	             "upper", position,
+	             NULL);
 }
 
 static void
@@ -944,6 +948,11 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 	                           NULL);
 
 	ppg_window_position_notify(priv->session, NULL, window);
+
+	g_object_set(priv->hadj,
+	             "page-size", (gdouble)(upper - lower),
+	             "position", (gdouble)lower,
+	             NULL);
 }
 
 static gboolean
@@ -1791,7 +1800,13 @@ ppg_window_init (PpgWindow *window)
 	                 G_CALLBACK(ppg_window_vadj_value_changed),
 	                 window);
 
-	priv->hadj = g_object_new(GTK_TYPE_ADJUSTMENT, NULL);
+	priv->hadj = g_object_new(GTK_TYPE_ADJUSTMENT,
+	                          "lower", 0.0,
+	                          "page-size", 1.0,
+	                          "step-increment", 1.0,
+	                          "upper", 1.0,
+	                          "value", 0.0,
+	                          NULL);
 
 	vbox = g_object_new(GTK_TYPE_VBOX,
 	                    "visible", TRUE,
@@ -1910,6 +1925,7 @@ ppg_window_init (PpgWindow *window)
 	                                  NULL);
 
 	scroll = g_object_new(GTK_TYPE_HSCROLLBAR,
+	                      "adjustment", priv->hadj,
 	                      "visible", TRUE,
 	                      NULL);
 	gtk_container_add_with_properties(GTK_CONTAINER(status_vbox), scroll,
