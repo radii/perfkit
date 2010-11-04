@@ -169,7 +169,7 @@ ppg_line_visualizer_draw (PpgVisualizer *visualizer)
 	gdouble end;
 	gdouble lower;
 	gdouble upper;
-	gdouble val;
+	gdouble val = 0;
 	gint i;
 
 	g_return_if_fail(PPG_IS_LINE_VISUALIZER(visualizer));
