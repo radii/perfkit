@@ -903,7 +903,7 @@ ppg_window_position_notify (PpgSession *session,
 	g_object_set(priv->timer_sep, "x", x, NULL);
 
 	g_object_set(priv->hadj,
-	             "upper", position,
+	             "upper", MAX(1.0, position),
 	             NULL);
 }
 
@@ -950,7 +950,7 @@ ppg_window_zoom_value_changed (GtkAdjustment *adjustment,
 	ppg_window_position_notify(priv->session, NULL, window);
 
 	g_object_set(priv->hadj,
-	             "page-size", (gdouble)(upper - lower),
+	             "page-size", MAX(1.0, upper - lower),
 	             "value", (gdouble)lower,
 	             NULL);
 }
