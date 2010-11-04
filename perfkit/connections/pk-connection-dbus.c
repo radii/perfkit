@@ -1141,8 +1141,10 @@ pk_connection_dbus_channel_add_source_finish (PkConnection  *connection, /* IN *
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_add_source), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -1281,8 +1283,10 @@ pk_connection_dbus_channel_get_args_finish (PkConnection   *connection, /* IN */
 	g_return_val_if_fail(args != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_args), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -1437,8 +1441,10 @@ pk_connection_dbus_channel_get_created_at_finish (PkConnection  *connection, /* 
 	g_return_val_if_fail(tv != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_created_at), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -1594,8 +1600,10 @@ pk_connection_dbus_channel_get_env_finish (PkConnection   *connection, /* IN */
 	g_return_val_if_fail(env != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_env), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -1749,8 +1757,10 @@ pk_connection_dbus_channel_get_exit_status_finish (PkConnection  *connection,  /
 	g_return_val_if_fail(exit_status != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_exit_status), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -1904,8 +1914,10 @@ pk_connection_dbus_channel_get_kill_pid_finish (PkConnection  *connection, /* IN
 	g_return_val_if_fail(kill_pid != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_kill_pid), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2059,8 +2071,10 @@ pk_connection_dbus_channel_get_pid_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(pid != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_pid), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2214,8 +2228,10 @@ pk_connection_dbus_channel_get_pid_set_finish (PkConnection  *connection, /* IN 
 	g_return_val_if_fail(pid_set != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_pid_set), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2373,8 +2389,10 @@ pk_connection_dbus_channel_get_sources_finish (PkConnection  *connection,  /* IN
 	g_return_val_if_fail(sources_len != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_sources), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2540,8 +2558,10 @@ pk_connection_dbus_channel_get_state_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(state != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_state), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2695,8 +2715,10 @@ pk_connection_dbus_channel_get_target_finish (PkConnection  *connection, /* IN *
 	g_return_val_if_fail(target != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_target), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -2851,8 +2873,10 @@ pk_connection_dbus_channel_get_working_dir_finish (PkConnection  *connection,  /
 	g_return_val_if_fail(working_dir != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_get_working_dir), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3004,8 +3028,10 @@ pk_connection_dbus_channel_mute_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_mute), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3142,8 +3168,10 @@ pk_connection_dbus_channel_set_args_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_args), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3280,8 +3308,10 @@ pk_connection_dbus_channel_set_env_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_env), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3418,8 +3448,10 @@ pk_connection_dbus_channel_set_kill_pid_finish (PkConnection  *connection, /* IN
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_kill_pid), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3556,8 +3588,10 @@ pk_connection_dbus_channel_set_pid_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_pid), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3694,8 +3728,10 @@ pk_connection_dbus_channel_set_target_finish (PkConnection  *connection, /* IN *
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_target), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3832,8 +3868,10 @@ pk_connection_dbus_channel_set_working_dir_finish (PkConnection  *connection, /*
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_set_working_dir), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -3968,8 +4006,10 @@ pk_connection_dbus_channel_start_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_start), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4104,8 +4144,10 @@ pk_connection_dbus_channel_stop_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_stop), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4240,8 +4282,10 @@ pk_connection_dbus_channel_unmute_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(channel_unmute), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4380,8 +4424,10 @@ pk_connection_dbus_encoder_get_plugin_finish (PkConnection  *connection, /* IN *
 	g_return_val_if_fail(plugin != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(encoder_get_plugin), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4530,8 +4576,10 @@ pk_connection_dbus_manager_add_channel_finish (PkConnection  *connection, /* IN 
 	g_return_val_if_fail(channel != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_add_channel), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4688,8 +4736,10 @@ pk_connection_dbus_manager_add_source_finish (PkConnection  *connection, /* IN *
 	g_return_val_if_fail(source != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_add_source), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -4848,8 +4898,10 @@ pk_connection_dbus_manager_add_subscription_finish (PkConnection  *connection,  
 	g_return_val_if_fail(subscription != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_add_subscription), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5001,8 +5053,10 @@ pk_connection_dbus_manager_get_channels_finish (PkConnection  *connection,   /* 
 	g_return_val_if_fail(channels_len != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_channels), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5157,8 +5211,10 @@ pk_connection_dbus_manager_get_hostname_finish (PkConnection  *connection, /* IN
 	g_return_val_if_fail(hostname != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_hostname), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5304,8 +5360,10 @@ pk_connection_dbus_manager_get_plugins_finish (PkConnection   *connection, /* IN
 	g_return_val_if_fail(plugins != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_plugins), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5462,8 +5520,10 @@ pk_connection_dbus_manager_get_sources_finish (PkConnection  *connection,  /* IN
 	g_return_val_if_fail(sources_len != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_sources), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5622,8 +5682,10 @@ pk_connection_dbus_manager_get_subscriptions_finish (PkConnection  *connection, 
 	g_return_val_if_fail(subscriptions_len != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_subscriptions), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5778,8 +5840,10 @@ pk_connection_dbus_manager_get_version_finish (PkConnection  *connection, /* IN 
 	g_return_val_if_fail(version != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_get_version), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -5924,8 +5988,10 @@ pk_connection_dbus_manager_ping_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(tv != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_ping), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6077,8 +6143,10 @@ pk_connection_dbus_manager_remove_channel_finish (PkConnection  *connection, /* 
 	g_return_val_if_fail(removed != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_remove_channel), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6226,8 +6294,10 @@ pk_connection_dbus_manager_remove_source_finish (PkConnection  *connection, /* I
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_remove_source), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Check if call was cancelled.
@@ -6358,8 +6428,10 @@ pk_connection_dbus_manager_remove_subscription_finish (PkConnection  *connection
 	g_return_val_if_fail(removed != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(manager_remove_subscription), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6513,8 +6585,10 @@ pk_connection_dbus_plugin_get_copyright_finish (PkConnection  *connection, /* IN
 	g_return_val_if_fail(copyright != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_copyright), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6669,8 +6743,10 @@ pk_connection_dbus_plugin_get_description_finish (PkConnection  *connection,  /*
 	g_return_val_if_fail(description != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_description), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6825,8 +6901,10 @@ pk_connection_dbus_plugin_get_name_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(name != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_name), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -6981,8 +7059,10 @@ pk_connection_dbus_plugin_get_plugin_type_finish (PkConnection  *connection, /* 
 	g_return_val_if_fail(type != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_plugin_type), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7136,8 +7216,10 @@ pk_connection_dbus_plugin_get_version_finish (PkConnection  *connection, /* IN *
 	g_return_val_if_fail(version != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(plugin_get_version), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7293,8 +7375,10 @@ pk_connection_dbus_source_get_plugin_finish (PkConnection  *connection, /* IN */
 	g_return_val_if_fail(plugin != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(source_get_plugin), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7454,8 +7538,10 @@ pk_connection_dbus_subscription_add_channel_finish (PkConnection  *connection, /
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_add_channel), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7592,8 +7678,10 @@ pk_connection_dbus_subscription_add_source_finish (PkConnection  *connection, /*
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_add_source), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7733,8 +7821,10 @@ pk_connection_dbus_subscription_get_buffer_finish (PkConnection  *connection, /*
 	g_return_val_if_fail(size != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_buffer), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -7892,8 +7982,10 @@ pk_connection_dbus_subscription_get_created_at_finish (PkConnection  *connection
 	g_return_val_if_fail(tv != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_created_at), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8052,8 +8144,10 @@ pk_connection_dbus_subscription_get_sources_finish (PkConnection  *connection,  
 	g_return_val_if_fail(sources_len != NULL, FALSE);
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_get_sources), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8218,8 +8312,10 @@ pk_connection_dbus_subscription_mute_finish (PkConnection  *connection, /* IN */
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_mute), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8356,8 +8452,10 @@ pk_connection_dbus_subscription_remove_channel_finish (PkConnection  *connection
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_remove_channel), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8494,8 +8592,10 @@ pk_connection_dbus_subscription_remove_source_finish (PkConnection  *connection,
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_remove_source), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8634,8 +8734,10 @@ pk_connection_dbus_subscription_set_buffer_finish (PkConnection  *connection, /*
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_set_buffer), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -8772,8 +8874,10 @@ pk_connection_dbus_subscription_set_encoder_finish (PkConnection  *connection, /
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_set_encoder), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
@@ -9000,8 +9104,10 @@ pk_connection_dbus_subscription_unmute_finish (PkConnection  *connection, /* IN 
 
 	g_return_val_if_fail(G_IS_SIMPLE_ASYNC_RESULT(result), FALSE);
 	g_return_val_if_fail(RESULT_IS_VALID(subscription_unmute), FALSE);
-	g_return_val_if_fail((call = GET_RESULT_POINTER(DBusPendingCall, result)),
-	                     FALSE);
+
+	if (!(call = GET_RESULT_POINTER(DBusPendingCall, result))) {
+		return FALSE;
+	}
 
 	/*
 	 * Clear out params.
