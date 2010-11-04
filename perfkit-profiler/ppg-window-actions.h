@@ -67,7 +67,7 @@ static GtkActionEntry ppg_window_action_entries[] = {
 	{ "quit", GTK_STOCK_QUIT, NULL, NULL, NULL, ppg_runtime_quit },
 	{ "close", GTK_STOCK_CLOSE, N_("_Close Window"), NULL, NULL, G_CALLBACK(ppg_window_close_activate) },
 
-	{ "edit" },
+	{ "edit", NULL, N_("_Edit") },
 	{ "cut", GTK_STOCK_CUT },
 	{ "copy", GTK_STOCK_COPY },
 	{ "paste", GTK_STOCK_PASTE },
@@ -98,7 +98,7 @@ static GtkActionEntry ppg_window_action_entries[] = {
 	{ "zoom-out", GTK_STOCK_ZOOM_OUT, N_("Zoom Out"), "<control>minus", NULL, G_CALLBACK(ppg_window_zoom_out_activate) },
 	{ "zoom-one", GTK_STOCK_ZOOM_100, N_("Normal Size"), "<control>0", NULL, G_CALLBACK(ppg_window_zoom_one_activate) },
 
-	{ "help" },
+	{ "help", NULL, N_("_Help") },
 	{ "about", GTK_STOCK_ABOUT, N_("About " PRODUCT_NAME), NULL, NULL, G_CALLBACK(ppg_window_about_activate) },
 };
 
