@@ -800,7 +800,7 @@ pka_source_simple_init (PkaSourceSimple *source) /* IN */
 	source->priv = G_TYPE_INSTANCE_GET_PRIVATE(source,
 	                                           PKA_TYPE_SOURCE_SIMPLE,
 	                                           PkaSourceSimplePrivate);
-	source->priv->freq.tv_sec = 1;
+	timespec_from_double(1.0, &source->priv->freq);
 	pka_source_simple_init_pthreads(&source->priv->mutex,
 	                                &source->priv->cond);
 	EXIT;

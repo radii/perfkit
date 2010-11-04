@@ -21,6 +21,7 @@
 
 #include <glib.h>
 #include <time.h>
+#include <math.h>
 
 #ifndef G_NSEC_PER_SEC
 #define G_NSEC_PER_SEC 1000000000
@@ -94,6 +95,26 @@ timespec_add (struct timespec *x, /* IN */
 		z->tv_nsec -= G_NSEC_PER_SEC;
 		z->tv_sec += 1;
 	}
+}
+
+/**
+ * timespec_from_double:
+ * @d: A potentially-fractional number of seconds.
+ * @ts: A destination struct timespec.
+ *
+ * Sets @ts to represent the number of seconds denoted in @d.
+ *
+ * Returns: Value converted to timespec in @ts.
+ * Side effects: None.
+ */
+static inline void
+timespec_from_double(double d,            /* IN */
+                     struct timespec *ts) /* OUT */
+{
+	double feh;
+
+	ts->tv_sec = (time_t)d;
+	ts->tv_nsec = modf(d, &feh) * 1e9;
 }
 
 /**
