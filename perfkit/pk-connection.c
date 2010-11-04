@@ -129,7 +129,7 @@ static gsize         protocol_init        = FALSE;
  * Returns: None.
  * Side effects: None.
  */
-static inline void
+static void
 pk_connection_sync_init (PkConnectionSync *async)
 {
 	memset(async, 0, sizeof(*async));
