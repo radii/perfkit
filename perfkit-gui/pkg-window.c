@@ -1194,13 +1194,10 @@ pkg_window_pixbuf_data_func (GtkTreeViewColumn *column,
                              GtkTreeIter       *iter,
                              gpointer           user_data)
 {
-	PkgWindow *window = user_data;
 	GtkTreeIter parent;
 	GtkTreePath *path;
 	gint row_type;
 	gint depth;
-
-	g_return_if_fail(PKG_IS_WINDOW(window));
 
 	/* quick path for top-level computer */
 	if (!gtk_tree_model_iter_parent(model, &parent, iter)) {
