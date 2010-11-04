@@ -102,7 +102,7 @@ ppg_util_real_expose_event (GtkWidget      *widget,
 	GtkAllocation alloc;
 	GtkStateType state;
 	GtkStyle *style;
-	GdkGC *gc;
+	GdkGC *gc = NULL;
 
 	if (GTK_WIDGET_DRAWABLE(widget)) {
 		gtk_widget_get_allocation(widget, &alloc);
