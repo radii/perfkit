@@ -979,6 +979,55 @@ ppg_window_vadj_value_changed (GtkAdjustment *adj,
 	g_timeout_add(0, ppg_window_vadj_value_changed_timeout, window);
 }
 
+static gboolean
+ppg_window_hadj_value_changed_timeout (gpointer data)
+{
+	PpgWindow *window = (PpgWindow *)data;
+	PpgWindowPrivate *priv;
+	gdouble lower;
+	gdouble upper;
+	gdouble value;
+
+	g_return_val_if_fail(PPG_IS_WINDOW(window), FALSE);
+
+	priv = window->priv;
+
+	value = gtk_adjustment_get_value(priv->hadj);
+
+	/*
+	 * TODO:
+	 *
+	 *   Get range of ruler.
+	 *   Add it to value.
+	 *   Update ruler.
+	 *   Update vizualizers.
+	 */
+
+	g_object_get(priv->ruler,
+	             "lower", &lower,
+	             "upper", &upper,
+	             NULL);
+	upper = value + (upper - lower);
+	lower = value;
+	g_object_set(priv->ruler,
+	             "lower", lower,
+	             "upper", upper,
+	             NULL);
+	ppg_window_visualizers_set(window,
+	                           "begin", lower,
+	                           "end", upper,
+	                           NULL);
+
+	return FALSE;
+}
+
+static void
+ppg_window_hadj_value_changed (GtkAdjustment *adj,
+                               PpgWindow *window)
+{
+	g_timeout_add(0, ppg_window_hadj_value_changed_timeout, window);
+}
+
 static void
 ppg_window_size_allocate (GtkWidget     *widget,
                           GtkAllocation *alloc)
@@ -1807,6 +1856,9 @@ ppg_window_init (PpgWindow *window)
 	                          "upper", 1.0,
 	                          "value", 0.0,
 	                          NULL);
+	g_signal_connect(priv->hadj, "value-changed",
+	                 G_CALLBACK(ppg_window_hadj_value_changed),
+	                 window);
 
 	vbox = g_object_new(GTK_TYPE_VBOX,
 	                    "visible", TRUE,
