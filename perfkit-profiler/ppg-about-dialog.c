@@ -306,8 +306,8 @@ ppg_about_dialog_init (PpgAboutDialog *dialog)
 	                                  NULL);
 
 	l = g_object_new(GTK_TYPE_LABEL,
-	                 "label", "Perfkit is licensed under the GNU GPL. Either, version\n"
-	                          "3 of the License, or (at your option), any later\n"
+	                 "label", "Perfkit is licensed under the GNU GPL; either version\n"
+	                          "3 of the License, or (at your option) any later\n"
 	                          "version.",
 	                 "visible", TRUE,
 	                 "justify", GTK_JUSTIFY_LEFT,
